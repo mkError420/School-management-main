@@ -45,9 +45,9 @@ Upload to: public_html/
 
 **Files to upload:**
 - `index.html`
-- `.htaccess` (root .htaccess file)
+- `.htaccess` (IMPORTANT: This fixes 404 errors on page reload)
 - `assets/` folder (contains all CSS and JS files)
-- `images/` folder (contains all PNG images)
+- All PNG image files (announcement.png, assignment.png, etc.)
 - `schema.sql` (for database import)
 - `seed.sql` (for database import)
 

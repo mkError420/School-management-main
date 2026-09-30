@@ -131,7 +131,7 @@ const SignInPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold py-3.5 rounded-xl hover:from-blue-700 hover:to-purple-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
+                className="w-full bg-gray-to-r from-yellow-600 to-gray-600 text-black font-bold py-3.5 rounded-xl hover:from-yellow-700 hover:to-gray-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
               >
                 {isLoading ? "Signing in..." : "Login"}
               </button>
