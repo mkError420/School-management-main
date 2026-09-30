@@ -44,6 +44,9 @@ try {
     } elseif ($segments[0] === 'api' && isset($segments[1])) {
         $resource = $segments[1];
         $id = isset($segments[2]) ? $segments[2] : null;
+        if ($id !== null && !isset($_GET['id'])) {
+            $_GET['id'] = $id;
+        }
         
         // Include the appropriate API file
         $apiFile = __DIR__ . "/api/{$resource}.php";

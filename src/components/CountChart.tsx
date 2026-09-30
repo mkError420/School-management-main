@@ -1,40 +1,34 @@
-"use client";
-import { count } from 'console';
-import Image from 'next/image';
-import { RadialBarChart, RadialBar, Legend, ResponsiveContainer } from 'recharts';
+import React from "react";
+import Image from "@/components/Image";
+import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 
-// #region Sample data
-const data = [
-  
-  {
-    name: 'Total',
-    count: 106,
-    fill: '#FF0000',
-  },
-  {
-    name: 'Girls',
-    count: 40,
-    fill: '#FAE27c',
-  },
-  {
-    name: 'Boys',
-    count: 38,
-    fill: '#C3EBFA',
-  },
-];
+interface CountChartProps {
+  boys?: number;
+  girls?: number;
+}
 
-// #endregion
-const style = {
-  top: '50%',
-  right: 0,
-  transform: 'translate(0, -50%)',
-  lineHeight: '24px',
+const CountChart: React.FC<CountChartProps> = ({ boys = 0, girls = 0 }) => {
+  const total = boys + girls;
+  const data = [
+    {
+      name: 'Total',
+      count: total,
+      fill: '#FF0000',
+    },
+    {
+      name: 'Girls',
+      count: girls,
+      fill: '#FAE27c',
+    },
+    {
+      name: 'Boys',
+      count: boys,
+      fill: '#C3EBFA',
+    },
+  ];
+  const boysPercentage = total > 0 ? Math.round((boys / total) * 100) : 0;
+  const girlsPercentage = total > 0 ? Math.round((girls / total) * 100) : 0;
 
-};
-
-
-
-const CountChart = () => {
   return (
     <div className='bg-yellow-500 w-full h-full p-4 rounded-md'>
       {/* TITLE */}
@@ -46,32 +40,31 @@ const CountChart = () => {
       <div className='relative w-full h-[75%] '>
         <ResponsiveContainer>
         <RadialBarChart cx="50%" cy="50%" innerRadius="40%" outerRadius="100%" barSize={32} data={data}>
-          <RadialBar 
-          /* label={{ position: 'insideStart', fill: '#fff' }} */
-          background 
+          <RadialBar
+          background
           dataKey="count"
           />
 
         </RadialBarChart>
         </ResponsiveContainer>
         <Image src="/maleFemale.png" alt=''width={50} height={50} className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2'/>
-        
+
       </div>
       {/* BOTTOM */}
       <div className='flex justify-center gap-16'>
         <div className=' flex flex-col gap-1'>
           <div className='w-5 h-5 bg-lamaSky rounded-full'/>
-          <h1 className='font-bold'>4,125</h1>
-          <h2 className='text-xs text-gray-700'>Boys(55%)</h2>
+          <h1 className='font-bold'>{boys}</h1>
+          <h2 className='text-xs text-gray-700'>Boys({boysPercentage}%)</h2>
         </div>
         <div className=' flex flex-col gap-1'>
           <div className='w-5 h-5 bg-lamaYellow rounded-full'/>
-          <h1 className='font-bold'>4,125</h1>
-          <h2 className='text-xs text-gray-700'>Girls(45%)</h2>
+          <h1 className='font-bold'>{girls}</h1>
+          <h2 className='text-xs text-gray-700'>Girls({girlsPercentage}%)</h2>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CountChart
+export default CountChart;

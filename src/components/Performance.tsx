@@ -1,6 +1,6 @@
 "use client"
 
-import Image from 'next/image';
+import Image from "@/components/Image";
 import { Pie, PieChart, ResponsiveContainer } from 'recharts';
 
 // #region Sample data

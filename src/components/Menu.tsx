@@ -1,7 +1,7 @@
-import { role } from "@/lib/data";
-import Image from "next/image";
-import Link from "next/link";
-import { comment } from "postcss";
+import React from "react";
+import Image from "@/components/Image";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 const menuItems = [
   {
@@ -118,32 +118,57 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+const Menu: React.FC = () => {
+  const { role, logout } = useAuth();
+  const location = useLocation();
+
   return (
-    <div className="mt-4 text-sm overflow-y-auto flex-1 pr-1">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-gray-900 font-light my-4">
-            {i.title}
-            </span>
-          {i.items.map((item) => {
-            if(item.visible.includes(role)){
+    <div className="mt-4 text-sm overflow-y-auto flex-1 pr-1 custom-scrollbar">
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-1.5 mb-4" key={section.title}>
+          <span className="hidden lg:block text-gray-400 font-semibold text-[11px] tracking-wider my-2 uppercase">
+            {section.title}
+          </span>
+          {section.items.map((item) => {
+            if (!item.visible.includes(role)) return null;
+
+            if (item.href === "/logout") {
               return (
-            <Link href={item.href} 
-            key={item.label} 
-            className=" flex items-center justify-center lg:justify-start gap-4 text-gray-900 py-2 md:px-2 rounded-md hover:bg-purple-200">
-              <Image src={item.icon} alt="" width={20} height={20} />
-              <span className="hidden lg:block">
-                {item.label}
-              </span>
-            </Link>
-          );
+                <button
+                  key={item.label}
+                  onClick={logout}
+                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-600 hover:text-red-600 py-2.5 px-2 rounded-lg hover:bg-red-50 transition w-full text-left"
+                >
+                  <Image src={item.icon} alt="" width={18} height={18} />
+                  <span className="hidden lg:block font-medium">{item.label}</span>
+                </button>
+              );
             }
+
+            const isActive =
+              item.href === "/"
+                ? location.pathname === "/" || location.pathname === `/${role}`
+                : location.pathname.startsWith(item.href);
+
+            return (
+              <Link
+                to={item.href}
+                key={item.label}
+                className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-2 rounded-lg transition font-medium ${
+                  isActive
+                    ? "bg-purple-100 text-purple-800 shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
+              >
+                <Image src={item.icon} alt="" width={18} height={18} />
+                <span className="hidden lg:block">{item.label}</span>
+              </Link>
+            );
           })}
         </div>
       ))}
     </div>
   );
-}
+};
 
-export default Menu
+export default Menu;

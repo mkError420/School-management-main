@@ -1,0 +1,116 @@
+// API Client for PHP Backend & MySQL Database
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/backend/api';
+
+export interface UserSession {
+  id: string;
+  username: string;
+  name?: string;
+  role: 'admin' | 'teacher' | 'student' | 'parent';
+  token: string;
+}
+
+class ApiService {
+  private token: string | null = null;
+
+  constructor() {
+    this.token = localStorage.getItem('school_jwt_token');
+  }
+
+  public setToken(token: string | null) {
+    this.token = token;
+    if (token) {
+      localStorage.setItem('school_jwt_token', token);
+    } else {
+      localStorage.removeItem('school_jwt_token');
+    }
+  }
+
+  public getToken(): string | null {
+    return this.token || localStorage.getItem('school_jwt_token');
+  }
+
+  private async request<T = any>(endpoint: string, options: RequestInit = {}): Promise<{ success: boolean; data?: T; message?: string }> {
+    const url = `${API_BASE_URL}/${endpoint.replace(/^\//, '')}`;
+    
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
+    };
+
+    const currentToken = this.getToken();
+    if (currentToken) {
+      headers['Authorization'] = `Bearer ${currentToken}`;
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      const json = await response.json();
+      return json;
+    } catch (err: any) {
+      console.warn(`API fetch error for ${url}:`, err.message);
+      return { success: false, message: err.message };
+    }
+  }
+
+  // Authentication
+  async login(credentials: { username: string; password: string; role?: string }) {
+    return this.request('auth?action=login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async getMe() {
+    return this.request('auth?action=me', { method: 'GET' });
+  }
+
+  // Dashboard Metrics
+  async getDashboard() {
+    return this.request('dashboard', { method: 'GET' });
+  }
+
+  // Generic CRUD
+  async getAll(resource: string, params: Record<string, string | number> = {}) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, String(val));
+      }
+    });
+    const qs = query.toString();
+    const endpoint = qs ? `${resource}?${qs}` : resource;
+    return this.request(endpoint, { method: 'GET' });
+  }
+
+  async getById(resource: string, id: string | number) {
+    return this.request(`${resource}?id=${id}`, { method: 'GET' });
+  }
+
+  async create(resource: string, data: any) {
+    return this.request(resource, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async update(resource: string, id: string | number, data: any) {
+    return this.request(`${resource}?id=${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async delete(resource: string, id: string | number) {
+    return this.request(`${resource}?id=${id}`, {
+      method: 'DELETE',
+    });
+  }
+}
+
+export const api = new ApiService();
+export default api;

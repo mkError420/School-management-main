@@ -1,35 +1,85 @@
-import Image from "next/image"
+import React from "react";
+import Image from "@/components/Image";
+import { useAuth, UserRole } from "@/context/AuthContext";
+import { Link } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
+  const { user, role, switchRole, logout } = useAuth();
+
   return (
-    <div className='flex items-center justify-between p-4'>
-      {/* searchbar */}
-      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-600 px-2">
-        <Image src="/search.png" alt="" width={14} height={14}/>
-        <input type="text" placeholder="Search..." className="w-[200px] p-2 bg-transparent outline-none" />
+    <div className="flex items-center justify-between p-4 bg-white shadow-sm border-b border-gray-200">
+      {/* Searchbar */}
+      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-3 py-1.5 focus-within:ring-purple-500 bg-gray-50">
+        <Image src="/search.png" alt="" width={14} height={14} />
+        <input
+          type="text"
+          placeholder="Search courses, students, teachers..."
+          className="w-[220px] bg-transparent outline-none text-xs text-gray-700"
+        />
       </div>
-      {/* ICONS AND USERS */}
-      <div className=" flex items-center gap-6 justify-end w-full">
-        <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer">
-          <Image src="/message.png" alt="" width={20} height={20}/>
+
+      {/* Icons & User Profile */}
+      <div className="flex items-center gap-4 justify-end w-full">
+        {/* Quick Role Switcher for Demo/Testing */}
+        <div className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-1">
+          <span className="text-[11px] font-semibold text-purple-700 uppercase">Role:</span>
+          <select
+            value={role}
+            onChange={(e) => switchRole(e.target.value as UserRole)}
+            className="text-xs bg-transparent font-medium text-purple-900 border-none outline-none cursor-pointer capitalize"
+          >
+            <option value="admin">Admin</option>
+            <option value="teacher">Teacher</option>
+            <option value="student">Student</option>
+            <option value="parent">Parent</option>
+          </select>
         </div>
-        
-        <div className="bg-white rounded-full w-7 h-7 flex items-center justify-center cursor-pointer relative">
-          <Image src="/announcement.png" alt="" width={20} height={20}/>
-          <div className="absolute -top-3 -right-3 w-5 h-5 flex items-center justify-center bg-purple-500 text-white rounded-full text-xs">
-            1
+
+        {/* Messages */}
+        <Link
+          to="/list/messages"
+          className="bg-gray-100 hover:bg-gray-200 transition rounded-full w-8 h-8 flex items-center justify-center cursor-pointer"
+          title="Messages"
+        >
+          <Image src="/message.png" alt="Messages" width={18} height={18} />
+        </Link>
+
+        {/* Announcements */}
+        <Link
+          to="/list/announcements"
+          className="bg-gray-100 hover:bg-gray-200 transition rounded-full w-8 h-8 flex items-center justify-center cursor-pointer relative"
+          title="Announcements"
+        >
+          <Image src="/announcement.png" alt="Announcements" width={18} height={18} />
+          <div className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-purple-600 text-white rounded-full text-[10px] font-bold">
+            3
           </div>
-        </div>
+        </Link>
 
-        <div className=" flex flex-col">
-        <span className="text-xs leading-3 font-medium">MK Rabbani</span>
-        <span className="text-[10px] text-gray-500 text-right">Admin</span>
+        {/* User Info */}
+        <div className="flex items-center gap-3 pl-2 border-l border-gray-200">
+          <div className="flex flex-col text-right">
+            <span className="text-xs font-semibold text-gray-800 leading-tight">
+              {user?.name || user?.username || 'Administrator'}
+            </span>
+            <span className="text-[10px] text-gray-500 capitalize font-medium">
+              {role}
+            </span>
+          </div>
+
+          <Link to="/profile">
+            <Image
+              src="/avatar.png"
+              alt="Avatar"
+              width={34}
+              height={34}
+              className="rounded-full ring-2 ring-purple-400 hover:opacity-90 transition"
+            />
+          </Link>
         </div>
-        <Image src="/avatar.png" alt="" width={36} height={36} className="rounded-full"/>
       </div>
-      
     </div>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;

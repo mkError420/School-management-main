@@ -1,115 +1,182 @@
 "use client"
 
-import dynamic from "next/dynamic";
-import Image from "next/image";
-import { useState } from "react";
-//import TeacherForm from "./forms/TeacherForm";
-//import StudentForm from "./forms/StudentForm";
+import React, { Suspense, lazy, useState } from "react";
+import Image from "@/components/Image";
+import { api } from "@/lib/api";
 
+const TeacherForm = lazy(() => import("./forms/TeacherForm"));
+const StudentForm = lazy(() => import("./forms/StudentForm"));
+const ParentForm = lazy(() => import("./forms/ParentForm"));
+const SubjectForm = lazy(() => import("./forms/SubjectForm"));
+const ClassForm = lazy(() => import("./forms/ClassForm"));
+const LessonForm = lazy(() => import("./forms/LessonForm"));
+const ExamForm = lazy(() => import("./forms/ExamForm"));
+const AssignmentForm = lazy(() => import("./forms/AssignmentForm"));
+const ResultForm = lazy(() => import("./forms/ResultForm"));
+const AttendanceForm = lazy(() => import("./forms/AttendanceForm"));
+const EventForm = lazy(() => import("./forms/EventForm"));
+const AnnouncementForm = lazy(() => import("./forms/AnnouncementForm"));
 
-const TeacherForm = dynamic(()=>import("./forms/TeacherForm"),{
-  loading:()=><h1>Loading...</h1>
-});
+type TableType =
+  | "teacher" | "student" | "parent" | "subject" | "class"
+  | "lesson" | "exam" | "assignment" | "result" | "attendance"
+  | "event" | "announcement";
 
-const StudentForm = dynamic(()=>import("./forms/StudentForm"),{
-  loading:()=><h1>Loading...</h1>
-});
+type ModalType = "create" | "update" | "delete";
 
-const ParentForm = dynamic(()=>import("./forms/ParentForm"),{
-  loading:()=><h1>Loading...</h1>
-});
+interface FormModalProps {
+  table: TableType;
+  type: ModalType;
+  data?: any;
+  id?: number | string;
+  onSuccess?: () => void;
+}
 
-const AnnouncementForm = dynamic(()=>import("./forms/AnnouncementForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const AssignmentForm = dynamic(()=>import("./forms/AssignmentForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const AttendanceForm = dynamic(()=>import("./forms/AttendanceForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const ClassForm = dynamic(()=>import("./forms/ClassForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const EventForm = dynamic(()=>import("./forms/EventForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const ExamForm = dynamic(()=>import("./forms/ExamForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const LessonForm = dynamic(()=>import("./forms/LessonForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const ResultForm = dynamic(()=>import("./forms/ResultForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-const SubjectForm = dynamic(()=>import("./forms/SubjectForm"),{
-  loading:()=><h1>Loading...</h1>
-});
-
-
-const forms:{[key :string]:(type:"create" | "update", data?:any)=>JSX.Element;
-
-}={
-  teacher:(type,data)=> <TeacherForm type={type} data={data}/>,
-  student:(type,data)=> <StudentForm type={type} data={data}/>,
-  parent:(type,data)=> <ParentForm type={type} data={data}/>,
-  subject:(type,data)=> <SubjectForm type={type} data={data}/>,
-  class:(type,data)=> <ClassForm type={type} data={data}/>,
-  lesson:(type,data)=> <LessonForm type={type} data={data}/>,
-  exam:(type,data)=> <ExamForm type={type} data={data}/>,
-  assignment:(type,data)=> <AssignmentForm type={type} data={data}/>,
-  result:(type,data)=> <ResultForm type={type} data={data}/>,
-  attendance:(type,data)=> <AttendanceForm type={type} data={data}/>,
- event:(type,data)=> <EventForm type={type} data={data}/>,
- announcement:(type,data)=> <AnnouncementForm type={type} data={data}/>,
+const resourceMap: Record<TableType, string> = {
+  teacher: "teachers",
+  student: "students",
+  parent: "parents",
+  subject: "subjects",
+  class: "classes",
+  lesson: "lessons",
+  exam: "exams",
+  assignment: "assignments",
+  result: "results",
+  attendance: "attendance",
+  event: "events",
+  announcement: "announcements",
 };
 
-const FormModal = ({table,type,data,id}:{
-  table:"teacher" | "student" | "parent" | "subject" | "class" | "lesson" | "exam" | "assignment" | "result" | "attendance" | "event" | "announcement";
-  type:"create" | "update" | "delete";
-  data?:any;
-  id?:number;
-}) => {
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+  </div>
+);
 
-  const size = type === "create" ? "w-8 h-8" : "w-7 h-7"
-  const bgColor = type === "create" ? "bg-cyan-400" : type=== 'update' ? "bg-sky-400" : "bg-purple-400";
+const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess }) => {
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    const [open, setOpen] = useState(false);
+  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
+  const bgColor =
+    type === "create"
+      ? "bg-lamaYellow hover:bg-yellow-400"
+      : type === "update"
+      ? "bg-lamaSky hover:bg-sky-400"
+      : "bg-lamaPurple hover:bg-purple-400";
 
+  const handleDelete = async () => {
+    if (!id) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      const res = await api.delete(resourceMap[table], id);
+      if (res.success) {
+        setOpen(false);
+        onSuccess?.();
+      } else {
+        setError(res.message || "Delete failed");
+      }
+    } catch (err: any) {
+      setError(err.message || "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
+  const handleFormSuccess = () => {
+    setOpen(false);
+    onSuccess?.();
+  };
 
-    const Form = ()=>{
-      return type === "delete" && id ? ( 
-      <form action="" className="p-4 flex flex-col gap-4 ">
-        <span className="text-center font-medium">You will loss this data 😦 !! Do you want to delete this {table}?</span>
-        <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center ">Delete</button>
-      </form>) :type==="create"|| type==="update" ?
-      (
-       forms[table](type, data)
-      ) :(
-        "Form not found!"
-
+  const FormContent = () => {
+    if (type === "delete" && id) {
+      return (
+        <div className="p-6 flex flex-col gap-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-red-600 text-lg">⚠️</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">Confirm Deletion</h3>
+              <p className="text-sm text-gray-500 mt-0.5">
+                This action cannot be undone. All data for this {table} will be permanently removed.
+              </p>
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {deleting ? "Deleting..." : `Delete ${table}`}
+            </button>
+          </div>
+        </div>
       );
     }
-  
+
+    const formProps = { type: type as "create" | "update", data, onSuccess: handleFormSuccess };
+
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        {table === "teacher" && <TeacherForm {...formProps} />}
+        {table === "student" && <StudentForm {...formProps} />}
+        {table === "parent" && <ParentForm {...formProps} />}
+        {table === "subject" && <SubjectForm {...formProps} />}
+        {table === "class" && <ClassForm {...formProps} />}
+        {table === "lesson" && <LessonForm {...formProps} />}
+        {table === "exam" && <ExamForm {...formProps} />}
+        {table === "assignment" && <AssignmentForm {...formProps} />}
+        {table === "result" && <ResultForm {...formProps} />}
+        {table === "attendance" && <AttendanceForm {...formProps} />}
+        {table === "event" && <EventForm {...formProps} />}
+        {table === "announcement" && <AnnouncementForm {...formProps} />}
+      </Suspense>
+    );
+  };
 
   return (
-     <>
-  <button className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
-  onClick={()=>setOpen(true)}
-  >
-    <Image src={`/${type}.png`} alt="" width={16} height={16}/>
-    </button>
-    {open && <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
-      <div className="bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%]2xl:w-[40%]">
-        <Form/>
-        <div className="absolute top-4 right-4 curs cursor-pointer " onClick={()=>setOpen(false)}>
-        <Image src="/close.png" alt="" width={14} height={14}/>
+    <>
+      <button
+        className={`${size} flex items-center justify-center rounded-full ${bgColor} transition shadow-sm`}
+        onClick={() => setOpen(true)}
+        title={`${type} ${table}`}
+      >
+        <Image src={`/${type}.png`} alt={type} width={14} height={14} />
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setOpen(false)}
+        >
+          <div className="bg-white rounded-2xl relative w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800 capitalize">
+                {type} {table}
+              </h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
+              >
+                <Image src="/close.png" alt="close" width={14} height={14} />
+              </button>
+            </div>
+            <FormContent />
+          </div>
         </div>
-      </div>
-      
-    </div>}
+      )}
     </>
   );
 };

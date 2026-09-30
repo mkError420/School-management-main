@@ -1,6 +1,6 @@
 "use client"
 
-import Image from 'next/image';
+import Image from "@/components/Image";
 import { BarChart, Bar, Rectangle, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // #region Sample data
