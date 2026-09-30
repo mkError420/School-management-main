@@ -1,8 +1,6 @@
 -- School Management System Database Schema
 -- MySQL Database
-
-CREATE DATABASE IF NOT EXISTS school_management;
-USE school_management;
+-- Note: This file creates tables in your existing database
 
 -- Users tables
 CREATE TABLE IF NOT EXISTS admins (

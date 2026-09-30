@@ -1,7 +1,6 @@
 -- School Management System Seed Data
 -- Import this after schema.sql
-
-USE school_management;
+-- Note: This file inserts data into your existing database
 
 -- 1. Ensure Admin exists
 -- Password is 'admin123'
