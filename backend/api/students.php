@@ -156,11 +156,71 @@ function getStudent($db, $id) {
          ORDER BY r.id DESC",
         [$id]
     );
+
+    $classId = $student['class_id'];
+    $lessons = $db->fetchAll(
+        "SELECT l.id, l.name, l.day, l.start_time, l.end_time,
+                s.name as subject_name, t.id as teacher_id,
+                t.name as teacher_name, t.surname as teacher_surname
+         FROM lessons l
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         LEFT JOIN teachers t ON l.teacher_id = t.id
+         WHERE l.class_id = ?
+         ORDER BY l.day, l.start_time",
+        [$classId]
+    );
+
+    $teachers = $db->fetchAll(
+        "SELECT DISTINCT t.id, t.name, t.surname, t.email, t.img, s.name as subject_name
+         FROM teachers t
+         INNER JOIN lessons l ON l.teacher_id = t.id
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         WHERE l.class_id = ?
+         ORDER BY t.name, t.surname",
+        [$classId]
+    );
+
+    $exams = $db->fetchAll(
+        "SELECT e.id, e.title, e.start_time, e.end_time,
+                l.name as lesson_name, s.name as subject_name
+         FROM exams e
+         INNER JOIN lessons l ON e.lesson_id = l.id
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         WHERE l.class_id = ?
+         ORDER BY e.start_time",
+        [$classId]
+    );
+
+    $assignments = $db->fetchAll(
+        "SELECT a.id, a.title, a.start_date, a.due_date,
+                l.name as lesson_name, s.name as subject_name
+         FROM assignments a
+         INNER JOIN lessons l ON a.lesson_id = l.id
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         WHERE l.class_id = ?
+         ORDER BY a.due_date",
+        [$classId]
+    );
+
+    $announcements = $db->fetchAll(
+        "SELECT a.id, a.title, a.description, a.date, c.name as class_name
+         FROM announcements a
+         LEFT JOIN classes c ON a.class_id = c.id
+         WHERE a.class_id = ? OR a.class_id IS NULL
+         ORDER BY a.date DESC
+         LIMIT 5",
+        [$classId]
+    );
     
     Response::success('Student retrieved successfully', [
         'student' => $student,
         'attendance' => $attendance,
-        'results' => $results
+        'results' => $results,
+        'lessons' => $lessons,
+        'teachers' => $teachers,
+        'exams' => $exams,
+        'assignments' => $assignments,
+        'announcements' => $announcements
     ]);
 }
 

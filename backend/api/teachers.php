@@ -152,13 +152,98 @@ function getTeacher($db, $id) {
          ORDER BY l.day, l.start_time",
         [$id]
     );
+
+    $exams = $db->fetchAll(
+        "SELECT e.id, e.title, e.start_time, e.end_time, l.id as lesson_id,
+                l.name as lesson_name, s.name as subject_name, c.name as class_name
+         FROM exams e
+         INNER JOIN lessons l ON e.lesson_id = l.id
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         LEFT JOIN classes c ON l.class_id = c.id
+         WHERE l.teacher_id = ?
+         ORDER BY e.start_time DESC",
+        [$id]
+    );
+
+    $assignments = $db->fetchAll(
+        "SELECT a.id, a.title, a.start_date, a.due_date, l.id as lesson_id,
+                l.name as lesson_name, s.name as subject_name, c.name as class_name
+         FROM assignments a
+         INNER JOIN lessons l ON a.lesson_id = l.id
+         LEFT JOIN subjects s ON l.subject_id = s.id
+         LEFT JOIN classes c ON l.class_id = c.id
+         WHERE l.teacher_id = ?
+         ORDER BY a.due_date DESC",
+        [$id]
+    );
+
+    $students = $db->fetchAll(
+        "SELECT DISTINCT st.id, st.name, st.surname, st.email, st.img,
+                st.class_id, c.name as class_name, g.level as grade_level
+         FROM students st
+         LEFT JOIN classes c ON st.class_id = c.id
+         LEFT JOIN grades g ON st.grade_id = g.id
+         WHERE st.class_id IN (
+             SELECT tc.class_id FROM teacher_classes tc WHERE tc.teacher_id = ?
+             UNION
+             SELECT supervised.id FROM classes supervised WHERE supervised.supervisor_id = ?
+         )
+         ORDER BY st.name, st.surname",
+        [$id, $id]
+    );
+
+    $results = $db->fetchAll(
+        "SELECT r.id, r.score, st.id as student_id, st.name as student_name,
+                st.surname as student_surname, COALESCE(e.title, a.title) as assessment_title,
+                COALESCE(s_exam.name, s_assignment.name) as subject_name,
+                COALESCE(e.start_time, a.due_date) as date
+         FROM results r
+         INNER JOIN students st ON r.student_id = st.id
+         LEFT JOIN exams e ON r.exam_id = e.id
+         LEFT JOIN lessons l_exam ON e.lesson_id = l_exam.id
+         LEFT JOIN subjects s_exam ON l_exam.subject_id = s_exam.id
+         LEFT JOIN assignments a ON r.assignment_id = a.id
+         LEFT JOIN lessons l_assignment ON a.lesson_id = l_assignment.id
+         LEFT JOIN subjects s_assignment ON l_assignment.subject_id = s_assignment.id
+         WHERE l_exam.teacher_id = ? OR l_assignment.teacher_id = ?
+         ORDER BY date DESC",
+        [$id, $id]
+    );
+
+    $attendanceSummary = $db->fetchOne(
+        "SELECT COUNT(*) as total, COALESCE(SUM(a.present = 1), 0) as present
+         FROM attendance a
+         INNER JOIN lessons l ON a.lesson_id = l.id
+         WHERE l.teacher_id = ?",
+        [$id]
+    );
+
+    $announcements = $db->fetchAll(
+        "SELECT a.id, a.title, a.description, a.date, a.class_id, c.name as class_name
+         FROM announcements a
+         LEFT JOIN classes c ON a.class_id = c.id
+         WHERE a.class_id IS NULL OR a.class_id IN (
+             SELECT tc.class_id FROM teacher_classes tc WHERE tc.teacher_id = ?
+             UNION
+             SELECT supervised.id FROM classes supervised WHERE supervised.supervisor_id = ?
+         )
+         ORDER BY a.date DESC
+         LIMIT 5",
+        [$id, $id]
+    );
     
     Response::success('Teacher retrieved successfully', [
         'teacher' => $teacher,
         'subjects' => $subjects,
         'classes' => $classes,
         'supervised_classes' => $supervisedClasses,
-        'lessons' => $lessons
+        'lessons' => $lessons,
+        'exams' => $exams,
+        'assignments' => $assignments,
+        'students' => $students,
+        'results' => $results,
+        'attendance' => $attendanceSummary,
+        'announcements' => $announcements
     ]);
 }
 

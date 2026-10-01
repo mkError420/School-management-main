@@ -1,10 +1,13 @@
 import React from "react";
 import Image from "@/components/Image";
 import { useAuth, UserRole } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { Link } from "react-router-dom";
+import { Moon, Sun } from "lucide-react";
 
 const Navbar: React.FC = () => {
   const { user, role, switchRole, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="flex items-center justify-between p-4 bg-white shadow-sm border-b border-gray-200">
@@ -20,6 +23,17 @@ const Navbar: React.FC = () => {
 
       {/* Icons & User Profile */}
       <div className="flex items-center gap-4 justify-end w-full">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          aria-pressed={theme === "dark"}
+          title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-700 transition hover:bg-gray-200 dark:border-slate-600 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700"
+        >
+          {theme === "light" ? <Moon size={17} aria-hidden="true" /> : <Sun size={17} aria-hidden="true" />}
+        </button>
+
         {/* Quick Role Switcher for Demo/Testing */}
         <div className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-1">
           <span className="text-[11px] font-semibold text-purple-700 uppercase">Role:</span>
