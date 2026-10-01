@@ -38,12 +38,6 @@ const menuItems = [
         visible: ["admin"],
       },
       {
-        icon: "/setting.png",
-        label: "Admin Access",
-        href: "/admin-users",
-        visible: ["super_admin"],
-      },
-      {
         icon: "/class.png",
         label: "Classes",
         href: "/list/classes",
@@ -102,6 +96,12 @@ const menuItems = [
   {
     title: "OTHER",
     items: [
+      {
+        icon: "/setting.png",
+        label: "All Role",
+        href: "/admin-users",
+        visible: ["super_admin"],
+      },
       {
         icon: "/profile.png",
         label: "Profile",

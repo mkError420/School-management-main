@@ -126,9 +126,9 @@ const AdminUsersPage: React.FC = () => {
     <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
       <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-700">Security / Role access</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Admin Access</h1>
-          <p className="mt-1 text-sm text-gray-500">Create administrators and assign system-wide access.</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-700">Other / Role access</p>
+          <h1 className="text-2xl font-semibold text-gray-900">All Role</h1>
+          <p className="mt-1 text-sm text-gray-500">Maintain administrator profiles and assign system-wide access.</p>
         </div>
         <button type="button" onClick={startCreate} className="inline-flex items-center justify-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-800">
           <Plus size={17} aria-hidden="true" />
