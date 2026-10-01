@@ -47,7 +47,12 @@ function getTeachers($db) {
     // Build query
     $sql = "SELECT t.* FROM teachers t WHERE 1=1";
     $params = [];
-    
+
+    if ($user['role'] === 'teacher') {
+        $sql .= " AND t.id = ?";
+        $params[] = $user['user_id'];
+    }
+
     if (!empty($search)) {
         $sql .= " AND (t.name LIKE ? OR t.surname LIKE ? OR t.username LIKE ? OR t.email LIKE ?)";
         $searchTerm = "%{$search}%";

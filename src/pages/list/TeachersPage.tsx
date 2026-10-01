@@ -92,7 +92,7 @@ const TeachersPage: React.FC = () => {
     <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       {/* Top */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Teachers</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800">{role === "teacher" ? "My Teacher Profile" : "All Teachers"}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch value={search} onChange={setSearch} placeholder="Search teachers..." />
           <div className="flex items-center gap-2 self-end">
