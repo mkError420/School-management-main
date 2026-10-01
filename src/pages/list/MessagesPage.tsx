@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Users, X } from "lucide-react";
+import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Trash2, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAccessRole, useAuth } from "@/context/AuthContext";
 
@@ -49,9 +49,10 @@ const formatDateTime = (value: string) => {
 };
 
 const MessagesPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, role: authenticatedRole } = useAuth();
   const role = useAccessRole();
   const isAdmin = role === "admin";
+  const isSuperAdmin = authenticatedRole === "super_admin";
   const [folder, setFolder] = useState<Folder>("inbox");
   const [messages, setMessages] = useState<MessageRecord[]>([]);
   const [selected, setSelected] = useState<MessageRecord | null>(null);
@@ -73,6 +74,7 @@ const MessagesPage: React.FC = () => {
   const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -249,6 +251,37 @@ const MessagesPage: React.FC = () => {
     }
   };
 
+  const deleteMessage = async (message: MessageRecord) => {
+    if (!isSuperAdmin || !window.confirm(`Delete this message from ${message.sender_name}? This cannot be undone.`)) return;
+    setDeletingId(message.id);
+    setError(null);
+    try {
+      const response = await api.delete("messages", message.id);
+      if (!response.success) {
+        setError(response.message || "Unable to delete this message.");
+        return;
+      }
+
+      setMessages((current) => current.filter((item) => item.id !== message.id));
+      setConversationMessages((current) => current.filter((item) => item.id !== message.id));
+      if (selected?.id === message.id) {
+        setSelected(null);
+        setConversationMessages([]);
+      } else if (selected?.conversation_id && selected.conversation_id === message.conversation_id) {
+        setThreadRefreshKey((current) => current + 1);
+      }
+      if (message.recipient_id === user?.id && message.recipient_role === role && !message.read_at) {
+        setUnreadCount((current) => Math.max(0, current - 1));
+      }
+      setNotice("Message deleted.");
+      window.dispatchEvent(new Event("school-messages-updated"));
+    } catch {
+      setError("Unable to reach the server. Try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const attachmentPicker = (files: File[], setFiles: React.Dispatch<React.SetStateAction<File[]>>, inputId: string) => (
     <div className="space-y-2">
       <label htmlFor={inputId} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"><Paperclip size={14} /> Attach files</label>
@@ -333,12 +366,17 @@ const MessagesPage: React.FC = () => {
                 const active = selected?.id === message.id;
                 const otherName = folder === "sent" ? message.recipient_name : message.sender_name;
                 const otherRole = folder === "sent" ? message.recipient_role : message.sender_role;
-                return <button key={message.id} onClick={() => void selectMessage(message)} className={`block w-full border-b border-gray-100 px-4 py-3 text-left transition ${active ? "bg-sky-50" : "hover:bg-gray-50"}`}>
-                  <div className="flex items-start justify-between gap-2"><span className={`truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}>{otherName}</span><span className="shrink-0 text-[10px] text-gray-400">{formatDateTime(message.created_at)}</span></div>
-                  <p className={`mt-1 truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-800" : "text-gray-600"}`}>{message.subject}</p>
-                  <p className="mt-1 truncate text-xs text-gray-500">{message.body}</p>
-                  <span className="mt-2 inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">{otherRole}</span>
-                </button>;
+                return <div key={message.id} className={`border-b border-gray-100 transition ${active ? "bg-sky-50" : "hover:bg-gray-50"}`}>
+                  <button type="button" onClick={() => void selectMessage(message)} className="block w-full px-4 pt-3 text-left">
+                    <div className="flex items-start justify-between gap-2"><span className={`truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}>{otherName}</span><span className="shrink-0 text-[10px] text-gray-400">{formatDateTime(message.created_at)}</span></div>
+                    <p className={`mt-1 truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-800" : "text-gray-600"}`}>{message.subject}</p>
+                    <p className="mt-1 truncate text-xs text-gray-500">{message.body}</p>
+                  </button>
+                  <div className="flex items-center justify-between px-4 pb-3 pt-2">
+                    <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">{otherRole}</span>
+                    {isSuperAdmin && <button type="button" onClick={() => void deleteMessage(message)} disabled={deletingId === message.id} aria-label={`Delete message from ${message.sender_name}`} title="Delete message" className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"><Trash2 size={13} />{deletingId === message.id ? "Deleting..." : "Delete"}</button>}
+                  </div>
+                </div>;
               })}</div>}
             </div>
             <article className="min-w-0 p-5 md:p-7">
@@ -353,6 +391,7 @@ const MessagesPage: React.FC = () => {
                         {message.id === conversationMessages[0]?.id && <p className="mb-1 text-xs font-semibold">{message.subject}</p>}
                         <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
                         {!!message.attachments?.length && <ul className="mt-3 space-y-1.5 border-t border-black/10 pt-2">{message.attachments.map((attachment) => <li key={attachment.id}><button type="button" onClick={() => void downloadAttachment(attachment)} className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-white/50"><Download size={13} /><span className="truncate">{attachment.original_name}</span><span className="shrink-0 opacity-60">{(attachment.file_size / 1024 / 1024).toFixed(1)} MB</span></button></li>)}</ul>}
+                        {isSuperAdmin && <div className="mt-3 flex justify-end border-t border-black/10 pt-2"><button type="button" onClick={() => void deleteMessage(message)} disabled={deletingId === message.id} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"><Trash2 size={13} />{deletingId === message.id ? "Deleting..." : "Delete message"}</button></div>}
                       </div>
                     </div>;
                   })}

@@ -27,6 +27,9 @@ switch ($method) {
         }
         markMessageRead($db, $id);
         break;
+    case 'DELETE':
+        deleteMessage($db, $id);
+        break;
     default:
         Response::methodNotAllowed();
 }
@@ -384,6 +387,9 @@ function sendMessage($db) {
 
 function downloadMessageAttachment($db, $attachmentId) {
     $user = AuthMiddleware::authenticate();
+    if (AuthMiddleware::isAdmin($user)) {
+        $user['role'] = 'admin';
+    }
     ensureMessageSchema($db);
     if (!$attachmentId) {
         Response::error('Attachment ID is required');
@@ -412,6 +418,46 @@ function downloadMessageAttachment($db, $attachmentId) {
     header('X-Content-Type-Options: nosniff');
     readfile($path);
     exit;
+}
+
+function deleteMessage($db, $id) {
+    $user = AuthMiddleware::authenticate();
+    if (($user['role'] ?? '') !== 'super_admin') {
+        Response::forbidden('Only a super admin can delete messages');
+    }
+    if (!$id) {
+        Response::error('Message ID is required');
+    }
+
+    ensureMessageSchema($db);
+    $message = $db->fetchOne('SELECT id FROM messages WHERE id = ?', [$id]);
+    if (!$message) {
+        Response::notFound('Message not found');
+    }
+
+    $attachments = $db->fetchAll(
+        'SELECT storage_name FROM message_attachments WHERE message_id = ?',
+        [$id]
+    );
+    try {
+        $db->beginTransaction();
+        $db->delete('message_attachments', 'message_id = ?', [$id]);
+        $db->delete('messages', 'id = ?', [$id]);
+        $db->commit();
+    } catch (Exception $e) {
+        $db->rollback();
+        error_log('Message deletion failed: ' . $e->getMessage());
+        Response::serverError('Unable to delete this message');
+    }
+
+    foreach ($attachments as $attachment) {
+        $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
+        if (is_file($path) && !unlink($path)) {
+            error_log('Unable to remove deleted message attachment: ' . basename($attachment['storage_name']));
+        }
+    }
+
+    Response::success('Message deleted successfully');
 }
 
 function markMessageRead($db, $id) {
