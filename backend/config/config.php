@@ -1,10 +1,10 @@
 <?php
 
 // Database Configuration: set these values in cPanel or as server environment variables.
-define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
-define('DB_NAME', getenv('DB_NAME') ?: 'cpaneluser_schooldb');
-define('DB_USER', getenv('DB_USER') ?: 'cpaneluser_dbuser');
-define('DB_PASS', getenv('DB_PASS') ?: 'CHANGE_THIS_IN_CPANEL');
+define('DB_HOST', getenv('DB_HOST') ?: 'sql101.infinityfree.com');
+define('DB_NAME', getenv('DB_NAME') ?: 'if0_42784359_myscmanagement');
+define('DB_USER', getenv('DB_USER') ?: 'if0_42784359');
+define('DB_PASS', getenv('DB_PASS') ?: '4naAUPQvgRj3');
 define('DB_CHARSET', 'utf8mb4');
 
 // Application Configuration
