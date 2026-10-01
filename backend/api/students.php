@@ -150,7 +150,7 @@ function getStudent($db, $id) {
          FROM results r 
          LEFT JOIN exams e ON r.exam_id = e.id 
          LEFT JOIN assignments a ON r.assignment_id = a.id 
-         LEFT JOIN lessons l ON (r.exam_id = l.id OR r.assignment_id = l.id)
+         LEFT JOIN lessons l ON l.id = COALESCE(e.lesson_id, a.lesson_id)
          LEFT JOIN subjects sub ON l.subject_id = sub.id 
          WHERE r.student_id = ? 
          ORDER BY r.id DESC",
