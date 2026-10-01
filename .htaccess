@@ -1,6 +1,9 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
+# Let the backend's own rewrite rules route PHP API requests.
+RewriteRule ^backend(/.*)?$ - [L]
+
 # Redirect HTTP to HTTPS (optional - uncomment if you have SSL)
 # RewriteCond %{HTTPS} off
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

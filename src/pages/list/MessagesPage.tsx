@@ -168,6 +168,13 @@ const MessagesPage: React.FC = () => {
     return () => { active = false; window.clearInterval(interval); };
   }, [role, selected?.conversation_id, threadRefreshKey]);
 
+  useEffect(() => {
+    if (selected?.conversation_id && !messages.some((message) => message.conversation_id === selected.conversation_id)) {
+      setSelected(null);
+      setConversationMessages([]);
+    }
+  }, [messages, selected?.conversation_id]);
+
   const selectMessage = (message: MessageRecord) => {
     setSelected(message);
     setReplyBody("");
@@ -252,7 +259,7 @@ const MessagesPage: React.FC = () => {
   };
 
   const deleteMessage = async (message: MessageRecord) => {
-    if (!isSuperAdmin || !window.confirm(`Delete this message from ${message.sender_name}? This cannot be undone.`)) return;
+    if (!isSuperAdmin || !window.confirm(`Delete this message from both the sender's and recipient's inboxes? This cannot be undone.`)) return;
     setDeletingId(message.id);
     setError(null);
     try {
@@ -273,7 +280,7 @@ const MessagesPage: React.FC = () => {
       if (message.recipient_id === user?.id && message.recipient_role === role && !message.read_at) {
         setUnreadCount((current) => Math.max(0, current - 1));
       }
-      setNotice("Message deleted.");
+      setNotice("Message deleted from both sender and recipient inboxes.");
       window.dispatchEvent(new Event("school-messages-updated"));
     } catch {
       setError("Unable to reach the server. Try again.");
