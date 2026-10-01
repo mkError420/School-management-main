@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, ChevronDown, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+
+const demoAccounts = [
+  { label: "Admin", username: "admin", password: "admin123", icon: ShieldCheck },
+  { label: "Teacher", username: "johndoe", password: "teacher123", icon: GraduationCap },
+  { label: "Student", username: "johnconnor", password: "student123", icon: GraduationCap },
+  { label: "Parent", username: "sarahconnor", password: "parent123", icon: UsersRound },
+];
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
@@ -18,6 +26,19 @@ const SignInPage: React.FC = () => {
       navigate("/");
     } else {
       setError(result.message || "Invalid credentials. Please try again.");
+    }
+  };
+
+  const handleDemoSignIn = async (account: typeof demoAccounts[number]) => {
+    if (isLoading) return;
+    setUsername(account.username);
+    setPassword(account.password);
+    setError(null);
+    const result = await login({ username: account.username, password: account.password });
+    if (result.success) {
+      navigate("/");
+    } else {
+      setError(result.message || `Unable to sign in as the demo ${account.label.toLowerCase()}.`);
     }
   };
 
@@ -91,6 +112,37 @@ const SignInPage: React.FC = () => {
                 {isLoading ? "Signing in..." : "Login"}
               </button>
             </form>
+
+            <details className="group mt-6 border-t border-gray-100 pt-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-700">
+                <span>Demo accounts</span>
+                <ChevronDown size={17} className="text-gray-400 transition group-open:rotate-180" aria-hidden="true" />
+              </summary>
+              <p className="mt-2 text-xs text-gray-500">Requires the sample accounts from <code>seed.sql</code>.</p>
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {demoAccounts.map((account) => {
+                  const Icon = account.icon;
+                  return (
+                    <button
+                      key={account.label}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => void handleDemoSignIn(account)}
+                      className="group/demo flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 p-3 text-left transition hover:border-sky-400 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 group-hover/demo:bg-white group-hover/demo:text-sky-700">
+                        <Icon size={17} aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-xs font-semibold text-gray-800">{account.label}</span>
+                        <span className="mt-0.5 block truncate font-mono text-[10px] text-gray-500">{account.username} / {account.password}</span>
+                      </span>
+                      <ArrowRight size={15} className="shrink-0 text-gray-400 group-hover/demo:text-sky-700" aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
+            </details>
 
           </div>
 
