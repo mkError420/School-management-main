@@ -131,7 +131,7 @@ const SignInPage: React.FC = () => {
         </main>
 
         <p className="text-center text-xs font-medium text-white/90 drop-shadow">
-          © 2026 ACADEMIA School Management System
+          © {new Date().getFullYear()} <a href="https://codexaa.xo.je/" target="_blank" rel="noreferrer" className="underline underline-offset-2">CodexaaSolution</a> all right reserved.
         </p>
       </div>
     </div>
