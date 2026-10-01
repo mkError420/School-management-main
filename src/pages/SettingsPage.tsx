@@ -1,17 +1,48 @@
-import React, { useState } from "react";
-import { Check, KeyRound, LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Building2, Check, KeyRound, LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
 
 const SettingsPage: React.FC = () => {
   const { user, role, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { siteName, saveSiteName } = useSiteSettings();
+  const [siteNameDraft, setSiteNameDraft] = useState(siteName);
+  const [savingSiteName, setSavingSiteName] = useState(false);
+  const [siteNameFeedback, setSiteNameFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    setSiteNameDraft(siteName);
+  }, [siteName]);
+
+  const handleSiteNameSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSiteNameFeedback(null);
+    const trimmedName = siteNameDraft.trim();
+    if (!trimmedName || trimmedName.length > 80) {
+      setSiteNameFeedback({ type: "error", message: "Enter a site name between 1 and 80 characters." });
+      return;
+    }
+
+    setSavingSiteName(true);
+    try {
+      const response = await saveSiteName(trimmedName);
+      setSiteNameFeedback(response.success
+        ? { type: "success", message: "Site name updated across the login page and dashboard." }
+        : { type: "error", message: response.message || "Unable to update the site name." });
+    } catch {
+      setSiteNameFeedback({ type: "error", message: "Unable to reach the server. Try again." });
+    } finally {
+      setSavingSiteName(false);
+    }
+  };
 
   const handlePasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,6 +93,29 @@ const SettingsPage: React.FC = () => {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
+          {role === "super_admin" && <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="site-name-title">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+                <Building2 size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <h2 id="site-name-title" className="font-semibold text-gray-900">Site name</h2>
+                <p className="mt-1 text-sm text-gray-500">Shown on the login page and at the top of the dashboard sidebar.</p>
+              </div>
+            </div>
+            <form onSubmit={handleSiteNameSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="flex-1 text-sm font-medium text-gray-700">
+                Display name
+                <input type="text" required maxLength={80} value={siteNameDraft} onChange={(event) => setSiteNameDraft(event.target.value)} className={`${inputClass} mt-1.5`} />
+              </label>
+              <button type="submit" disabled={savingSiteName || !siteNameDraft.trim() || siteNameDraft.trim() === siteName} className="inline-flex items-center justify-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">
+                <Check size={16} aria-hidden="true" />
+                {savingSiteName ? "Saving..." : "Save name"}
+              </button>
+            </form>
+            {siteNameFeedback && <p role="status" className={`mt-3 rounded-md border px-3 py-2 text-sm ${siteNameFeedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}>{siteNameFeedback.message}</p>}
+          </section>}
+
           <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="appearance-title">
             <div className="mb-5 flex items-start gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-50 text-sky-700">

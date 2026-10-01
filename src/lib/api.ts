@@ -92,6 +92,17 @@ class ApiService {
     });
   }
 
+  async getSiteSettings() {
+    return this.request<{ site_name: string }>('settings', { method: 'GET' });
+  }
+
+  async updateSiteName(siteName: string) {
+    return this.request<{ site_name: string }>('settings', {
+      method: 'PUT',
+      body: JSON.stringify({ site_name: siteName }),
+    });
+  }
+
   // Dashboard Metrics
   async getDashboard() {
     return this.request('dashboard', { method: 'GET' });

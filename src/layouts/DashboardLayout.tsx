@@ -4,15 +4,18 @@ import { Link } from "react-router-dom";
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import Image from "@/components/Image";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const DashboardLayout: React.FC = () => {
+  const { siteName } = useSiteSettings();
+
   return (
     <div className="h-screen flex bg-gray-100 overflow-hidden">
       {/* Sidebar */}
       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-3 flex flex-col h-full bg-white border-r border-gray-100 shadow-sm">
         <Link to="/" className="flex items-center justify-center lg:justify-start gap-2 py-2 mb-2">
-          <Image src="/logo.png" alt="MK School" width={32} height={32} className="rounded-lg" />
-          <span className="hidden lg:block font-bold text-gray-800 text-sm">MK School</span>
+          <Image src="/logo.png" alt={siteName} width={32} height={32} className="rounded-lg" />
+          <span className="hidden truncate lg:block font-bold text-gray-800 text-sm" title={siteName}>{siteName}</span>
         </Link>
         <Menu />
       </div>

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const demoAccounts = [
   { label: "Admin", username: "admin", password: "admin123", icon: ShieldCheck },
@@ -12,6 +13,7 @@ const demoAccounts = [
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
+  const { siteName } = useSiteSettings();
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
@@ -51,10 +53,10 @@ const SignInPage: React.FC = () => {
           <header className="mb-7">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-md bg-sky-800">
-                <img src="/images/logo.png" alt="" className="h-7 w-7 object-contain" />
+                <img src="/images/logo.png" alt={siteName} className="h-7 w-7 object-contain" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">ACADEMIA</h1>
+                <h1 className="text-xl font-bold text-gray-900">{siteName}</h1>
                 <p className="text-xs text-gray-500">School Management System</p>
               </div>
             </div>

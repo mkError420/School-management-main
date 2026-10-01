@@ -22,6 +22,8 @@ For File Manager uploads, use `frontend-dist-cpanel.zip` and extract it directly
 
 For an existing installation, import `backend/database/migrations/20261001_super_admin.sql` once after selecting the database. It adds the admin email/role columns and creates the super-admin account. Fresh installations get these changes from `schema.sql`. The bootstrap account uses the initial password supplied during setup; change it immediately after first sign-in.
 
+Import `backend/database/migrations/20261001_site_settings.sql` once for an existing installation to add the saved site name. Fresh installations get the settings table from `schema.sql`. Super admins can change the name in Settings; it appears on the login page and dashboard sidebar.
+
 For an existing installation being upgraded to Messages, import the updated `backend/database/schema.sql` once in phpMyAdmin to create the `messages` table. Existing tables are declared with `IF NOT EXISTS`; this adds the new table without replacing current records.
 
 Message attachments support up to five files per message, 10 MB each (PDF, Office documents, TXT, PNG, or JPG). If uploads are rejected by PHP before reaching the API, set cPanel's `upload_max_filesize` to at least `10M` and `post_max_size` to at least `55M`. Attachment files are stored under `backend/storage/message-attachments/` and must remain inaccessible as direct public downloads; the API checks conversation membership before serving a file.
