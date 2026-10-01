@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
+import { useAccessRole, useAuth } from "@/context/AuthContext";
 
 type Folder = "inbox" | "sent" | "compose";
 type Audience = "teacher" | "parent" | "student";
@@ -49,7 +49,8 @@ const formatDateTime = (value: string) => {
 };
 
 const MessagesPage: React.FC = () => {
-  const { role, user } = useAuth();
+  const { user } = useAuth();
+  const role = useAccessRole();
   const isAdmin = role === "admin";
   const [folder, setFolder] = useState<Folder>("inbox");
   const [messages, setMessages] = useState<MessageRecord[]>([]);

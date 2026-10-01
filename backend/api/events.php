@@ -51,7 +51,7 @@ function getEvents($db) {
             WHERE 1=1";
     $params = [];
 
-    if ($user['role'] !== 'admin') {
+    if (!AuthMiddleware::isAdmin($user)) {
         $visibility = eventVisibility($user);
         $sql .= " AND " . $visibility['sql'];
         $params = array_merge($params, $visibility['params']);
@@ -92,7 +92,7 @@ function getEvents($db) {
 function getEvent($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
 
-    $visibility = $user['role'] === 'admin'
+    $visibility = AuthMiddleware::isAdmin($user)
         ? ['sql' => '1=1', 'params' => []]
         : eventVisibility($user);
     

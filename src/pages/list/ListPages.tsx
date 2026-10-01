@@ -6,14 +6,14 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "@/components/Image";
-import { useAuth } from "@/context/AuthContext";
+import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 
 // ───────────────────────────────────────────────
 // SUBJECTS
 // ───────────────────────────────────────────────
 export const SubjectsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("subjects", "subjects", page, 10, search);
@@ -64,7 +64,7 @@ export const SubjectsPage: React.FC = () => {
 // CLASSES
 // ───────────────────────────────────────────────
 export const ClassesPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("classes", "classes", page, 10, search);
@@ -119,7 +119,7 @@ export const ClassesPage: React.FC = () => {
 // LESSONS
 // ───────────────────────────────────────────────
 export const LessonsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("lessons", "lessons", page, 10, search);
@@ -176,7 +176,7 @@ export const LessonsPage: React.FC = () => {
 // EXAMS
 // ───────────────────────────────────────────────
 export const ExamsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("exams", "exams", page, 10, search);
@@ -235,7 +235,7 @@ export const ExamsPage: React.FC = () => {
 // ASSIGNMENTS
 // ───────────────────────────────────────────────
 export const AssignmentsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("assignments", "assignments", page, 10, search);
@@ -294,7 +294,7 @@ export const AssignmentsPage: React.FC = () => {
 // RESULTS
 // ───────────────────────────────────────────────
 export const ResultsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("results", "results", page, 10, search);
@@ -361,7 +361,7 @@ export const ResultsPage: React.FC = () => {
 // ATTENDANCE
 // ───────────────────────────────────────────────
 export const AttendancePage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("attendance", "attendance", page, 10, search);
@@ -420,7 +420,7 @@ export const AttendancePage: React.FC = () => {
 // EVENTS
 // ───────────────────────────────────────────────
 export const EventsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("events", "events", page, 10, search);
@@ -477,7 +477,7 @@ export const EventsPage: React.FC = () => {
 // ANNOUNCEMENTS
 // ───────────────────────────────────────────────
 export const AnnouncementsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("announcements", "announcements", page, 10, search);

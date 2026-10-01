@@ -32,6 +32,7 @@ import AnnouncementsPage from "@/pages/list/AnnouncementsPage";
 import MessagesPage from "@/pages/list/MessagesPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
+import AdminUsersPage from "@/pages/AdminUsersPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -48,6 +49,11 @@ const RoleDashboard: React.FC = () => {
   if (role === "student") return <StudentDashboardPage />;
   if (role === "parent") return <ParentDashboardPage />;
   return <AdminPage />;
+};
+
+const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { role } = useAuth();
+  return role === "super_admin" ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 const App: React.FC = () => {
@@ -92,6 +98,7 @@ const App: React.FC = () => {
           {/* Other */}
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="admin-users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

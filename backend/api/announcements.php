@@ -51,7 +51,7 @@ function getAnnouncements($db) {
             WHERE 1=1";
     $params = [];
 
-    if ($user['role'] !== 'admin') {
+    if (!AuthMiddleware::isAdmin($user)) {
         $visibility = announcementVisibility($user);
         $sql .= " AND " . $visibility['sql'];
         $params = array_merge($params, $visibility['params']);
@@ -92,7 +92,7 @@ function getAnnouncements($db) {
 function getAnnouncement($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
 
-    $visibility = $user['role'] === 'admin'
+    $visibility = AuthMiddleware::isAdmin($user)
         ? ['sql' => '1=1', 'params' => []]
         : announcementVisibility($user);
     

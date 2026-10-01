@@ -5,7 +5,7 @@ import { CalendarDays, GraduationCap, Mail, MapPin, Phone, Trophy, Users } from 
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import FormModal from "@/components/FormModal";
-import { useAuth } from "@/context/AuthContext";
+import { useAccessRole } from "@/context/AuthContext";
 
 const localizer = momentLocalizer(moment);
 
@@ -112,7 +112,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; value: string | number; label:
 );
 
 const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onReload }) => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const navigate = useNavigate();
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
   const student = details.student;

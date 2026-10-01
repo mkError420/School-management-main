@@ -116,6 +116,7 @@ function unreadMessageCount($db, $user) {
 
 function getMessages($db) {
     $user = AuthMiddleware::authenticate();
+    if (AuthMiddleware::isAdmin($user)) $user['role'] = 'admin';
     ensureMessageSchema($db);
     $conversationId = trim($_GET['conversation_id'] ?? '');
     if ($conversationId !== '') {
@@ -127,7 +128,7 @@ function getMessages($db) {
     if (!in_array($folder, ['inbox', 'sent'], true)) {
         Response::error('Invalid message folder');
     }
-    if ($folder === 'sent' && $user['role'] !== 'admin') {
+    if ($folder === 'sent' && !AuthMiddleware::isAdmin($user)) {
         Response::forbidden('Only administrators can view sent messages');
     }
 
@@ -259,6 +260,7 @@ function collectMessageUploads() {
 
 function sendMessage($db) {
     $user = AuthMiddleware::authenticate();
+    if (AuthMiddleware::isAdmin($user)) $user['role'] = 'admin';
     ensureMessageSchema($db);
     $input = parseMessageInput();
     $conversationId = trim($input['conversation_id'] ?? '');
@@ -293,7 +295,7 @@ function sendMessage($db) {
             $counterpartId = $original['sender_id'];
             $counterpartRole = $original['sender_role'];
         }
-        if ($user['role'] !== 'admin' && $counterpartRole !== 'admin') {
+        if (!AuthMiddleware::isAdmin($user) && $counterpartRole !== 'admin') {
             Response::forbidden('Replies are only available in administrator conversations');
         }
         if ($subject === '') {
@@ -301,7 +303,7 @@ function sendMessage($db) {
         }
         $recipients[] = ['id' => $counterpartId, 'role' => $counterpartRole];
     } else {
-        if ($user['role'] !== 'admin') {
+        if (!AuthMiddleware::isAdmin($user)) {
             Response::forbidden('Start conversations by replying to an administrator message');
         }
         $audience = $input['audience'] ?? '';

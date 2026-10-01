@@ -6,7 +6,7 @@ export interface UserSession {
   id: string;
   username: string;
   name?: string;
-  role: 'admin' | 'teacher' | 'student' | 'parent';
+  role: 'admin' | 'super_admin' | 'teacher' | 'student' | 'parent';
   token: string;
 }
 

@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export type UserRole = 'admin' | 'teacher' | 'student' | 'parent';
+export type UserRole = 'admin' | 'super_admin' | 'teacher' | 'student' | 'parent';
+
+export const hasAdminAccess = (role: UserRole) => role === 'admin' || role === 'super_admin';
 
 export interface User {
   id: string;
@@ -133,4 +135,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => useContext(AuthContext);
+export const useAccessRole = () => {
+  const { role } = useAuth();
+  return hasAdminAccess(role) ? 'admin' : role;
+};
 export default AuthContext;

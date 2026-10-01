@@ -5,7 +5,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "@/components/Image";
 import { Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 
 const columns = [
@@ -17,7 +17,7 @@ const columns = [
 ];
 
 const ParentsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("parents", "parents", page, 10, search);

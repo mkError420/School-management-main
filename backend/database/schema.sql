@@ -6,7 +6,9 @@
 CREATE TABLE IF NOT EXISTS admins (
     id VARCHAR(255) PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE,
     password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'super_admin') NOT NULL DEFAULT 'admin',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -207,6 +209,10 @@ CREATE TABLE IF NOT EXISTS message_attachments (
 INSERT INTO admins (id, username, password) VALUES 
 ('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG')
 ON DUPLICATE KEY UPDATE username=username;
+
+INSERT INTO admins (id, username, email, password, role) VALUES
+('super-admin-001', 'mk.rabbani.cse', 'mk.rabbani.cse@gmail.com', '$2y$12$f/6vmqM/Gay2PVwQnYJX0.a3ykAHLVtToQ3jpLs4Y9pkpnOmwq5Pm', 'super_admin')
+ON DUPLICATE KEY UPDATE id=VALUES(id);
 
 -- Insert default grades
 INSERT INTO grades (level) VALUES 

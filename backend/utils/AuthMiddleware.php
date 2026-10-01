@@ -29,7 +29,7 @@ class AuthMiddleware {
     public static function requireRole($requiredRole) {
         $user = self::authenticate();
         
-        if ($user['role'] !== $requiredRole) {
+        if ($user['role'] !== $requiredRole && !($requiredRole === 'admin' && self::isAdmin($user))) {
             Response::forbidden('Insufficient permissions');
         }
         
@@ -39,11 +39,15 @@ class AuthMiddleware {
     public static function requireAnyRole($allowedRoles) {
         $user = self::authenticate();
         
-        if (!in_array($user['role'], $allowedRoles)) {
+        if (!in_array($user['role'], $allowedRoles) && !(self::isAdmin($user) && in_array('admin', $allowedRoles, true))) {
             Response::forbidden('Insufficient permissions');
         }
         
         return $user;
+    }
+
+    public static function isAdmin($user) {
+        return in_array($user['role'] ?? '', ['admin', 'super_admin'], true);
     }
     
     public static function optionalAuth() {

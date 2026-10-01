@@ -116,7 +116,7 @@ function getAssignment($db, $id) {
          LEFT JOIN classes c ON l.class_id = c.id
          LEFT JOIN teachers t ON l.teacher_id = t.id
          WHERE a.id = ?" . ($user['role'] === 'teacher' ? " AND l.teacher_id = ?" : ($user['role'] === 'student' ? " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)" : ($user['role'] === 'parent' ? " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)" : ""))),
-        $user['role'] === 'admin' ? [$id] : [$id, $user['user_id']]
+        AuthMiddleware::isAdmin($user) ? [$id] : [$id, $user['user_id']]
     );
     
     if (!$assignment) {

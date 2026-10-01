@@ -50,6 +50,7 @@ function handleLogin($db, $input) {
     
     $tables = [
         'admin' => 'admins',
+        'super_admin' => 'admins',
         'teacher' => 'teachers',
         'student' => 'students',
         'parent' => 'parents',
@@ -59,15 +60,19 @@ function handleLogin($db, $input) {
     }
     
     $candidateRoles = $requestedRole === null ? $tables : [$requestedRole => $tables[$requestedRole]];
+    if ($requestedRole === null) {
+        unset($candidateRoles['super_admin']);
+    }
     $matches = [];
     foreach ($candidateRoles as $role => $table) {
-        $users = $role === 'admin'
-            ? $db->fetchAll("SELECT * FROM {$table} WHERE username = ?", [$identifier])
+        $users = in_array($role, ['admin', 'super_admin'], true)
+            ? $db->fetchAll("SELECT * FROM {$table} WHERE username = ? OR email = ?", [$identifier, $identifier])
             : $db->fetchAll("SELECT * FROM {$table} WHERE username = ? OR email = ?", [$identifier, $identifier]);
 
         foreach ($users as $user) {
-            if (password_verify($password, $user['password'])) {
-                $matches[] = ['role' => $role, 'user' => $user];
+            $matchedRole = $role === 'admin' ? ($user['role'] ?? 'admin') : $role;
+            if (($requestedRole === null || $requestedRole === $matchedRole) && password_verify($password, $user['password'])) {
+                $matches[] = ['role' => $matchedRole, 'user' => $user];
             }
         }
     }
@@ -221,6 +226,7 @@ function handleChangePassword($db, $input) {
 
     $tables = [
         'admin' => 'admins',
+        'super_admin' => 'admins',
         'teacher' => 'teachers',
         'student' => 'students',
         'parent' => 'parents',
@@ -253,6 +259,7 @@ function handleGetCurrentUser($db) {
     $table = '';
     switch ($user['role']) {
         case 'admin':
+        case 'super_admin':
             $table = 'admins';
             break;
         case 'student':

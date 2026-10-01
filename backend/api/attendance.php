@@ -119,7 +119,7 @@ function getAttendanceRecord($db, $id) {
          LEFT JOIN subjects s ON l.subject_id = s.id
          LEFT JOIN classes c ON l.class_id = c.id
          WHERE a.id = ?" . ($user['role'] === 'student' ? " AND st.id = ?" : ($user['role'] === 'parent' ? " AND st.parent_id = ?" : ($user['role'] === 'teacher' ? " AND l.teacher_id = ?" : ""))),
-        $user['role'] === 'admin'
+        AuthMiddleware::isAdmin($user)
             ? [$id]
             : [$id, $user['user_id']]
     );

@@ -5,7 +5,7 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { useAuth } from "@/context/AuthContext";
+import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 
 interface Student {
@@ -34,7 +34,7 @@ const columns = [
 ];
 
 const StudentsPage: React.FC = () => {
-  const { role } = useAuth();
+  const role = useAccessRole();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const { data: students, loading, error, pagination, refresh: fetchStudents } = useApiList<Student>("students", "students", page, 10, search);

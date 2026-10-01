@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "@/components/Image";
 import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { hasAdminAccess, useAuth } from "@/context/AuthContext";
 
 const menuItems = [
   {
@@ -36,6 +36,12 @@ const menuItems = [
         label: "Subjects",
         href: "/list/subjects",
         visible: ["admin"],
+      },
+      {
+        icon: "/setting.png",
+        label: "Admin Access",
+        href: "/admin-users",
+        visible: ["super_admin"],
       },
       {
         icon: "/class.png",
@@ -130,7 +136,7 @@ const Menu: React.FC = () => {
             {section.title}
           </span>
           {section.items.map((item) => {
-            if (!item.visible.includes(role)) return null;
+            if (!item.visible.includes(role) && !(hasAdminAccess(role) && item.visible.includes("admin"))) return null;
 
             if (item.href === "/logout") {
               return (
