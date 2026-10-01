@@ -28,6 +28,8 @@ For an existing installation being upgraded to Messages, import the updated `bac
 
 Message attachments support up to five files per message, 10 MB each (PDF, Office documents, TXT, PNG, or JPG). If uploads are rejected by PHP before reaching the API, set cPanel's `upload_max_filesize` to at least `10M` and `post_max_size` to at least `55M`. Attachment files are stored under `backend/storage/message-attachments/` and must remain inaccessible as direct public downloads; the API checks conversation membership before serving a file.
 
+Teacher profile photos accept JPG, PNG, or WebP images up to 5 MB. Uploaded photos are stored in `public/images/teachers/` and served from the site's `/images/teachers/` path.
+
 The seed creates these initial logins: admin `admin` / `admin123`, teacher `johndoe` / `teacher123`, student `johnconnor` / `student123`, and parent `sarahconnor` / `parent123`. These are public sample credentials; change them immediately after setup and before making the site available.
 
 ## 3. Upload and configure the PHP API

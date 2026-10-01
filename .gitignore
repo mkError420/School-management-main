@@ -29,6 +29,7 @@ yarn-error.log*
 .env
 .env*.local
 /backend/config/config.local.php
+/public/images/teachers/
 
 # vercel
 .vercel

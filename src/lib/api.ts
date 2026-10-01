@@ -128,14 +128,21 @@ class ApiService {
   async create(resource: string, data: any) {
     return this.request(resource, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     });
   }
 
   async update(resource: string, id: string | number, data: any) {
     return this.request(`${resource}?id=${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
+    });
+  }
+
+  async updateMultipart(resource: string, id: string | number, data: FormData) {
+    return this.request(`${resource}?action=update&id=${encodeURIComponent(String(id))}`, {
+      method: 'POST',
+      body: data,
     });
   }
 

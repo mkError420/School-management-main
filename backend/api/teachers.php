@@ -14,7 +14,14 @@ switch ($method) {
         break;
         
     case 'POST':
-        createTeacher($db);
+        if (($_GET['action'] ?? '') === 'update') {
+            if (!$id) {
+                Response::error('Teacher ID is required');
+            }
+            updateTeacher($db, $id);
+        } else {
+            createTeacher($db);
+        }
         break;
         
     case 'PUT':
@@ -255,7 +262,7 @@ function getTeacher($db, $id) {
 function createTeacher($db) {
     AuthMiddleware::requireRole('admin');
     
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = parseTeacherInput();
     
     $required = ['username', 'password', 'name', 'surname', 'address', 'blood_type', 'sex'];
     foreach ($required as $field) {
@@ -274,7 +281,9 @@ function createTeacher($db) {
     // Generate unique ID
     $id = uniqid();
     
+    $uploadedImage = null;
     try {
+        $uploadedImage = storeTeacherImage();
         $db->beginTransaction();
         
         // Insert teacher
@@ -287,7 +296,7 @@ function createTeacher($db) {
             'email' => $input['email'] ?? null,
             'phone' => $input['phone'] ?? null,
             'address' => $input['address'],
-            'img' => $input['img'] ?? null,
+            'img' => $uploadedImage ?? ($input['img'] ?? null),
             'blood_type' => $input['blood_type'],
             'sex' => $input['sex']
         ]);
@@ -322,6 +331,9 @@ function createTeacher($db) {
         
     } catch (Exception $e) {
         $db->rollback();
+        if ($uploadedImage) {
+            deleteTeacherImage($uploadedImage);
+        }
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email already exists', 409);
         }
@@ -332,10 +344,10 @@ function createTeacher($db) {
 function updateTeacher($db, $id) {
     AuthMiddleware::requireRole('admin');
     
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = parseTeacherInput();
     
     // Check if teacher exists
-    $existing = $db->fetchOne("SELECT id FROM teachers WHERE id = ?", [$id]);
+    $existing = $db->fetchOne("SELECT id, img FROM teachers WHERE id = ?", [$id]);
     if (!$existing) {
         Response::notFound('Teacher not found');
     }
@@ -358,7 +370,12 @@ function updateTeacher($db, $id) {
         $data['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
     }
     
+    $uploadedImage = null;
     try {
+        $uploadedImage = storeTeacherImage();
+        if ($uploadedImage) {
+            $data['img'] = $uploadedImage;
+        }
         $db->beginTransaction();
         
         // Update teacher basic info
@@ -395,6 +412,10 @@ function updateTeacher($db, $id) {
         }
         
         $db->commit();
+
+        if ($uploadedImage && !empty($existing['img'])) {
+            deleteTeacherImage($existing['img']);
+        }
         
         // Get updated teacher
         $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ?", [$id]);
@@ -404,6 +425,9 @@ function updateTeacher($db, $id) {
         
     } catch (Exception $e) {
         $db->rollback();
+        if ($uploadedImage) {
+            deleteTeacherImage($uploadedImage);
+        }
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email already exists', 409);
         }
@@ -415,7 +439,7 @@ function deleteTeacher($db, $id) {
     AuthMiddleware::requireRole('admin');
     
     // Check if teacher exists
-    $existing = $db->fetchOne("SELECT id FROM teachers WHERE id = ?", [$id]);
+    $existing = $db->fetchOne("SELECT id, img FROM teachers WHERE id = ?", [$id]);
     if (!$existing) {
         Response::notFound('Teacher not found');
     }
@@ -435,6 +459,9 @@ function deleteTeacher($db, $id) {
         $db->commit();
         
         if ($deleted > 0) {
+            if (!empty($existing['img'])) {
+                deleteTeacherImage($existing['img']);
+            }
             Response::success('Teacher deleted successfully');
         } else {
             Response::error('Failed to delete teacher');
@@ -443,5 +470,60 @@ function deleteTeacher($db, $id) {
     } catch (Exception $e) {
         $db->rollback();
         Response::error('Failed to delete teacher: ' . $e->getMessage());
+    }
+}
+
+function parseTeacherInput() {
+    if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false) {
+        return $_POST;
+    }
+    return json_decode(file_get_contents('php://input'), true) ?? [];
+}
+
+function storeTeacherImage() {
+    if (empty($_FILES['img']) || $_FILES['img']['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $upload = $_FILES['img'];
+    if ($upload['error'] !== UPLOAD_ERR_OK) {
+        Response::error('Teacher image upload failed');
+    }
+    if ($upload['size'] > 5 * 1024 * 1024) {
+        Response::error('Teacher image must be no larger than 5 MB');
+    }
+
+    $imageInfo = getimagesize($upload['tmp_name']);
+    $extensionsByMime = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+    $mimeType = $imageInfo['mime'] ?? '';
+    if (!$imageInfo || !isset($extensionsByMime[$mimeType])) {
+        Response::error('Choose a valid JPG, PNG, or WebP image');
+    }
+
+    $directory = dirname(__DIR__, 2) . '/public/images/teachers';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        Response::serverError('Unable to prepare teacher image storage');
+    }
+
+    $fileName = bin2hex(random_bytes(16)) . '.' . $extensionsByMime[$mimeType];
+    if (!move_uploaded_file($upload['tmp_name'], $directory . '/' . $fileName)) {
+        Response::serverError('Unable to store teacher image');
+    }
+
+    return '/images/teachers/' . $fileName;
+}
+
+function deleteTeacherImage($imagePath) {
+    if (!is_string($imagePath) || strpos($imagePath, '/images/teachers/') !== 0) {
+        return;
+    }
+
+    $filePath = dirname(__DIR__, 2) . '/public/images/teachers/' . basename($imagePath);
+    if (is_file($filePath)) {
+        unlink($filePath);
     }
 }

@@ -9,7 +9,7 @@ type SelectOption = { value: string; label: string };
 type Field = {
   name: string;
   label: string;
-  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select" | "multiselect" | "checkbox";
+  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select" | "multiselect" | "checkbox" | "file";
   required?: boolean;
   options?: SelectOption[];
   resource?: string;
@@ -42,7 +42,7 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "address", label: "Address", type: "textarea", required: true },
     { name: "blood_type", label: "Blood type", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "img", label: "Photo URL" },
+    { name: "img", label: "Teacher photo", type: "file" },
     { name: "subject_ids", label: "Subjects", type: "multiselect", resource: "subjects" },
     { name: "class_ids", label: "Classes", type: "multiselect", resource: "classes" },
   ],
@@ -148,6 +148,8 @@ const formatInputValue = (field: Field, value: any) => {
 const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }) => {
   const fields = fieldsByEntity[entity];
   const [values, setValues] = useState<Record<string, any>>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [options, setOptions] = useState<Record<string, SelectOption[]>>({});
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -182,6 +184,8 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     fields.forEach((field) => {
       if (field.name === "password") {
         initialValues[field.name] = "";
+      } else if (field.type === "file") {
+        initialValues[field.name] = null;
       } else if (entity === "teacher" && field.name === "subject_ids") {
         initialValues[field.name] = data?.subjects?.map((item: any) => String(item.id)) || [];
       } else if (entity === "teacher" && field.name === "class_ids") {
@@ -197,7 +201,18 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
       }
     });
     setValues(initialValues);
+    setSelectedImage(null);
   }, [data, entity, fields]);
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setImagePreview(entity === "teacher" ? data?.img || null : null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(selectedImage);
+    setImagePreview(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [data?.img, entity, selectedImage]);
 
   const setValue = (name: string, value: any) => {
     setValues((current) => name === "result_type"
@@ -214,6 +229,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     const payload: Record<string, any> = {};
     fields.forEach((field) => {
       if (field.name === "result_type" || field.name === "assessment_id") return;
+      if (field.type === "file") return;
       const value = values[field.name];
       if (field.name === "username" && type === "update") return;
       if (field.type === "datetime-local" && value) payload[field.name] = String(value).replace("T", " ") + (String(value).length === 16 ? ":00" : "");
@@ -229,9 +245,25 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     }
 
     try {
-      const response = type === "create"
-        ? await api.create(apiResources[entity], payload)
-        : await api.update(apiResources[entity], data?.id, payload);
+      let response;
+      if (entity === "teacher" && selectedImage) {
+        const formData = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            value.forEach((item) => formData.append(`${key}[]`, String(item)));
+          } else if (value !== null && value !== undefined) {
+            formData.append(key, String(value));
+          }
+        });
+        formData.append("img", selectedImage, selectedImage.name);
+        response = type === "create"
+          ? await api.create(apiResources[entity], formData)
+          : await api.updateMultipart(apiResources[entity], data?.id, formData);
+      } else {
+        response = type === "create"
+          ? await api.create(apiResources[entity], payload)
+          : await api.update(apiResources[entity], data?.id, payload);
+      }
       if (!response.success) {
         setError(response.message || `Unable to ${type} ${entity}.`);
         return;
@@ -266,6 +298,45 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                 <input type="checkbox" checked={Boolean(values[field.name])} onChange={(event) => setValue(field.name, event.target.checked)} className="h-4 w-4" />
                 {field.label}
               </label>
+            );
+          }
+
+          if (field.type === "file") {
+            return (
+              <div key={field.name} className="flex flex-col gap-2 text-sm text-gray-700 sm:col-span-2">
+                <span className="font-medium">{field.label}</span>
+                <div className="flex flex-wrap items-center gap-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-3">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Teacher photo preview" className="h-20 w-20 rounded-md border border-gray-200 object-cover" />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-md bg-white text-xs text-gray-400">No photo</div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0] || null;
+                        if (file && !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                          setError("Choose a JPG, PNG, or WebP image.");
+                          event.target.value = "";
+                          return;
+                        }
+                        if (file && file.size > 5 * 1024 * 1024) {
+                          setError("Teacher photo must be no larger than 5 MB.");
+                          event.target.value = "";
+                          return;
+                        }
+                        setSelectedImage(file);
+                        setError(null);
+                      }}
+                      className="block w-full text-xs text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-sky-800 hover:file:bg-sky-200"
+                    />
+                    <p className="mt-2 text-xs text-gray-500">JPG, PNG, or WebP. Maximum file size 5 MB.</p>
+                    {type === "update" && data?.img && !selectedImage && <p className="mt-1 text-xs text-gray-500">Choose a new image to replace the current photo.</p>}
+                  </div>
+                </div>
+              </div>
             );
           }
 
