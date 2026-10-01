@@ -17,6 +17,9 @@ switch ($method) {
             case 'register':
                 handleRegister($db, $input);
                 break;
+            case 'change-password':
+                handleChangePassword($db, $input);
+                break;
             default:
                 Response::error('Invalid action', 400);
         }
@@ -201,6 +204,47 @@ function handleRegister($db, $input) {
         }
         Response::error('Registration failed: ' . $e->getMessage());
     }
+}
+
+function handleChangePassword($db, $input) {
+    $user = AuthMiddleware::authenticate();
+    $currentPassword = $input['current_password'] ?? '';
+    $newPassword = $input['new_password'] ?? '';
+
+    if ($currentPassword === '' || $newPassword === '') {
+        Response::error('Current password and new password are required');
+    }
+
+    if (strlen($newPassword) < 8) {
+        Response::error('New password must be at least 8 characters');
+    }
+
+    $tables = [
+        'admin' => 'admins',
+        'teacher' => 'teachers',
+        'student' => 'students',
+        'parent' => 'parents',
+    ];
+    $table = $tables[$user['role']] ?? null;
+    if ($table === null) {
+        Response::error('Invalid account role', 403);
+    }
+
+    $account = $db->fetchOne("SELECT id, password FROM {$table} WHERE id = ?", [$user['user_id']]);
+    if (!$account) {
+        Response::notFound('Account not found');
+    }
+
+    if (!password_verify($currentPassword, $account['password'])) {
+        Response::error('Current password is incorrect', 401);
+    }
+
+    if (password_verify($newPassword, $account['password'])) {
+        Response::error('Choose a new password different from your current password');
+    }
+
+    $db->update($table, ['password' => password_hash($newPassword, PASSWORD_DEFAULT)], 'id = ?', [$user['user_id']]);
+    Response::success('Password changed successfully');
 }
 
 function handleGetCurrentUser($db) {

@@ -85,6 +85,13 @@ class ApiService {
     return this.request('auth?action=me', { method: 'GET' });
   }
 
+  async changePassword(credentials: { current_password: string; new_password: string }) {
+    return this.request('auth?action=change-password', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
   // Dashboard Metrics
   async getDashboard() {
     return this.request('dashboard', { method: 'GET' });
