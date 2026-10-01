@@ -49,7 +49,23 @@ class ApiService {
         headers,
       });
 
-      const json = await response.json();
+      const responseText = await response.text();
+      let json: { success: boolean; data?: T; message?: string };
+      try {
+        json = JSON.parse(responseText);
+      } catch {
+        const message = responseText.trim();
+        return {
+          success: false,
+          message: message && !message.startsWith('<')
+            ? message.slice(0, 240)
+            : `The server returned an invalid response (HTTP ${response.status}). Check the PHP error log.`,
+        };
+      }
+
+      if (!response.ok && json.success !== false) {
+        return { success: false, message: json.message || `Request failed (HTTP ${response.status}).` };
+      }
       return json;
     } catch (err: any) {
       console.warn(`API fetch error for ${url}:`, err.message);

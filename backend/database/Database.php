@@ -15,7 +15,8 @@ class Database {
             
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, $options);
         } catch (PDOException $e) {
-            die("Database connection failed: " . $e->getMessage());
+            error_log('Database connection failed: ' . $e->getMessage());
+            throw new RuntimeException('Database connection failed. Verify DB_HOST, DB_NAME, DB_USER, and DB_PASS in backend/config/config.php.');
         }
     }
     

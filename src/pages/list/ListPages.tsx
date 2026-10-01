@@ -1,36 +1,24 @@
 // Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import Image from "@/components/Image";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api";
+import { useApiList } from "@/lib/useApiList";
 
 // ───────────────────────────────────────────────
 // SUBJECTS
 // ───────────────────────────────────────────────
 export const SubjectsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("subjects", params);
-    if (res.success && res.data?.subjects) { setData(res.data.subjects); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("subjects", "subjects", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Subject Name", accessor: "name" },
@@ -66,7 +54,7 @@ export const SubjectsPage: React.FC = () => {
           {role === "admin" && <FormModal table="subject" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No subjects found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No subjects found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -77,23 +65,11 @@ export const SubjectsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const ClassesPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("classes", params);
-    if (res.success && res.data?.classes) { setData(res.data.classes); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("classes", "classes", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Class Name", accessor: "name" },
@@ -133,7 +109,7 @@ export const ClassesPage: React.FC = () => {
           {role === "admin" && <FormModal table="class" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No classes found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No classes found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -144,23 +120,11 @@ export const ClassesPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const LessonsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("lessons", params);
-    if (res.success && res.data?.lessons) { setData(res.data.lessons); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("lessons", "lessons", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Lesson Name", accessor: "name" },
@@ -202,7 +166,7 @@ export const LessonsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="lesson" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No lessons found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No lessons found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -213,23 +177,11 @@ export const LessonsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const ExamsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("exams", params);
-    if (res.success && res.data?.exams) { setData(res.data.exams); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("exams", "exams", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Exam Title", accessor: "title" },
@@ -273,7 +225,7 @@ export const ExamsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="exam" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No exams found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No exams found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -284,23 +236,11 @@ export const ExamsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const AssignmentsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("assignments", params);
-    if (res.success && res.data?.assignments) { setData(res.data.assignments); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("assignments", "assignments", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Title", accessor: "title" },
@@ -344,7 +284,7 @@ export const AssignmentsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="assignment" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No assignments found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No assignments found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -355,23 +295,11 @@ export const AssignmentsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const ResultsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("results", params);
-    if (res.success && res.data?.results) { setData(res.data.results); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("results", "results", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Student", accessor: "student" },
@@ -423,7 +351,7 @@ export const ResultsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="result" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No results found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No results found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -434,23 +362,11 @@ export const ResultsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const AttendancePage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("attendance", params);
-    if (res.success && res.data?.attendance) { setData(res.data.attendance); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("attendance", "attendance", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Student", accessor: "student" },
@@ -494,7 +410,7 @@ export const AttendancePage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="attendance" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No attendance records found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No attendance records found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -505,23 +421,11 @@ export const AttendancePage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const EventsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("events", params);
-    if (res.success && res.data?.events) { setData(res.data.events); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("events", "events", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Title", accessor: "title" },
@@ -563,7 +467,7 @@ export const EventsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="event" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No events found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No events found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );
@@ -574,23 +478,11 @@ export const EventsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const AnnouncementsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: any = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("announcements", params);
-    if (res.success && res.data?.announcements) { setData(res.data.announcements); setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 }); }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("announcements", "announcements", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const cols = [
     { header: "Title", accessor: "title" },
@@ -629,7 +521,7 @@ export const AnnouncementsPage: React.FC = () => {
           {(role === "admin" || role === "teacher") && <FormModal table="announcement" type="create" onSuccess={fetchData} />}
         </div>
       </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} emptyMessage="No announcements found" />
+      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No announcements found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );

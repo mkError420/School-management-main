@@ -4,18 +4,7 @@ import React, { Suspense, lazy, useState } from "react";
 import Image from "@/components/Image";
 import { api } from "@/lib/api";
 
-const TeacherForm = lazy(() => import("./forms/TeacherForm"));
-const StudentForm = lazy(() => import("./forms/StudentForm"));
-const ParentForm = lazy(() => import("./forms/ParentForm"));
-const SubjectForm = lazy(() => import("./forms/SubjectForm"));
-const ClassForm = lazy(() => import("./forms/ClassForm"));
-const LessonForm = lazy(() => import("./forms/LessonForm"));
-const ExamForm = lazy(() => import("./forms/ExamForm"));
-const AssignmentForm = lazy(() => import("./forms/AssignmentForm"));
-const ResultForm = lazy(() => import("./forms/ResultForm"));
-const AttendanceForm = lazy(() => import("./forms/AttendanceForm"));
-const EventForm = lazy(() => import("./forms/EventForm"));
-const AnnouncementForm = lazy(() => import("./forms/AnnouncementForm"));
+const EntityForm = lazy(() => import("./forms/EntityForm"));
 
 type TableType =
   | "teacher" | "student" | "parent" | "subject" | "class"
@@ -91,7 +80,7 @@ const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess 
   };
 
   const FormContent = () => {
-    if (type === "delete" && id) {
+    if (type === "delete" && id !== undefined && id !== null) {
       return (
         <div className="p-6 flex flex-col gap-5">
           <div className="flex items-center gap-3">
@@ -125,22 +114,9 @@ const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess 
       );
     }
 
-    const formProps = { type: type as "create" | "update", data, onSuccess: handleFormSuccess };
-
     return (
       <Suspense fallback={<LoadingSpinner />}>
-        {table === "teacher" && <TeacherForm {...formProps} />}
-        {table === "student" && <StudentForm {...formProps} />}
-        {table === "parent" && <ParentForm {...formProps} />}
-        {table === "subject" && <SubjectForm {...formProps} />}
-        {table === "class" && <ClassForm {...formProps} />}
-        {table === "lesson" && <LessonForm {...formProps} />}
-        {table === "exam" && <ExamForm {...formProps} />}
-        {table === "assignment" && <AssignmentForm {...formProps} />}
-        {table === "result" && <ResultForm {...formProps} />}
-        {table === "attendance" && <AttendanceForm {...formProps} />}
-        {table === "event" && <EventForm {...formProps} />}
-        {table === "announcement" && <AnnouncementForm {...formProps} />}
+        <EntityForm entity={table} type={type as "create" | "update"} data={data} onSuccess={handleFormSuccess} />
       </Suspense>
     );
   };

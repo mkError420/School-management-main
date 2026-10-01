@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -6,7 +6,7 @@ import TableSearch from "@/components/TableSearch";
 import Image from "@/components/Image";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { api } from "@/lib/api";
+import { useApiList } from "@/lib/useApiList";
 
 const columns = [
   { header: "Info", accessor: "info" },
@@ -18,25 +18,9 @@ const columns = [
 
 const ParentsPage: React.FC = () => {
   const { role } = useAuth();
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ total: 0, pages: 1, limit: 10 });
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    const params: Record<string, string | number> = { page, limit: 10 };
-    if (search) params.search = search;
-    const res = await api.getAll("parents", params);
-    if (res.success && res.data?.parents) {
-      setData(res.data.parents);
-      setPagination(res.data.pagination || { total: 0, pages: 1, limit: 10 });
-    }
-    setLoading(false);
-  }, [page, search]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("parents", "parents", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
 
   const renderRow = (item: any) => (
@@ -81,7 +65,7 @@ const ParentsPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <Table columns={columns} renderRow={renderRow} data={data} loading={loading} emptyMessage="No parents found" />
+      <Table columns={columns} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No parents found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
     </div>
   );

@@ -12,9 +12,11 @@ interface TableProps {
   data: any[];
   loading?: boolean;
   emptyMessage?: string;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
-const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyMessage }) => {
+const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyMessage, error, onRetry }) => {
   if (loading) {
     return (
       <div className="w-full mt-4">
@@ -40,6 +42,19 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
             ))}
           </tbody>
         </table>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+        <p>{error}</p>
+        {onRetry && (
+          <button onClick={onRetry} className="mt-3 rounded-md bg-white px-3 py-1.5 font-medium text-red-700 ring-1 ring-red-200 hover:bg-red-100">
+            Retry
+          </button>
+        )}
       </div>
     );
   }

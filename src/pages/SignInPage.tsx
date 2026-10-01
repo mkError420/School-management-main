@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
@@ -8,7 +8,7 @@ const SignInPage: React.FC = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("admin");
+  const [role, setRole] = useState<"admin" | "teacher" | "student" | "parent">("admin");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,19 +20,6 @@ const SignInPage: React.FC = () => {
     } else {
       setError(result.message || "Invalid credentials. Please try again.");
     }
-  };
-
-  const demoLogin = async (demoRole: UserRole) => {
-    setError(null);
-    const creds: Record<UserRole, { username: string; password: string }> = {
-      admin:   { username: "admin",   password: "admin123" },
-      teacher: { username: "johndoe", password: "admin123" },
-      student: { username: "johnconnor", password: "admin123" },
-      parent:  { username: "sarahconnor", password: "admin123" },
-    };
-    const res = await login({ ...creds[demoRole], role: demoRole });
-    if (res.success) navigate("/");
-    else setError(res.message || "Demo login failed");
   };
 
   return (
@@ -63,7 +50,7 @@ const SignInPage: React.FC = () => {
                   Login as
                 </label>
                 <div className="grid grid-cols-4 gap-2 bg-gray-100 rounded-xl p-1.5">
-                  {(["admin", "teacher", "student", "parent"] as UserRole[]).map((r) => (
+                  {(["admin", "teacher", "student", "parent"] as ("admin" | "teacher" | "student" | "parent")[]).map((r) => (
                     <button
                       type="button"
                       key={r}
@@ -110,16 +97,6 @@ const SignInPage: React.FC = () => {
                 />
               </div>
 
-              {/* Forgot Password */}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Forgot password?
-                </button>
-              </div>
-
               {/* Error */}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -137,22 +114,6 @@ const SignInPage: React.FC = () => {
               </button>
             </form>
 
-            {/* Demo Logins */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <p className="text-gray-500 text-xs text-center mb-4 font-medium">Quick Demo Access</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(["admin", "teacher", "student", "parent"] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => demoLogin(r)}
-                    className="bg-gray-100 hover:bg-gray-200 border border-gray-200 rounded-xl py-2.5 px-3 text-gray-700 text-xs font-medium capitalize transition"
-                  >
-                    Demo {r}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Right Side - Illustration */}

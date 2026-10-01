@@ -158,8 +158,8 @@ function updateResult($db, $id) {
     
     $data = [];
     if (isset($input['score'])) $data['score'] = intval($input['score']);
-    if (isset($input['exam_id'])) $data['exam_id'] = $input['exam_id'] ?: null;
-    if (isset($input['assignment_id'])) $data['assignment_id'] = $input['assignment_id'] ?: null;
+    if (array_key_exists('exam_id', $input)) $data['exam_id'] = $input['exam_id'] ?: null;
+    if (array_key_exists('assignment_id', $input)) $data['assignment_id'] = $input['assignment_id'] ?: null;
     if (isset($input['student_id'])) $data['student_id'] = $input['student_id'];
     
     if (empty($data)) {

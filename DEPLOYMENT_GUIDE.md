@@ -11,12 +11,16 @@ npm run build
 
 Upload the **contents** of the generated `dist/` directory into the domain's document root, usually `public_html/`. The upload must include `index.html`, `assets/`, and the generated `.htaccess` file. Do not upload the project source, `node_modules/`, or SQL dumps into the public document root.
 
+For File Manager uploads, use `frontend-dist-cpanel.zip` and extract it directly into the document root. Upload `backend-cpanel.zip` to the same document root and extract it there; it contains the `backend/` folder. These archives must be regenerated after source changes with the current `dist/` build.
+
 ## 2. Create and import the database
 
 1. In cPanel, open **MySQL Databases** and create a database and database user.
 2. Assign the user to the database with all required privileges. cPanel usually prefixes both names with your account username.
 3. Open **phpMyAdmin**, select the new database, and import `backend/database/schema.sql` from your local project.
 4. Import `backend/database/seed.sql` only if you want the sample records. Change all seeded/default passwords before opening the site to users.
+
+The seed creates these initial logins: admin `admin` / `admin123`, teacher `johndoe` / `teacher123`, student `johnconnor` / `student123`, and parent `sarahconnor` / `parent123`. These are public sample credentials; change them immediately after setup and before making the site available.
 
 ## 3. Upload and configure the PHP API
 

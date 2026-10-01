@@ -33,7 +33,10 @@ import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Checking your session...</div>;
+  }
   if (!isAuthenticated) return <Navigate to="/sign-in" replace />;
   return <>{children}</>;
 };

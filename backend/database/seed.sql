@@ -5,8 +5,9 @@
 -- 1. Ensure Admin exists
 -- Password is 'admin123'
 INSERT INTO admins (id, username, password) VALUES 
-('admin001', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG')
 ON DUPLICATE KEY UPDATE username=username;
+UPDATE admins SET password = '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG' WHERE username = 'admin';
 
 -- 2. Grades
 INSERT INTO grades (id, level) VALUES 
@@ -38,6 +39,7 @@ INSERT INTO teachers (id, username, password, name, surname, email, phone, addre
 ('t4', 'jayfrench', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jay', 'French', 'jay@gmail.com', '1234567893', '321 Elm St, Anytown, USA', 'https://images.pexels.com/photos/1187765/pexels-photo-1187765.jpeg?auto=compress&cs=tinysrgb&w=1200', 'AB+', 'MALE'),
 ('t5', 'janesmith', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane', 'Smith', 'jane@gmail.com', '1234567894', '654 Maple St, Anytown, USA', 'https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&w=1200', 'A-', 'FEMALE')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+UPDATE teachers SET password = '$2y$12$kaQJ.789xqu90wENZ/6i4u3.542Kl4GXRa8pqZCGX2Z2qT/hcjqT.' WHERE username IN ('johndoe', 'janedoe', 'mikegeller', 'jayfrench', 'janesmith');
 
 -- 5. Classes
 INSERT INTO classes (id, name, capacity, supervisor_id, grade_id) VALUES
@@ -78,6 +80,7 @@ INSERT INTO parents (id, username, password, name, surname, email, phone, addres
 ('p4', 'brucewayne', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Bruce', 'Wayne', 'bruce@wayne.com', '1234567883', '1007 Mountain Dr, Gotham'),
 ('p5', 'clarkkent', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Clark', 'Kent', 'clark@dailyplanet.com', '1234567884', '344 Clinton St, Metropolis')
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+UPDATE parents SET password = '$2y$12$U2M.tL1ZHS2PrK4V.t.enuALJnQDjbD.9tee31YPogH4c1nSYR0Pe' WHERE username IN ('sarahconnor', 'tomholland', 'emmastone', 'brucewayne', 'clarkkent');
 
 -- 8. Students (Password: 'student123')
 INSERT INTO students (id, username, password, name, surname, email, phone, address, img, blood_type, sex, parent_id, class_id, grade_id) VALUES
@@ -87,6 +90,7 @@ INSERT INTO students (id, username, password, name, surname, email, phone, addre
 ('s4', 'dickgrayson', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Dick', 'Grayson', 'dick@wayne.com', '1234567804', '1007 Mountain Dr, Gotham', 'https://images.pexels.com/photos/428328/pexels-photo-428328.jpeg?auto=compress&cs=tinysrgb&w=1200', 'AB+', 'MALE', 'p4', 4, 2),
 ('s5', 'jonathanlewis', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jonathan', 'Lewis', 'jonathan@dailyplanet.com', '1234567805', '344 Clinton St, Metropolis', 'https://images.pexels.com/photos/1187765/pexels-photo-1187765.jpeg?auto=compress&cs=tinysrgb&w=1200', 'A-', 'MALE', 'p5', 7, 4)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+UPDATE students SET password = '$2y$12$9YKPB19hW5VEaRXJOfUqXu.r9XiX6yL5L2LzsHeFLEIsIjLRcy2T6' WHERE username IN ('johnconnor', 'peterparker', 'gwenstacy', 'dickgrayson', 'jonathanlewis');
 
 -- 9. Lessons
 INSERT INTO lessons (id, name, day, start_time, end_time, subject_id, class_id, teacher_id) VALUES

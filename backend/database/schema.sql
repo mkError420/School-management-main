@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 
 -- Insert default admin user (password: admin123 - should be changed in production)
 INSERT INTO admins (id, username, password) VALUES 
-('admin001', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi')
+('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- Insert default grades

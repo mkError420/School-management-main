@@ -22,19 +22,11 @@ interface AuthContextType {
   switchRole: (newRole: UserRole) => void;
 }
 
-const defaultAdminUser: User = {
-  id: 'admin001',
-  username: 'admin',
-  name: 'MK Rabbani',
-  role: 'admin',
-  email: 'admin@school.com',
-};
-
 const AuthContext = createContext<AuthContextType>({
-  user: defaultAdminUser,
+  user: null,
   role: 'admin',
   token: null,
-  isAuthenticated: true,
+  isAuthenticated: false,
   isLoading: false,
   login: async () => ({ success: false }),
   logout: () => {},
@@ -42,27 +34,54 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('school_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
-    return defaultAdminUser;
-  });
-
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => api.getToken());
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(api.getToken()));
 
   const role: UserRole = user?.role || 'admin';
 
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('school_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('school_user');
+    const savedToken = api.getToken();
+    if (!savedToken) {
+      setUser(null);
+      setIsLoading(false);
+      return;
     }
+
+    let active = true;
+    api.getMe().then((res) => {
+      if (!active) return;
+      const authenticatedUser = res.data?.user;
+      if (res.success && authenticatedUser && res.data?.role) {
+        setUser({
+          id: authenticatedUser.id,
+          username: authenticatedUser.username,
+          name: authenticatedUser.name,
+          role: res.data.role as UserRole,
+          email: authenticatedUser.email,
+        });
+      } else {
+        api.setToken(null);
+        setToken(null);
+        setUser(null);
+      }
+      setIsLoading(false);
+    }).catch(() => {
+      if (!active) return;
+      api.setToken(null);
+      setToken(null);
+      setUser(null);
+      setIsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user) localStorage.setItem('school_user', JSON.stringify(user));
+    else localStorage.removeItem('school_user');
   }, [user]);
 
   const login = async ({ username, password, role = 'admin' }: { username: string; password: string; role?: UserRole }) => {
@@ -83,22 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return { success: true };
       } else {
-        // Fallback for instant demo if backend is offline
-        if ((username === 'admin' && password === 'admin123') || password.length >= 4) {
-          const fallbackUser: User = {
-            id: 'admin001',
-            username,
-            name: username === 'admin' ? 'MK Rabbani' : username,
-            role,
-            email: `${username}@school.com`,
-          };
-          const mockToken = 'mock_jwt_token_' + Date.now();
-          api.setToken(mockToken);
-          setToken(mockToken);
-          setUser(fallbackUser);
-          setIsLoading(false);
-          return { success: true };
-        }
         setIsLoading(false);
         return { success: false, message: res.message || 'Invalid credentials' };
       }
