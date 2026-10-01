@@ -36,3 +36,7 @@ Options -Indexes
 <FilesMatch "\.(sql|env)$">
     Require all denied
 </FilesMatch>
+
+<Files "config.local.php">
+    Require all denied
+</Files>
