@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ChevronDown, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 const demoAccounts = [
@@ -43,165 +43,92 @@ const SignInPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="w-full max-w-6xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row">
-          
-          {/* Left Side - Login Form */}
-          <div className="w-full lg:w-1/2 p-8 lg:p-12">
-            {/* Logo */}
-            <div className="mb-8">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <img src="/images/logo.png" alt="ACADEMIA" className="w-8 h-8 object-contain" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">ACADEMIA</h1>
-                  <p className="text-sm text-gray-500">School Management System</p>
-                </div>
+    <div className="relative isolate min-h-screen overflow-hidden bg-slate-900">
+      <img src="/images/bgimage.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center" />
+      <div className="absolute inset-0 bg-slate-950/45" aria-hidden="true" />
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 sm:px-6">
+        <main className="w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+          <header className="mb-7">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-sky-800">
+                <img src="/images/logo.png" alt="" className="h-7 w-7 object-contain" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">ACADEMIA</h1>
+                <p className="text-xs text-gray-500">School Management System</p>
               </div>
             </div>
+            <p className="mt-6 text-sm font-medium text-gray-600">Sign in to continue to your account.</p>
+          </header>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Username */}
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2">
-                  Username or Email
-                </label>
-                <input
-                  type="text"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username or email"
-                  required
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block text-sm font-semibold text-gray-700">
+              Username or Email
+              <input
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Enter your username or email"
+                required
+                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+              />
+            </label>
 
-              {/* Password */}
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
-                />
-              </div>
+            <label className="block text-sm font-semibold text-gray-700">
+              Password
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Enter your password"
+                required
+                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+              />
+            </label>
 
-              {/* Error */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
+            {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</p>}
 
-              {/* Submit */}
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-sky-700 text-white font-bold py-3.5 rounded-xl hover:bg-sky-800 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
-              >
-                {isLoading ? "Signing in..." : "Login"}
-              </button>
-            </form>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full rounded-md bg-sky-800 py-3 text-sm font-bold text-white transition hover:bg-sky-900 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoading ? "Signing in..." : "Login"}
+            </button>
+          </form>
 
-            <details className="group mt-6 border-t border-gray-100 pt-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-gray-700">
-                <span>Demo accounts</span>
-                <ChevronDown size={17} className="text-gray-400 transition group-open:rotate-180" aria-hidden="true" />
-              </summary>
-              <p className="mt-2 text-xs text-gray-500">Requires the sample accounts from <code>seed.sql</code>.</p>
-              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {demoAccounts.map((account) => {
-                  const Icon = account.icon;
-                  return (
-                    <button
-                      key={account.label}
-                      type="button"
-                      disabled={isLoading}
-                      onClick={() => void handleDemoSignIn(account)}
-                      className="group/demo flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 p-3 text-left transition hover:border-sky-400 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 group-hover/demo:bg-white group-hover/demo:text-sky-700">
-                        <Icon size={17} aria-hidden="true" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-xs font-semibold text-gray-800">{account.label}</span>
-                        <span className="mt-0.5 block truncate font-mono text-[10px] text-gray-500">{account.username} / {account.password}</span>
-                      </span>
-                      <ArrowRight size={15} className="shrink-0 text-gray-400 group-hover/demo:text-sky-700" aria-hidden="true" />
-                    </button>
-                  );
-                })}
-              </div>
-            </details>
-
-          </div>
-
-          {/* Right Side - Illustration */}
-          <div className="w-full lg:w-1/2 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 p-8 lg:p-12 flex items-center justify-center relative overflow-hidden">
-            {/* Background decorations */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-400/10 rounded-full blur-2xl" />
-            
-            {/* Illustration */}
-            <div className="relative z-10 text-center">
-              <div className="mb-6">
-                <svg 
-                  className="w-64 h-64 mx-auto" 
-                  viewBox="0 0 400 400" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  {/* Books stack */}
-                  <rect x="80" y="280" width="240" height="30" rx="4" fill="#3B82F6" />
-                  <rect x="80" y="245" width="220" height="30" rx="4" fill="#EF4444" />
-                  <rect x="80" y="210" width="200" height="30" rx="4" fill="#F59E0B" />
-                  
-                  {/* Person 1 */}
-                  <circle cx="150" cy="120" r="25" fill="#1E293B" />
-                  <path d="M120 160 Q150 140 180 160 L180 210 L120 210 Z" fill="#3B82F6" />
-                  <rect x="130" y="200" width="40" height="60" rx="4" fill="#1E293B" />
-                  
-                  {/* Person 2 */}
-                  <circle cx="250" cy="100" r="25" fill="#F59E0B" />
-                  <path d="M220 140 Q250 120 280 140 L280 190 L220 190 Z" fill="#10B981" />
-                  <rect x="230" y="180" width="40" height="60" rx="4" fill="#1E293B" />
-                  
-                  {/* Laptops */}
-                  <rect x="110" y="250" width="50" height="35" rx="3" fill="#64748B" />
-                  <rect x="240" y="240" width="50" height="35" rx="3" fill="#64748B" />
-                  
-                  {/* Folder */}
-                  <rect x="300" y="300" width="60" height="45" rx="4" fill="#8B5CF6" />
-                  <rect x="305" y="295" width="20" height="10" rx="2" fill="#8B5CF6" />
-                  
-                  {/* Plants */}
-                  <circle cx="50" cy="350" r="20" fill="#10B981" opacity="0.6" />
-                  <circle cx="350" cy="350" r="25" fill="#10B981" opacity="0.6" />
-                  <circle cx="370" cy="320" r="15" fill="#10B981" opacity="0.5" />
-                </svg>
-              </div>
-              
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Welcome Back!
-              </h2>
-              <p className="text-white/80 text-lg">
-                Access your dashboard and manage your school activities
-              </p>
+          <section className="mt-6 border-t border-gray-200 pt-4" aria-labelledby="demo-accounts-title">
+            <h2 id="demo-accounts-title" className="text-sm font-semibold text-gray-800">Demo accounts</h2>
+            <p className="mt-1 text-xs text-gray-500">Requires sample accounts from <code>seed.sql</code>.</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {demoAccounts.map((account) => {
+                const Icon = account.icon;
+                return (
+                  <button
+                    key={account.label}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => void handleDemoSignIn(account)}
+                    className="group/demo flex min-w-0 items-center gap-2.5 rounded-md border border-gray-200 bg-white px-2.5 py-2.5 text-left transition hover:border-sky-500 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 group-hover/demo:text-sky-700">
+                      <Icon size={16} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-gray-800">{account.label}</span>
+                      <span className="mt-0.5 block truncate font-mono text-[10px] text-gray-500">{account.username} / {account.password}</span>
+                    </span>
+                    <ArrowRight size={14} className="shrink-0 text-gray-400 group-hover/demo:text-sky-700" aria-hidden="true" />
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </div>
+          </section>
+        </main>
 
-        <p className="text-center text-gray-500 text-xs mt-6">
+        <p className="text-center text-xs font-medium text-white/90 drop-shadow">
           © 2026 ACADEMIA School Management System
         </p>
       </div>
