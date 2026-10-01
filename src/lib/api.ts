@@ -103,8 +103,8 @@ class ApiService {
     return this.request(endpoint, { method: 'GET' });
   }
 
-  async getById(resource: string, id: string | number) {
-    return this.request(`${resource}?id=${id}`, { method: 'GET' });
+  async getById<T = any>(resource: string, id: string | number): Promise<{ success: boolean; data?: T; message?: string }> {
+    return this.request<T>(`${resource}?id=${id}`, { method: 'GET' });
   }
 
   async create(resource: string, data: any) {
