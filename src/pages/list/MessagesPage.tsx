@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Inbox, Mail, MailCheck, Plus, Search, Send, Users } from "lucide-react";
+import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Users, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -18,6 +18,15 @@ interface MessageRecord {
   body: string;
   created_at: string;
   read_at: string | null;
+  conversation_id: string;
+  attachments?: MessageAttachment[];
+}
+
+interface MessageAttachment {
+  id: number;
+  original_name: string;
+  mime_type: string;
+  file_size: number;
 }
 
 interface RecipientOption {
@@ -40,11 +49,14 @@ const formatDateTime = (value: string) => {
 };
 
 const MessagesPage: React.FC = () => {
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const isAdmin = role === "admin";
   const [folder, setFolder] = useState<Folder>("inbox");
   const [messages, setMessages] = useState<MessageRecord[]>([]);
   const [selected, setSelected] = useState<MessageRecord | null>(null);
+  const [conversationMessages, setConversationMessages] = useState<MessageRecord[]>([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadRefreshKey, setThreadRefreshKey] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -55,7 +67,11 @@ const MessagesPage: React.FC = () => {
   const [loadingRecipients, setLoadingRecipients] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [composeFiles, setComposeFiles] = useState<File[]>([]);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
+  const [sendingReply, setSendingReply] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -65,25 +81,32 @@ const MessagesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     setSelected(null);
-
-    api.getAll("messages", { folder, search: search.trim() }).then((response) => {
-      if (!active) return;
-      if (!response.success || !Array.isArray(response.data?.messages)) {
-        setMessages([]);
-        setError(response.message || "Unable to load messages.");
-        return;
+    const loadMessages = async (initialLoad: boolean) => {
+      if (initialLoad) setLoading(true);
+      try {
+        const response = await api.getAll("messages", { folder, search: search.trim() });
+        if (!active) return;
+        if (!response.success || !Array.isArray(response.data?.messages)) {
+          if (initialLoad) setMessages([]);
+          setError(response.message || "Unable to load messages.");
+          return;
+        }
+        setMessages(response.data.messages);
+        setUnreadCount(Number(response.data.unread_count) || 0);
+        window.dispatchEvent(new Event("school-messages-updated"));
+        setError(null);
+      } catch (requestError: unknown) {
+        if (active) setError(requestError instanceof Error ? requestError.message : "Unable to load messages.");
+      } finally {
+        if (active && initialLoad) setLoading(false);
       }
-      setMessages(response.data.messages);
-      setUnreadCount(Number(response.data.unread_count) || 0);
-    }).catch((requestError: unknown) => {
-      if (!active) return;
-      setMessages([]);
-      setError(requestError instanceof Error ? requestError.message : "Unable to load messages.");
-    }).finally(() => {
-      if (active) setLoading(false);
-    });
+    };
 
-    return () => { active = false; };
+    void loadMessages(true);
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadMessages(false);
+    }, 5000);
+    return () => { active = false; window.clearInterval(interval); };
   }, [folder, refreshKey, search]);
 
   useEffect(() => {
@@ -109,16 +132,43 @@ const MessagesPage: React.FC = () => {
     return () => { active = false; };
   }, [audience, folder, isAdmin]);
 
-  const selectMessage = async (message: MessageRecord) => {
-    setSelected(message);
-    if (folder !== "inbox" || message.read_at) return;
-    const response = await api.update("messages", message.id, {});
-    if (response.success) {
-      setMessages((current) => current.map((item) => item.id === message.id ? { ...item, read_at: new Date().toISOString() } : item));
-      setUnreadCount((count) => Math.max(0, count - 1));
-      setSelected((current) => current?.id === message.id ? { ...current, read_at: new Date().toISOString() } : current);
-      window.dispatchEvent(new Event("school-messages-updated"));
+  useEffect(() => {
+    if (!selected?.conversation_id) {
+      setConversationMessages(selected ? [selected] : []);
+      return;
     }
+    let active = true;
+    let initialLoad = true;
+    const loadConversation = async () => {
+      if (initialLoad) setThreadLoading(true);
+      const response = await api.getAll("messages", { conversation_id: selected.conversation_id });
+      if (!active) return;
+      if (response.success && Array.isArray(response.data?.messages)) {
+        setConversationMessages(response.data.messages);
+        setUnreadCount(Number(response.data.unread_count) || 0);
+        setMessages((current) => current.map((item) => item.conversation_id === selected.conversation_id && item.recipient_role === role
+          ? { ...item, read_at: item.read_at || new Date().toISOString() }
+          : item));
+        window.dispatchEvent(new Event("school-messages-updated"));
+      } else if (initialLoad) {
+        setError(response.message || "Unable to load this conversation.");
+      }
+      if (initialLoad) {
+        initialLoad = false;
+        setThreadLoading(false);
+      }
+    };
+    void loadConversation();
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void loadConversation();
+    }, 3000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [role, selected?.conversation_id, threadRefreshKey]);
+
+  const selectMessage = (message: MessageRecord) => {
+    setSelected(message);
+    setReplyBody("");
+    setReplyFiles([]);
   };
 
   const markAllRead = async () => {
@@ -139,12 +189,13 @@ const MessagesPage: React.FC = () => {
     setSending(true);
     setError(null);
     setNotice(null);
-    const response = await api.create("messages", {
-      audience,
-      recipient_id: recipientId || undefined,
-      subject: subject.trim(),
-      body: body.trim(),
-    });
+    const formData = new FormData();
+    formData.append("audience", audience);
+    if (recipientId) formData.append("recipient_id", recipientId);
+    formData.append("subject", subject.trim());
+    formData.append("body", body.trim());
+    composeFiles.forEach((file) => formData.append("attachments[]", file, file.name));
+    const response = await api.uploadMessage(formData);
     setSending(false);
     if (!response.success) {
       setError(response.message || "Unable to send message.");
@@ -154,9 +205,57 @@ const MessagesPage: React.FC = () => {
     setNotice(`Message delivered to ${deliveredTo} ${audience}${deliveredTo === 1 ? "" : "s"}.`);
     setSubject("");
     setBody("");
+    setComposeFiles([]);
     setFolder("sent");
     setRefreshKey((value) => value + 1);
   };
+
+  const sendReply = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selected?.conversation_id || !replyBody.trim()) return;
+    setSendingReply(true);
+    setError(null);
+    const formData = new FormData();
+    formData.append("conversation_id", selected.conversation_id);
+    formData.append("body", replyBody.trim());
+    replyFiles.forEach((file) => formData.append("attachments[]", file, file.name));
+    const response = await api.uploadMessage(formData);
+    setSendingReply(false);
+    if (!response.success) {
+      setError(response.message || "Unable to send reply.");
+      return;
+    }
+    setReplyBody("");
+    setReplyFiles([]);
+    setNotice("Reply sent.");
+    setThreadRefreshKey((value) => value + 1);
+    window.dispatchEvent(new Event("school-messages-updated"));
+  };
+
+  const downloadAttachment = async (attachment: MessageAttachment) => {
+    try {
+      const blob = await api.downloadMessageAttachment(attachment.id);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = attachment.original_name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (downloadError: unknown) {
+      setError(downloadError instanceof Error ? downloadError.message : "Attachment download failed.");
+    }
+  };
+
+  const attachmentPicker = (files: File[], setFiles: React.Dispatch<React.SetStateAction<File[]>>, inputId: string) => (
+    <div className="space-y-2">
+      <label htmlFor={inputId} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"><Paperclip size={14} /> Attach files</label>
+      <input id={inputId} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" className="sr-only" onChange={(event) => setFiles((current) => [...current, ...Array.from(event.target.files || [])].slice(0, 5))} />
+      {files.length > 0 && <ul className="flex flex-wrap gap-2">{files.map((file, index) => <li key={`${file.name}-${file.lastModified}-${index}`} className="flex max-w-full items-center gap-2 rounded-md bg-gray-100 px-2.5 py-1.5 text-xs text-gray-700"><FileText size={13} /><span className="max-w-48 truncate">{file.name}</span><span className="shrink-0 text-gray-400">{(file.size / 1024 / 1024).toFixed(1)} MB</span><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}><X size={13} /></button></li>)}</ul>}
+      <p className="text-[11px] text-gray-400">Up to 5 files, 10 MB each. PDF, Office documents, TXT, PNG, or JPG.</p>
+    </div>
+  );
 
   const openFolder = (next: Folder) => {
     setError(null);
@@ -221,6 +320,7 @@ const MessagesPage: React.FC = () => {
               <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">Message
                 <textarea required rows={9} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Write your message..." className="resize-y rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500" />
               </label>
+              {attachmentPicker(composeFiles, setComposeFiles, "compose-attachments")}
               <div className="flex justify-end"><button type="submit" disabled={sending || loadingRecipients || recipients.length === 0} className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={15} />{sending ? "Sending..." : "Send message"}</button></div>
             </form>
           </section>
@@ -242,10 +342,26 @@ const MessagesPage: React.FC = () => {
             </div>
             <article className="min-w-0 p-5 md:p-7">
               {selected ? <>
-                <div className="border-b border-gray-100 pb-4"><p className="text-xs font-semibold uppercase tracking-wide text-sky-700">{folder === "sent" ? `Sent to ${selected.recipient_role}` : `From ${selected.sender_role}`}</p><h2 className="mt-2 break-words text-xl font-semibold text-gray-900">{selected.subject}</h2><div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-gray-500"><span>{folder === "sent" ? selected.recipient_name : selected.sender_name}</span><time>{formatDateTime(selected.created_at)}</time></div></div>
-                <div className="whitespace-pre-wrap py-5 text-sm leading-7 text-gray-700">{selected.body}</div>
-                {folder === "sent" && <p className="border-t border-gray-100 pt-3 text-xs text-gray-500">Recipient: {selected.recipient_name} ({selected.recipient_role}) · {selected.read_at ? "Read" : "Unread"}</p>}
-              </> : <div className="flex min-h-64 flex-col items-center justify-center text-center"><Mail size={30} className="text-gray-300" /><p className="mt-3 text-sm font-medium text-gray-700">Select a message</p><p className="mt-1 text-xs text-gray-500">Message details will appear here.</p></div>}
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation</p><h2 className="mt-1 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2></div><span className="text-xs text-gray-500">{conversationMessages.length} messages</span></div>
+                <div className="max-h-[460px] space-y-4 overflow-y-auto py-5">
+                  {threadLoading && conversationMessages.length === 0 ? <p className="text-sm text-gray-500">Loading conversation...</p> : conversationMessages.map((message) => {
+                    const ownMessage = message.sender_id === user?.id && message.sender_role === role;
+                    return <div key={message.id} className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[90%] rounded-lg p-3.5 sm:max-w-[78%] ${ownMessage ? "bg-sky-100 text-sky-950" : "bg-gray-100 text-gray-800"}`}>
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs"><span className="font-semibold">{ownMessage ? "You" : message.sender_name} <span className="font-normal capitalize opacity-70">· {message.sender_role}</span></span><time className="opacity-60">{formatDateTime(message.created_at)}</time></div>
+                        {message.id === conversationMessages[0]?.id && <p className="mb-1 text-xs font-semibold">{message.subject}</p>}
+                        <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
+                        {!!message.attachments?.length && <ul className="mt-3 space-y-1.5 border-t border-black/10 pt-2">{message.attachments.map((attachment) => <li key={attachment.id}><button type="button" onClick={() => void downloadAttachment(attachment)} className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-white/50"><Download size={13} /><span className="truncate">{attachment.original_name}</span><span className="shrink-0 opacity-60">{(attachment.file_size / 1024 / 1024).toFixed(1)} MB</span></button></li>)}</ul>}
+                      </div>
+                    </div>;
+                  })}
+                </div>
+                {selected.conversation_id ? <form onSubmit={sendReply} className="border-t border-gray-100 pt-4">
+                  <label className="sr-only" htmlFor="reply-body">Reply</label>
+                  <textarea id="reply-body" required rows={3} value={replyBody} onChange={(event) => setReplyBody(event.target.value)} placeholder="Write a reply..." className="w-full resize-y rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-sky-500" />
+                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3">{attachmentPicker(replyFiles, setReplyFiles, "reply-attachments")}<button type="submit" disabled={sendingReply || !replyBody.trim()} className="inline-flex shrink-0 items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={14} />{sendingReply ? "Sending..." : "Send reply"}</button></div>
+                </form> : <p className="border-t border-gray-100 pt-3 text-xs text-gray-500">This older message has no reply thread available.</p>}
+              </> : <div className="flex min-h-64 flex-col items-center justify-center text-center"><Mail size={30} className="text-gray-300" /><p className="mt-3 text-sm font-medium text-gray-700">Select a message</p><p className="mt-1 text-xs text-gray-500">Conversation and attachments appear here.</p></div>}
             </article>
           </section>
         )}

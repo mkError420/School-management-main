@@ -177,6 +177,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 
 CREATE TABLE IF NOT EXISTS messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    conversation_id VARCHAR(64) NOT NULL,
     sender_id VARCHAR(255) NOT NULL,
     sender_role ENUM('admin', 'teacher', 'student', 'parent') NOT NULL,
     recipient_id VARCHAR(255) NOT NULL,
@@ -185,8 +186,21 @@ CREATE TABLE IF NOT EXISTS messages (
     body TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     read_at TIMESTAMP NULL DEFAULT NULL,
+    INDEX idx_messages_conversation (conversation_id, created_at),
     INDEX idx_messages_recipient (recipient_id, recipient_role, created_at),
     INDEX idx_messages_sender (sender_id, sender_role, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS message_attachments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    message_id BIGINT NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    storage_name VARCHAR(255) NOT NULL,
+    mime_type VARCHAR(127) NOT NULL,
+    file_size INT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_message_attachments_message (message_id),
+    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
 );
 
 -- Insert default admin user (password: admin123 - should be changed in production)

@@ -34,7 +34,7 @@ class ApiService {
     const url = `${API_BASE_URL}/${endpoint.replace(/^\//, '')}`;
     
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers as Record<string, string>),
     };
 
@@ -132,6 +132,31 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({}),
     });
+  }
+
+  async uploadMessage(formData: FormData) {
+    return this.request('messages', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
+  async downloadMessageAttachment(id: number | string): Promise<Blob> {
+    const response = await fetch(`${API_BASE_URL}/messages?action=attachment&id=${encodeURIComponent(String(id))}`, {
+      headers: { Authorization: `Bearer ${this.getToken() || ''}` },
+    });
+    if (!response.ok) {
+      const responseText = await response.text();
+      let message = 'Attachment download failed.';
+      try {
+        const result = JSON.parse(responseText);
+        message = result.message || message;
+      } catch {
+        // Keep the attachment request error independent of non-JSON server output.
+      }
+      throw new Error(message);
+    }
+    return response.blob();
   }
 }
 

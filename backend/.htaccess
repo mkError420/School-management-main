@@ -1,6 +1,9 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
+# Message files are served only through the authenticated API download action
+RewriteRule ^storage/ - [F,L,NC]
+
 # Preserve bearer tokens for PHP CGI/FastCGI handlers on shared hosting
 <IfModule mod_setenvif.c>
     SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1

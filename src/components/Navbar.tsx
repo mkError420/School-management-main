@@ -76,7 +76,7 @@ const Navbar: React.FC = () => {
         {/* Messages */}
         <Link
           to="/list/messages"
-          className="bg-gray-100 hover:bg-gray-200 transition rounded-full w-8 h-8 flex items-center justify-center cursor-pointer"
+          className="relative bg-gray-100 hover:bg-gray-200 transition rounded-full w-8 h-8 flex items-center justify-center cursor-pointer"
           title="Messages"
         >
           <Image src="/message.png" alt="Messages" width={18} height={18} />
