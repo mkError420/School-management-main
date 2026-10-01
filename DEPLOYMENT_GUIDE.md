@@ -20,6 +20,8 @@ For File Manager uploads, use `frontend-dist-cpanel.zip` and extract it directly
 3. Open **phpMyAdmin**, select the new database, and import `backend/database/schema.sql` from your local project.
 4. Import `backend/database/seed.sql` only if you want the sample records. Change all seeded/default passwords before opening the site to users.
 
+For an existing installation being upgraded to Messages, import the updated `backend/database/schema.sql` once in phpMyAdmin to create the `messages` table. Existing tables are declared with `IF NOT EXISTS`; this adds the new table without replacing current records.
+
 The seed creates these initial logins: admin `admin` / `admin123`, teacher `johndoe` / `teacher123`, student `johnconnor` / `student123`, and parent `sarahconnor` / `parent123`. These are public sample credentials; change them immediately after setup and before making the site available.
 
 ## 3. Upload and configure the PHP API

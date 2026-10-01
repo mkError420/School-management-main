@@ -29,6 +29,7 @@ import ResultsPage from "@/pages/list/ResultsPage";
 import AttendancePage from "@/pages/list/AttendancePage";
 import EventsPage from "@/pages/list/EventsPage";
 import AnnouncementsPage from "@/pages/list/AnnouncementsPage";
+import MessagesPage from "@/pages/list/MessagesPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 
@@ -86,6 +87,7 @@ const App: React.FC = () => {
           <Route path="list/attendance" element={<AttendancePage />} />
           <Route path="list/events" element={<EventsPage />} />
           <Route path="list/announcements" element={<AnnouncementsPage />} />
+          <Route path="list/messages" element={<MessagesPage />} />
 
           {/* Other */}
           <Route path="profile" element={<ProfilePage />} />

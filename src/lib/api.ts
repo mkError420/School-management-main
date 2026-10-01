@@ -126,6 +126,13 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  async markAllMessagesRead() {
+    return this.request('messages?action=read-all', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
 }
 
 export const api = new ApiService();

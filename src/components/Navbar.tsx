@@ -1,13 +1,37 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
 import { useAuth, UserRole } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Moon, Sun } from "lucide-react";
+import { api } from "@/lib/api";
 
 const Navbar: React.FC = () => {
   const { user, role, switchRole, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const location = useLocation();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const loadUnreadCount = async () => {
+      const response = await api.getAll("messages", { folder: "inbox" });
+      if (active && response.success) setUnreadMessages(Number(response.data?.unread_count) || 0);
+    };
+    const refresh = () => { void loadUnreadCount(); };
+
+    refresh();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("school-messages-updated", refresh);
+    const interval = window.setInterval(refresh, 60000);
+
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("school-messages-updated", refresh);
+      window.clearInterval(interval);
+    };
+  }, [location.pathname, role]);
 
   return (
     <div className="flex items-center justify-between p-4 bg-white shadow-sm border-b border-gray-200">
@@ -56,6 +80,7 @@ const Navbar: React.FC = () => {
           title="Messages"
         >
           <Image src="/message.png" alt="Messages" width={18} height={18} />
+          {unreadMessages > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-700 px-1 text-[9px] font-bold text-white">{unreadMessages > 99 ? "99+" : unreadMessages}</span>}
         </Link>
 
         {/* Announcements */}
