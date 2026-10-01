@@ -67,7 +67,7 @@ try {
     ];
 
     // User-specific schedule / calendar events
-    $scheduleSql = "SELECT l.id, l.class_id, l.teacher_id, l.name as title, l.day, l.start_time, l.end_time,
+    $scheduleSql = "SELECT l.id, l.class_id, l.teacher_id, l.subject_id, l.name as title, l.day, l.start_time, l.end_time,
                            s.name as subject_name, c.name as class_name,
                            t.name as teacher_name, t.surname as teacher_surname
                     FROM lessons l

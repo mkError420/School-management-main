@@ -232,13 +232,23 @@ function createLesson($db) {
     if (!in_array(strtoupper($input['day']), $validDays)) {
         Response::error('Invalid day. Must be one of: ' . implode(', ', $validDays));
     }
+
+    $day = strtoupper($input['day']);
+    [$startTime, $endTime] = validateLessonSlot(
+        $db,
+        $day,
+        $input['start_time'],
+        $input['end_time'],
+        $input['teacher_id'],
+        $input['class_id']
+    );
     
     try {
         $id = $db->insert('lessons', [
             'name' => $input['name'],
-            'day' => strtoupper($input['day']),
-            'start_time' => $input['start_time'],
-            'end_time' => $input['end_time'],
+            'day' => $day,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
             'subject_id' => $input['subject_id'],
             'class_id' => $input['class_id'],
             'teacher_id' => $input['teacher_id']
@@ -268,7 +278,7 @@ function updateLesson($db, $id) {
     $input = json_decode(file_get_contents('php://input'), true);
     
     // Check if lesson exists
-    $existing = $db->fetchOne("SELECT id FROM lessons WHERE id = ?", [$id]);
+    $existing = $db->fetchOne("SELECT * FROM lessons WHERE id = ?", [$id]);
     if (!$existing) {
         Response::notFound('Lesson not found');
     }
@@ -295,6 +305,20 @@ function updateLesson($db, $id) {
     if (empty($data)) {
         Response::error('No fields to update');
     }
+
+    $updatedLesson = array_merge($existing, $data);
+    [$startTime, $endTime] = validateLessonSlot(
+        $db,
+        $updatedLesson['day'],
+        $updatedLesson['start_time'],
+        $updatedLesson['end_time'],
+        $updatedLesson['teacher_id'],
+        $updatedLesson['class_id'],
+        $id
+    );
+    $data['start_time'] = $startTime;
+    $data['end_time'] = $endTime;
+    $data['day'] = $updatedLesson['day'];
     
     try {
         $db->update('lessons', $data, 'id = ?', [$id]);
@@ -315,6 +339,44 @@ function updateLesson($db, $id) {
     } catch (Exception $e) {
         Response::error('Failed to update lesson: ' . $e->getMessage());
     }
+}
+
+function validateLessonSlot($db, $day, $startValue, $endValue, $teacherId, $classId, $excludeId = null) {
+    $startTimestamp = strtotime($startValue);
+    $endTimestamp = strtotime($endValue);
+    if ($startTimestamp === false || $endTimestamp === false) {
+        Response::error('Start and end times must be valid');
+    }
+
+    $startClock = date('H:i:s', $startTimestamp);
+    $endClock = date('H:i:s', $endTimestamp);
+    if ($endClock <= $startClock) {
+        Response::error('End time must be later than start time');
+    }
+
+    $sql = "SELECT id, teacher_id, class_id
+            FROM lessons
+            WHERE day = ?
+              AND TIME(start_time) < ?
+              AND TIME(end_time) > ?
+              AND (teacher_id = ? OR class_id = ?)";
+    $params = [$day, $endClock, $startClock, $teacherId, $classId];
+    if ($excludeId !== null) {
+        $sql .= " AND id <> ?";
+        $params[] = $excludeId;
+    }
+    $conflict = $db->fetchOne($sql . ' LIMIT 1', $params);
+    if ($conflict) {
+        if ((string) $conflict['teacher_id'] === (string) $teacherId) {
+            Response::error('This teacher already has a class scheduled during that time', 409);
+        }
+        Response::error('This class already has a lesson scheduled during that time', 409);
+    }
+
+    return [
+        date('Y-m-d H:i:s', $startTimestamp),
+        date('Y-m-d H:i:s', $endTimestamp),
+    ];
 }
 
 function deleteLesson($db, $id) {
