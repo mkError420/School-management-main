@@ -50,6 +50,12 @@ function getAnnouncements($db) {
             LEFT JOIN classes c ON a.class_id = c.id 
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] !== 'admin') {
+        $visibility = announcementVisibility($user);
+        $sql .= " AND " . $visibility['sql'];
+        $params = array_merge($params, $visibility['params']);
+    }
     
     if (!empty($search)) {
         $sql .= " AND (a.title LIKE ? OR a.description LIKE ?)";
@@ -85,13 +91,17 @@ function getAnnouncements($db) {
 
 function getAnnouncement($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+
+    $visibility = $user['role'] === 'admin'
+        ? ['sql' => '1=1', 'params' => []]
+        : announcementVisibility($user);
     
     $announcement = $db->fetchOne(
         "SELECT a.*, c.name as class_name 
          FROM announcements a 
          LEFT JOIN classes c ON a.class_id = c.id 
-         WHERE a.id = ?",
-        [$id]
+         WHERE a.id = ? AND " . $visibility['sql'],
+        array_merge([$id], $visibility['params'])
     );
     
     if (!$announcement) {
@@ -99,6 +109,28 @@ function getAnnouncement($db, $id) {
     }
     
     Response::success('Announcement retrieved successfully', ['announcement' => $announcement]);
+}
+
+function announcementVisibility($user) {
+    switch ($user['role']) {
+        case 'teacher':
+            return [
+                'sql' => '(a.class_id IS NULL OR a.class_id IN (SELECT class_id FROM teacher_classes WHERE teacher_id = ?) OR a.class_id IN (SELECT id FROM classes WHERE supervisor_id = ?))',
+                'params' => [$user['user_id'], $user['user_id']],
+            ];
+        case 'student':
+            return [
+                'sql' => '(a.class_id IS NULL OR a.class_id = (SELECT class_id FROM students WHERE id = ?))',
+                'params' => [$user['user_id']],
+            ];
+        case 'parent':
+            return [
+                'sql' => '(a.class_id IS NULL OR a.class_id IN (SELECT class_id FROM students WHERE parent_id = ?))',
+                'params' => [$user['user_id']],
+            ];
+        default:
+            return ['sql' => '1=1', 'params' => []];
+    }
 }
 
 function createAnnouncement($db) {

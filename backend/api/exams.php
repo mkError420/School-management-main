@@ -56,6 +56,17 @@ function getExams($db) {
             LEFT JOIN teachers t ON l.teacher_id = t.id 
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] === 'teacher') {
+        $sql .= " AND l.teacher_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'student') {
+        $sql .= " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $sql .= " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)";
+        $params[] = $user['user_id'];
+    }
     
     if (!empty($search)) {
         $sql .= " AND (e.title LIKE ? OR s.name LIKE ? OR c.name LIKE ?)";
@@ -101,7 +112,8 @@ function getExam($db, $id) {
     
     $exam = $db->fetchOne(
         "SELECT e.*, l.name as lesson_name, l.day as lesson_day, s.name as subject_name, 
-         c.name as class_name, g.level as grade_level, t.name as teacher_name, t.surname as teacher_surname 
+         c.name as class_name, c.id as class_id, g.level as grade_level,
+         l.teacher_id, t.name as teacher_name, t.surname as teacher_surname
          FROM exams e 
          LEFT JOIN lessons l ON e.lesson_id = l.id 
          LEFT JOIN subjects s ON l.subject_id = s.id 
@@ -115,15 +127,37 @@ function getExam($db, $id) {
     if (!$exam) {
         Response::notFound('Exam not found');
     }
+
+    if ($user['role'] === 'teacher' && $exam['teacher_id'] !== $user['user_id']) {
+        Response::forbidden('You can only view exams for your lessons');
+    }
+    if ($user['role'] === 'student') {
+        $studentInClass = $db->fetchOne(
+            "SELECT id FROM students WHERE id = ? AND class_id = ?",
+            [$user['user_id'], $exam['class_id']]
+        );
+        if (!$studentInClass) {
+            Response::forbidden('You can only view exams for your class');
+        }
+    }
+    if ($user['role'] === 'parent') {
+        $childInClass = $db->fetchOne(
+            "SELECT id FROM students WHERE parent_id = ? AND class_id = ? LIMIT 1",
+            [$user['user_id'], $exam['class_id']]
+        );
+        if (!$childInClass) {
+            Response::forbidden('You can only view exams for your children');
+        }
+    }
     
     // Get results for this exam
     $results = $db->fetchAll(
         "SELECT r.*, s.name as student_name, s.surname as student_surname, s.username as student_username 
          FROM results r 
          LEFT JOIN students s ON r.student_id = s.id 
-         WHERE r.exam_id = ? 
+         WHERE r.exam_id = ?" . ($user['role'] === 'student' ? " AND s.id = ?" : ($user['role'] === 'parent' ? " AND s.parent_id = ?" : "")) . "
          ORDER BY s.name",
-        [$id]
+        in_array($user['role'], ['student', 'parent'], true) ? [$id, $user['user_id']] : [$id]
     );
     
     // Get students in the exam's class
@@ -132,8 +166,11 @@ function getExam($db, $id) {
          FROM students s 
          LEFT JOIN parents p ON s.parent_id = p.id 
          WHERE s.class_id = ? 
+         " . ($user['role'] === 'student' ? "AND s.id = ?" : ($user['role'] === 'parent' ? "AND s.parent_id = ?" : "")) . "
          ORDER BY s.name",
-        [$exam['class_id']]
+        in_array($user['role'], ['student', 'parent'], true)
+            ? [$exam['class_id'], $user['user_id']]
+            : [$exam['class_id']]
     );
     
     // Remove passwords from students

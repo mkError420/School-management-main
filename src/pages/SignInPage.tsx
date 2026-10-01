@@ -70,13 +70,14 @@ const SignInPage: React.FC = () => {
               {/* Username */}
               <div>
                 <label className="block text-gray-700 text-sm font-semibold mb-2">
-                  Username or Email
+                  {role === "admin" ? "Username" : "Username or Email"}
                 </label>
                 <input
                   type="text"
+                  autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter your username or email"
+                  placeholder={role === "admin" ? "Enter your username" : "Enter your username or email"}
                   required
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 />
@@ -89,6 +90,7 @@ const SignInPage: React.FC = () => {
                 </label>
                 <input
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -108,7 +110,7 @@ const SignInPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gray-to-r from-yellow-600 to-gray-600 text-black font-bold py-3.5 rounded-xl hover:from-yellow-700 hover:to-gray-700 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
+                className="w-full bg-sky-700 text-white font-bold py-3.5 rounded-xl hover:bg-sky-800 active:scale-[0.98] transition disabled:opacity-60 disabled:cursor-not-allowed shadow-lg"
               >
                 {isLoading ? "Signing in..." : "Login"}
               </button>

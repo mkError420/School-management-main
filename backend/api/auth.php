@@ -37,12 +37,12 @@ switch ($method) {
 }
 
 function handleLogin($db, $input) {
-    $username = $input['username'] ?? '';
+    $identifier = trim($input['username'] ?? $input['email'] ?? '');
     $password = $input['password'] ?? '';
     $role = $input['role'] ?? 'admin';
     
-    if (empty($username) || empty($password)) {
-        Response::error('Username and password are required');
+    if ($identifier === '' || $password === '') {
+        Response::error('Username or email and password are required');
     }
     
     // Determine table based on role
@@ -65,9 +65,10 @@ function handleLogin($db, $input) {
     }
     
     // Get user from database
+    $loginField = $role !== 'admin' && filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
     $user = $db->fetchOne(
-        "SELECT * FROM {$table} WHERE username = ?",
-        [$username]
+        "SELECT * FROM {$table} WHERE {$loginField} = ?",
+        [$identifier]
     );
     
     if (!$user) {
@@ -97,6 +98,8 @@ function handleLogin($db, $input) {
 }
 
 function handleRegister($db, $input) {
+    AuthMiddleware::requireRole('admin');
+
     $role = $input['role'] ?? 'student';
     $username = $input['username'] ?? '';
     $password = $input['password'] ?? '';

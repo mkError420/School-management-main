@@ -19,7 +19,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (credentials: { username: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
-  switchRole: (newRole: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -30,7 +29,6 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: false,
   login: async () => ({ success: false }),
   logout: () => {},
-  switchRole: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -117,21 +115,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
-  const switchRole = (newRole: UserRole) => {
-    if (user) {
-      const updated = { ...user, role: newRole };
-      setUser(updated);
-    } else {
-      setUser({
-        id: 'usr_' + newRole,
-        username: newRole,
-        name: newRole.toUpperCase() + ' User',
-        role: newRole,
-        email: `${newRole}@school.com`
-      });
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -142,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
-        switchRole,
       }}
     >
       {children}

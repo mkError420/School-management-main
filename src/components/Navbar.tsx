@@ -3,11 +3,11 @@ import Image from "@/components/Image";
 import { useAuth, UserRole } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { Link, useLocation } from "react-router-dom";
-import { Moon, Sun } from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
 import { api } from "@/lib/api";
 
 const Navbar: React.FC = () => {
-  const { user, role, switchRole, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -58,20 +58,9 @@ const Navbar: React.FC = () => {
           {theme === "light" ? <Moon size={17} aria-hidden="true" /> : <Sun size={17} aria-hidden="true" />}
         </button>
 
-        {/* Quick Role Switcher for Demo/Testing */}
-        <div className="flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-1">
-          <span className="text-[11px] font-semibold text-purple-700 uppercase">Role:</span>
-          <select
-            value={role}
-            onChange={(e) => switchRole(e.target.value as UserRole)}
-            className="text-xs bg-transparent font-medium text-purple-900 border-none outline-none cursor-pointer capitalize"
-          >
-            <option value="admin">Admin</option>
-            <option value="teacher">Teacher</option>
-            <option value="student">Student</option>
-            <option value="parent">Parent</option>
-          </select>
-        </div>
+        <span className="rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold uppercase text-gray-600">
+          {role}
+        </span>
 
         {/* Messages */}
         <Link
@@ -115,6 +104,15 @@ const Navbar: React.FC = () => {
               className="rounded-full ring-2 ring-purple-400 hover:opacity-90 transition"
             />
           </Link>
+          <button
+            type="button"
+            onClick={logout}
+            aria-label="Sign out"
+            title="Sign out"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-gray-100 text-gray-700 transition hover:bg-gray-200"
+          >
+            <LogOut size={16} aria-hidden="true" />
+          </button>
         </div>
       </div>
     </div>

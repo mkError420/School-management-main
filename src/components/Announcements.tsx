@@ -15,25 +15,26 @@ const bgColors = ["bg-lamaPurpleLight", "bg-lamaYellowLight", "bg-lamaSkyLight"]
 const Announcements: React.FC = () => {
   const [items, setItems] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fallback: Announcement[] = [
-      { id: 1, title: "Term 1 Exam Schedule Released", description: "The mid-term examination timetable is now officially published.", date: "2026-10-01" },
-      { id: 2, title: "Library Renovation Opening", description: "The newly renovated school digital library opens next Monday.", date: "2026-10-03" },
-      { id: 3, title: "Winter Uniform Notice", description: "All students are requested to switch to the winter school uniform.", date: "2026-10-10" },
-    ];
-
+    let active = true;
     api.getAll("announcements", { limit: 4 }).then((res) => {
-      if (res.success && res.data?.announcements?.length > 0) {
-        setItems(res.data.announcements.slice(0, 4));
+      if (!active) return;
+      if (res.success) {
+        setItems(Array.isArray(res.data?.announcements) ? res.data.announcements.slice(0, 4) : []);
       } else {
-        setItems(fallback);
+        setError(res.message || "Unable to load announcements.");
       }
-      setLoading(false);
     }).catch(() => {
-      setItems(fallback);
-      setLoading(false);
+      if (active) setError("Unable to load announcements.");
+    }).finally(() => {
+      if (active) setLoading(false);
     });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   return (
@@ -46,6 +47,7 @@ const Announcements: React.FC = () => {
       </div>
 
       <div className="flex flex-col gap-3">
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="rounded-xl p-3 bg-gray-50 animate-pulse">
@@ -53,7 +55,9 @@ const Announcements: React.FC = () => {
                 <div className="h-2 bg-gray-100 rounded w-full" />
               </div>
             ))
-          : items.map((item, i) => (
+          : items.length === 0 && !error
+            ? <p className="text-sm text-gray-500">No announcements yet.</p>
+            : items.map((item, i) => (
               <div key={item.id} className={`${bgColors[i % bgColors.length]} rounded-xl p-3`}>
                 <div className="flex items-center justify-between mb-1">
                   <h2 className="text-sm font-semibold text-gray-800 leading-tight">{item.title}</h2>

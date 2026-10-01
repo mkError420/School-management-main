@@ -50,6 +50,12 @@ function getEvents($db) {
             LEFT JOIN classes c ON e.class_id = c.id 
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] !== 'admin') {
+        $visibility = eventVisibility($user);
+        $sql .= " AND " . $visibility['sql'];
+        $params = array_merge($params, $visibility['params']);
+    }
     
     if (!empty($search)) {
         $sql .= " AND (e.title LIKE ? OR e.description LIKE ?)";
@@ -85,13 +91,17 @@ function getEvents($db) {
 
 function getEvent($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+
+    $visibility = $user['role'] === 'admin'
+        ? ['sql' => '1=1', 'params' => []]
+        : eventVisibility($user);
     
     $event = $db->fetchOne(
         "SELECT e.*, c.name as class_name 
          FROM events e 
          LEFT JOIN classes c ON e.class_id = c.id 
-         WHERE e.id = ?",
-        [$id]
+         WHERE e.id = ? AND " . $visibility['sql'],
+        array_merge([$id], $visibility['params'])
     );
     
     if (!$event) {
@@ -99,6 +109,28 @@ function getEvent($db, $id) {
     }
     
     Response::success('Event retrieved successfully', ['event' => $event]);
+}
+
+function eventVisibility($user) {
+    switch ($user['role']) {
+        case 'teacher':
+            return [
+                'sql' => '(e.class_id IS NULL OR e.class_id IN (SELECT class_id FROM teacher_classes WHERE teacher_id = ?) OR e.class_id IN (SELECT id FROM classes WHERE supervisor_id = ?))',
+                'params' => [$user['user_id'], $user['user_id']],
+            ];
+        case 'student':
+            return [
+                'sql' => '(e.class_id IS NULL OR e.class_id = (SELECT class_id FROM students WHERE id = ?))',
+                'params' => [$user['user_id']],
+            ];
+        case 'parent':
+            return [
+                'sql' => '(e.class_id IS NULL OR e.class_id IN (SELECT class_id FROM students WHERE parent_id = ?))',
+                'params' => [$user['user_id']],
+            ];
+        default:
+            return ['sql' => '1=1', 'params' => []];
+    }
 }
 
 function createEvent($db) {

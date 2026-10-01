@@ -58,6 +58,17 @@ function getLessons($db) {
             LEFT JOIN teachers t ON l.teacher_id = t.id 
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] === 'teacher') {
+        $sql .= " AND l.teacher_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'student') {
+        $sql .= " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $sql .= " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)";
+        $params[] = $user['user_id'];
+    }
     
     if (!empty($search)) {
         $sql .= " AND (l.name LIKE ? OR s.name LIKE ? OR c.name LIKE ?)";
@@ -126,6 +137,28 @@ function getLesson($db, $id) {
     if (!$lesson) {
         Response::notFound('Lesson not found');
     }
+
+    if ($user['role'] === 'teacher' && $lesson['teacher_id'] !== $user['user_id']) {
+        Response::forbidden('You can only view your own lessons');
+    }
+    if ($user['role'] === 'student') {
+        $studentInClass = $db->fetchOne(
+            "SELECT id FROM students WHERE id = ? AND class_id = ?",
+            [$user['user_id'], $lesson['class_id']]
+        );
+        if (!$studentInClass) {
+            Response::forbidden('You can only view lessons for your class');
+        }
+    }
+    if ($user['role'] === 'parent') {
+        $childInClass = $db->fetchOne(
+            "SELECT id FROM students WHERE parent_id = ? AND class_id = ? LIMIT 1",
+            [$user['user_id'], $lesson['class_id']]
+        );
+        if (!$childInClass) {
+            Response::forbidden('You can only view lessons for your children');
+        }
+    }
     
     // Get students in this lesson's class
     $students = $db->fetchAll(
@@ -133,8 +166,11 @@ function getLesson($db, $id) {
          FROM students s 
          LEFT JOIN parents p ON s.parent_id = p.id 
          WHERE s.class_id = ? 
+         " . ($user['role'] === 'student' ? "AND s.id = ?" : ($user['role'] === 'parent' ? "AND s.parent_id = ?" : "")) . "
          ORDER BY s.name",
-        [$lesson['class_id']]
+        $user['role'] === 'student'
+            ? [$lesson['class_id'], $user['user_id']]
+            : ($user['role'] === 'parent' ? [$lesson['class_id'], $user['user_id']] : [$lesson['class_id']])
     );
     
     // Remove passwords from students
@@ -143,14 +179,20 @@ function getLesson($db, $id) {
     }
     
     // Get attendance for this lesson
-    $attendance = $db->fetchAll(
-        "SELECT a.*, s.name as student_name, s.surname as student_surname 
-         FROM attendance a 
-         LEFT JOIN students s ON a.student_id = s.id 
-         WHERE a.lesson_id = ? 
-         ORDER BY s.name",
-        [$id]
-    );
+    $attendanceSql = "SELECT a.*, s.name as student_name, s.surname as student_surname
+                      FROM attendance a
+                      LEFT JOIN students s ON a.student_id = s.id
+                      WHERE a.lesson_id = ?";
+    $attendanceParams = [$id];
+    if ($user['role'] === 'student') {
+        $attendanceSql .= " AND a.student_id = ?";
+        $attendanceParams[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $attendanceSql .= " AND s.parent_id = ?";
+        $attendanceParams[] = $user['user_id'];
+    }
+    $attendanceSql .= " ORDER BY s.name";
+    $attendance = $db->fetchAll($attendanceSql, $attendanceParams);
     
     // Get exams for this lesson
     $exams = $db->fetchAll(

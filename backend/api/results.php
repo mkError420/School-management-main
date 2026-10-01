@@ -67,6 +67,18 @@ function getResults($db) {
             LEFT JOIN teachers t_asg ON l_asg.teacher_id = t_asg.id
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] === 'student') {
+        $sql .= " AND r.student_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $sql .= " AND st.parent_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'teacher') {
+        $sql .= " AND (l_ex.teacher_id = ? OR l_asg.teacher_id = ?)";
+        $params[] = $user['user_id'];
+        $params[] = $user['user_id'];
+    }
     
     if (!empty($search)) {
         $sql .= " AND (st.name LIKE ? OR st.surname LIKE ? OR ex.title LIKE ? OR asg.title LIKE ?)";
@@ -111,8 +123,14 @@ function getResult($db, $id) {
          INNER JOIN students st ON r.student_id = st.id
          LEFT JOIN exams ex ON r.exam_id = ex.id
          LEFT JOIN assignments asg ON r.assignment_id = asg.id
-         WHERE r.id = ?",
-        [$id]
+         LEFT JOIN lessons l_ex ON ex.lesson_id = l_ex.id
+         LEFT JOIN lessons l_asg ON asg.lesson_id = l_asg.id
+         WHERE r.id = ?" . ($user['role'] === 'student' ? " AND st.id = ?" : ($user['role'] === 'parent' ? " AND st.parent_id = ?" : ($user['role'] === 'teacher' ? " AND (l_ex.teacher_id = ? OR l_asg.teacher_id = ?)" : ""))),
+        $user['role'] === 'student'
+            ? [$id, $user['user_id']]
+            : ($user['role'] === 'parent'
+                ? [$id, $user['user_id']]
+                : ($user['role'] === 'teacher' ? [$id, $user['user_id'], $user['user_id']] : [$id]))
     );
     
     if (!$result) {

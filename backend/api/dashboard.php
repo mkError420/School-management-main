@@ -84,7 +84,12 @@ try {
         if ($student && !empty($student['class_id'])) {
             $scheduleSql .= " WHERE l.class_id = ?";
             $scheduleParams[] = $student['class_id'];
+        } else {
+            $scheduleSql .= " WHERE 1 = 0";
         }
+    } elseif ($role === 'parent') {
+        $scheduleSql .= " WHERE l.class_id IN (SELECT DISTINCT class_id FROM students WHERE parent_id = ?)";
+        $scheduleParams[] = $userId;
     }
     $schedule = $db->fetchAll($scheduleSql, $scheduleParams);
 

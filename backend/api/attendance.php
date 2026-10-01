@@ -58,6 +58,17 @@ function getAttendanceRecords($db) {
             LEFT JOIN teachers t ON l.teacher_id = t.id
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] === 'student') {
+        $sql .= " AND a.student_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $sql .= " AND st.parent_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'teacher') {
+        $sql .= " AND l.teacher_id = ?";
+        $params[] = $user['user_id'];
+    }
     
     if (!empty($search)) {
         $sql .= " AND (st.name LIKE ? OR st.surname LIKE ? OR l.name LIKE ?)";
@@ -107,8 +118,10 @@ function getAttendanceRecord($db, $id) {
          LEFT JOIN lessons l ON a.lesson_id = l.id
          LEFT JOIN subjects s ON l.subject_id = s.id
          LEFT JOIN classes c ON l.class_id = c.id
-         WHERE a.id = ?",
-        [$id]
+         WHERE a.id = ?" . ($user['role'] === 'student' ? " AND st.id = ?" : ($user['role'] === 'parent' ? " AND st.parent_id = ?" : ($user['role'] === 'teacher' ? " AND l.teacher_id = ?" : ""))),
+        $user['role'] === 'admin'
+            ? [$id]
+            : [$id, $user['user_id']]
     );
     
     if (!$record) {

@@ -55,6 +55,17 @@ function getAssignments($db) {
             LEFT JOIN teachers t ON l.teacher_id = t.id
             WHERE 1=1";
     $params = [];
+
+    if ($user['role'] === 'teacher') {
+        $sql .= " AND l.teacher_id = ?";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'student') {
+        $sql .= " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)";
+        $params[] = $user['user_id'];
+    } elseif ($user['role'] === 'parent') {
+        $sql .= " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)";
+        $params[] = $user['user_id'];
+    }
     
     if (!empty($search)) {
         $sql .= " AND (a.title LIKE ? OR s.name LIKE ? OR c.name LIKE ?)";
@@ -104,8 +115,8 @@ function getAssignment($db, $id) {
          LEFT JOIN subjects s ON l.subject_id = s.id
          LEFT JOIN classes c ON l.class_id = c.id
          LEFT JOIN teachers t ON l.teacher_id = t.id
-         WHERE a.id = ?",
-        [$id]
+         WHERE a.id = ?" . ($user['role'] === 'teacher' ? " AND l.teacher_id = ?" : ($user['role'] === 'student' ? " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)" : ($user['role'] === 'parent' ? " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)" : ""))),
+        $user['role'] === 'admin' ? [$id] : [$id, $user['user_id']]
     );
     
     if (!$assignment) {

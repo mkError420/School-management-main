@@ -10,27 +10,6 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS students (
-    id VARCHAR(255) PRIMARY KEY,
-    username VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    surname VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE,
-    phone VARCHAR(255) UNIQUE,
-    address TEXT NOT NULL,
-    img VARCHAR(255),
-    blood_type VARCHAR(10) NOT NULL,
-    sex ENUM('MALE', 'FEMALE') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    parent_id VARCHAR(255) NOT NULL,
-    class_id INT NOT NULL,
-    grade_id INT NOT NULL,
-    FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE,
-    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
-    FOREIGN KEY (grade_id) REFERENCES grades(id) ON DELETE CASCADE
-);
-
 CREATE TABLE IF NOT EXISTS teachers (
     id VARCHAR(255) PRIMARY KEY,
     username VARCHAR(255) UNIQUE NOT NULL,
@@ -71,6 +50,27 @@ CREATE TABLE IF NOT EXISTS classes (
     supervisor_id VARCHAR(255) NOT NULL,
     grade_id INT NOT NULL,
     FOREIGN KEY (supervisor_id) REFERENCES teachers(id) ON DELETE SET NULL,
+    FOREIGN KEY (grade_id) REFERENCES grades(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS students (
+    id VARCHAR(255) PRIMARY KEY,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    surname VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    phone VARCHAR(255) UNIQUE,
+    address TEXT NOT NULL,
+    img VARCHAR(255),
+    blood_type VARCHAR(10) NOT NULL,
+    sex ENUM('MALE', 'FEMALE') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    parent_id VARCHAR(255) NOT NULL,
+    class_id INT NOT NULL,
+    grade_id INT NOT NULL,
+    FOREIGN KEY (parent_id) REFERENCES parents(id) ON DELETE CASCADE,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE,
     FOREIGN KEY (grade_id) REFERENCES grades(id) ON DELETE CASCADE
 );
 
