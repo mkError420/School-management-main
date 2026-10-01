@@ -8,13 +8,12 @@ const SignInPage: React.FC = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "teacher" | "student" | "parent">("admin");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const result = await login({ username, password, role });
+    const result = await login({ username, password });
     if (result.success) {
       navigate("/");
     } else {
@@ -44,40 +43,17 @@ const SignInPage: React.FC = () => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Role Selector */}
-              <div>
-                <label className="block text-gray-700 text-sm font-semibold mb-3">
-                  Login as
-                </label>
-                <div className="grid grid-cols-4 gap-2 bg-gray-100 rounded-xl p-1.5">
-                  {(["admin", "teacher", "student", "parent"] as ("admin" | "teacher" | "student" | "parent")[]).map((r) => (
-                    <button
-                      type="button"
-                      key={r}
-                      onClick={() => setRole(r)}
-                      className={`py-2.5 px-2 rounded-lg text-xs font-semibold capitalize transition ${
-                        role === r
-                          ? "bg-white text-blue-600 shadow-md"
-                          : "text-gray-600 hover:text-gray-800 hover:bg-white/50"
-                      }`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Username */}
               <div>
                 <label className="block text-gray-700 text-sm font-semibold mb-2">
-                  {role === "admin" ? "Username" : "Username or Email"}
+                  Username or Email
                 </label>
                 <input
                   type="text"
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={role === "admin" ? "Enter your username" : "Enter your username or email"}
+                  placeholder="Enter your username or email"
                   required
                   className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition"
                 />

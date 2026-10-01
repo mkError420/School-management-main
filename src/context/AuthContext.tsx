@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     else localStorage.removeItem('school_user');
   }, [user]);
 
-  const login = async ({ username, password, role = 'admin' }: { username: string; password: string; role?: UserRole }) => {
+  const login = async ({ username, password, role }: { username: string; password: string; role?: UserRole }) => {
     setIsLoading(true);
     try {
       const res = await api.login({ username, password, role });
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: res.data.user?.id || 'usr_' + Date.now(),
           username: res.data.user?.username || username,
           name: res.data.user?.name || username,
-          role: (res.data.role as UserRole) || role,
+          role: (res.data.role as UserRole) || role || 'admin',
           email: res.data.user?.email || '',
         };
         api.setToken(res.data.token);

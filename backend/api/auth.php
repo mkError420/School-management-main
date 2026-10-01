@@ -39,46 +39,46 @@ switch ($method) {
 function handleLogin($db, $input) {
     $identifier = trim($input['username'] ?? $input['email'] ?? '');
     $password = $input['password'] ?? '';
-    $role = $input['role'] ?? 'admin';
+    $requestedRole = $input['role'] ?? null;
     
     if ($identifier === '' || $password === '') {
         Response::error('Username or email and password are required');
     }
     
-    // Determine table based on role
-    $table = '';
-    switch ($role) {
-        case 'admin':
-            $table = 'admins';
-            break;
-        case 'student':
-            $table = 'students';
-            break;
-        case 'teacher':
-            $table = 'teachers';
-            break;
-        case 'parent':
-            $table = 'parents';
-            break;
-        default:
+    $tables = [
+        'admin' => 'admins',
+        'teacher' => 'teachers',
+        'student' => 'students',
+        'parent' => 'parents',
+    ];
+    if ($requestedRole !== null && !isset($tables[$requestedRole])) {
             Response::error('Invalid role');
     }
     
-    // Get user from database
-    $loginField = $role !== 'admin' && filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
-    $user = $db->fetchOne(
-        "SELECT * FROM {$table} WHERE {$loginField} = ?",
-        [$identifier]
-    );
-    
-    if (!$user) {
+    $candidateRoles = $requestedRole === null ? $tables : [$requestedRole => $tables[$requestedRole]];
+    $matches = [];
+    foreach ($candidateRoles as $role => $table) {
+        $users = $role === 'admin'
+            ? $db->fetchAll("SELECT * FROM {$table} WHERE username = ?", [$identifier])
+            : $db->fetchAll("SELECT * FROM {$table} WHERE username = ? OR email = ?", [$identifier, $identifier]);
+
+        foreach ($users as $user) {
+            if (password_verify($password, $user['password'])) {
+                $matches[] = ['role' => $role, 'user' => $user];
+            }
+        }
+    }
+
+    if (count($matches) === 0) {
         Response::error('Invalid credentials', 401);
     }
-    
-    // Verify password
-    if (!password_verify($password, $user['password'])) {
-        Response::error('Invalid credentials', 401);
+
+    if (count($matches) > 1) {
+        Response::error('These credentials match multiple accounts. Contact your administrator.', 409);
     }
+
+    $role = $matches[0]['role'];
+    $user = $matches[0]['user'];
     
     // Generate JWT token
     $token = JWTHandler::encode([
