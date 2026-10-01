@@ -1,24 +1,25 @@
 <?php
 
-// Database Configuration
-define('DB_HOST', 'sql101.infinityfree.com');
-define('DB_NAME', 'if0_42784359_myscmanagement');
-define('DB_USER', 'if0_42784359');
-define('DB_PASS', '4naAUPQvgRj3');
+// Database Configuration: set these values in cPanel or as server environment variables.
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'cpaneluser_schooldb');
+define('DB_USER', getenv('DB_USER') ?: 'cpaneluser_dbuser');
+define('DB_PASS', getenv('DB_PASS') ?: 'CHANGE_THIS_IN_CPANEL');
 define('DB_CHARSET', 'utf8mb4');
 
 // Application Configuration
 define('APP_NAME', 'School Management System');
-define('APP_URL', 'http://maneschool.site.je');
+define('APP_URL', rtrim(getenv('APP_URL') ?: '', '/'));
 define('API_VERSION', 'v1');
 
 // Security Configuration
-define('JWT_SECRET', 'mk-school-secret-key-2024-secure-prod');
+define('JWT_SECRET', getenv('JWT_SECRET') ?: 'CHANGE_THIS_TO_A_LONG_RANDOM_SECRET');
 define('JWT_ALGORITHM', 'HS256');
 define('JWT_EXPIRATION', 86400); // 24 hours in seconds
 
 // CORS Configuration
-define('CORS_ALLOWED_ORIGINS', ['http://maneschool.site.je', 'https://maneschool.site.je']);
+$corsOrigins = getenv('CORS_ALLOWED_ORIGINS') ?: '';
+define('CORS_ALLOWED_ORIGINS', array_values(array_filter(array_map('trim', explode(',', $corsOrigins)))));
 define('CORS_ALLOWED_METHODS', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
 define('CORS_ALLOWED_HEADERS', ['Content-Type', 'Authorization']);
 

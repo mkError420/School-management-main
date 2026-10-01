@@ -1,6 +1,6 @@
 // API Client for PHP Backend & MySQL Database
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://maneschool.site.je/backend/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/backend/api';
 
 export interface UserSession {
   id: string;

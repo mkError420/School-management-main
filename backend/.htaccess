@@ -21,3 +21,8 @@ Options -Indexes
     Order Allow,Deny
     Deny from all
 </FilesMatch>
+
+# SQL dumps and environment files must never be served publicly
+<FilesMatch "\.(sql|env)$">
+    Require all denied
+</FilesMatch>

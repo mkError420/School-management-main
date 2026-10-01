@@ -1,198 +1,45 @@
-# School Management System - cPanel Deployment Guide
+# cPanel Deployment Guide
 
-## 📋 Files & Folders to Upload
+## 1. Build the frontend
 
-### ⚡ RECOMMENDED: Upload ZIP Files (Easier & Faster)
+Run locally from the project directory:
 
-I've created two ZIP files for you in the project folder:
-
-#### 1. Frontend ZIP
-**File:** `frontend-dist.zip`
-**Upload to:** `public_html/`
-
-**Steps:**
-1. In cPanel File Manager, go to `public_html/`
-2. Click **Upload**
-3. Select `frontend-dist.zip` from your computer
-4. After upload, right-click the ZIP file
-5. Select **Extract**
-6. Delete the ZIP file after extraction
-
-#### 2. Backend ZIP
-**File:** `backend-dist.zip`
-**Upload to:** `public_html/`
-
-**Steps:**
-1. In cPanel File Manager, go to `public_html/`
-2. Click **Upload**
-3. Select `backend-dist.zip` from your computer
-4. After upload, right-click the ZIP file
-5. Select **Extract**
-6. This will create a `backend/` folder
-7. Delete the ZIP file after extraction
-
----
-
-### Manual Upload (If ZIP doesn't work)
-
-### 1. Frontend Files (Public HTML)
-Upload these files to your **public_html** folder (or your domain's root folder):
-
-```
-From project folder: dist/
-Upload to: public_html/
+```bash
+npm install
+npm run build
 ```
 
-**Files to upload:**
-- `index.html`
-- `.htaccess` (IMPORTANT: This fixes 404 errors on page reload)
-- `assets/` folder (contains all CSS and JS files)
-- All PNG image files (announcement.png, assignment.png, etc.)
-- `schema.sql` (for database import)
-- `seed.sql` (for database import)
+Upload the **contents** of the generated `dist/` directory into the domain's document root, usually `public_html/`. The upload must include `index.html`, `assets/`, and the generated `.htaccess` file. Do not upload the project source, `node_modules/`, or SQL dumps into the public document root.
 
-**Tip:** Upload files in small batches (5-10 files at a time) to avoid failures.
+## 2. Create and import the database
 
-### 2. Backend Files (PHP API)
-Upload these files to your **backend** folder:
+1. In cPanel, open **MySQL Databases** and create a database and database user.
+2. Assign the user to the database with all required privileges. cPanel usually prefixes both names with your account username.
+3. Open **phpMyAdmin**, select the new database, and import `backend/database/schema.sql` from your local project.
+4. Import `backend/database/seed.sql` only if you want the sample records. Change all seeded/default passwords before opening the site to users.
 
-```
-From project folder: backend/
-Upload to: public_html/backend/
-```
+## 3. Upload and configure the PHP API
 
-**Folder structure:**
-```
-backend/
-├── .htaccess
-├── index.php
-├── config/
-│   └── config.php
-├── api/
-│   ├── auth.php
-│   ├── students.php
-│   ├── teachers.php
-│   ├── parents.php
-│   ├── classes.php
-│   ├── subjects.php
-│   ├── lessons.php
-│   ├── exams.php
-│   ├── assignments.php
-│   ├── results.php
-│   ├── attendance.php
-│   ├── events.php
-│   ├── announcements.php
-│   ├── dashboard.php
-│   └── grades.php
-├── database/
-│   ├── Database.php
-│   ├── schema.sql
-│   └── seed.sql
-├── models/
-│   └── (empty or any model files)
-└── utils/
-    ├── Response.php
-    ├── JWTHandler.php
-    ├── AuthMiddleware.php
-    └── CorsMiddleware.php
-```
+Upload the project's `backend/` directory to `public_html/backend/` (or the matching domain document root). Keep its `.htaccess`, `config/`, `api/`, `database/`, `models/`, and `utils/` directories in place.
 
-## 🗄️ Database Setup
+Edit `backend/config/config.php` on the server with the database host, database name, database user, and password created above. Replace `JWT_SECRET` with a unique, randomly generated secret of at least 32 bytes. Alternatively, configure the corresponding `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS`, and `JWT_SECRET` environment variables in cPanel. Set `APP_URL` and `CORS_ALLOWED_ORIGINS` only if the API must be called from a different origin; same-origin requests need no CORS allowlist.
 
-### Option 1: Import via phpMyAdmin
-1. Log in to cPanel
-2. Go to **phpMyAdmin**
-3. Select your database: `if0_42784359_myscmanagement`
-4. Go to **Import** tab
-5. Upload and import `schema.sql` (from dist/ or backend/database/)
-6. Upload and import `seed.sql` (from dist/ or backend/database/)
+The checked-in config uses placeholders and will not connect until configured. The database password previously committed to this project should be changed at its provider, and the new cPanel credentials should not be committed.
 
-**Important:** The SQL files have been modified to work with your existing database. They no longer try to create a new database - they only create tables and insert data into your existing database.
+## 4. Enable HTTPS and verify
 
-### Option 2: Import via cPanel MySQL Database Wizard
-1. Go to **MySQL Database Wizard** in cPanel
-2. Select your database
-3. Go to **phpMyAdmin** to import the SQL files
+Enable an SSL certificate for the domain in cPanel, then use cPanel's **Force HTTPS Redirect** if available. Visit these URLs to verify routing:
 
-## 🔐 File Permissions
+- `https://your-domain/` should show the sign-in page.
+- `https://your-domain/sign-in` should still work after a page refresh.
+- `https://your-domain/backend/api` should return the API status JSON.
+- `https://your-domain/backend/database/schema.sql` should be denied (403).
 
-After uploading, set these permissions:
+If the API returns a server error, check cPanel's PHP error log and verify the PHP version, database credentials, imported tables, and file permissions. Use `644` for files and `755` for directories unless your host specifies otherwise.
 
-### Frontend files:
-- All files: `644`
-- All folders: `755`
+## Deployment notes
 
-### Backend files:
-- All PHP files: `644`
-- All folders: `755`
-- `.htaccess` files: `644`
-
-## ✅ Verification Steps
-
-1. **Test Frontend:**
-   - Visit: `http://maneschool.site.je`
-   - Should see the login page
-
-2. **Test Backend API:**
-   - Visit: `http://maneschool.site.je/backend/api`
-   - Should see JSON response with API info
-
-3. **Test Database Connection:**
-   - Try to login with default admin credentials:
-     - Username: `admin`
-     - Password: `admin123`
-
-## 📝 Default Login Credentials
-
-### Admin
-- Username: `admin`
-- Password: `admin123`
-
-### Teacher
-- Username: `johndoe`
-- Password: `teacher123`
-
-### Student
-- Username: `johnconnor`
-- Password: `student123`
-
-### Parent
-- Username: `sarahconnor`
-- Password: `parent123`
-
-## 🔧 Troubleshooting
-
-### 500 Internal Server Error
-- Check file permissions (should be 644 for files, 755 for folders)
-- Check `.htaccess` file syntax
-- Check PHP error logs in cPanel
-
-### Database Connection Error
-- Verify database credentials in `backend/config/config.php`
-- Ensure database exists and tables are imported
-- Check if MySQL server is accessible
-
-### CORS Error
-- Verify CORS settings in `backend/config/config.php`
-- Ensure your domain is listed in `CORS_ALLOWED_ORIGINS`
-
-### 404 Not Found
-- Check if `.htaccess` is uploaded
-- Verify mod_rewrite is enabled on server
-- Check file paths and folder structure
-
-## 🚀 After Deployment
-
-1. **Change default passwords** for all users
-2. **Update JWT_SECRET** in `backend/config/config.php` with a secure random key
-3. **Enable HTTPS** if SSL certificate is available
-4. **Set up regular backups** of your database
-5. **Monitor error logs** in cPanel
-
-## 📞 Support
-
-If you encounter any issues:
-- Check cPanel error logs: `/home/your-username/logs/error_log`
-- Check PHP error logs in cPanel
-- Verify all files are uploaded correctly
-- Ensure database tables are created
+- Frontend API requests use `/backend/api` on the current origin; set `VITE_API_URL` at build time only when the API is hosted elsewhere.
+- Upload only the contents of `dist/` to the web root, not the `dist/` directory itself.
+- The included SQL dumps contain sample account data. Do not use the sample passwords for a live deployment.
+- Back up the database and keep production credentials outside source control.
