@@ -729,7 +729,7 @@ const AdmissionSection: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              filteredAdmissions.map((item) => {
+              filteredAdmissions.slice(-5).map((item) => {
                 const isApproved = item.status === "APPROVED";
                 const isPending = item.status === "PENDING";
                 const isWaitlisted = item.status === "WAITLISTED";

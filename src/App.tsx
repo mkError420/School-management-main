@@ -36,6 +36,7 @@ import AdminUsersPage from "@/pages/AdminUsersPage";
 import ClassSchedulePage from "@/pages/ClassSchedulePage";
 import AdmissionsPage from "@/pages/AdmissionsPage";
 import FeesPage from "@/pages/FeesPage";
+import ExpensesPage from "@/pages/ExpensesPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -110,6 +111,7 @@ const App: React.FC = () => {
           <Route path="class-schedule" element={<ClassSchedulePage />} />
           <Route path="admissions" element={<AdmissionsPage />} />
           <Route path="fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
+          <Route path="expenses" element={<AdminRoute><ExpensesPage /></AdminRoute>} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

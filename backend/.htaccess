@@ -1,20 +1,12 @@
 # Enable Rewrite Engine
 RewriteEngine On
 
-# Message files are served only through the authenticated API download action
-RewriteRule ^storage/ - [F,L,NC]
-
-# Preserve bearer tokens for PHP CGI/FastCGI handlers on shared hosting
-<IfModule mod_setenvif.c>
-    SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
-</IfModule>
-RewriteCond %{HTTP:Authorization} .
-RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-
-# Redirect all requests to index.php
+# Allow direct access to files
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Route all requests to index.php
+RewriteRule ^(.*)$ index.php [L,QSA]
 
 # Security Headers
 <IfModule mod_headers.c>
@@ -27,16 +19,7 @@ RewriteRule ^(.*)$ index.php [QSA,L]
 Options -Indexes
 
 # Protect sensitive files
-<FilesMatch "^\.(htaccess|htpasswd|ini|log|sh|inc|bak)$">
+<FilesMatch "^\.(htaccess|htpasswd|ini|log|sh|inc|bak|env)$">
     Order Allow,Deny
     Deny from all
 </FilesMatch>
-
-# SQL dumps and environment files must never be served publicly
-<FilesMatch "\.(sql|env)$">
-    Require all denied
-</FilesMatch>
-
-<Files "config.local.php">
-    Require all denied
-</Files>

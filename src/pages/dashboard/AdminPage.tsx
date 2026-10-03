@@ -6,6 +6,7 @@ import FinanceChart from "@/components/FinanceChart";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
 import AdmissionSection from "@/components/AdmissionSection";
+import ExpenseSection from "@/components/expenses/ExpenseSection";
 import { api } from "@/lib/api";
 
 const AdminPage: React.FC = () => {
@@ -50,6 +51,9 @@ const AdminPage: React.FC = () => {
         <div className="w-full h-[500px]">
           <FinanceChart />
         </div>
+
+        {/* Expense Section */}
+        <ExpenseSection />
       </div>
 
       {/* RIGHT */}

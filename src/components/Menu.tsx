@@ -44,6 +44,12 @@ const menuItems = [
         visible: ["admin", "super_admin"],
       },
       {
+        icon: "/finance.png",
+        label: "Expenses",
+        href: "/expenses",
+        visible: ["admin", "super_admin"],
+      },
+      {
         icon: "/parent.png",
         label: "Parents",
         href: "/list/parents",

@@ -328,4 +328,30 @@ INSERT IGNORE INTO fee_categories (name, code, description, default_amount, freq
 ('Sports & Extra-Curricular', 'SPRT', 'Clubs, athletic training, and sports equipment', 40.00, 'ANNUALLY', 'ACTIVE'),
 ('Uniform & Study Pack', 'UNIF', 'School uniform sets, badge, and textbooks', 120.00, 'ONE_TIME', 'ACTIVE');
 
+-- Expenses management tables
+CREATE TABLE IF NOT EXISTS expenses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    expense_no VARCHAR(60) UNIQUE NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    category ENUM('SALARY', 'UTILITIES', 'MAINTENANCE', 'SUPPLIES', 'TRANSPORT', 'MARKETING', 'EVENTS', 'OTHER') NOT NULL DEFAULT 'SUPPLIES',
+    amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    status ENUM('PENDING', 'APPROVED', 'PAID', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    payment_method ENUM('CASH', 'BANK_TRANSFER', 'CARD', 'MOBILE_BANKING', 'CHEQUE', 'OTHER') NOT NULL DEFAULT 'CASH',
+    vendor VARCHAR(255) NULL,
+    expense_date DATE NOT NULL,
+    due_date DATE NULL,
+    paid_date DATE NULL,
+    transaction_ref VARCHAR(100) NULL,
+    receipt_url VARCHAR(255) NULL,
+    notes TEXT NULL,
+    created_by VARCHAR(255) NULL,
+    approved_by VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_exp_status (status),
+    INDEX idx_exp_category (category),
+    INDEX idx_exp_date (expense_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
