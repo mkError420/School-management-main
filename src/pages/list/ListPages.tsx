@@ -1,4 +1,4 @@
-// Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
+﻿// Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
 
 import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
@@ -27,9 +27,9 @@ export const SubjectsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-sm hover:bg-purple-50 transition">
-      <td className="py-3 font-medium text-gray-800">{item.name}</td>
-      <td className="hidden md:table-cell text-gray-600">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-medium text-gray-800 dark:text-gray-100">{item.name}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.teachers?.map((t: any) => `${t.name} ${t.surname}`).join(", ") || "—"}
       </td>
       <td>
@@ -46,9 +46,9 @@ export const SubjectsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Subjects</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Subjects</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search subjects..." />
           {role === "admin" && <FormModal table="subject" type="create" onSuccess={fetchData} />}
@@ -80,11 +80,11 @@ export const ClassesPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-sm hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">{item.name}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.capacity}</td>
-      <td className="hidden md:table-cell text-gray-600">Grade {item.grade_level || item.grade_id}</td>
-      <td className="hidden md:table-cell text-gray-600">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-sm hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.name}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.capacity}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">Grade {item.grade_level || item.grade_id}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.supervisor_name ? `${item.supervisor_name} ${item.supervisor_surname}` : "—"}
       </td>
       <td>
@@ -101,9 +101,9 @@ export const ClassesPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Classes</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Classes</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search classes..." />
           {role === "admin" && <FormModal table="class" type="create" onSuccess={fetchData} />}
@@ -136,12 +136,12 @@ export const LessonsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">{item.name}</td>
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.name}</td>
       <td className="hidden md:table-cell text-gray-600 capitalize">{item.day?.toLowerCase()}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.subject_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "—"}</td>
-      <td className="hidden lg:table-cell text-gray-600">
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
       </td>
       <td>
@@ -158,9 +158,9 @@ export const LessonsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Lessons</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Lessons</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search lessons..." />
           {(role === "admin" || role === "teacher") && <FormModal table="lesson" type="create" onSuccess={fetchData} />}
@@ -193,14 +193,14 @@ export const ExamsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">{item.title}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.subject_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
       </td>
-      <td className="hidden lg:table-cell text-gray-600">
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.start_time ? new Date(item.start_time).toLocaleDateString() : "—"}
       </td>
       <td>
@@ -217,9 +217,9 @@ export const ExamsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Exams</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Exams</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search exams..." />
           {(role === "admin" || role === "teacher") && <FormModal table="exam" type="create" onSuccess={fetchData} />}
@@ -252,14 +252,14 @@ export const AssignmentsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">{item.title}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.subject_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
       </td>
-      <td className="hidden lg:table-cell text-gray-600">
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.due_date ? new Date(item.due_date).toLocaleDateString() : "—"}
       </td>
       <td>
@@ -276,9 +276,9 @@ export const AssignmentsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Assignments</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Assignments</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search assignments..." />
           {(role === "admin" || role === "teacher") && <FormModal table="assignment" type="create" onSuccess={fetchData} />}
@@ -311,11 +311,11 @@ export const ResultsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
         {item.student_name} {item.student_surname}
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.subject_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
       <td className="hidden md:table-cell">
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.exam_id ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
           {item.exam_id ? "Exam" : "Assignment"}
@@ -326,7 +326,7 @@ export const ResultsPage: React.FC = () => {
           {item.score}%
         </span>
       </td>
-      <td className="hidden lg:table-cell text-gray-600">
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.date ? new Date(item.date).toLocaleDateString() : "—"}
       </td>
       <td>
@@ -343,9 +343,9 @@ export const ResultsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Results</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Results</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search results..." />
           {(role === "admin" || role === "teacher") && <FormModal table="result" type="create" onSuccess={fetchData} />}
@@ -377,12 +377,12 @@ export const AttendancePage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
         {item.student_name} {item.student_surname}
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.lesson_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.date}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.lesson_name || "—"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.date}</td>
       <td>
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.present ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
           {item.present ? "Present" : "Absent"}
@@ -402,9 +402,9 @@ export const AttendancePage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">Attendance Records</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">Attendance Records</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search attendance..." />
           {(role === "admin" || role === "teacher") && <FormModal table="attendance" type="create" onSuccess={fetchData} />}
@@ -436,13 +436,13 @@ export const EventsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
-      <td className="py-3 font-semibold text-gray-800">{item.title}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "All Classes"}</td>
-      <td className="hidden md:table-cell text-gray-600">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "All Classes"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.start_time ? new Date(item.start_time).toLocaleDateString() : "—"}
       </td>
-      <td className="hidden lg:table-cell text-gray-600">
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.end_time ? new Date(item.end_time).toLocaleDateString() : "—"}
       </td>
       <td>
@@ -459,9 +459,9 @@ export const EventsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Events</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Events</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search events..." />
           {(role === "admin" || role === "teacher") && <FormModal table="event" type="create" onSuccess={fetchData} />}
@@ -492,13 +492,13 @@ export const AnnouncementsPage: React.FC = () => {
   ];
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
       <td className="py-3">
-        <p className="font-semibold text-gray-800">{item.title}</p>
-        <p className="text-gray-500 text-[11px] mt-0.5 line-clamp-1">{item.description}</p>
+        <p className="font-semibold text-gray-800 dark:text-gray-100">{item.title}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 line-clamp-1">{item.description}</p>
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "All"}</td>
-      <td className="hidden md:table-cell text-gray-600">{item.date}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "All"}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.date}</td>
       <td>
         <div className="flex items-center gap-2">
           {(role === "admin" || role === "teacher") && (
@@ -513,9 +513,9 @@ export const AnnouncementsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Announcements</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Announcements</h1>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search announcements..." />
           {(role === "admin" || role === "teacher") && <FormModal table="announcement" type="create" onSuccess={fetchData} />}
@@ -528,3 +528,4 @@ export const AnnouncementsPage: React.FC = () => {
 };
 
 export default SubjectsPage;
+

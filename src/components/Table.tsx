@@ -22,7 +22,7 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
       <div className="w-full mt-4">
         <table className="w-full">
           <thead>
-            <tr className="text-left text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
               {columns.map((col) => (
                 <th key={col.accessor} className={`pb-3 pr-4 ${col.className || ""}`}>
                   {col.header}
@@ -32,10 +32,10 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
           </thead>
           <tbody>
             {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="border-b border-gray-50">
+              <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50">
                 {columns.map((col) => (
                   <td key={col.accessor} className={`py-3 pr-4 ${col.className || ""}`}>
-                    <div className="h-4 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
                   </td>
                 ))}
               </tr>
@@ -48,10 +48,10 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
 
   if (error) {
     return (
-      <div className="w-full mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+      <div className="w-full mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400" role="alert">
         <p>{error}</p>
         {onRetry && (
-          <button onClick={onRetry} className="mt-3 rounded-md bg-white px-3 py-1.5 font-medium text-red-700 ring-1 ring-red-200 hover:bg-red-100">
+          <button onClick={onRetry} className="mt-3 rounded-md bg-white dark:bg-gray-800 px-3 py-1.5 font-medium text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800 hover:bg-red-100 dark:hover:bg-red-900/40">
             Retry
           </button>
         )}
@@ -64,7 +64,7 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
       <div className="w-full mt-4">
         <table className="w-full">
           <thead>
-            <tr className="text-left text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
               {columns.map((col) => (
                 <th key={col.accessor} className={`pb-3 pr-4 ${col.className || ""}`}>
                   {col.header}
@@ -73,7 +73,7 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
             </tr>
           </thead>
         </table>
-        <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
           <svg className="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
@@ -86,7 +86,7 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
   return (
     <table className="w-full mt-4">
       <thead>
-        <tr className="text-left text-gray-500 text-xs font-semibold uppercase tracking-wider border-b border-gray-100">
+        <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
           {columns.map((col) => (
             <th key={col.accessor} className={`pb-3 pr-4 ${col.className || ""}`}>
               {col.header}

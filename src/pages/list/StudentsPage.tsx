@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
 import { Link } from "react-router-dom";
 import FormModal from "@/components/FormModal";
@@ -43,7 +43,7 @@ const StudentsPage: React.FC = () => {
   useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
   const renderRow = (item: Student) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
       <td className="flex items-center gap-3 py-4">
         <img
           src={item.img || `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=FAE27C&color=333`}
@@ -53,17 +53,17 @@ const StudentsPage: React.FC = () => {
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <h3 className="font-semibold text-gray-800">{item.name} {item.surname}</h3>
-          <p className="text-gray-500">{item.email}</p>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{item.name} {item.surname}</h3>
+          <p className="text-gray-500 dark:text-gray-400">{item.email}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.id}</td>
-      <td className="hidden md:table-cell text-gray-600">
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.id}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.grade_level ? `Grade ${item.grade_level}` : "—"}
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.class_name || "—"}</td>
-      <td className="hidden lg:table-cell text-gray-600">{item.phone || "—"}</td>
-      <td className="hidden lg:table-cell text-gray-600 max-w-[160px] truncate">{item.address}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">{item.phone || "—"}</td>
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400 max-w-[160px] truncate">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
           <Link to={`/list/students/${item.id}`}>
@@ -83,14 +83,14 @@ const StudentsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm space-y-4">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm space-y-4">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GraduationCap size={20} className="text-purple-600" />
-          <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Students</h1>
+          <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Students</h1>
           {!loading && pagination.total > 0 && (
-            <span className="hidden md:inline-flex items-center bg-purple-100 text-purple-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+            <span className="hidden md:inline-flex items-center bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-[11px] font-semibold px-2 py-0.5 rounded-full">
               {pagination.total} enrolled
             </span>
           )}
@@ -102,16 +102,16 @@ const StudentsPage: React.FC = () => {
 
       {/* Admissions Info Banner — admin only */}
       {role === "admin" && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-purple-200 bg-gradient-to-r from-purple-50 to-lamaPurpleLight px-4 py-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 dark:from-purple-900/30 to-lamaPurpleLight dark:to-purple-900/20 px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="shrink-0 w-9 h-9 rounded-full bg-purple-600 flex items-center justify-center shadow-sm">
               <UserPlus size={17} className="text-white" />
             </div>
             <div>
-              <p className="text-xs font-bold text-purple-900">
+              <p className="text-xs font-bold text-purple-900 dark:text-purple-200">
                 Students are enrolled through the Admissions workflow
               </p>
-              <p className="text-[11px] text-purple-700 mt-0.5">
+              <p className="text-[11px] text-purple-700 dark:text-purple-300 mt-0.5">
                 Submit an admission application and approve it to automatically create a student account with login credentials and class assignment.
               </p>
             </div>
@@ -146,3 +146,5 @@ const StudentsPage: React.FC = () => {
 };
 
 export default StudentsPage;
+
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
 import { Link } from "react-router-dom";
 import FormModal from "@/components/FormModal";
@@ -47,7 +47,7 @@ const TeachersPage: React.FC = () => {
   }, [page, pagination.pages]);
 
   const renderRow = (item: Teacher) => (
-    <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
       <td className="flex items-center gap-3 py-4">
         <img
           src={item.img || `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=C3EBFA&color=333`}
@@ -57,19 +57,19 @@ const TeachersPage: React.FC = () => {
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <h3 className="font-semibold text-gray-800">{item.name} {item.surname}</h3>
-          <p className="text-gray-500">{item.email}</p>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{item.name} {item.surname}</h3>
+          <p className="text-gray-500 dark:text-gray-400">{item.email}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.id}</td>
-      <td className="hidden md:table-cell text-gray-600">
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.id}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.subjects?.map((s) => s.name).join(", ") || "—"}
       </td>
-      <td className="hidden md:table-cell text-gray-600">
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.classes?.map((c) => c.name).join(", ") || "—"}
       </td>
-      <td className="hidden lg:table-cell text-gray-600">{item.phone || "—"}</td>
-      <td className="hidden lg:table-cell text-gray-600 max-w-[160px] truncate">{item.address}</td>
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">{item.phone || "—"}</td>
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400 max-w-[160px] truncate">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
           <Link to={`/list/teachers/${item.id}`}>
@@ -89,10 +89,10 @@ const TeachersPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       {/* Top */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800">{role === "teacher" ? "My Teacher Profile" : "All Teachers"}</h1>
+        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">{role === "teacher" ? "My Teacher Profile" : "All Teachers"}</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch value={search} onChange={setSearch} placeholder="Search teachers..." />
           <div className="flex items-center gap-2 self-end">
@@ -117,3 +117,4 @@ const TeachersPage: React.FC = () => {
 };
 
 export default TeachersPage;
+
