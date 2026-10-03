@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowRight,
   ArrowUpRight,
   Calendar,
   Check,
@@ -569,9 +571,16 @@ const AdmissionSection: React.FC = () => {
                           <p className="font-semibold text-gray-900 dark:text-white leading-tight">
                             {item.first_name} {item.last_name}
                           </p>
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {item.gender} · {item.blood_type || "A+"}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="text-[11px] text-gray-400">
+                              {item.gender} · {item.blood_type || "A+"}
+                            </span>
+                            {item.enrolled_student_id && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                Enrolled: {item.enrolled_student_id}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -637,6 +646,16 @@ const AdmissionSection: React.FC = () => {
                           </button>
                         )}
 
+                        {item.enrolled_student_id && (
+                          <Link
+                            to={`/list/students/${item.enrolled_student_id}`}
+                            title={`View ${item.first_name} ${item.last_name} in All Students`}
+                            className="p-1.5 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-gray-800 transition"
+                          >
+                            <GraduationCap size={15} />
+                          </Link>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => setDetailsItem(item)}
@@ -671,6 +690,24 @@ const AdmissionSection: React.FC = () => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Dynamic Sync Status & Footer */}
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 px-1 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>
+            Showing <strong className="text-gray-800 dark:text-gray-200">{filteredAdmissions.length}</strong> applications
+            {" · "}<strong className="text-emerald-700 dark:text-emerald-400">{counts.approved} enrolled</strong> (dynamically synced with All Students)
+          </span>
+        </div>
+        <Link
+          to="/list/students"
+          className="inline-flex items-center gap-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 font-semibold transition"
+        >
+          <span>View All Students roster</span>
+          <ArrowRight size={13} />
+        </Link>
       </div>
 
       {/* MODAL 1: NEW / EDIT ADMISSION APPLICATION */}
@@ -1093,11 +1130,18 @@ const AdmissionSection: React.FC = () => {
 
               {/* If enrolled student ID is linked */}
               {detailsItem.enrolled_student_id && (
-                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 text-xs text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-3 text-xs text-emerald-800 dark:text-emerald-300 flex flex-wrap items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5 font-semibold">
-                    <CheckCircle2 size={15} className="text-emerald-600" />
+                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
                     Enrolled into active student database (ID: {detailsItem.enrolled_student_id})
                   </span>
+                  <Link
+                    to={`/list/students/${detailsItem.enrolled_student_id}`}
+                    className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-300 hover:underline shrink-0"
+                  >
+                    <span>View Student Profile</span>
+                    <ArrowRight size={13} />
+                  </Link>
                 </div>
               )}
             </div>

@@ -267,6 +267,43 @@ function createStudent($db) {
         // Get the created student
         $student = $db->fetchOne("SELECT * FROM students WHERE id = ?", [$id]);
         unset($student['password']);
+
+        // Sync with admissions table so admissions is immediately in sync
+        try {
+            $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$input['parent_id']]);
+            $parentName = $parent ? trim($parent['name'] . ' ' . $parent['surname']) : 'Parent/Guardian';
+            $cleanId = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $id));
+            $appNo = 'ADM-' . date('Y') . '-' . $cleanId;
+
+            $checkApp = $db->fetchOne("SELECT id FROM admissions WHERE application_no = ?", [$appNo]);
+            if ($checkApp) {
+                $appNo = 'ADM-' . date('Y') . '-' . $cleanId . '-' . rand(10, 99);
+            }
+
+            $db->insert('admissions', [
+                'application_no' => $appNo,
+                'first_name' => $input['name'],
+                'last_name' => $input['surname'],
+                'email' => $input['email'] ?? null,
+                'phone' => $input['phone'] ?? null,
+                'gender' => (isset($input['sex']) && strtoupper($input['sex']) === 'FEMALE') ? 'FEMALE' : 'MALE',
+                'blood_type' => $input['blood_type'] ?? 'A+',
+                'address' => $input['address'] ?? '',
+                'grade_id' => $input['grade_id'],
+                'class_id' => $input['class_id'],
+                'parent_name' => $parentName,
+                'parent_phone' => $parent['phone'] ?? null,
+                'parent_email' => $parent['email'] ?? null,
+                'parent_id' => $input['parent_id'],
+                'previous_school' => 'Direct Enrollment',
+                'status' => 'APPROVED',
+                'notes' => 'Enrolled student account (dynamically synced with school student database).',
+                'applied_date' => date('Y-m-d'),
+                'enrolled_student_id' => $id
+            ]);
+        } catch (Exception $e) {
+            error_log('Error syncing student creation to admissions: ' . $e->getMessage());
+        }
         
         Response::success('Student created successfully', $student, 201);
         
@@ -314,6 +351,26 @@ function updateStudent($db, $id) {
     try {
         $db->update('students', $data, 'id = ?', [$id]);
         
+        // Sync updates to admissions table if linked
+        try {
+            $admData = [];
+            if (isset($data['name'])) $admData['first_name'] = $data['name'];
+            if (isset($data['surname'])) $admData['last_name'] = $data['surname'];
+            if (isset($data['email'])) $admData['email'] = $data['email'];
+            if (isset($data['phone'])) $admData['phone'] = $data['phone'];
+            if (isset($data['address'])) $admData['address'] = $data['address'];
+            if (isset($data['blood_type'])) $admData['blood_type'] = $data['blood_type'];
+            if (isset($data['sex'])) $admData['gender'] = strtoupper($data['sex']) === 'FEMALE' ? 'FEMALE' : 'MALE';
+            if (isset($data['class_id'])) $admData['class_id'] = $data['class_id'];
+            if (isset($data['grade_id'])) $admData['grade_id'] = $data['grade_id'];
+            if (isset($data['parent_id'])) $admData['parent_id'] = $data['parent_id'];
+            if (!empty($admData)) {
+                $db->update('admissions', $admData, 'enrolled_student_id = ?', [$id]);
+            }
+        } catch (Exception $e) {
+            error_log('Error syncing student update to admissions: ' . $e->getMessage());
+        }
+
         // Get updated student
         $student = $db->fetchOne("SELECT * FROM students WHERE id = ?", [$id]);
         unset($student['password']);
@@ -338,6 +395,13 @@ function deleteStudent($db, $id) {
     }
     
     try {
+        // Also remove or unlink corresponding admission to keep counts in sync
+        try {
+            $db->delete('admissions', 'enrolled_student_id = ?', [$id]);
+        } catch (Exception $e) {
+            error_log('Error deleting admission for deleted student: ' . $e->getMessage());
+        }
+
         $deleted = $db->delete('students', 'id = ?', [$id]);
         
         if ($deleted > 0) {
