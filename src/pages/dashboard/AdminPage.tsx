@@ -52,8 +52,8 @@ const AdminPage: React.FC = () => {
           <FinanceChart />
         </div>
 
-        {/* Expense Section */}
-        <ExpenseSection />
+        {/* Expense Section - Temporarily commented for debugging */}
+        {/* <ExpenseSection /> */}
       </div>
 
       {/* RIGHT */}
