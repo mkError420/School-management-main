@@ -5,6 +5,7 @@ import AttendanceChart from "@/components/AttendanceChart";
 import FinanceChart from "@/components/FinanceChart";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
+import AdmissionSection from "@/components/AdmissionSection";
 import { api } from "@/lib/api";
 
 const AdminPage: React.FC = () => {
@@ -31,6 +32,9 @@ const AdminPage: React.FC = () => {
           <UserCard type="parent" count={counts.parents || undefined} />
           <UserCard type="staff" count={counts.staff || undefined} />
         </div>
+
+        {/* Admissions Section */}
+        <AdmissionSection />
 
         {/* Charts Row */}
         <div className="flex gap-4 flex-col lg:flex-row">

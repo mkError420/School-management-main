@@ -34,6 +34,7 @@ import ProfilePage from "@/pages/ProfilePage";
 import SettingsPage from "@/pages/SettingsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import ClassSchedulePage from "@/pages/ClassSchedulePage";
+import AdmissionsPage from "@/pages/AdmissionsPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -101,6 +102,7 @@ const App: React.FC = () => {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin-users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
           <Route path="class-schedule" element={<ClassSchedulePage />} />
+          <Route path="admissions" element={<AdmissionsPage />} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

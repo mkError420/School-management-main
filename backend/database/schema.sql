@@ -211,6 +211,32 @@ CREATE TABLE IF NOT EXISTS site_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS admissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    application_no VARCHAR(50) UNIQUE NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255),
+    phone VARCHAR(50),
+    date_of_birth DATE,
+    gender ENUM('MALE', 'FEMALE') NOT NULL DEFAULT 'MALE',
+    blood_type VARCHAR(10) DEFAULT 'A+',
+    address TEXT,
+    grade_id INT,
+    class_id INT,
+    parent_name VARCHAR(255),
+    parent_phone VARCHAR(50),
+    parent_email VARCHAR(255),
+    parent_id VARCHAR(255),
+    previous_school VARCHAR(255),
+    status ENUM('PENDING', 'APPROVED', 'WAITLISTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    applied_date DATE NULL,
+    enrolled_student_id VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('site_name', 'ACADEMIA');
 
 -- Insert default admin user (password: admin123 - should be changed in production)
