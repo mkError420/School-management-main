@@ -19,7 +19,7 @@ const UserCard: React.FC<UserCardProps> = ({ type, count }) => {
   return (
     <div className="rounded-2xl odd:bg-lamaPurple even:bg-lamaYellow p-4 flex-1 min-w-[130px] shadow-sm hover:shadow-md transition">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] bg-white px-2 py-1 rounded-full text-green-600 font-semibold">
+        <span className="text-[10px] bg-white/80 dark:bg-white/20 dark:text-gray-200 px-2 py-1 rounded-full text-green-600 font-semibold">
           2026/27
         </span>
         <Image src="/more.png" alt="" width={20} height={20} className="cursor-pointer" />
