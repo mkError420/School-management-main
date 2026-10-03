@@ -3,8 +3,6 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import Image from "@/components/Image";
-import { Link } from "react-router-dom";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 
@@ -42,9 +40,25 @@ const ParentsPage: React.FC = () => {
           <p className="text-gray-500">{item.email}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell text-gray-600">{item.phone}</td>
+      <td className="hidden md:table-cell text-gray-600">{item.phone || "—"}</td>
       <td className="hidden md:table-cell text-gray-600">
-        {item.students?.map((s: any) => `${s.name} ${s.surname}`).join(", ") || "—"}
+        {item.students && item.students.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {item.students.map((s: any, idx: number) => {
+              const fullName = `${s.name || ""} ${s.surname || ""}`.trim();
+              return (
+                <span
+                  key={s.id || idx}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200/70"
+                >
+                  {fullName || "Student"}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <span className="text-gray-400">—</span>
+        )}
       </td>
       <td className="hidden lg:table-cell text-gray-600 max-w-[160px] truncate">{item.address}</td>
       <td>
@@ -66,9 +80,6 @@ const ParentsPage: React.FC = () => {
         <h1 className="hidden md:block text-lg font-semibold text-gray-800">All Parents</h1>
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
           <TableSearch value={search} onChange={setSearch} placeholder="Search parents..." />
-          <div className="flex items-center gap-2 self-end">
-            {role === "admin" && <FormModal table="parent" type="create" onSuccess={fetchData} />}
-          </div>
         </div>
       </div>
       <Table columns={columns} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No parents found" />

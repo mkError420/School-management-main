@@ -61,9 +61,9 @@ function getParents($db) {
     $params = [];
 
     if (!empty($search)) {
-        $sql .= " AND (p.name LIKE ? OR p.surname LIKE ? OR p.username LIKE ? OR p.email LIKE ? OR p.phone LIKE ?)";
+        $sql .= " AND (p.name LIKE ? OR p.surname LIKE ? OR p.username LIKE ? OR p.email LIKE ? OR p.phone LIKE ? OR EXISTS (SELECT 1 FROM students s WHERE s.parent_id = p.id AND (s.name LIKE ? OR s.surname LIKE ?)))";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
 
     // Get total count
@@ -78,15 +78,58 @@ function getParents($db) {
 
     $parents = $db->fetchAll($sql, $params);
 
-    // Remove passwords and add children count
+    // Remove passwords and add students array + children count
     foreach ($parents as &$parent) {
         unset($parent['password']);
 
-        $childrenCount = $db->fetchOne(
-            "SELECT COUNT(*) as count FROM students WHERE parent_id = ?",
+        // 1. Fetch enrolled students from students table
+        $students = $db->fetchAll(
+            "SELECT id, name, surname FROM students WHERE parent_id = ? ORDER BY name",
             [$parent['id']]
         );
-        $parent['children_count'] = $childrenCount['count'];
+
+        // Keep track of student IDs and names
+        $includedIds = [];
+        $includedNames = [];
+        foreach ($students as $st) {
+            $includedIds[$st['id']] = true;
+            $fullName = strtolower(trim(($st['name'] ?? '') . ' ' . ($st['surname'] ?? '')));
+            if ($fullName !== '') {
+                $includedNames[$fullName] = true;
+            }
+        }
+
+        // 2. Also include admission applicants linked to this parent (e.g. from new admission form)
+        try {
+            $admissions = $db->fetchAll(
+                "SELECT id, first_name, last_name, name, surname, enrolled_student_id 
+                 FROM admissions 
+                 WHERE parent_id = ? 
+                 ORDER BY id DESC",
+                [$parent['id']]
+            );
+            foreach ($admissions as $adm) {
+                if (!empty($adm['enrolled_student_id']) && isset($includedIds[$adm['enrolled_student_id']])) {
+                    continue;
+                }
+                $stName = !empty($adm['first_name']) ? $adm['first_name'] : ($adm['name'] ?? '');
+                $stSurname = !empty($adm['last_name']) ? $adm['last_name'] : ($adm['surname'] ?? '');
+                $fullName = strtolower(trim($stName . ' ' . $stSurname));
+                if ($fullName !== '' && !isset($includedNames[$fullName])) {
+                    $students[] = [
+                        'id' => $adm['id'],
+                        'name' => $stName,
+                        'surname' => $stSurname
+                    ];
+                    $includedNames[$fullName] = true;
+                }
+            }
+        } catch (Exception $e) {
+            // Table might not exist or error
+        }
+
+        $parent['students'] = $students;
+        $parent['children_count'] = count($students);
     }
 
     Response::success('Parents retrieved successfully', [
@@ -131,9 +174,41 @@ function getParent($db, $id) {
         unset($child['password']);
     }
 
+    // Also include any admission applicants linked to this parent that aren't yet in students
+    try {
+        $admissions = $db->fetchAll(
+            "SELECT a.*, c.name as class_name, g.level as grade_level
+             FROM admissions a
+             LEFT JOIN classes c ON a.class_id = c.id
+             LEFT JOIN grades g  ON a.grade_id  = g.id
+             WHERE a.parent_id = ?
+             ORDER BY a.id DESC",
+            [$id]
+        );
+        $existingStudentIds = array_flip(array_column($children, 'id'));
+        foreach ($admissions as $adm) {
+            if (!empty($adm['enrolled_student_id']) && isset($existingStudentIds[$adm['enrolled_student_id']])) {
+                continue;
+            }
+            $firstName = !empty($adm['first_name']) ? $adm['first_name'] : ($adm['name'] ?? '');
+            $lastName = !empty($adm['last_name']) ? $adm['last_name'] : ($adm['surname'] ?? '');
+            $children[] = [
+                'id' => $adm['id'],
+                'name' => $firstName,
+                'surname' => $lastName,
+                'email' => $adm['email'] ?? '',
+                'phone' => $adm['phone'] ?? '',
+                'class_name' => $adm['class_name'] ?? 'Pending Admission',
+                'grade_level' => $adm['grade_level'] ?? null,
+                'status' => $adm['status'] ?? 'PENDING'
+            ];
+        }
+    } catch (Exception $e) {}
+
     Response::success('Parent retrieved successfully', [
         'parent'   => $parent,
-        'children' => $children
+        'children' => $children,
+        'students' => $children
     ]);
 }
 
