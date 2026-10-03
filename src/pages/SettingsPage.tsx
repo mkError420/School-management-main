@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Building2, Check, KeyRound, LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
+import { Building2, Check, DollarSign, KeyRound, LogOut, Moon, ShieldCheck, Sun, UserRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { CURRENCY_OPTIONS, useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
 
 const SettingsPage: React.FC = () => {
   const { user, role, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { siteName, saveSiteName } = useSiteSettings();
+  const { siteName, saveSiteName, currencySymbol, saveCurrencySymbol } = useSiteSettings();
   const [siteNameDraft, setSiteNameDraft] = useState(siteName);
   const [savingSiteName, setSavingSiteName] = useState(false);
   const [siteNameFeedback, setSiteNameFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [currencyFeedback, setCurrencyFeedback] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -114,6 +115,49 @@ const SettingsPage: React.FC = () => {
               </button>
             </form>
             {siteNameFeedback && <p role="status" className={`mt-3 rounded-md border px-3 py-2 text-sm ${siteNameFeedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}>{siteNameFeedback.message}</p>}
+          </section>}
+
+          {/* Currency Symbol – super_admin only */}
+          {role === "super_admin" && <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="currency-title">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+                <DollarSign size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <h2 id="currency-title" className="font-semibold text-gray-900">Currency Symbol</h2>
+                <p className="mt-1 text-sm text-gray-500">Choose the currency symbol displayed across the Fees section.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CURRENCY_OPTIONS.map(({ symbol, label }) => {
+                const isActive = currencySymbol === symbol;
+                return (
+                  <button
+                    key={symbol}
+                    type="button"
+                    onClick={() => {
+                      saveCurrencySymbol(symbol);
+                      setCurrencyFeedback(`Currency updated to ${label}`);
+                      setTimeout(() => setCurrencyFeedback(null), 3000);
+                    }}
+                    className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-left text-sm transition ${
+                      isActive
+                        ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600 font-semibold text-emerald-800"
+                        : "border-gray-200 text-gray-700 hover:border-gray-400"
+                    }`}
+                  >
+                    <span className="text-base w-6 text-center">{symbol}</span>
+                    <span className="truncate text-xs">{label.replace(` (${symbol})`, "")}</span>
+                    {isActive && <Check size={14} className="ml-auto text-emerald-600 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+            {currencyFeedback && (
+              <p role="status" className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                ✓ {currencyFeedback}
+              </p>
+            )}
           </section>}
 
           <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="appearance-title">

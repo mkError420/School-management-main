@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -70,7 +70,10 @@ const sampleStudentsFallback = [
 ];
 
 const FeesSection: React.FC = () => {
-  const { siteName } = useSiteSettings();
+  const { siteName, currencySymbol: cs } = useSiteSettings();
+  // Helper – format a number as currency using the configured symbol
+  const fmt = (n: number | string) => `${cs}${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<"invoices" | "payments" | "categories" | "class_summary">("invoices");
@@ -1025,7 +1028,7 @@ const FeesSection: React.FC = () => {
 
   // Export CSV
   const handleExportCSV = () => {
-    const headers = ["Invoice No", "Student ID", "Student Name", "Class", "Fee Category", "Billed ($)", "Discount ($)", "Paid ($)", "Due ($)", "Status", "Due Date"];
+    const headers = ["Invoice No", "Student ID", "Student Name", "Class", "Fee Category", `Billed (${cs})`, `Discount (${cs})`, `Paid (${cs})`, `Due (${cs})`, "Status", "Due Date"];
     const rows = filteredInvoices.map((inv) => [
       inv.invoice_no,
       inv.student_id,
@@ -1190,7 +1193,7 @@ const FeesSection: React.FC = () => {
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900">${stats.total_billed.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-gray-900">{fmt(stats.total_billed)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="font-medium text-purple-600">{stats.total_invoices} invoices total</span>
               <span>across all terms</span>
@@ -1210,7 +1213,7 @@ const FeesSection: React.FC = () => {
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-600">${stats.total_collected.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-emerald-600">{fmt(stats.total_collected)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="inline-flex items-center font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
                 <Percent size={11} className="mr-0.5" />
@@ -1233,7 +1236,7 @@ const FeesSection: React.FC = () => {
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-amber-600">${stats.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-amber-600">{fmt(stats.total_due)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="font-medium text-amber-600">{stats.partial_count} partial</span>
               <span>â€¢</span>
@@ -1259,7 +1262,7 @@ const FeesSection: React.FC = () => {
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold text-rose-600">${stats.total_overdue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold text-rose-600">{fmt(stats.total_overdue)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-semibold text-[11px]">
                 {stats.overdue_count} overdue invoices
@@ -1682,7 +1685,7 @@ const FeesSection: React.FC = () => {
                         {p.payment_date}
                       </td>
                       <td className="py-3.5 px-4 text-right font-bold text-emerald-600 text-sm">
-                        +${Number(p.amount).toFixed(2)}
+                        {`+${fmt(p.amount)}`}
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <button
@@ -1774,7 +1777,7 @@ const FeesSection: React.FC = () => {
                     <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Default Amount:</span>
-                        <span className="font-bold text-gray-900 text-sm">${Number(cat.default_amount).toFixed(2)}</span>
+                        <span className="font-bold text-gray-900 text-sm">{fmt(cat.default_amount)}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Billing Frequency:</span>
@@ -1786,7 +1789,7 @@ const FeesSection: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Total Collected:</span>
-                        <span className="font-bold text-emerald-600">${totalRevenue.toFixed(2)}</span>
+                        <span className="font-bold text-emerald-600">{fmt(totalRevenue)}</span>
                       </div>
                     </div>
                   </div>
@@ -1995,7 +1998,7 @@ const FeesSection: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Fee Amount ($) <span className="text-rose-500">*</span>
+                    Fee Amount ({cs}) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -2010,7 +2013,7 @@ const FeesSection: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Discount / Waiver ($)
+                    Discount / Waiver ({cs})
                   </label>
                   <input
                     type="number"
@@ -2024,7 +2027,7 @@ const FeesSection: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Net Payable ($)
+                    Net Payable ({cs})
                   </label>
                   <input
                     type="text"
@@ -2085,7 +2088,7 @@ const FeesSection: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <div>
                       <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                        Amount Paid Today ($)
+                        Amount Paid Today ({cs})
                       </label>
                       <input
                         type="number"
@@ -2234,7 +2237,7 @@ const FeesSection: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Amount Per Student ($) <span className="text-rose-500">*</span>
+                    Amount Per Student ({cs}) <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -2323,7 +2326,7 @@ const FeesSection: React.FC = () => {
               <div className="text-right">
                 <div className="text-gray-400">Remaining Balance</div>
                 <div className="text-base font-bold text-rose-600">
-                  $
+                  {cs}
                   {(
                     Number(paymentModalInvoice.amount) -
                     Number(paymentModalInvoice.discount || 0) -
@@ -2337,7 +2340,7 @@ const FeesSection: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-semibold text-gray-700">
-                    Payment Amount ($) <span className="text-rose-500">*</span>
+                    Payment Amount ({cs}) <span className="text-rose-500">*</span>
                   </label>
                   <div className="flex gap-1.5">
                     <button
@@ -2581,7 +2584,7 @@ const FeesSection: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-emerald-700 font-bold border-t border-gray-100 pt-2">
                     <span>Amount Paid (This Slip):</span>
-                    <span>${Number(receiptData.amount).toFixed(2)}</span>
+                    <span>{fmt(receiptData.amount)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
                     <span>Total Paid to Date:</span>
@@ -2591,7 +2594,7 @@ const FeesSection: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-rose-600 font-bold border-t-2 border-gray-200 pt-2 text-sm">
                     <span>Balance Outstanding:</span>
-                    <span>${Number(receiptData.remaining_due || 0).toFixed(2)}</span>
+                    <span>{fmt(receiptData.remaining_due || 0)}</span>
                   </div>
                 </div>
               </div>
@@ -2664,7 +2667,7 @@ const FeesSection: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Amount ($)</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Amount ({cs})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2676,7 +2679,7 @@ const FeesSection: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Discount ($)</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Discount ({cs})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2776,7 +2779,7 @@ const FeesSection: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Default Amount ($)</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Default Amount ({cs})</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2882,5 +2885,6 @@ const FeesSection: React.FC = () => {
 };
 
 export default FeesSection;
+
 
 
