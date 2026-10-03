@@ -416,7 +416,9 @@ function getAdmission($db, $id) {
 function createAdmission($db) {
     AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
 
-    $input = json_decode(file_get_contents('php://input'), true);
+    // Support both JSON and multipart/form-data (when photo is attached)
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
 
     $firstName = trim($input['first_name'] ?? $input['name'] ?? '');
     $lastName = trim($input['last_name'] ?? $input['surname'] ?? '');
@@ -454,6 +456,12 @@ function createAdmission($db) {
     $rawPassword = !empty($input['password']) ? $input['password'] : 'Student123!';
     $hashedPassword = str_starts_with($rawPassword, '$2y$') ? $rawPassword : password_hash($rawPassword, PASSWORD_DEFAULT);
 
+    // Handle photo upload (multipart only)
+    $uploadedImage = null;
+    if ($isMultipart) {
+        $uploadedImage = storeAdmissionImage();
+    }
+
     $data = [
         'application_no' => $appNo,
         'username' => $username,
@@ -466,7 +474,7 @@ function createAdmission($db) {
         'gender' => $gender,
         'blood_type' => $input['blood_type'] ?? 'AB+',
         'address' => $input['address'] ?? '',
-        'img' => $input['img'] ?? null,
+        'img' => $uploadedImage ?? ($input['img'] ?? null),
         'grade_id' => !empty($input['grade_id']) ? $input['grade_id'] : null,
         'class_id' => !empty($input['class_id']) ? $input['class_id'] : null,
         'parent_name' => $parentName,
@@ -509,7 +517,10 @@ function updateAdmission($db, $id) {
         Response::notFound('Admission application not found');
     }
 
-    $input = json_decode(file_get_contents('php://input'), true);
+    // Support both JSON and multipart/form-data (when photo is attached)
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+
     $allowed = ['username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
 
     $data = [];
@@ -531,6 +542,18 @@ function updateAdmission($db, $id) {
             } else {
                 $data[$f] = $input[$f];
             }
+        }
+    }
+
+    // Handle photo upload (multipart only)
+    if ($isMultipart) {
+        $uploadedImage = storeAdmissionImage();
+        if ($uploadedImage !== null) {
+            // Delete old image if it was stored locally
+            if (!empty($existing['img'])) {
+                deleteAdmissionImage($existing['img']);
+            }
+            $data['img'] = $uploadedImage;
         }
     }
 
@@ -711,5 +734,52 @@ function enrollStudentFromAdmission($db, $data) {
     } catch (Exception $e) {
         error_log('Auto enroll student failed: ' . $e->getMessage());
         return null;
+    }
+}
+
+function storeAdmissionImage() {
+    if (empty($_FILES['img']) || $_FILES['img']['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $upload = $_FILES['img'];
+    if ($upload['error'] !== UPLOAD_ERR_OK) {
+        Response::error('Admission image upload failed (error code ' . $upload['error'] . ')');
+    }
+    if ($upload['size'] > 5 * 1024 * 1024) {
+        Response::error('Admission photo must be no larger than 5 MB');
+    }
+
+    $imageInfo = getimagesize($upload['tmp_name']);
+    $extensionsByMime = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+    $mimeType = $imageInfo['mime'] ?? '';
+    if (!$imageInfo || !isset($extensionsByMime[$mimeType])) {
+        Response::error('Choose a valid JPG, PNG, or WebP image for the admission photo');
+    }
+
+    $directory = dirname(__DIR__, 2) . '/public/images/admissions';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        Response::serverError('Unable to prepare admission image storage');
+    }
+
+    $fileName = bin2hex(random_bytes(16)) . '.' . $extensionsByMime[$mimeType];
+    if (!move_uploaded_file($upload['tmp_name'], $directory . '/' . $fileName)) {
+        Response::serverError('Unable to store admission image');
+    }
+
+    return '/images/admissions/' . $fileName;
+}
+
+function deleteAdmissionImage($imagePath) {
+    if (!is_string($imagePath) || strpos($imagePath, '/images/admissions/') !== 0) {
+        return;
+    }
+    $filePath = dirname(__DIR__, 2) . '/public/images/admissions/' . basename($imagePath);
+    if (is_file($filePath)) {
+        unlink($filePath);
     }
 }

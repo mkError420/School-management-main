@@ -20,8 +20,10 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Upload,
   UserCheck,
   UserPlus,
+  UserPlus2,
   Users,
   X,
   XCircle,
@@ -84,6 +86,16 @@ const emptyAdmissionForm = {
   status: "PENDING" as "PENDING" | "APPROVED" | "WAITLISTED" | "REJECTED",
 };
 
+const emptyParentForm = {
+  username: "",
+  password: "",
+  name: "",
+  surname: "",
+  email: "",
+  phone: "",
+  address: "",
+};
+
 const AdmissionSection: React.FC = () => {
   const [admissions, setAdmissions] = useState<AdmissionItem[]>([]);
   const [counts, setCounts] = useState<AdmissionCounts>({
@@ -114,9 +126,17 @@ const AdmissionSection: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState(emptyAdmissionForm);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<number | null>(null);
+
+  // Inline parent creation
+  const [parentMode, setParentMode] = useState<"existing" | "new">("existing");
+  const [parentForm, setParentForm] = useState(emptyParentForm);
+  const [selectedParentImage, setSelectedParentImage] = useState<File | null>(null);
+  const [parentImagePreview, setParentImagePreview] = useState<string | null>(null);
 
   // Load Data
   const loadAdmissions = async () => {
@@ -206,6 +226,12 @@ const AdmissionSection: React.FC = () => {
       blood_type: "AB+",
       sex: "FEMALE",
     });
+    setSelectedImage(null);
+    setImagePreview(null);
+    setParentMode("existing");
+    setParentForm(emptyParentForm);
+    setSelectedParentImage(null);
+    setParentImagePreview(null);
     setFormError(null);
     setCreateModalOpen(true);
   };
@@ -229,6 +255,13 @@ const AdmissionSection: React.FC = () => {
       grade_id: String(item.grade_id || (grades[0]?.id ? String(grades[0].id) : "")),
       status: item.status || "PENDING",
     });
+    setSelectedImage(null);
+    setImagePreview(item.img || null);
+    // Edit mode always uses existing parent selection
+    setParentMode("existing");
+    setParentForm(emptyParentForm);
+    setSelectedParentImage(null);
+    setParentImagePreview(null);
     setFormError(null);
     setCreateModalOpen(true);
     setDetailsItem(null);
@@ -264,9 +297,32 @@ const AdmissionSection: React.FC = () => {
       return;
     }
 
-    if (!formData.parent_id) {
-      setFormError("Parent is required.");
+    // Validate parent fields
+    if (parentMode === "existing" && !formData.parent_id) {
+      setFormError("Please select an existing parent or create a new one.");
       return;
+    }
+    if (parentMode === "new") {
+      if (!parentForm.name.trim() || !parentForm.surname.trim()) {
+        setFormError("Parent first name and last name are required.");
+        return;
+      }
+      if (!parentForm.username.trim()) {
+        setFormError("Parent username is required.");
+        return;
+      }
+      if (!parentForm.password || parentForm.password.length < 6) {
+        setFormError("Parent password is required (minimum 6 characters).");
+        return;
+      }
+      if (!parentForm.phone.trim()) {
+        setFormError("Parent phone number is required.");
+        return;
+      }
+      if (!parentForm.address.trim()) {
+        setFormError("Parent address is required.");
+        return;
+      }
     }
 
     if (!formData.class_id) {
@@ -281,35 +337,112 @@ const AdmissionSection: React.FC = () => {
 
     setSubmitting(true);
     try {
-      const payload: Record<string, any> = {
-        username: formData.username.trim(),
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
-        name: formData.first_name.trim(),
-        surname: formData.last_name.trim(),
-        email: formData.email.trim() || null,
-        phone: formData.phone.trim() || null,
-        address: formData.address.trim(),
-        blood_type: formData.blood_type.trim(),
-        sex: formData.sex,
-        gender: formData.sex,
-        img: formData.img.trim() || null,
-        parent_id: formData.parent_id,
-        class_id: formData.class_id,
-        grade_id: formData.grade_id,
-        status: editItem ? editItem.status : "PENDING",
-      };
-
-      if (formData.password && formData.password.trim().length >= 6) {
-        payload.password = formData.password.trim();
+      // Step 1: if creating a new parent inline, create the parent first
+      let resolvedParentId = formData.parent_id;
+      if (parentMode === "new") {
+        let parentRes;
+        if (selectedParentImage) {
+          const pfd = new FormData();
+          pfd.append("username", parentForm.username.trim());
+          pfd.append("password", parentForm.password.trim());
+          pfd.append("name", parentForm.name.trim());
+          pfd.append("surname", parentForm.surname.trim());
+          if (parentForm.email.trim()) pfd.append("email", parentForm.email.trim());
+          pfd.append("phone", parentForm.phone.trim());
+          pfd.append("address", parentForm.address.trim());
+          pfd.append("img", selectedParentImage, selectedParentImage.name);
+          parentRes = await api.create("parents", pfd);
+        } else {
+          parentRes = await api.create("parents", {
+            username: parentForm.username.trim(),
+            password: parentForm.password.trim(),
+            name: parentForm.name.trim(),
+            surname: parentForm.surname.trim(),
+            email: parentForm.email.trim() || null,
+            phone: parentForm.phone.trim(),
+            address: parentForm.address.trim(),
+          });
+        }
+        if (!parentRes.success) {
+          setFormError(parentRes.message || "Failed to create parent. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+        const newParentId = parentRes.data?.id;
+        if (!newParentId) {
+          setFormError("Parent was created but ID could not be retrieved.");
+          setSubmitting(false);
+          return;
+        }
+        resolvedParentId = String(newParentId);
+        // Refresh parents list so the new parent shows in the dropdown if user switches to existing
+        const refreshed = await api.getAll("parents", { limit: 1000 });
+        if (refreshed.success && refreshed.data?.parents) {
+          setParents(refreshed.data.parents);
+        }
       }
 
-      const res = editItem
-        ? await api.update("admissions", editItem.id, payload)
-        : await api.create("admissions", payload);
+      // Step 2: submit the admission with the resolved parent ID
+      let res;
+      if (selectedImage) {
+        const fd = new FormData();
+        fd.append("username", formData.username.trim());
+        fd.append("first_name", formData.first_name.trim());
+        fd.append("last_name", formData.last_name.trim());
+        fd.append("name", formData.first_name.trim());
+        fd.append("surname", formData.last_name.trim());
+        if (formData.email.trim()) fd.append("email", formData.email.trim());
+        if (formData.phone.trim()) fd.append("phone", formData.phone.trim());
+        fd.append("address", formData.address.trim());
+        fd.append("blood_type", formData.blood_type.trim());
+        fd.append("sex", formData.sex);
+        fd.append("gender", formData.sex);
+        fd.append("parent_id", resolvedParentId);
+        fd.append("class_id", formData.class_id);
+        fd.append("grade_id", formData.grade_id);
+        fd.append("status", editItem ? editItem.status : "PENDING");
+        if (formData.password && formData.password.trim().length >= 6) {
+          fd.append("password", formData.password.trim());
+        }
+        fd.append("img", selectedImage, selectedImage.name);
+        res = editItem
+          ? await api.update("admissions", editItem.id, fd)
+          : await api.create("admissions", fd);
+      } else {
+        const payload: Record<string, any> = {
+          username: formData.username.trim(),
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          name: formData.first_name.trim(),
+          surname: formData.last_name.trim(),
+          email: formData.email.trim() || null,
+          phone: formData.phone.trim() || null,
+          address: formData.address.trim(),
+          blood_type: formData.blood_type.trim(),
+          sex: formData.sex,
+          gender: formData.sex,
+          img: formData.img.trim() || null,
+          parent_id: resolvedParentId,
+          class_id: formData.class_id,
+          grade_id: formData.grade_id,
+          status: editItem ? editItem.status : "PENDING",
+        };
+        if (formData.password && formData.password.trim().length >= 6) {
+          payload.password = formData.password.trim();
+        }
+        res = editItem
+          ? await api.update("admissions", editItem.id, payload)
+          : await api.create("admissions", payload);
+      }
 
       if (res.success) {
         setCreateModalOpen(false);
+        setSelectedImage(null);
+        setImagePreview(null);
+        setParentMode("existing");
+        setParentForm(emptyParentForm);
+        setSelectedParentImage(null);
+        setParentImagePreview(null);
         await loadAdmissions();
       } else {
         setFormError(res.message || "Failed to save admission application.");
@@ -943,34 +1076,282 @@ const AdmissionSection: React.FC = () => {
                   </select>
                 </label>
 
-                {/* Photo URL */}
-                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                  <span>Photo URL</span>
-                  <input
-                    type="text"
-                    value={formData.img}
-                    onChange={(e) => setFormData({ ...formData, img: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  />
-                </label>
+                {/* Photo Upload */}
+                <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  <span className="font-medium">Photo</span>
+                  <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-3">
+                    {imagePreview ? (
+                      <img
+                        src={imagePreview}
+                        alt="Student photo preview"
+                        className="h-20 w-20 rounded-xl border border-gray-200 dark:border-gray-700 object-cover shadow-sm"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500">
+                        No photo
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <label className="flex cursor-pointer items-center gap-2 w-fit rounded-lg border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/30 px-3 py-2 text-xs font-semibold text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition">
+                        <Upload size={13} />
+                        <span>Choose photo</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (!file) return;
+                            if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                              setFormError("Choose a JPG, PNG, or WebP image.");
+                              e.target.value = "";
+                              return;
+                            }
+                            if (file.size > 5 * 1024 * 1024) {
+                              setFormError("Photo must be no larger than 5 MB.");
+                              e.target.value = "";
+                              return;
+                            }
+                            setSelectedImage(file);
+                            setImagePreview(URL.createObjectURL(file));
+                            setFormError(null);
+                          }}
+                        />
+                      </label>
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">JPG, PNG, or WebP · max 5 MB</p>
+                      {editItem && formData.img && !selectedImage && (
+                        <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Choose a new image to replace the current photo.</p>
+                      )}
+                      {selectedImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedImage(null);
+                            setImagePreview(editItem?.img || null);
+                          }}
+                          className="mt-1 text-xs text-red-500 hover:text-red-700 dark:text-red-400 transition"
+                        >
+                          Remove selected photo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-                {/* Parent */}
-                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                  <span>Parent *</span>
-                  <select
-                    required
-                    value={formData.parent_id}
-                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  >
-                    <option value="">Select parent</option>
-                    {parents.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.surname}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {/* Parent — select existing or create new */}
+                <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Parent *</span>
+                    {/* Only allow creating new parent on New Admission, not on Edit */}
+                    {!editItem && (
+                      <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-xs font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setParentMode("existing")}
+                          className={`px-3 py-1.5 transition ${
+                            parentMode === "existing"
+                              ? "bg-purple-600 text-white"
+                              : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          Select existing
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setParentMode("new")}
+                          className={`px-3 py-1.5 flex items-center gap-1.5 transition ${
+                            parentMode === "new"
+                              ? "bg-purple-600 text-white"
+                              : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                          }`}
+                        >
+                          <UserPlus2 size={12} />
+                          Create new
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Existing parent dropdown */}
+                  {(parentMode === "existing" || editItem) && (
+                    <select
+                      required={parentMode === "existing" || Boolean(editItem)}
+                      value={formData.parent_id}
+                      onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    >
+                      <option value="">Select parent</option>
+                      {parents.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.surname}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* New parent inline form */}
+                  {parentMode === "new" && !editItem && (
+                    <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-950/20 p-4 space-y-3">
+                      <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                        <UserPlus2 size={13} />
+                        New Parent Details — will be added to All Parents
+                      </p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {/* Parent First Name */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>First name *</span>
+                          <input
+                            type="text"
+                            required
+                            value={parentForm.name}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setParentForm(prev => ({
+                                ...prev,
+                                name: val,
+                                username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
+                                  ? `${val.toLowerCase()}.${prev.surname.toLowerCase()}`
+                                  : prev.username
+                              }));
+                            }}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Last Name */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>Last name *</span>
+                          <input
+                            type="text"
+                            required
+                            value={parentForm.surname}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setParentForm(prev => ({
+                                ...prev,
+                                surname: val,
+                                username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
+                                  ? `${prev.name.toLowerCase()}.${val.toLowerCase()}`
+                                  : prev.username
+                              }));
+                            }}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Username */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>Username *</span>
+                          <input
+                            type="text"
+                            required
+                            value={parentForm.username}
+                            onChange={(e) => setParentForm({ ...parentForm, username: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Password */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>Password * <span className="font-normal text-gray-400">(min 6 chars)</span></span>
+                          <input
+                            type="password"
+                            autoComplete="new-password"
+                            required
+                            minLength={6}
+                            value={parentForm.password}
+                            onChange={(e) => setParentForm({ ...parentForm, password: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Email */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>Email</span>
+                          <input
+                            type="email"
+                            value={parentForm.email}
+                            onChange={(e) => setParentForm({ ...parentForm, email: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Phone */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                          <span>Phone *</span>
+                          <input
+                            type="text"
+                            required
+                            value={parentForm.phone}
+                            onChange={(e) => setParentForm({ ...parentForm, phone: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Address */}
+                        <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300 sm:col-span-2">
+                          <span>Address *</span>
+                          <textarea
+                            required
+                            rows={2}
+                            value={parentForm.address}
+                            onChange={(e) => setParentForm({ ...parentForm, address: e.target.value })}
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                          />
+                        </label>
+                        {/* Parent Photo */}
+                        <div className="flex flex-col gap-1.5 text-xs text-gray-700 dark:text-gray-300 sm:col-span-2">
+                          <span>Photo <span className="font-normal text-gray-400">(optional)</span></span>
+                          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800/50 p-2.5">
+                            {parentImagePreview ? (
+                              <img
+                                src={parentImagePreview}
+                                alt="Parent photo preview"
+                                className="h-14 w-14 rounded-lg border border-gray-200 dark:border-gray-600 object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-[10px] text-gray-400">
+                                No photo
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <label className="flex cursor-pointer items-center gap-1.5 w-fit rounded-md border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30 px-2.5 py-1.5 text-[11px] font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition">
+                                <Upload size={11} />
+                                <span>Choose photo</span>
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp"
+                                  className="sr-only"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    if (!file) return;
+                                    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+                                      setFormError("Parent photo must be JPG, PNG, or WebP.");
+                                      e.target.value = "";
+                                      return;
+                                    }
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      setFormError("Parent photo must be no larger than 5 MB.");
+                                      e.target.value = "";
+                                      return;
+                                    }
+                                    setSelectedParentImage(file);
+                                    setParentImagePreview(URL.createObjectURL(file));
+                                    setFormError(null);
+                                  }}
+                                />
+                              </label>
+                              <p className="mt-1 text-[10px] text-gray-400">JPG, PNG, or WebP · max 5 MB</p>
+                              {selectedParentImage && (
+                                <button
+                                  type="button"
+                                  onClick={() => { setSelectedParentImage(null); setParentImagePreview(null); }}
+                                  className="mt-1 text-[10px] text-red-500 hover:text-red-700 transition"
+                                >
+                                  Remove photo
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Class */}
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">

@@ -56,7 +56,7 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "address", label: "Address", type: "textarea", required: true },
     { name: "blood_type", label: "Blood type", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
-    { name: "img", label: "Photo URL" },
+    { name: "img", label: "Student photo", type: "file" },
     { name: "parent_id", label: "Parent", type: "select", required: true, resource: "parents" },
     { name: "class_id", label: "Class", type: "select", required: true, resource: "classes" },
     { name: "grade_id", label: "Grade", type: "select", required: true, resource: "grades" },
@@ -69,6 +69,7 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "email", label: "Email", type: "email" },
     { name: "phone", label: "Phone", required: true },
     { name: "address", label: "Address", type: "textarea", required: true },
+    { name: "img", label: "Parent photo", type: "file" },
   ],
   subject: [{ name: "name", label: "Subject name", required: true }],
   class: [
@@ -206,7 +207,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
 
   useEffect(() => {
     if (!selectedImage) {
-      setImagePreview(entity === "teacher" ? data?.img || null : null);
+      setImagePreview((entity === "teacher" || entity === "student" || entity === "parent") ? data?.img || null : null);
       return;
     }
     const previewUrl = URL.createObjectURL(selectedImage);
@@ -246,7 +247,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
 
     try {
       let response;
-      if (entity === "teacher" && selectedImage) {
+      if ((entity === "teacher" || entity === "student" || entity === "parent") && selectedImage) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
           if (Array.isArray(value)) {
@@ -307,7 +308,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                 <span className="font-medium">{field.label}</span>
                 <div className="flex flex-wrap items-center gap-4 rounded-md border border-dashed border-gray-300 bg-gray-50 p-3">
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Teacher photo preview" className="h-20 w-20 rounded-md border border-gray-200 object-cover" />
+                    <img src={imagePreview} alt="Photo preview" className="h-20 w-20 rounded-md border border-gray-200 object-cover" />
                   ) : (
                     <div className="flex h-20 w-20 items-center justify-center rounded-md bg-white text-xs text-gray-400">No photo</div>
                   )}
@@ -323,7 +324,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                           return;
                         }
                         if (file && file.size > 5 * 1024 * 1024) {
-                          setError("Teacher photo must be no larger than 5 MB.");
+                          setError("Photo must be no larger than 5 MB.");
                           event.target.value = "";
                           return;
                         }

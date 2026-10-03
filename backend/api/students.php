@@ -226,44 +226,52 @@ function getStudent($db, $id) {
 
 function createStudent($db) {
     AuthMiddleware::requireRole('admin');
-    
-    $input = json_decode(file_get_contents('php://input'), true);
-    
+
+    // Support both JSON and multipart/form-data (when photo is attached)
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+
     $required = ['username', 'password', 'name', 'surname', 'address', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
     foreach ($required as $field) {
         if (empty($input[$field])) {
             Response::error("Field '{$field}' is required");
         }
     }
-    
+
     if (strlen($input['password']) < 6) {
         Response::error('Password must be at least 6 characters');
     }
-    
+
     // Hash password
     $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
-    
+
     // Generate unique ID
     $id = uniqid();
-    
+
+    // Handle photo upload (multipart only)
+    $uploadedImage = null;
+    if ($isMultipart) {
+        $uploadedImage = storeStudentImage();
+    }
+
     try {
         $db->insert('students', [
-            'id' => $id,
-            'username' => $input['username'],
-            'password' => $hashedPassword,
-            'name' => $input['name'],
-            'surname' => $input['surname'],
-            'email' => $input['email'] ?? null,
-            'phone' => $input['phone'] ?? null,
-            'address' => $input['address'],
-            'img' => $input['img'] ?? null,
+            'id'         => $id,
+            'username'   => $input['username'],
+            'password'   => $hashedPassword,
+            'name'       => $input['name'],
+            'surname'    => $input['surname'],
+            'email'      => $input['email'] ?? null,
+            'phone'      => $input['phone'] ?? null,
+            'address'    => $input['address'],
+            'img'        => $uploadedImage ?? ($input['img'] ?? null),
             'blood_type' => $input['blood_type'],
-            'sex' => $input['sex'],
-            'parent_id' => $input['parent_id'],
-            'class_id' => $input['class_id'],
-            'grade_id' => $input['grade_id']
+            'sex'        => $input['sex'],
+            'parent_id'  => $input['parent_id'],
+            'class_id'   => $input['class_id'],
+            'grade_id'   => $input['grade_id']
         ]);
-        
+
         // Get the created student
         $student = $db->fetchOne("SELECT * FROM students WHERE id = ?", [$id]);
         unset($student['password']);
@@ -281,32 +289,32 @@ function createStudent($db) {
             }
 
             $db->insert('admissions', [
-                'application_no' => $appNo,
-                'first_name' => $input['name'],
-                'last_name' => $input['surname'],
-                'email' => $input['email'] ?? null,
-                'phone' => $input['phone'] ?? null,
-                'gender' => (isset($input['sex']) && strtoupper($input['sex']) === 'FEMALE') ? 'FEMALE' : 'MALE',
-                'blood_type' => $input['blood_type'] ?? 'A+',
-                'address' => $input['address'] ?? '',
-                'grade_id' => $input['grade_id'],
-                'class_id' => $input['class_id'],
-                'parent_name' => $parentName,
-                'parent_phone' => $parent['phone'] ?? null,
-                'parent_email' => $parent['email'] ?? null,
-                'parent_id' => $input['parent_id'],
-                'previous_school' => 'Direct Enrollment',
-                'status' => 'APPROVED',
-                'notes' => 'Enrolled student account (dynamically synced with school student database).',
-                'applied_date' => date('Y-m-d'),
+                'application_no'      => $appNo,
+                'first_name'          => $input['name'],
+                'last_name'           => $input['surname'],
+                'email'               => $input['email'] ?? null,
+                'phone'               => $input['phone'] ?? null,
+                'gender'              => (isset($input['sex']) && strtoupper($input['sex']) === 'FEMALE') ? 'FEMALE' : 'MALE',
+                'blood_type'          => $input['blood_type'] ?? 'A+',
+                'address'             => $input['address'] ?? '',
+                'grade_id'            => $input['grade_id'],
+                'class_id'            => $input['class_id'],
+                'parent_name'         => $parentName,
+                'parent_phone'        => $parent['phone'] ?? null,
+                'parent_email'        => $parent['email'] ?? null,
+                'parent_id'           => $input['parent_id'],
+                'previous_school'     => 'Direct Enrollment',
+                'status'              => 'APPROVED',
+                'notes'               => 'Enrolled student account (dynamically synced with school student database).',
+                'applied_date'        => date('Y-m-d'),
                 'enrolled_student_id' => $id
             ]);
         } catch (Exception $e) {
             error_log('Error syncing student creation to admissions: ' . $e->getMessage());
         }
-        
+
         Response::success('Student created successfully', $student, 201);
-        
+
     } catch (Exception $e) {
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email already exists', 409);
@@ -317,17 +325,19 @@ function createStudent($db) {
 
 function updateStudent($db, $id) {
     AuthMiddleware::requireRole('admin');
-    
-    $input = json_decode(file_get_contents('php://input'), true);
-    
+
+    // Support both JSON and multipart/form-data (when photo is attached)
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+
     // Check if student exists
-    $existing = $db->fetchOne("SELECT id FROM students WHERE id = ?", [$id]);
+    $existing = $db->fetchOne("SELECT id, img FROM students WHERE id = ?", [$id]);
     if (!$existing) {
         Response::notFound('Student not found');
     }
-    
+
     $data = [];
-    
+
     // Build update data
     $allowedFields = ['name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
     foreach ($allowedFields as $field) {
@@ -335,7 +345,18 @@ function updateStudent($db, $id) {
             $data[$field] = $input[$field];
         }
     }
-    
+
+    // Handle photo upload (multipart only)
+    if ($isMultipart) {
+        $uploadedImage = storeStudentImage();
+        if ($uploadedImage !== null) {
+            if (!empty($existing['img'])) {
+                deleteStudentImage($existing['img']);
+            }
+            $data['img'] = $uploadedImage;
+        }
+    }
+
     // Handle password update
     if (!empty($input['password'])) {
         if (strlen($input['password']) < 6) {
@@ -343,14 +364,14 @@ function updateStudent($db, $id) {
         }
         $data['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
     }
-    
+
     if (empty($data)) {
         Response::error('No fields to update');
     }
-    
+
     try {
         $db->update('students', $data, 'id = ?', [$id]);
-        
+
         // Sync updates to admissions table if linked
         try {
             $admData = [];
@@ -364,6 +385,7 @@ function updateStudent($db, $id) {
             if (isset($data['class_id'])) $admData['class_id'] = $data['class_id'];
             if (isset($data['grade_id'])) $admData['grade_id'] = $data['grade_id'];
             if (isset($data['parent_id'])) $admData['parent_id'] = $data['parent_id'];
+            if (isset($data['img'])) $admData['img'] = $data['img'];
             if (!empty($admData)) {
                 $db->update('admissions', $admData, 'enrolled_student_id = ?', [$id]);
             }
@@ -374,9 +396,9 @@ function updateStudent($db, $id) {
         // Get updated student
         $student = $db->fetchOne("SELECT * FROM students WHERE id = ?", [$id]);
         unset($student['password']);
-        
+
         Response::success('Student updated successfully', $student);
-        
+
     } catch (Exception $e) {
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email already exists', 409);
@@ -412,5 +434,52 @@ function deleteStudent($db, $id) {
         
     } catch (Exception $e) {
         Response::error('Failed to delete student: ' . $e->getMessage());
+    }
+}
+
+function storeStudentImage() {
+    if (empty($_FILES['img']) || $_FILES['img']['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $upload = $_FILES['img'];
+    if ($upload['error'] !== UPLOAD_ERR_OK) {
+        Response::error('Student image upload failed (error code ' . $upload['error'] . ')');
+    }
+    if ($upload['size'] > 5 * 1024 * 1024) {
+        Response::error('Student photo must be no larger than 5 MB');
+    }
+
+    $imageInfo = getimagesize($upload['tmp_name']);
+    $extensionsByMime = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+    $mimeType = $imageInfo['mime'] ?? '';
+    if (!$imageInfo || !isset($extensionsByMime[$mimeType])) {
+        Response::error('Choose a valid JPG, PNG, or WebP image for the student photo');
+    }
+
+    $directory = dirname(__DIR__, 2) . '/public/images/students';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        Response::serverError('Unable to prepare student image storage');
+    }
+
+    $fileName = bin2hex(random_bytes(16)) . '.' . $extensionsByMime[$mimeType];
+    if (!move_uploaded_file($upload['tmp_name'], $directory . '/' . $fileName)) {
+        Response::serverError('Unable to store student image');
+    }
+
+    return '/images/students/' . $fileName;
+}
+
+function deleteStudentImage($imagePath) {
+    if (!is_string($imagePath) || strpos($imagePath, '/images/students/') !== 0) {
+        return;
+    }
+    $filePath = dirname(__DIR__, 2) . '/public/images/students/' . basename($imagePath);
+    if (is_file($filePath)) {
+        unlink($filePath);
     }
 }

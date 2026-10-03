@@ -27,8 +27,14 @@ const ParentsPage: React.FC = () => {
     <tr key={item.id} className="border-b border-gray-50 even:bg-slate-50 text-xs hover:bg-purple-50 transition">
       <td className="flex items-center gap-3 py-4">
         <img
-          src={`https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=CFCEFF&color=333`}
-          alt="" width={40} height={40}
+          src={
+            item.img
+              ? item.img
+              : `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=CFCEFF&color=333`
+          }
+          alt=""
+          width={40}
+          height={40}
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div>
