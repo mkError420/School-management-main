@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 $db = Database::getInstance();
 ensureFeesTables($db);
@@ -755,7 +755,7 @@ function recordPayment($db, $data) {
     $remainingDue = max(0, $netAmount - $currentPaid);
 
     if ($amount > ($remainingDue + 0.01)) {
-        Response::error("Payment amount (BDT " . number_format($amount, 2) . ") exceeds remaining balance (BDT " . number_format($remainingDue, 2) . ")");
+        Response::error("Payment amount (৳" . number_format($amount, 2) . ") exceeds remaining balance (৳" . number_format($remainingDue, 2) . ")");
     }
 
     $pCount = $db->fetchOne("SELECT COUNT(*) as total FROM fee_payments")['total'] ?? 0;
@@ -915,3 +915,4 @@ function handleDelete($db, $action, $id) {
 
     Response::json(['message' => 'Invoice deleted successfully']);
 }
+
