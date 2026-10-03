@@ -2,6 +2,8 @@
 -- MySQL Database
 -- Note: This file creates tables in your existing database
 
+SET FOREIGN_KEY_CHECKS = 0;
+
 -- Users tables
 CREATE TABLE IF NOT EXISTS admins (
     id VARCHAR(255) PRIMARY KEY,
@@ -49,7 +51,7 @@ CREATE TABLE IF NOT EXISTS classes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,
     capacity INT NOT NULL,
-    supervisor_id VARCHAR(255) NOT NULL,
+    supervisor_id VARCHAR(255) DEFAULT NULL,
     grade_id INT NOT NULL,
     FOREIGN KEY (supervisor_id) REFERENCES teachers(id) ON DELETE SET NULL,
     FOREIGN KEY (grade_id) REFERENCES grades(id) ON DELETE CASCADE
@@ -246,7 +248,7 @@ ON DUPLICATE KEY UPDATE username=username;
 
 INSERT INTO admins (id, username, email, password, role) VALUES
 ('super-admin-001', 'mk.rabbani.cse', 'mk.rabbani.cse@gmail.com', '$2y$12$f/6vmqM/Gay2PVwQnYJX0.a3ykAHLVtToQ3jpLs4Y9pkpnOmwq5Pm', 'super_admin')
-ON DUPLICATE KEY UPDATE id=VALUES(id);
+ON DUPLICATE KEY UPDATE username=username;
 
 -- Insert default grades
 INSERT INTO grades (level) VALUES 
@@ -259,3 +261,5 @@ INSERT INTO subjects (name) VALUES
 ('History'), ('Geography'), ('Art'), ('Music'), ('Literature'),
 ('Computer Science'), ('Physical Education')
 ON DUPLICATE KEY UPDATE name=name;
+
+SET FOREIGN_KEY_CHECKS = 1;

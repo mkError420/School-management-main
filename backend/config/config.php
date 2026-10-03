@@ -4,9 +4,9 @@
 $localConfigPath = __DIR__ . '/config.local.php';
 $localConfig = is_file($localConfigPath) ? require $localConfigPath : [];
 define('DB_HOST', getenv('DB_HOST') ?: ($localConfig['DB_HOST'] ?? 'localhost'));
-define('DB_NAME', getenv('DB_NAME') ?: ($localConfig['DB_NAME'] ?? 'YOUR_DATABASE_NAME'));
-define('DB_USER', getenv('DB_USER') ?: ($localConfig['DB_USER'] ?? 'YOUR_DATABASE_USER'));
-define('DB_PASS', getenv('DB_PASS') ?: ($localConfig['DB_PASS'] ?? 'CHANGE_THIS_DATABASE_PASSWORD'));
+define('DB_NAME', getenv('DB_NAME') ?: ($localConfig['DB_NAME'] ?? 'jkivlrjg_mkschool'));
+define('DB_USER', getenv('DB_USER') ?: ($localConfig['DB_USER'] ?? 'jkivlrjg_mkschool'));
+define('DB_PASS', getenv('DB_PASS') ?: ($localConfig['DB_PASS'] ?? 'SftBrDgWFwBHRe9ZPapm'));
 define('DB_CHARSET', 'utf8mb4');
 
 // Application Configuration
@@ -15,7 +15,7 @@ define('APP_URL', rtrim(getenv('APP_URL') ?: '', '/'));
 define('API_VERSION', 'v1');
 
 // Security Configuration
-define('JWT_SECRET', getenv('JWT_SECRET') ?: ($localConfig['JWT_SECRET'] ?? 'CHANGE_THIS_TO_A_LONG_RANDOM_SECRET'));
+define('JWT_SECRET', getenv('JWT_SECRET') ?: ($localConfig['JWT_SECRET'] ?? '4624040f44e0c30a023ba3ac74e888202fa01edebebd54b3a674d2045a4272cb'));
 define('JWT_ALGORITHM', 'HS256');
 define('JWT_EXPIRATION', 86400); // 24 hours in seconds
 

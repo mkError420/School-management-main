@@ -2,6 +2,8 @@
 -- Import this after schema.sql
 -- Note: This file inserts data into your existing database
 
+SET FOREIGN_KEY_CHECKS = 0;
+
 -- 1. Ensure Admin exists
 -- Password is 'admin123'
 INSERT INTO admins (id, username, password) VALUES 
@@ -153,3 +155,5 @@ INSERT INTO announcements (id, title, description, date, class_id) VALUES
 (3, 'Math Olympiad Registration', 'Students interested in participating should register with their teacher.', '2026-10-05', 1),
 (4, 'Winter Uniform Notice', 'All students are requested to switch to the winter school uniform.', '2026-10-10', NULL)
 ON DUPLICATE KEY UPDATE title=VALUES(title);
+
+SET FOREIGN_KEY_CHECKS = 1;
