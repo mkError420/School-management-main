@@ -183,6 +183,80 @@ class ApiService {
     }
     return response.blob();
   }
+
+  // Fee Management
+  async getFeeStats() {
+    return this.request('fees?action=stats', { method: 'GET' });
+  }
+
+  async getFeeCategories() {
+    return this.request('fees?action=categories', { method: 'GET' });
+  }
+
+  async getFeePayments(params: Record<string, string | number> = {}) {
+    return this.getAll('fees', { action: 'payments', ...params });
+  }
+
+  async getFeeReceipt(id: string | number) {
+    return this.request(`fees?action=receipt&id=${encodeURIComponent(String(id))}`, { method: 'GET' });
+  }
+
+  async recordFeePayment(data: {
+    invoice_id: number;
+    amount: number;
+    payment_method: string;
+    payment_date: string;
+    transaction_ref?: string;
+    notes?: string;
+  }) {
+    return this.request('fees?action=record-payment', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async bulkGenerateFeeInvoices(data: {
+    class_id?: number | null;
+    grade_id?: number | null;
+    fee_category_id: number;
+    amount: number;
+    due_date: string;
+    title?: string;
+    academic_year?: string;
+    notes?: string;
+  }) {
+    return this.request('fees?action=bulk-generate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createFeeCategory(data: {
+    name: string;
+    code?: string;
+    description?: string;
+    default_amount: number;
+    frequency: string;
+    status: string;
+  }) {
+    return this.request('fees?action=create-category', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFeeCategory(id: number | string, data: any) {
+    return this.request(`fees?action=update-category&id=${encodeURIComponent(String(id))}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFeeCategory(id: number | string) {
+    return this.request(`fees?action=delete-category&id=${encodeURIComponent(String(id))}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiService();

@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { hasAdminAccess, useAuth } from "@/context/AuthContext";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -35,6 +35,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import ClassSchedulePage from "@/pages/ClassSchedulePage";
 import AdmissionsPage from "@/pages/AdmissionsPage";
+import FeesPage from "@/pages/FeesPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -56,6 +57,11 @@ const RoleDashboard: React.FC = () => {
 const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { role } = useAuth();
   return role === "super_admin" ? <>{children}</> : <Navigate to="/" replace />;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { role } = useAuth();
+  return hasAdminAccess(role) ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 const App: React.FC = () => {
@@ -103,6 +109,7 @@ const App: React.FC = () => {
           <Route path="admin-users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
           <Route path="class-schedule" element={<ClassSchedulePage />} />
           <Route path="admissions" element={<AdmissionsPage />} />
+          <Route path="fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />
