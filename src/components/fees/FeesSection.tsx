@@ -787,7 +787,7 @@ const FeesSection: React.FC = () => {
       return;
     }
     if (payForm.amount > remaining + 0.01) {
-      showToast("error", `Payment exceeds remaining due balance of $${remaining.toFixed(2)}`);
+      showToast("error", `Payment exceeds remaining due balance of BDT ${remaining.toFixed(2)}`);
       return;
     }
 
@@ -862,7 +862,7 @@ const FeesSection: React.FC = () => {
     };
 
     setPaymentModalInvoice(null);
-    showToast("success", `Payment of $${payForm.amount.toFixed(2)} recorded! Receipt ${recNo}`);
+    showToast("success", `Payment of BDT ${payForm.amount.toFixed(2)} recorded! Receipt ${recNo}`);
     setReceiptData(receiptToOpen);
   };
 
@@ -1236,7 +1236,7 @@ const FeesSection: React.FC = () => {
             <div className="text-2xl font-bold text-amber-600">${stats.total_due.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="font-medium text-amber-600">{stats.partial_count} partial</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span>{stats.unpaid_count} pending</span>
             </div>
           </div>
@@ -1474,7 +1474,7 @@ const FeesSection: React.FC = () => {
                                 {inv.student_name} {inv.student_surname}
                               </div>
                               <div className="text-[11px] text-gray-400">
-                                ID: {inv.student_id} • {inv.class_name ? `Class ${inv.class_name}` : "General"}
+                                ID: {inv.student_id} â€¢ {inv.class_name ? `Class ${inv.class_name}` : "General"}
                               </div>
                             </div>
                           </div>
@@ -1495,7 +1495,7 @@ const FeesSection: React.FC = () => {
                           ${Number(inv.amount).toFixed(2)}
                         </td>
                         <td className="py-3.5 px-4 text-right text-gray-500">
-                          {Number(inv.discount) > 0 ? `-$${Number(inv.discount).toFixed(2)}` : "—"}
+                          {Number(inv.discount) > 0 ? `-BDT ${Number(inv.discount).toFixed(2)}` : "â€”"}
                         </td>
                         <td className="py-3.5 px-4 text-right font-medium text-emerald-600">
                           ${paid.toFixed(2)}
@@ -1676,7 +1676,7 @@ const FeesSection: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-mono text-gray-500">
-                        {p.transaction_ref || "—"}
+                        {p.transaction_ref || "â€”"}
                       </td>
                       <td className="py-3.5 px-4 text-gray-600">
                         {p.payment_date}
@@ -2029,7 +2029,7 @@ const FeesSection: React.FC = () => {
                   <input
                     type="text"
                     disabled
-                    value={`$${Math.max(0, invoiceForm.amount - invoiceForm.discount).toFixed(2)}`}
+                    value={`BDT ${Math.max(0, invoiceForm.amount - invoiceForm.discount).toFixed(2)}`}
                     className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl font-bold text-purple-700"
                   />
                 </div>
@@ -2317,7 +2317,7 @@ const FeesSection: React.FC = () => {
                   {paymentModalInvoice.student_name} {paymentModalInvoice.student_surname}
                 </div>
                 <div className="text-gray-500">
-                  Invoice #{paymentModalInvoice.invoice_no} • {paymentModalInvoice.title}
+                  Invoice #{paymentModalInvoice.invoice_no} â€¢ {paymentModalInvoice.title}
                 </div>
               </div>
               <div className="text-right">
@@ -2498,7 +2498,7 @@ const FeesSection: React.FC = () => {
                     Official Fee Payment Receipt
                   </div>
                   <div className="text-[11px] text-gray-500 mt-1">
-                    Academic Year: {receiptData.academic_year || "2026-2027"} • Accounts Division
+                    Academic Year: {receiptData.academic_year || "2026-2027"} â€¢ Accounts Division
                   </div>
                 </div>
 
@@ -2559,12 +2559,12 @@ const FeesSection: React.FC = () => {
                       <div className="text-[10px] text-gray-400 font-mono">Invoice #{receiptData.invoice_no}</div>
                     </td>
                     <td className="py-3 text-gray-600">{receiptData.category_name || "Tuition"}</td>
-                    <td className="py-3 text-right font-medium">${Number(receiptData.invoice_amount || receiptData.amount).toFixed(2)}</td>
+                    <td className="py-3 text-right font-medium">BDT {Number(receiptData.invoice_amount || receiptData.amount).toFixed(2)}</td>
                     <td className="py-3 text-right text-gray-500">
-                      {receiptData.discount ? `-$${Number(receiptData.discount).toFixed(2)}` : "$0.00"}
+                      {receiptData.discount ? `-BDT ${Number(receiptData.discount).toFixed(2)}` : "BDT 0.00"}
                     </td>
                     <td className="py-3 text-right font-bold text-gray-900">
-                      ${Number(receiptData.net_amount || receiptData.amount).toFixed(2)}
+                      BDT {Number(receiptData.net_amount || receiptData.amount).toFixed(2)}
                     </td>
                   </tr>
                 </tbody>
@@ -2882,3 +2882,4 @@ const FeesSection: React.FC = () => {
 };
 
 export default FeesSection;
+
