@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
-  DollarSign,
   Download,
   Eye,
   FileSpreadsheet,
@@ -790,7 +789,7 @@ const FeesSection: React.FC = () => {
       return;
     }
     if (payForm.amount > remaining + 0.01) {
-      showToast("error", `Payment exceeds remaining due balance of ৳${remaining.toFixed(2)}`);
+      showToast("error", `Payment exceeds remaining due balance of ${fmt(remaining)}`);
       return;
     }
 
@@ -865,7 +864,7 @@ const FeesSection: React.FC = () => {
     };
 
     setPaymentModalInvoice(null);
-    showToast("success", `Payment of ৳${payForm.amount.toFixed(2)} recorded! Receipt ${recNo}`);
+    showToast("success", `Payment of ${fmt(payForm.amount)} recorded! Receipt ${recNo}`);
     setReceiptData(receiptToOpen);
   };
 
@@ -1436,10 +1435,10 @@ const FeesSection: React.FC = () => {
                   <th className="py-3.5 px-4">Student</th>
                   <th className="py-3.5 px-4">Fee Category & Title</th>
                   <th className="py-3.5 px-4">Due Date</th>
-                  <th className="py-3.5 px-4 text-right">Amount</th>
-                  <th className="py-3.5 px-4 text-right">Discount</th>
-                  <th className="py-3.5 px-4 text-right">Paid</th>
-                  <th className="py-3.5 px-4 text-right">Due Balance</th>
+                  <th className="py-3.5 px-4 text-right">Amount ({cs})</th>
+                  <th className="py-3.5 px-4 text-right">Discount ({cs})</th>
+                  <th className="py-3.5 px-4 text-right">Paid ({cs})</th>
+                  <th className="py-3.5 px-4 text-right">Due Balance ({cs})</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
                   <th className="py-3.5 px-4 text-center">Actions</th>
                 </tr>
@@ -1495,17 +1494,17 @@ const FeesSection: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-right font-semibold text-gray-900">
-                          ${Number(inv.amount).toFixed(2)}
+                          {fmt(inv.amount)}
                         </td>
                         <td className="py-3.5 px-4 text-right text-gray-500">
-                          {Number(inv.discount) > 0 ? `-৳${Number(inv.discount).toFixed(2)}` : "â€”"}
+                          {Number(inv.discount) > 0 ? `-${fmt(inv.discount)}` : fmt(0)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-medium text-emerald-600">
-                          ${paid.toFixed(2)}
+                          {fmt(paid)}
                         </td>
                         <td className="py-3.5 px-4 text-right font-bold">
                           <span className={due > 0 ? "text-rose-600" : "text-gray-400"}>
-                            ${due.toFixed(2)}
+                            {fmt(due)}
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-center">
@@ -1519,7 +1518,7 @@ const FeesSection: React.FC = () => {
                                 className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1 transition shadow-xs"
                                 title="Collect payment"
                               >
-                                <DollarSign size={13} />
+                                <span className="font-bold text-[13px] leading-none">{cs}</span>
                                 Pay
                               </button>
                             )}
@@ -1561,6 +1560,46 @@ const FeesSection: React.FC = () => {
                   })
                 )}
               </tbody>
+              {/* Column Totals Footer */}
+              {paginatedInvoices.length > 0 && (() => {
+                const totAmt  = filteredInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
+                const totDisc = filteredInvoices.reduce((s, i) => s + Number(i.discount || 0), 0);
+                const totPaid = filteredInvoices.reduce((s, i) => s + Number(i.paid_amount || 0), 0);
+                const totDue  = filteredInvoices.reduce((s, i) => {
+                  const net = Number(i.amount) - Number(i.discount || 0);
+                  return s + Math.max(0, net - Number(i.paid_amount || 0));
+                }, 0);
+                return (
+                  <tfoot>
+                    <tr className="border-t-2 border-purple-200 bg-purple-50/60 text-xs font-bold">
+                      <td colSpan={4} className="py-3 px-4 text-gray-500 text-[11px] uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="text-gray-400">&#x3A3;</span>
+                          Totals &middot; {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}
+                          <span className="ml-2 text-[10px] font-normal text-gray-400 hidden sm:inline">
+                            Amount &minus; Discount &minus; Paid = Due Balance
+                          </span>
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-gray-800">{fmt(totAmt)}</td>
+                      <td className="py-3 px-4 text-right text-rose-500">
+                        {totDisc > 0 ? `-${fmt(totDisc)}` : "\u2014"}
+                      </td>
+                      <td className="py-3 px-4 text-right text-emerald-700">{fmt(totPaid)}</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={totDue > 0 ? "text-rose-700" : "text-gray-400"}>
+                          {fmt(totDue)}
+                        </span>
+                      </td>
+                      <td colSpan={2} className="py-3 px-4 text-center text-[10px] text-gray-400 font-normal">
+                        {totDue > 0
+                          ? <span className="text-rose-500 font-semibold">{fmt(totDue)} outstanding</span>
+                          : <span className="text-emerald-600 font-semibold">&#x2713; Fully settled</span>}
+                      </td>
+                    </tr>
+                  </tfoot>
+                );
+              })()}
             </table>
           </div>
 
@@ -1646,7 +1685,7 @@ const FeesSection: React.FC = () => {
                   <th className="py-3.5 px-4">Payment Method</th>
                   <th className="py-3.5 px-4">Transaction Ref</th>
                   <th className="py-3.5 px-4">Payment Date</th>
-                  <th className="py-3.5 px-4 text-right">Amount Paid</th>
+                  <th className="py-3.5 px-4 text-right">Amount Paid ({cs})</th>
                   <th className="py-3.5 px-4 text-center">Receipt</th>
                 </tr>
               </thead>
@@ -2032,7 +2071,7 @@ const FeesSection: React.FC = () => {
                   <input
                     type="text"
                     disabled
-                    value={`৳${Math.max(0, invoiceForm.amount - invoiceForm.discount).toFixed(2)}`}
+                    value={fmt(Math.max(0, invoiceForm.amount - invoiceForm.discount))}
                     className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl font-bold text-purple-700"
                   />
                 </div>
@@ -2562,12 +2601,12 @@ const FeesSection: React.FC = () => {
                       <div className="text-[10px] text-gray-400 font-mono">Invoice #{receiptData.invoice_no}</div>
                     </td>
                     <td className="py-3 text-gray-600">{receiptData.category_name || "Tuition"}</td>
-                    <td className="py-3 text-right font-medium">৳{Number(receiptData.invoice_amount || receiptData.amount).toFixed(2)}</td>
+                    <td className="py-3 text-right font-medium">{fmt(receiptData.invoice_amount || receiptData.amount)}</td>
                     <td className="py-3 text-right text-gray-500">
-                      {receiptData.discount ? `-৳${Number(receiptData.discount).toFixed(2)}` : "৳0.00"}
+                      {receiptData.discount ? `-${fmt(receiptData.discount)}` : `${cs}0.00`}
                     </td>
                     <td className="py-3 text-right font-bold text-gray-900">
-                      ৳{Number(receiptData.net_amount || receiptData.amount).toFixed(2)}
+                      {fmt(receiptData.net_amount || receiptData.amount)}
                     </td>
                   </tr>
                 </tbody>
@@ -2579,7 +2618,7 @@ const FeesSection: React.FC = () => {
                   <div className="flex justify-between text-gray-600">
                     <span>Net Billed Amount:</span>
                     <span className="font-semibold text-gray-900">
-                      ${Number(receiptData.net_amount || receiptData.amount).toFixed(2)}
+                      {fmt(receiptData.net_amount || receiptData.amount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-emerald-700 font-bold border-t border-gray-100 pt-2">
@@ -2589,7 +2628,7 @@ const FeesSection: React.FC = () => {
                   <div className="flex justify-between text-gray-600">
                     <span>Total Paid to Date:</span>
                     <span className="font-semibold text-gray-900">
-                      ${Number(receiptData.total_paid || receiptData.amount).toFixed(2)}
+                      {fmt(receiptData.total_paid || receiptData.amount)}
                     </span>
                   </div>
                   <div className="flex justify-between text-rose-600 font-bold border-t-2 border-gray-200 pt-2 text-sm">
@@ -2885,6 +2924,10 @@ const FeesSection: React.FC = () => {
 };
 
 export default FeesSection;
+
+
+
+
 
 
 
