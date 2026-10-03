@@ -63,6 +63,9 @@ function ensureAdmissionsTable($db) {
             notes TEXT,
             applied_date DATE NULL,
             enrolled_student_id VARCHAR(255),
+            username VARCHAR(255) NULL,
+            password VARCHAR(255) NULL,
+            img VARCHAR(255) NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
@@ -72,6 +75,26 @@ function ensureAdmissionsTable($db) {
         // Re-throw so the router catches it and returns a proper JSON error
         throw new Exception('Database setup error: ' . $e->getMessage());
     }
+
+    // Safely add username, password, img if existing table doesn't have them
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'username'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN username VARCHAR(255) NULL AFTER enrolled_student_id");
+        }
+    } catch (Exception $e) {}
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'password'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN password VARCHAR(255) NULL AFTER username");
+        }
+    } catch (Exception $e) {}
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'img'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN img VARCHAR(255) NULL AFTER password");
+        }
+    } catch (Exception $e) {}
 
     // Only seed if the table is now accessible and empty
     try {
@@ -121,6 +144,8 @@ function syncStudentsWithAdmissions($db) {
                     $db->update('admissions', [
                         'enrolled_student_id' => $student['id'],
                         'status' => 'APPROVED',
+                        'username' => $student['username'] ?? null,
+                        'img' => $student['img'] ?? null,
                         'class_id' => $student['class_id'],
                         'grade_id' => $student['grade_id'],
                         'parent_id' => $student['parent_id']
@@ -149,14 +174,16 @@ function syncStudentsWithAdmissions($db) {
 
                 $db->insert('admissions', [
                     'application_no' => $appNo,
+                    'username' => $student['username'] ?? null,
                     'first_name' => $student['name'],
                     'last_name' => $student['surname'],
                     'email' => $student['email'] ?: null,
                     'phone' => $student['phone'] ?: null,
                     'date_of_birth' => null,
                     'gender' => $gender,
-                    'blood_type' => $student['blood_type'] ?: 'A+',
+                    'blood_type' => $student['blood_type'] ?: 'AB+',
                     'address' => $student['address'] ?: '',
+                    'img' => $student['img'] ?? null,
                     'grade_id' => $student['grade_id'],
                     'class_id' => $student['class_id'],
                     'parent_name' => $parentName,
@@ -288,12 +315,16 @@ function getAdmissions($db) {
     $gradeId = $_GET['grade_id'] ?? '';
     $offset = ($page - 1) * $limit;
 
-    $sql = "SELECT a.*, c.name as class_name, g.level as grade_level,
+    $sql = "SELECT a.*, 
+                   COALESCE(a.username, s.username) as username,
+                   COALESCE(a.img, s.img) as img,
+                   c.name as class_name, g.level as grade_level,
                    p.name as linked_parent_name, p.surname as linked_parent_surname
             FROM admissions a
             LEFT JOIN classes c ON a.class_id = c.id
             LEFT JOIN grades g ON a.grade_id = g.id
             LEFT JOIN parents p ON a.parent_id = p.id
+            LEFT JOIN students s ON a.enrolled_student_id = s.id
             WHERE 1=1";
     $params = [];
 
@@ -349,12 +380,16 @@ function getAdmission($db, $id) {
     AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
 
     $admission = $db->fetchOne(
-        "SELECT a.*, c.name as class_name, g.level as grade_level,
+        "SELECT a.*, 
+                COALESCE(a.username, s.username) as username,
+                COALESCE(a.img, s.img) as img,
+                c.name as class_name, g.level as grade_level,
                 p.name as linked_parent_name, p.surname as linked_parent_surname, p.phone as linked_parent_phone
          FROM admissions a
          LEFT JOIN classes c ON a.class_id = c.id
          LEFT JOIN grades g ON a.grade_id = g.id
          LEFT JOIN parents p ON a.parent_id = p.id
+         LEFT JOIN students s ON a.enrolled_student_id = s.id
          WHERE a.id = ?",
         [$id]
     );
@@ -383,32 +418,61 @@ function createAdmission($db) {
 
     $input = json_decode(file_get_contents('php://input'), true);
 
-    $required = ['first_name', 'last_name', 'gender'];
-    foreach ($required as $field) {
-        if (empty($input[$field])) {
-            Response::error("Field '{$field}' is required");
-        }
+    $firstName = trim($input['first_name'] ?? $input['name'] ?? '');
+    $lastName = trim($input['last_name'] ?? $input['surname'] ?? '');
+    $sex = strtoupper($input['sex'] ?? $input['gender'] ?? 'MALE');
+    $gender = ($sex === 'FEMALE') ? 'FEMALE' : 'MALE';
+
+    if (empty($firstName) || empty($lastName)) {
+        Response::error("First name and last name are required");
     }
 
     $appNo = 'ADM-' . date('Y') . '-' . str_pad(rand(100, 9999), 4, '0', STR_PAD_LEFT);
     $status = !empty($input['status']) ? strtoupper($input['status']) : 'PENDING';
 
+    $parentId = !empty($input['parent_id']) ? $input['parent_id'] : null;
+    $parentName = $input['parent_name'] ?? null;
+    $parentPhone = $input['parent_phone'] ?? null;
+    $parentEmail = $input['parent_email'] ?? null;
+
+    if ($parentId) {
+        $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$parentId]);
+        if ($parent) {
+            $parentName = trim(($parent['name'] ?? '') . ' ' . ($parent['surname'] ?? ''));
+            $parentPhone = $parent['phone'] ?? $parentPhone;
+            $parentEmail = $parent['email'] ?? $parentEmail;
+        }
+    }
+
+    $username = trim($input['username'] ?? '');
+    if (empty($username)) {
+        $cleanFirst = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName));
+        $cleanLast = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $lastName));
+        $username = $cleanFirst . '.' . $cleanLast . rand(10, 99);
+    }
+
+    $rawPassword = !empty($input['password']) ? $input['password'] : 'Student123!';
+    $hashedPassword = str_starts_with($rawPassword, '$2y$') ? $rawPassword : password_hash($rawPassword, PASSWORD_DEFAULT);
+
     $data = [
         'application_no' => $appNo,
-        'first_name' => trim($input['first_name']),
-        'last_name' => trim($input['last_name']),
+        'username' => $username,
+        'password' => $hashedPassword,
+        'first_name' => $firstName,
+        'last_name' => $lastName,
         'email' => $input['email'] ?? null,
         'phone' => $input['phone'] ?? null,
         'date_of_birth' => !empty($input['date_of_birth']) ? $input['date_of_birth'] : null,
-        'gender' => strtoupper($input['gender']) === 'FEMALE' ? 'FEMALE' : 'MALE',
-        'blood_type' => $input['blood_type'] ?? 'A+',
+        'gender' => $gender,
+        'blood_type' => $input['blood_type'] ?? 'AB+',
         'address' => $input['address'] ?? '',
+        'img' => $input['img'] ?? null,
         'grade_id' => !empty($input['grade_id']) ? $input['grade_id'] : null,
         'class_id' => !empty($input['class_id']) ? $input['class_id'] : null,
-        'parent_name' => $input['parent_name'] ?? null,
-        'parent_phone' => $input['parent_phone'] ?? null,
-        'parent_email' => $input['parent_email'] ?? null,
-        'parent_id' => !empty($input['parent_id']) ? $input['parent_id'] : null,
+        'parent_name' => $parentName,
+        'parent_phone' => $parentPhone,
+        'parent_email' => $parentEmail,
+        'parent_id' => $parentId,
         'previous_school' => $input['previous_school'] ?? null,
         'status' => $status,
         'notes' => $input['notes'] ?? null,
@@ -430,7 +494,7 @@ function createAdmission($db) {
             }
         }
 
-        $created = $db->fetchOne("SELECT a.*, c.name as class_name, g.level as grade_level FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id WHERE a.id = ?", [$admissionId]);
+        $created = $db->fetchOne("SELECT a.*, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
         Response::success('Admission application created successfully', $created, 201);
     } catch (Exception $e) {
         Response::error('Failed to create admission: ' . $e->getMessage());
@@ -446,12 +510,36 @@ function updateAdmission($db, $id) {
     }
 
     $input = json_decode(file_get_contents('php://input'), true);
-    $allowed = ['first_name', 'last_name', 'email', 'phone', 'date_of_birth', 'gender', 'blood_type', 'address', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
+    $allowed = ['username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
 
     $data = [];
     foreach ($allowed as $f) {
         if (isset($input[$f])) {
-            $data[$f] = $f === 'status' ? strtoupper($input[$f]) : $input[$f];
+            if ($f === 'name') {
+                $data['first_name'] = trim($input[$f]);
+            } elseif ($f === 'surname') {
+                $data['last_name'] = trim($input[$f]);
+            } elseif ($f === 'sex' || $f === 'gender') {
+                $data['gender'] = strtoupper($input[$f]) === 'FEMALE' ? 'FEMALE' : 'MALE';
+            } elseif ($f === 'status') {
+                $data['status'] = strtoupper($input[$f]);
+            } elseif ($f === 'password') {
+                if (!empty(trim($input[$f]))) {
+                    $raw = trim($input[$f]);
+                    $data['password'] = str_starts_with($raw, '$2y$') ? $raw : password_hash($raw, PASSWORD_DEFAULT);
+                }
+            } else {
+                $data[$f] = $input[$f];
+            }
+        }
+    }
+
+    if (!empty($data['parent_id'])) {
+        $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$data['parent_id']]);
+        if ($parent) {
+            $data['parent_name'] = trim(($parent['name'] ?? '') . ' ' . ($parent['surname'] ?? ''));
+            $data['parent_phone'] = $parent['phone'] ?? ($data['parent_phone'] ?? null);
+            $data['parent_email'] = $parent['email'] ?? ($data['parent_email'] ?? null);
         }
     }
 
@@ -478,18 +566,21 @@ function updateAdmission($db, $id) {
         $data['enrolled_student_id'] = null;
     }
 
-    // If student is currently enrolled and academic placement or personal info was updated, update student record too
+    // If student is currently enrolled and personal info was updated, update student record too
     $studentIdToSync = $data['enrolled_student_id'] ?? $existing['enrolled_student_id'];
     if (!empty($studentIdToSync) && $currentStatus === 'APPROVED') {
         try {
             $stdUpdate = [];
             if (isset($data['first_name'])) $stdUpdate['name'] = $data['first_name'];
             if (isset($data['last_name'])) $stdUpdate['surname'] = $data['last_name'];
+            if (isset($data['username']) && !empty($data['username'])) $stdUpdate['username'] = $data['username'];
+            if (!empty($data['password'])) $stdUpdate['password'] = $data['password'];
             if (isset($data['email'])) $stdUpdate['email'] = $data['email'];
             if (isset($data['phone'])) $stdUpdate['phone'] = $data['phone'];
             if (isset($data['address'])) $stdUpdate['address'] = $data['address'];
             if (isset($data['blood_type'])) $stdUpdate['blood_type'] = $data['blood_type'];
             if (isset($data['gender'])) $stdUpdate['sex'] = $data['gender'];
+            if (isset($data['img'])) $stdUpdate['img'] = $data['img'];
             if (isset($data['class_id'])) $stdUpdate['class_id'] = $data['class_id'];
             if (isset($data['grade_id'])) $stdUpdate['grade_id'] = $data['grade_id'];
             if (isset($data['parent_id'])) $stdUpdate['parent_id'] = $data['parent_id'];
@@ -503,7 +594,7 @@ function updateAdmission($db, $id) {
 
     try {
         $db->update('admissions', $data, 'id = ?', [$id]);
-        $updated = $db->fetchOne("SELECT a.*, c.name as class_name, g.level as grade_level FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id WHERE a.id = ?", [$id]);
+        $updated = $db->fetchOne("SELECT a.*, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
         Response::success('Admission updated successfully', $updated);
     } catch (Exception $e) {
         Response::error('Failed to update admission: ' . $e->getMessage());
@@ -566,13 +657,13 @@ function enrollStudentFromAdmission($db, $data) {
         }
 
         // Get default class and grade if missing
-        $gradeId = $data['grade_id'];
+        $gradeId = $data['grade_id'] ?? null;
         if (empty($gradeId)) {
             $defaultGrade = $db->fetchOne("SELECT id FROM grades ORDER BY id ASC LIMIT 1");
             $gradeId = $defaultGrade['id'] ?? 1;
         }
 
-        $classId = $data['class_id'];
+        $classId = $data['class_id'] ?? null;
         if (empty($classId)) {
             $defaultClass = $db->fetchOne("SELECT id FROM classes WHERE grade_id = ? LIMIT 1", [$gradeId]);
             if (!$defaultClass) {
@@ -584,21 +675,33 @@ function enrollStudentFromAdmission($db, $data) {
         // Generate student username and ID
         $cleanFirst = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $data['first_name']));
         $cleanLast = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $data['last_name']));
-        $username = $cleanFirst . '.' . $cleanLast . rand(10, 99);
+        $username = !empty($data['username']) ? $data['username'] : ($cleanFirst . '.' . $cleanLast . rand(10, 99));
+
+        // Check if username already exists for another student
+        $existingUser = $db->fetchOne("SELECT id FROM students WHERE username = ?", [$username]);
+        if ($existingUser) {
+            $username = $username . rand(10, 99);
+        }
+
+        $hashedPass = !empty($data['password'])
+            ? (str_starts_with($data['password'], '$2y$') ? $data['password'] : password_hash($data['password'], PASSWORD_DEFAULT))
+            : password_hash('Student123!', PASSWORD_DEFAULT);
+
         $studentId = uniqid('std_');
+        $gender = ($data['gender'] === 'FEMALE' || (isset($data['sex']) && strtoupper($data['sex']) === 'FEMALE')) ? 'FEMALE' : 'MALE';
 
         $db->insert('students', [
             'id' => $studentId,
             'username' => $username,
-            'password' => password_hash('Student123!', PASSWORD_DEFAULT),
+            'password' => $hashedPass,
             'name' => $data['first_name'],
             'surname' => $data['last_name'],
             'email' => $data['email'] ?: ($username . '@school.edu'),
             'phone' => $data['phone'] ?: ($data['parent_phone'] ?? null),
             'address' => $data['address'] ?: 'Springfield',
-            'img' => null,
-            'blood_type' => $data['blood_type'] ?: 'A+',
-            'sex' => $data['gender'] === 'FEMALE' ? 'FEMALE' : 'MALE',
+            'img' => $data['img'] ?? null,
+            'blood_type' => $data['blood_type'] ?: 'AB+',
+            'sex' => $gender,
             'parent_id' => $parentId,
             'class_id' => $classId,
             'grade_id' => $gradeId

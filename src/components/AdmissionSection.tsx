@@ -33,12 +33,14 @@ export interface AdmissionItem {
   application_no: string;
   first_name: string;
   last_name: string;
+  username?: string;
   email?: string;
   phone?: string;
   date_of_birth?: string;
   gender: "MALE" | "FEMALE";
   blood_type?: string;
   address?: string;
+  img?: string;
   grade_id?: number | string;
   class_id?: number | string;
   class_name?: string;
@@ -66,23 +68,20 @@ export interface AdmissionCounts {
 }
 
 const emptyAdmissionForm = {
+  username: "",
+  password: "",
   first_name: "",
   last_name: "",
   email: "",
   phone: "",
-  date_of_birth: "",
-  gender: "MALE" as "MALE" | "FEMALE",
-  blood_type: "A+",
   address: "",
-  grade_id: "",
+  blood_type: "AB+",
+  sex: "FEMALE" as "MALE" | "FEMALE",
+  img: "",
+  parent_id: "",
   class_id: "",
-  parent_name: "",
-  parent_phone: "",
-  parent_email: "",
-  previous_school: "",
+  grade_id: "",
   status: "PENDING" as "PENDING" | "APPROVED" | "WAITLISTED" | "REJECTED",
-  notes: "",
-  auto_enroll: false,
 };
 
 const AdmissionSection: React.FC = () => {
@@ -105,6 +104,7 @@ const AdmissionSection: React.FC = () => {
   // Options
   const [classes, setClasses] = useState<Array<{ id: string | number; name: string; grade_id?: number }>>([]);
   const [grades, setGrades] = useState<Array<{ id: string | number; level: number }>>([]);
+  const [parents, setParents] = useState<Array<{ id: string | number; name: string; surname: string }>>([]);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -149,14 +149,16 @@ const AdmissionSection: React.FC = () => {
     void loadAdmissions();
   }, [statusFilter, gradeFilter]);
 
-  // Load Classes & Grades for selection
+  // Load Classes, Grades & Parents for selection
   useEffect(() => {
     Promise.all([
       api.getAll("classes", { limit: 1000 }),
       api.getAll("grades", { limit: 100 }),
-    ]).then(([classRes, gradeRes]) => {
+      api.getAll("parents", { limit: 1000 }),
+    ]).then(([classRes, gradeRes, parentRes]) => {
       if (classRes.success && classRes.data?.classes) setClasses(classRes.data.classes);
       if (gradeRes.success && gradeRes.data?.grades) setGrades(gradeRes.data.grades);
+      if (parentRes.success && parentRes.data?.parents) setParents(parentRes.data.parents);
     }).catch(() => {});
   }, []);
 
@@ -169,7 +171,8 @@ const AdmissionSection: React.FC = () => {
       const appNo = item.application_no.toLowerCase();
       const parent = (item.parent_name || item.linked_parent_name || "").toLowerCase();
       const email = (item.email || "").toLowerCase();
-      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q);
+      const username = (item.username || "").toLowerCase();
+      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q) || username.includes(q);
     });
   }, [admissions, search]);
 
@@ -199,6 +202,9 @@ const AdmissionSection: React.FC = () => {
       ...emptyAdmissionForm,
       grade_id: String(grades[0]?.id || ""),
       class_id: String(classes[0]?.id || ""),
+      parent_id: String(parents[0]?.id || ""),
+      blood_type: "AB+",
+      sex: "FEMALE",
     });
     setFormError(null);
     setCreateModalOpen(true);
@@ -208,23 +214,20 @@ const AdmissionSection: React.FC = () => {
   const openEditModal = (item: AdmissionItem) => {
     setEditItem(item);
     setFormData({
-      first_name: item.first_name,
-      last_name: item.last_name,
+      username: item.username || "",
+      password: "",
+      first_name: item.first_name || "",
+      last_name: item.last_name || "",
       email: item.email || "",
       phone: item.phone || "",
-      date_of_birth: item.date_of_birth || "",
-      gender: item.gender || "MALE",
-      blood_type: item.blood_type || "A+",
       address: item.address || "",
-      grade_id: String(item.grade_id || ""),
-      class_id: String(item.class_id || ""),
-      parent_name: item.parent_name || "",
-      parent_phone: item.parent_phone || "",
-      parent_email: item.parent_email || "",
-      previous_school: item.previous_school || "",
+      blood_type: item.blood_type || "AB+",
+      sex: (item.gender || "FEMALE") as "MALE" | "FEMALE",
+      img: item.img || "",
+      parent_id: String(item.parent_id || (parents[0]?.id ? String(parents[0].id) : "")),
+      class_id: String(item.class_id || (classes[0]?.id ? String(classes[0].id) : "")),
+      grade_id: String(item.grade_id || (grades[0]?.id ? String(grades[0].id) : "")),
       status: item.status || "PENDING",
-      notes: item.notes || "",
-      auto_enroll: item.status === "APPROVED",
     });
     setFormError(null);
     setCreateModalOpen(true);
@@ -236,18 +239,70 @@ const AdmissionSection: React.FC = () => {
     e.preventDefault();
     setFormError(null);
 
+    if (!formData.username.trim()) {
+      setFormError("Username is required.");
+      return;
+    }
+
+    if (!editItem && (!formData.password || formData.password.length < 6)) {
+      setFormError("Password is required (minimum 6 characters).");
+      return;
+    }
+
     if (!formData.first_name.trim() || !formData.last_name.trim()) {
-      setFormError("Student first and last names are required.");
+      setFormError("First name and last name are required.");
+      return;
+    }
+
+    if (!formData.address.trim()) {
+      setFormError("Address is required.");
+      return;
+    }
+
+    if (!formData.blood_type.trim()) {
+      setFormError("Blood type is required.");
+      return;
+    }
+
+    if (!formData.parent_id) {
+      setFormError("Parent is required.");
+      return;
+    }
+
+    if (!formData.class_id) {
+      setFormError("Class is required.");
+      return;
+    }
+
+    if (!formData.grade_id) {
+      setFormError("Grade is required.");
       return;
     }
 
     setSubmitting(true);
     try {
-      const payload = {
-        ...formData,
+      const payload: Record<string, any> = {
+        username: formData.username.trim(),
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
+        name: formData.first_name.trim(),
+        surname: formData.last_name.trim(),
+        email: formData.email.trim() || null,
+        phone: formData.phone.trim() || null,
+        address: formData.address.trim(),
+        blood_type: formData.blood_type.trim(),
+        sex: formData.sex,
+        gender: formData.sex,
+        img: formData.img.trim() || null,
+        parent_id: formData.parent_id,
+        class_id: formData.class_id,
+        grade_id: formData.grade_id,
+        status: editItem ? editItem.status : "PENDING",
       };
+
+      if (formData.password && formData.password.trim().length >= 6) {
+        payload.password = formData.password.trim();
+      }
 
       const res = editItem
         ? await api.update("admissions", editItem.id, payload)
@@ -747,268 +802,221 @@ const AdmissionSection: React.FC = () => {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSubmitForm} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleSubmitForm} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
               {formError && (
-                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span>{formError}</span>
-                </div>
+                <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                  {formError}
+                </p>
               )}
 
-              {/* Student Personal Info */}
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 mb-2">
-                  1. Student Personal Information
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      First Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Alexander"
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* Username */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Username *</span>
+                  <input
+                    type="text"
+                    required
+                    disabled={Boolean(editItem && editItem.enrolled_student_id)}
+                    value={formData.username}
+                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    className={`w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+                      editItem && editItem.enrolled_student_id ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+                    }`}
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Last Name / Surname <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      required
-                      placeholder="e.g. Wright"
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
+                {/* Password */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>
+                    Password {editItem ? <span className="font-normal text-gray-500">(leave blank to keep current)</span> : "*"}
+                  </span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    minLength={6}
+                    required={!editItem}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Gender</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, gender: "MALE" })}
-                        className={`py-1.5 text-xs font-semibold rounded-lg border transition ${
-                          formData.gender === "MALE"
-                            ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                            : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                        }`}
-                      >
-                        Male
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, gender: "FEMALE" })}
-                        className={`py-1.5 text-xs font-semibold rounded-lg border transition ${
-                          formData.gender === "FEMALE"
-                            ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                            : "bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                        }`}
-                      >
-                        Female
-                      </button>
-                    </div>
-                  </div>
+                {/* First name */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>First name *</span>
+                  <input
+                    type="text"
+                    required
+                    value={formData.first_name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        first_name: val,
+                        username: !editItem && (!prev.username || prev.username === `${prev.first_name.toLowerCase()}.${prev.last_name.toLowerCase()}`)
+                          ? `${val.toLowerCase()}.${prev.last_name.toLowerCase()}`
+                          : prev.username
+                      }));
+                    }}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={formData.date_of_birth}
-                      onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
+                {/* Last name */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Last name *</span>
+                  <input
+                    type="text"
+                    required
+                    value={formData.last_name}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        last_name: val,
+                        username: !editItem && (!prev.username || prev.username === `${prev.first_name.toLowerCase()}.${prev.last_name.toLowerCase()}`)
+                          ? `${prev.first_name.toLowerCase()}.${val.toLowerCase()}`
+                          : prev.username
+                      }));
+                    }}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Blood Type</label>
-                    <select
-                      value={formData.blood_type}
-                      onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    >
-                      {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Email */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Residential Address
-                    </label>
-                    <input
-                      placeholder="e.g. 742 Evergreen Terrace"
-                      value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              </div>
+                {/* Phone */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Phone</span>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-              {/* Academic Placement */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 mb-2">
-                  2. Academic Placement & Previous School
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Assigned Grade
-                    </label>
-                    <select
-                      value={formData.grade_id}
-                      onChange={(e) => setFormData({ ...formData, grade_id: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    >
-                      <option value="">Select Grade</option>
-                      {grades.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          Grade {g.level}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Address */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  <span>Address *</span>
+                  <textarea
+                    required
+                    rows={3}
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Assigned Class
-                    </label>
-                    <select
-                      value={formData.class_id}
-                      onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    >
-                      <option value="">Select Class</option>
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                {/* Blood type */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Blood type *</span>
+                  <input
+                    type="text"
+                    required
+                    value={formData.blood_type}
+                    onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Previous School
-                    </label>
-                    <input
-                      placeholder="e.g. Lincoln Primary"
-                      value={formData.previous_school}
-                      onChange={(e) => setFormData({ ...formData, previous_school: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              </div>
+                {/* Sex */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Sex *</span>
+                  <select
+                    required
+                    value={formData.sex}
+                    onChange={(e) => setFormData({ ...formData, sex: e.target.value as "MALE" | "FEMALE" })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="FEMALE">Female</option>
+                    <option value="MALE">Male</option>
+                  </select>
+                </label>
 
-              {/* Parent Info */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 mb-2">
-                  3. Parent / Guardian Contact
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Parent / Guardian Name
-                    </label>
-                    <input
-                      placeholder="e.g. Robert Wright"
-                      value={formData.parent_name}
-                      onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
+                {/* Photo URL */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Photo URL</span>
+                  <input
+                    type="text"
+                    value={formData.img}
+                    onChange={(e) => setFormData({ ...formData, img: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  />
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Parent Phone</label>
-                    <input
-                      placeholder="e.g. +1 555-0193"
-                      value={formData.parent_phone}
-                      onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
+                {/* Parent */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Parent *</span>
+                  <select
+                    required
+                    value={formData.parent_id}
+                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select parent</option>
+                    {parents.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.surname}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Parent Email</label>
-                    <input
-                      type="email"
-                      placeholder="e.g. robert.w@example.com"
-                      value={formData.parent_email}
-                      onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
-              </div>
+                {/* Class */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Class *</span>
+                  <select
+                    required
+                    value={formData.class_id}
+                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select class</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-              {/* Status and Evaluation Notes */}
-              <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400 mb-2">
-                  4. Application Status & Decision
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Admission Decision
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    >
-                      <option value="PENDING">Pending Review</option>
-                      <option value="APPROVED">Approved (Enrolls Student)</option>
-                      <option value="WAITLISTED">Waitlisted</option>
-                      <option value="REJECTED">Rejected</option>
-                    </select>
-                    {formData.status === "APPROVED" && (
-                      <p className="text-[11px] text-emerald-600 mt-1 flex items-center gap-1 font-medium">
-                        <CheckCircle2 size={13} /> Approving will automatically enroll this student into the active roster.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                      Evaluation Notes / Remarks
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Notes on entrance exam, academic history, special requirements..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                      className="w-full rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500"
-                    />
-                  </div>
-                </div>
+                {/* Grade */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Grade *</span>
+                  <select
+                    required
+                    value={formData.grade_id}
+                    onChange={(e) => setFormData({ ...formData, grade_id: e.target.value })}
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-sky-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  >
+                    <option value="">Select grade</option>
+                    {grades.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        Grade {g.level}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setCreateModalOpen(false)}
-                  disabled={submitting}
-                  className="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+              <div className="flex items-center justify-end border-t border-gray-100 dark:border-gray-800 pt-4">
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-purple-700 transition disabled:opacity-50"
+                  className="rounded-md bg-sky-600 px-5 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-50 transition"
                 >
-                  {submitting ? "Saving..." : editItem ? "Save Changes" : "Submit Admission"}
+                  {submitting ? "Saving..." : "Save changes"}
                 </button>
               </div>
             </form>
@@ -1067,6 +1075,25 @@ const AdmissionSection: React.FC = () => {
 
             {/* Content */}
             <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto text-xs">
+              {/* Photo & Username if available */}
+              {(detailsItem.img || detailsItem.username) && (
+                <div className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
+                  {detailsItem.img ? (
+                    <img src={detailsItem.img} alt="" className="w-12 h-12 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-lamaSkyLight text-sky-700 font-bold flex items-center justify-center text-sm">
+                      {detailsItem.first_name[0]}{detailsItem.last_name[0]}
+                    </div>
+                  )}
+                  {detailsItem.username && (
+                    <div>
+                      <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Username</span>
+                      <p className="font-mono font-bold text-gray-800 dark:text-gray-200 text-sm">@{detailsItem.username}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Placement box */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">

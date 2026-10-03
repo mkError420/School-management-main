@@ -235,6 +235,9 @@ CREATE TABLE IF NOT EXISTS admissions (
     notes TEXT,
     applied_date DATE NULL,
     enrolled_student_id VARCHAR(255),
+    username VARCHAR(255) NULL,
+    password VARCHAR(255) NULL,
+    img VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
