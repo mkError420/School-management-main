@@ -121,7 +121,7 @@ function syncStudentsWithAdmissions($db) {
     try {
         // Find enrolled students in students table who do NOT yet have an admission record
         $unlinkedStudents = $db->fetchAll(
-            "SELECT s.id, s.username, s.name, s.surname, s.email, s.phone, s.address, 
+            "SELECT s.id, s.username, s.name, s.surname, s.email, s.phone, s.address, s.img,
                     s.blood_type, s.sex, s.class_id, s.grade_id, s.parent_id, s.created_at,
                     p.name as p_name, p.surname as p_surname, p.phone as p_phone, p.email as p_email
              FROM students s

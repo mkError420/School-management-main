@@ -259,7 +259,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         formData.append("img", selectedImage, selectedImage.name);
         response = type === "create"
           ? await api.create(apiResources[entity], formData)
-          : await api.updateMultipart(apiResources[entity], data?.id, formData);
+          : await api.update(apiResources[entity], data?.id, formData);
       } else {
         response = type === "create"
           ? await api.create(apiResources[entity], payload)

@@ -4,6 +4,13 @@ $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
+// PHP only populates $_POST and $_FILES for POST, not PUT.
+// Support method override so multipart FormData updates work.
+$methodOverride = strtoupper($_POST['_method'] ?? $_GET['_method'] ?? '');
+if ($method === 'POST' && $methodOverride === 'PUT') {
+    $method = 'PUT';
+}
+
 switch ($method) {
     case 'GET':
         if ($id) {
@@ -475,7 +482,9 @@ function deleteTeacher($db, $id) {
 
 function parseTeacherInput() {
     if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false) {
-        return $_POST;
+        $input = $_POST;
+        unset($input['_method']); // Remove method override field
+        return $input;
     }
     return json_decode(file_get_contents('php://input'), true) ?? [];
 }

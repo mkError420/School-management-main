@@ -150,10 +150,7 @@ class ApiService {
   }
 
   async updateMultipart(resource: string, id: string | number, data: FormData) {
-    return this.request(`${resource}?action=update&id=${encodeURIComponent(String(id))}`, {
-      method: 'POST',
-      body: data,
-    });
+    return this.update(resource, id, data);
   }
 
   async delete(resource: string, id: string | number) {
