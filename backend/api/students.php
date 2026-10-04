@@ -4,6 +4,13 @@ $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
+// PHP only populates $_POST and $_FILES for POST, not PUT.
+// Support method override so multipart FormData updates work.
+$methodOverride = strtoupper($_POST['_method'] ?? $_GET['_method'] ?? '');
+if ($method === 'POST' && $methodOverride === 'PUT') {
+    $method = 'PUT';
+}
+
 switch ($method) {
     case 'GET':
         if ($id) {
@@ -329,6 +336,7 @@ function updateStudent($db, $id) {
     // Support both JSON and multipart/form-data (when photo is attached)
     $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
     $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+    unset($input['_method']); // Remove method override field
 
     // Check if student exists
     $existing = $db->fetchOne("SELECT id, img FROM students WHERE id = ?", [$id]);

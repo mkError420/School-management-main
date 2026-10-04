@@ -133,9 +133,19 @@ class ApiService {
   }
 
   async update(resource: string, id: string | number, data: any) {
+    // PHP only populates $_POST and $_FILES for POST requests, not PUT.
+    // When sending FormData (which includes file uploads), we use POST with
+    // a _method=PUT field so the backend can read the uploaded file.
+    if (data instanceof FormData) {
+      data.append('_method', 'PUT');
+      return this.request(`${resource}?id=${id}`, {
+        method: 'POST',
+        body: data,
+      });
+    }
     return this.request(`${resource}?id=${id}`, {
       method: 'PUT',
-      body: data instanceof FormData ? data : JSON.stringify(data),
+      body: JSON.stringify(data),
     });
   }
 

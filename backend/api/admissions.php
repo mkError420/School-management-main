@@ -6,6 +6,13 @@ ensureAdmissionsTable($db);
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
+// Support method override: POST with _method=PUT for multipart/FormData updates
+// (PHP only populates $_POST and $_FILES for POST requests, not PUT)
+$methodOverride = strtoupper($_POST['_method'] ?? $_GET['_method'] ?? '');
+if ($method === 'POST' && $methodOverride === 'PUT') {
+    $method = 'PUT';
+}
+
 switch ($method) {
     case 'GET':
         if ($id) {
@@ -518,8 +525,11 @@ function updateAdmission($db, $id) {
     }
 
     // Support both JSON and multipart/form-data (when photo is attached)
+    // Note: method override means the actual HTTP verb is POST, so $_POST & $_FILES are populated
     $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
     $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+    // Remove _method override key from input so it doesn't get written to DB
+    unset($input['_method']);
 
     $allowed = ['username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
 
@@ -761,7 +771,9 @@ function storeAdmissionImage() {
         Response::error('Choose a valid JPG, PNG, or WebP image for the admission photo');
     }
 
-    $directory = dirname(__DIR__, 2) . '/public/images/admissions';
+    // Store admission images in the shared students folder so they display
+    // correctly in both the admission view and the enrolled student profile.
+    $directory = dirname(__DIR__, 2) . '/public/images/students';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         Response::serverError('Unable to prepare admission image storage');
     }
@@ -771,14 +783,21 @@ function storeAdmissionImage() {
         Response::serverError('Unable to store admission image');
     }
 
-    return '/images/admissions/' . $fileName;
+    return '/images/students/' . $fileName;
 }
 
 function deleteAdmissionImage($imagePath) {
-    if (!is_string($imagePath) || strpos($imagePath, '/images/admissions/') !== 0) {
+    // Support both the old /images/admissions/ path and the new /images/students/ path
+    if (!is_string($imagePath)) {
         return;
     }
-    $filePath = dirname(__DIR__, 2) . '/public/images/admissions/' . basename($imagePath);
+    if (strpos($imagePath, '/images/admissions/') === 0) {
+        $filePath = dirname(__DIR__, 2) . '/public/images/admissions/' . basename($imagePath);
+    } elseif (strpos($imagePath, '/images/students/') === 0) {
+        $filePath = dirname(__DIR__, 2) . '/public/images/students/' . basename($imagePath);
+    } else {
+        return;
+    }
     if (is_file($filePath)) {
         unlink($filePath);
     }
