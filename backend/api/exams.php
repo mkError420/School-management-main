@@ -687,8 +687,9 @@ function updateExam($db, $id) {
         Response::notFound('Exam not found');
     }
 
+    // Teachers may only edit their own exams OR exams with no assigned teacher
     if ($user['role'] === 'teacher' && !empty($existing['teacher_id']) && (string)$existing['teacher_id'] !== (string)$user['user_id']) {
-        Response::forbidden('You can only update exams for your lessons');
+        Response::forbidden('You can only update exams assigned to you');
     }
 
     $data = [];
@@ -702,6 +703,11 @@ function updateExam($db, $id) {
                 $data[$field] = $input[$field];
             }
         }
+    }
+
+    // If teacher role updates and teacher_id not in payload, auto-assign their own ID
+    if ($user['role'] === 'teacher' && !isset($data['teacher_id'])) {
+        $data['teacher_id'] = $user['user_id'];
     }
 
     // Keep date updated with start_time

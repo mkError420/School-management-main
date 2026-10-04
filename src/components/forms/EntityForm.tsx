@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 type Entity =
   | "teacher" | "student" | "parent" | "subject" | "class" | "lesson"
@@ -160,6 +161,7 @@ const formatInputValue = (field: Field, value: any) => {
 };
 
 const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }) => {
+  const { user, role } = useAuth();
   const fields = fieldsByEntity[entity];
   const [values, setValues] = useState<Record<string, any>>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -214,6 +216,9 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         initialValues[field.name] = data?.assignment_id ? "assignment" : "exam";
       } else if (entity === "result" && field.name === "assessment_id") {
         initialValues[field.name] = String(data?.assignment_id || data?.exam_id || "");
+      } else if (entity === "exam" && field.name === "teacher_id" && role === "teacher") {
+        // Auto-fill teacher_id from logged-in user for teacher role
+        initialValues[field.name] = String(user?.id || data?.[field.name] || "");
       } else {
         initialValues[field.name] = field.type === "checkbox"
           ? Boolean(data?.[field.name])
@@ -226,7 +231,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     setRoutineFile(null);
     setRoutinePreview(null);
     setRemoveAttachment(false);
-  }, [data, entity, fields]);
+  }, [data, entity, fields, role, user?.id]);
 
   // Build image preview URL for newly-selected routine file
   useEffect(() => {
@@ -338,7 +343,13 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
       {error && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
       {loadingOptions && <p className="text-sm text-gray-500">Loading available records...</p>}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Hidden input to carry teacher_id for teachers */}
+        {entity === "exam" && role === "teacher" && (
+          <input type="hidden" name="teacher_id" value={values.teacher_id || ""} />
+        )}
         {fields.map((field) => {
+          // Hide teacher_id field for teacher role — it's auto-filled from their session
+          if (entity === "exam" && field.name === "teacher_id" && role === "teacher") return null;
           if (entity === "result" && field.name === "assessment_id" && !values.result_type) return null;
           if (field.name === "password" && type === "update") {
             return (
