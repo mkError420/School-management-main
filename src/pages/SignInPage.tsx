@@ -103,7 +103,6 @@ const SignInPage: React.FC = () => {
 
           <section className="mt-6 border-t border-gray-200 pt-4" aria-labelledby="demo-accounts-title">
             <h2 id="demo-accounts-title" className="text-sm font-semibold text-gray-800">Demo accounts</h2>
-            <p className="mt-1 text-xs text-gray-500">Requires sample accounts from <code>seed.sql</code>.</p>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {demoAccounts.map((account) => {
                 const Icon = account.icon;
