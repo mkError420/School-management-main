@@ -34,8 +34,8 @@ const AdminPage: React.FC = () => {
           <UserCard type="staff" count={counts.staff || undefined} />
         </div>
 
-        {/* Admissions Section */}
-        <AdmissionSection />
+        {/* Admissions Section - Showing last 5 applications on Home page */}
+        <AdmissionSection maxItems={5} showViewAllLink />
 
         {/* Charts Row */}
         <div className="flex gap-4 flex-col lg:flex-row">
@@ -47,8 +47,8 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Finance Chart */}
-        <div className="w-full h-[500px]">
+        {/* Dynamic Full Function Finance Chart */}
+        <div className="w-full min-h-[520px]">
           <FinanceChart />
         </div>
 

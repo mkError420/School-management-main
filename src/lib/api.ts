@@ -104,8 +104,15 @@ class ApiService {
   }
 
   // Dashboard Metrics
-  async getDashboard() {
-    return this.request('dashboard', { method: 'GET' });
+  async getDashboard(params?: { finance_year?: number | string }) {
+    const qs = params?.finance_year ? `?finance_year=${params.finance_year}` : '';
+    return this.request(`dashboard${qs}`, { method: 'GET' });
+  }
+
+  // Finance Metrics (Fees as Income, Expenses as Expense)
+  async getFinanceChartData(year?: number | string) {
+    const qs = year ? `&year=${encodeURIComponent(String(year))}` : '';
+    return this.request(`dashboard?action=finance${qs}`, { method: 'GET' });
   }
 
   // Generic CRUD

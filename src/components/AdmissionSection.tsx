@@ -116,7 +116,12 @@ const StatusBadge: React.FC<{ status: AdmissionItem["status"]; size?: "sm" | "xs
   return <span className={`${base} bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300`}><XCircle size={11} /> Rejected</span>;
 };
 
-const AdmissionSection: React.FC = () => {
+export interface AdmissionSectionProps {
+  maxItems?: number;
+  showViewAllLink?: boolean;
+}
+
+const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewAllLink }) => {
   const [admissions, setAdmissions] = useState<AdmissionItem[]>([]);
   const [counts, setCounts] = useState<AdmissionCounts>({
     total: 0,
@@ -237,12 +242,18 @@ const AdmissionSection: React.FC = () => {
     });
   }, [admissions, search]);
 
-  // Pagination
+  // Pagination & Displayed items: if maxItems is set (e.g. 5 on Home page), sort newest first and take last N
   const totalPages = Math.max(1, Math.ceil(filteredAdmissions.length / ITEMS_PER_PAGE));
-  const pagedAdmissions = filteredAdmissions.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+  const pagedAdmissions = useMemo(() => {
+    if (typeof maxItems === "number" && maxItems > 0) {
+      // Sort newest first by id descending to show the last N entries
+      return [...filteredAdmissions].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, maxItems);
+    }
+    return filteredAdmissions.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
+  }, [filteredAdmissions, maxItems, currentPage]);
 
   // Status Change (approve/waitlist/reject)
   const handleStatusChange = async (item: AdmissionItem, newStatus: AdmissionItem["status"]) => {
@@ -538,6 +549,11 @@ const AdmissionSection: React.FC = () => {
             <span className="text-[10px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-amber-800 font-semibold">
               2026/27 Session
             </span>
+            {maxItems ? (
+              <span className="text-[10px] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full text-purple-700 font-semibold dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800">
+                Latest {maxItems} Entries
+              </span>
+            ) : null}
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
             Process new applicant registrations, review evaluations, and approve student classroom enrollments.
@@ -546,6 +562,16 @@ const AdmissionSection: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {maxItems || showViewAllLink ? (
+            <Link
+              to="/admissions"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 shadow-sm transition"
+            >
+              <span>View All Applications</span>
+              <ArrowRight size={14} />
+            </Link>
+          ) : null}
+
           <button
             type="button"
             onClick={() => void loadAdmissions()}
@@ -888,56 +914,74 @@ const AdmissionSection: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1 px-1">
         <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span>
-            Showing <strong className="text-gray-800 dark:text-gray-200">
-              {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredAdmissions.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredAdmissions.length)}
-            </strong> of <strong className="text-gray-800 dark:text-gray-200">{filteredAdmissions.length}</strong> applications
-            {" · "}<strong className="text-emerald-700 dark:text-emerald-400">{counts.approved} enrolled</strong>
-          </span>
+          {maxItems ? (
+            <span>
+              Showing <strong className="text-gray-800 dark:text-gray-200">latest {pagedAdmissions.length}</strong> of{" "}
+              <strong className="text-gray-800 dark:text-gray-200">{filteredAdmissions.length}</strong> applications
+              {" · "}<strong className="text-emerald-700 dark:text-emerald-400">{counts.approved} enrolled</strong>
+            </span>
+          ) : (
+            <span>
+              Showing <strong className="text-gray-800 dark:text-gray-200">
+                {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredAdmissions.length)}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredAdmissions.length)}
+              </strong> of <strong className="text-gray-800 dark:text-gray-200">{filteredAdmissions.length}</strong> applications
+              {" · "}<strong className="text-emerald-700 dark:text-emerald-400">{counts.approved} enrolled</strong>
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 transition"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-                const page = totalPages <= 7 ? i + 1 : (
-                  currentPage <= 4 ? i + 1 :
-                    currentPage >= totalPages - 3 ? totalPages - 6 + i :
-                      currentPage - 3 + i
-                );
-                return (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page === currentPage
-                      ? "bg-purple-600 text-white"
-                      : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                      }`}
-                  >
-                    {page}
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 transition"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
+          {maxItems ? (
+            <Link
+              to="/admissions"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition"
+            >
+              <span>Full Admissions List ({filteredAdmissions.length})</span>
+              <ArrowRight size={13} />
+            </Link>
+          ) : (
+            totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 transition"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                  const page = totalPages <= 7 ? i + 1 : (
+                    currentPage <= 4 ? i + 1 :
+                      currentPage >= totalPages - 3 ? totalPages - 6 + i :
+                        currentPage - 3 + i
+                  );
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page === currentPage
+                        ? "bg-purple-600 text-white"
+                        : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                        }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40 transition"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            )
           )}
 
           <Link
             to="/list/students"
-            className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 font-semibold transition"
+            className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 font-semibold transition ml-1"
           >
             <span>All Students</span>
             <ArrowRight size={13} />

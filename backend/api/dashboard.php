@@ -11,6 +11,14 @@ $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']
 $role = $user['role'];
 $userId = $user['user_id'];
 
+$action = $_GET['action'] ?? null;
+if ($action === 'finance') {
+    $targetYear = isset($_GET['year']) ? intval($_GET['year']) : intval($_GET['finance_year'] ?? date('Y'));
+    $financeInfo = getFinanceChartData($db, $targetYear);
+    Response::success('Finance data retrieved', $financeInfo);
+    exit;
+}
+
 try {
     // 1. Core metrics for Admin
     $studentCount = $db->fetchOne("SELECT COUNT(*) as total FROM students")['total'] ?? 0;
@@ -50,21 +58,10 @@ try {
         ['name' => 'Fri', 'present' => 65, 'absent' => 55],
     ];
 
-    // 6. Finance Data (monthly income/expense)
-    $financeData = [
-        ['name' => 'Jan', 'income' => 4000, 'expense' => 2400],
-        ['name' => 'Feb', 'income' => 3000, 'expense' => 1398],
-        ['name' => 'Mar', 'income' => 2000, 'expense' => 9800],
-        ['name' => 'Apr', 'income' => 2780, 'expense' => 3908],
-        ['name' => 'May', 'income' => 1890, 'expense' => 4800],
-        ['name' => 'Jun', 'income' => 2390, 'expense' => 3800],
-        ['name' => 'Jul', 'income' => 3490, 'expense' => 4300],
-        ['name' => 'Aug', 'income' => 3490, 'expense' => 4300],
-        ['name' => 'Sep', 'income' => 3490, 'expense' => 4300],
-        ['name' => 'Oct', 'income' => 3490, 'expense' => 4300],
-        ['name' => 'Nov', 'income' => 3490, 'expense' => 4300],
-        ['name' => 'Dec', 'income' => 3490, 'expense' => 4300],
-    ];
+    // 6. Dynamic Finance Data (Fees as Income, Expenses as Expense)
+    $selectedYear = isset($_GET['finance_year']) ? intval($_GET['finance_year']) : intval(date('Y'));
+    $financeInfo = getFinanceChartData($db, $selectedYear);
+    $financeData = $financeInfo['chart'];
 
     // User-specific schedule / calendar events
     $scheduleSql = "SELECT l.id, l.class_id, l.teacher_id, l.subject_id, l.name as title, l.day, l.start_time, l.end_time,
@@ -111,9 +108,146 @@ try {
         'events' => $events,
         'attendance' => $attendanceData,
         'finance' => $financeData,
+        'finance_summary' => $financeInfo,
         'schedule' => $schedule
     ]);
 
 } catch (Exception $e) {
     Response::serverError($e->getMessage());
 }
+
+function getFinanceChartData($db, $targetYear = null) {
+    if (!$targetYear || $targetYear < 2000 || $targetYear > 2100) {
+        $targetYear = (int)date('Y');
+    } else {
+        $targetYear = (int)$targetYear;
+    }
+
+    $monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    $monthlyData = [];
+    for ($m = 1; $m <= 12; $m++) {
+        $monthlyData[$m] = [
+            'name' => $monthNames[$m - 1],
+            'month' => $m,
+            'income' => 0.0,
+            'expense' => 0.0,
+            'profit' => 0.0
+        ];
+    }
+
+    $totalIncome = 0.0;
+    $totalExpense = 0.0;
+
+    // 1. Calculate Fees as Income (Fees play the income role)
+    try {
+        $payments = $db->fetchAll(
+            "SELECT MONTH(payment_date) as m, SUM(amount) as total 
+             FROM fee_payments 
+             WHERE YEAR(payment_date) = ? 
+             GROUP BY MONTH(payment_date)",
+            [$targetYear]
+        );
+
+        $hasPayments = false;
+        if (!empty($payments)) {
+            foreach ($payments as $p) {
+                $m = (int)$p['m'];
+                if ($m >= 1 && $m <= 12) {
+                    $amt = (float)$p['total'];
+                    $monthlyData[$m]['income'] += $amt;
+                    $totalIncome += $amt;
+                    if ($amt > 0) $hasPayments = true;
+                }
+            }
+        }
+
+        // If no fee_payments records exist for this year, check fee_invoices paid_amount
+        if (!$hasPayments) {
+            $invoices = $db->fetchAll(
+                "SELECT MONTH(COALESCE(updated_at, created_at, due_date)) as m, SUM(paid_amount) as total 
+                 FROM fee_invoices 
+                 WHERE paid_amount > 0 AND YEAR(COALESCE(updated_at, created_at, due_date)) = ?
+                 GROUP BY MONTH(COALESCE(updated_at, created_at, due_date))",
+                [$targetYear]
+            );
+            if (!empty($invoices)) {
+                foreach ($invoices as $inv) {
+                    $m = (int)$inv['m'];
+                    if ($m >= 1 && $m <= 12) {
+                        $amt = (float)$inv['total'];
+                        $monthlyData[$m]['income'] += $amt;
+                        $totalIncome += $amt;
+                    }
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log('Error calculating finance income from fees: ' . $e->getMessage());
+    }
+
+    // 2. Calculate Expenses
+    try {
+        $expenses = $db->fetchAll(
+            "SELECT MONTH(COALESCE(paid_date, expense_date)) as m, SUM(amount) as total 
+             FROM expenses 
+             WHERE status != 'REJECTED' AND YEAR(COALESCE(paid_date, expense_date)) = ? 
+             GROUP BY MONTH(COALESCE(paid_date, expense_date))",
+            [$targetYear]
+        );
+        if (!empty($expenses)) {
+            foreach ($expenses as $exp) {
+                $m = (int)$exp['m'];
+                if ($m >= 1 && $m <= 12) {
+                    $amt = (float)$exp['total'];
+                    $monthlyData[$m]['expense'] += $amt;
+                    $totalExpense += $amt;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log('Error calculating finance expenses: ' . $e->getMessage());
+    }
+
+    // Build finalized month list with profit calculation
+    $chartList = [];
+    for ($m = 1; $m <= 12; $m++) {
+        $inc = round($monthlyData[$m]['income'], 2);
+        $exp = round($monthlyData[$m]['expense'], 2);
+        $chartList[] = [
+            'name' => $monthlyData[$m]['name'],
+            'month' => $m,
+            'income' => $inc,
+            'expense' => $exp,
+            'profit' => round($inc - $exp, 2)
+        ];
+    }
+
+    // Collect available years from payments, invoices, and expenses
+    $currentYear = (int)date('Y');
+    $yearsSet = [$currentYear];
+    try {
+        $pYears = $db->fetchAll("SELECT DISTINCT YEAR(payment_date) as y FROM fee_payments WHERE payment_date IS NOT NULL");
+        foreach ($pYears as $row) { if (!empty($row['y'])) $yearsSet[] = (int)$row['y']; }
+    } catch (Exception $e) {}
+    try {
+        $iYears = $db->fetchAll("SELECT DISTINCT YEAR(created_at) as y FROM fee_invoices WHERE created_at IS NOT NULL");
+        foreach ($iYears as $row) { if (!empty($row['y'])) $yearsSet[] = (int)$row['y']; }
+    } catch (Exception $e) {}
+    try {
+        $eYears = $db->fetchAll("SELECT DISTINCT YEAR(COALESCE(paid_date, expense_date)) as y FROM expenses WHERE COALESCE(paid_date, expense_date) IS NOT NULL");
+        foreach ($eYears as $row) { if (!empty($row['y'])) $yearsSet[] = (int)$row['y']; }
+    } catch (Exception $e) {}
+
+    $years = array_values(array_unique($yearsSet));
+    rsort($years);
+
+    return [
+        'year' => $targetYear,
+        'available_years' => $years,
+        'chart' => $chartList,
+        'total_income' => round($totalIncome, 2),
+        'total_expense' => round($totalExpense, 2),
+        'net_balance' => round($totalIncome - $totalExpense, 2)
+    ];
+}
+
