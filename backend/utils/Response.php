@@ -9,6 +9,15 @@ class Response {
     }
     
     public static function success($message, $data = null, $statusCode = 200) {
+        // If caller passed array/object as first argument and second is null or int
+        if ((is_array($message) || is_object($message)) && ($data === null || is_int($data))) {
+            if (is_int($data)) {
+                $statusCode = $data;
+            }
+            $data = $message;
+            $message = 'Operation successful';
+        }
+        
         $response = [
             'success' => true,
             'message' => $message
@@ -19,6 +28,10 @@ class Response {
         }
         
         self::json($response, $statusCode);
+    }
+
+    public static function badRequest($message = 'Bad request', $errors = null) {
+        self::error($message, 400, $errors);
     }
     
     public static function error($message, $statusCode = 400, $errors = null) {

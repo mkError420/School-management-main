@@ -7,6 +7,12 @@ $method = $_SERVER['REQUEST_METHOD'];
 $action = $_GET['action'] ?? null;
 $id = $_GET['id'] ?? null;
 
+// Support method override so simulated PUT works reliably
+$methodOverride = strtoupper($_POST['_method'] ?? $_GET['_method'] ?? '');
+if ($method === 'POST' && $methodOverride === 'PUT') {
+    $method = 'PUT';
+}
+
 switch ($method) {
     case 'GET':
         handleGet($db, $action, $id);
@@ -242,12 +248,12 @@ function getExpenses($db) {
 
     if ($status && $status !== 'all') {
         $where[] = "status = ?";
-        $params[] = $status;
+        $params[] = strtoupper($status);
     }
 
     if ($category && $category !== 'all') {
         $where[] = "category = ?";
-        $params[] = $category;
+        $params[] = strtoupper($category);
     }
 
     if ($search) {
@@ -261,18 +267,18 @@ function getExpenses($db) {
     $whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
 
     $expenses = $db->fetchAll(
-        "SELECT * FROM expenses $whereClause ORDER BY created_at DESC LIMIT $limit OFFSET $offset",
+        "SELECT * FROM expenses $whereClause ORDER BY created_at DESC, id DESC LIMIT $limit OFFSET $offset",
         $params
     );
 
-    $total = $db->fetchOne(
+    $total = (int)($db->fetchOne(
         "SELECT COUNT(*) as total FROM expenses $whereClause",
         $params
-    )['total'] ?? 0;
+    )['total'] ?? 0);
 
     $stats = calculateExpenseStats($db, $whereClause, $params);
 
-    Response::success([
+    Response::success('Expenses retrieved successfully', [
         'expenses' => $expenses,
         'total' => $total,
         'stats' => $stats
@@ -284,12 +290,12 @@ function getExpenseById($db, $id) {
     if (!$expense) {
         Response::notFound('Expense not found');
     }
-    Response::success($expense);
+    Response::success('Expense retrieved successfully', $expense);
 }
 
 function getExpenseStats($db) {
     $stats = calculateExpenseStats($db);
-    Response::success($stats);
+    Response::success('Expense statistics retrieved successfully', $stats);
 }
 
 function calculateExpenseStats($db, $whereClause = '', $params = []) {
@@ -353,76 +359,91 @@ function calculateExpenseStats($db, $whereClause = '', $params = []) {
 }
 
 function handlePost($db, $action) {
-    $data = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true);
+    if (!is_array($data) || empty($data)) {
+        $data = $_POST;
+    }
 
-    if (!$data) {
-        Response::badRequest('Invalid JSON data');
+    if (empty($data)) {
+        Response::error('Invalid input data');
     }
 
     // Validate required fields
     if (empty($data['title'])) {
-        Response::badRequest('Title is required');
+        Response::error('Title is required');
     }
 
     if (!isset($data['amount']) || floatval($data['amount']) <= 0) {
-        Response::badRequest('Amount must be greater than 0');
+        Response::error('Amount must be greater than 0');
     }
 
     if (empty($data['expense_date'])) {
-        Response::badRequest('Expense date is required');
+        Response::error('Expense date is required');
     }
 
-    // Generate expense number
+    // Generate unique expense number
     $expenseNo = generateExpenseNo($db);
+    $status = !empty($data['status']) ? strtoupper($data['status']) : 'PENDING';
+    $paidDate = ($status === 'PAID') ? (!empty($data['paid_date']) ? $data['paid_date'] : date('Y-m-d')) : null;
 
     $expenseData = [
         'expense_no' => $expenseNo,
-        'title' => $data['title'],
-        'description' => $data['description'] ?? null,
-        'category' => $data['category'] ?? 'SUPPLIES',
+        'title' => trim($data['title']),
+        'description' => !empty($data['description']) ? trim($data['description']) : null,
+        'category' => !empty($data['category']) ? strtoupper($data['category']) : 'SUPPLIES',
         'amount' => floatval($data['amount']),
-        'status' => $data['status'] ?? 'PENDING',
-        'payment_method' => $data['payment_method'] ?? 'CASH',
-        'vendor' => $data['vendor'] ?? null,
+        'status' => $status,
+        'payment_method' => !empty($data['payment_method']) ? strtoupper($data['payment_method']) : 'CASH',
+        'vendor' => !empty($data['vendor']) ? trim($data['vendor']) : null,
         'expense_date' => $data['expense_date'],
-        'due_date' => $data['due_date'] ?? null,
-        'transaction_ref' => $data['transaction_ref'] ?? null,
-        'notes' => $data['notes'] ?? null,
-        'created_by' => $_SESSION['user']['username'] ?? 'admin'
+        'due_date' => !empty($data['due_date']) ? $data['due_date'] : null,
+        'paid_date' => $paidDate,
+        'transaction_ref' => !empty($data['transaction_ref']) ? trim($data['transaction_ref']) : null,
+        'notes' => !empty($data['notes']) ? trim($data['notes']) : null,
+        'created_by' => 'admin'
     ];
 
-    $id = $db->insert('expenses', $expenseData);
-
-    if ($id) {
-        $expense = $db->fetchOne("SELECT * FROM expenses WHERE id = ?", [$id]);
-        Response::success($expense, 'Expense created successfully');
-    } else {
-        Response::error('Failed to create expense');
+    try {
+        $id = $db->insert('expenses', $expenseData);
+        if ($id) {
+            $expense = $db->fetchOne("SELECT * FROM expenses WHERE id = ?", [$id]);
+            Response::success('Expense created successfully', $expense, 201);
+        } else {
+            Response::error('Failed to create expense');
+        }
+    } catch (Exception $e) {
+        Response::error('Failed to create expense: ' . $e->getMessage());
     }
 }
 
 function handlePut($db, $action, $id) {
     if (!$id) {
-        Response::badRequest('Expense ID is required');
+        Response::error('Expense ID is required');
     }
 
-    $data = json_decode(file_get_contents('php://input'), true);
+    $rawInput = file_get_contents('php://input');
+    $data = json_decode($rawInput, true);
+    if (!is_array($data) || empty($data)) {
+        $data = $_POST;
+    }
+    unset($data['_method']);
 
-    if (!$data) {
-        Response::badRequest('Invalid JSON data');
+    if (empty($data)) {
+        Response::error('Invalid input data');
     }
 
     // Validate required fields
     if (empty($data['title'])) {
-        Response::badRequest('Title is required');
+        Response::error('Title is required');
     }
 
     if (!isset($data['amount']) || floatval($data['amount']) <= 0) {
-        Response::badRequest('Amount must be greater than 0');
+        Response::error('Amount must be greater than 0');
     }
 
     if (empty($data['expense_date'])) {
-        Response::badRequest('Expense date is required');
+        Response::error('Expense date is required');
     }
 
     $existing = $db->fetchOne("SELECT * FROM expenses WHERE id = ?", [$id]);
@@ -430,38 +451,41 @@ function handlePut($db, $action, $id) {
         Response::notFound('Expense not found');
     }
 
-    $updateData = [
-        'title' => $data['title'],
-        'description' => $data['description'] ?? null,
-        'category' => $data['category'] ?? 'SUPPLIES',
-        'amount' => floatval($data['amount']),
-        'status' => $data['status'] ?? 'PENDING',
-        'payment_method' => $data['payment_method'] ?? 'CASH',
-        'vendor' => $data['vendor'] ?? null,
-        'expense_date' => $data['expense_date'],
-        'due_date' => $data['due_date'] ?? null,
-        'transaction_ref' => $data['transaction_ref'] ?? null,
-        'notes' => $data['notes'] ?? null
-    ];
-
-    // Set paid_date if status changed to PAID
-    if ($data['status'] === 'PAID' && $existing['status'] !== 'PAID') {
-        $updateData['paid_date'] = date('Y-m-d');
+    $status = !empty($data['status']) ? strtoupper($data['status']) : $existing['status'];
+    $paidDate = $existing['paid_date'];
+    if ($status === 'PAID') {
+        $paidDate = !empty($data['paid_date']) ? $data['paid_date'] : ($existing['paid_date'] ?: date('Y-m-d'));
+    } elseif ($status !== 'PAID') {
+        $paidDate = null;
     }
 
-    $result = $db->update('expenses', $id, $updateData);
+    $updateData = [
+        'title' => trim($data['title']),
+        'description' => isset($data['description']) ? trim($data['description']) : null,
+        'category' => !empty($data['category']) ? strtoupper($data['category']) : $existing['category'],
+        'amount' => floatval($data['amount']),
+        'status' => $status,
+        'payment_method' => !empty($data['payment_method']) ? strtoupper($data['payment_method']) : $existing['payment_method'],
+        'vendor' => isset($data['vendor']) ? trim($data['vendor']) : null,
+        'expense_date' => $data['expense_date'],
+        'due_date' => !empty($data['due_date']) ? $data['due_date'] : null,
+        'paid_date' => $paidDate,
+        'transaction_ref' => isset($data['transaction_ref']) ? trim($data['transaction_ref']) : null,
+        'notes' => isset($data['notes']) ? trim($data['notes']) : null
+    ];
 
-    if ($result) {
+    try {
+        $db->update('expenses', $updateData, 'id = ?', [$id]);
         $expense = $db->fetchOne("SELECT * FROM expenses WHERE id = ?", [$id]);
-        Response::success($expense, 'Expense updated successfully');
-    } else {
-        Response::error('Failed to update expense');
+        Response::success('Expense updated successfully', $expense);
+    } catch (Exception $e) {
+        Response::error('Failed to update expense: ' . $e->getMessage());
     }
 }
 
 function handleDelete($db, $action, $id) {
     if (!$id) {
-        Response::badRequest('Expense ID is required');
+        Response::error('Expense ID is required');
     }
 
     $existing = $db->fetchOne("SELECT * FROM expenses WHERE id = ?", [$id]);
@@ -469,28 +493,27 @@ function handleDelete($db, $action, $id) {
         Response::notFound('Expense not found');
     }
 
-    $result = $db->delete('expenses', $id);
-
-    if ($result) {
-        Response::success(null, 'Expense deleted successfully');
-    } else {
-        Response::error('Failed to delete expense');
+    try {
+        $db->delete('expenses', 'id = ?', [$id]);
+        Response::success('Expense deleted successfully');
+    } catch (Exception $e) {
+        Response::error('Failed to delete expense: ' . $e->getMessage());
     }
 }
 
 function generateExpenseNo($db) {
     $year = date('Y');
-    $lastExpense = $db->fetchOne(
-        "SELECT expense_no FROM expenses WHERE expense_no LIKE ? ORDER BY id DESC LIMIT 1",
-        ["EXP-$year-%"]
-    );
-
-    if ($lastExpense) {
-        $lastNum = (int)substr($lastExpense['expense_no'], -4);
-        $newNum = $lastNum + 1;
-    } else {
-        $newNum = 1;
+    try {
+        $maxId = $db->fetchOne("SELECT MAX(id) as max_id FROM expenses")['max_id'] ?? 0;
+        $num = intval($maxId) + 1;
+    } catch (Exception $e) {
+        $num = 1;
     }
 
-    return sprintf('EXP-%s-%04d', $year, $newNum);
+    $candidate = sprintf('EXP-%s-%04d', $year, $num);
+    $exists = $db->fetchOne("SELECT id FROM expenses WHERE expense_no = ?", [$candidate]);
+    if ($exists) {
+        $candidate = sprintf('EXP-%s-%04d-%02d', $year, $num, rand(10, 99));
+    }
+    return $candidate;
 }

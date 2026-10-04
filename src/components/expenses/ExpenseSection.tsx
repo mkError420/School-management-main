@@ -146,24 +146,31 @@ const ExpenseSection: React.FC = () => {
   }, []);
 
   // Load expenses (filtered) — also captures global stats in one call
-  const loadExpenses = useCallback(async (silent = false) => {
+  // Pass overrideParams to bypass the stale filter closure (e.g. right after creation)
+  const loadExpenses = useCallback(async (silent = false, overrideParams?: Record<string, string | number>) => {
     if (!silent) setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number> = { limit: 500 };
-      if (statusFilter !== "all") params.status = statusFilter;
-      if (categoryFilter !== "all") params.category = categoryFilter;
-      if (search.trim()) params.search = search.trim();
+      let params: Record<string, string | number>;
+      if (overrideParams !== undefined) {
+        // Caller wants a specific set of params (e.g. empty = no filters)
+        params = { limit: 500, ...overrideParams };
+      } else {
+        params = { limit: 500 };
+        if (statusFilter !== "all") params.status = statusFilter;
+        if (categoryFilter !== "all") params.category = categoryFilter;
+        if (search.trim()) params.search = search.trim();
+      }
 
       const res = await api.getAll("expenses", params);
 
       if (res.success) {
         // Backend returns: { data: { expenses: [...], total: N, stats: {...} } }
-        const raw = res.data;
+        const raw = res.data ?? res.message;
         // Extract the expenses array — guard against any non-array shape
         let expensesData: Expense[] = [];
-        if (raw && Array.isArray(raw.expenses)) {
-          expensesData = raw.expenses;
+        if (raw && typeof raw === "object" && Array.isArray((raw as any).expenses)) {
+          expensesData = (raw as any).expenses;
         } else if (Array.isArray(raw)) {
           expensesData = raw;
         }
@@ -182,8 +189,9 @@ const ExpenseSection: React.FC = () => {
   const loadGlobalStats = useCallback(async () => {
     try {
       const res = await api.getAll("expenses", { limit: 500 });
-      if (res.success && res.data && typeof res.data === "object" && !Array.isArray(res.data)) {
-        const statsObj = res.data.stats;
+      const raw = res.data ?? res.message;
+      if (res.success && raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const statsObj = (raw as any).stats;
         if (statsObj && typeof statsObj === "object" && !Array.isArray(statsObj)) {
           setGlobalStats({
             total_expenses:      safeNum(statsObj.total_expenses),
@@ -332,7 +340,28 @@ const ExpenseSection: React.FC = () => {
       if (res.success) {
         setCreateModalOpen(false);
         showToast(editItem ? "Expense updated successfully." : "New expense created.");
-        await loadExpenses(true);
+
+        if (!editItem) {
+          // Reset filters so the new expense is visible
+          setStatusFilter("all");
+          setCategoryFilter("all");
+          setSearch("");
+          setSearchInput("");
+          setCurrentPage(1);
+
+          // Optimistic: prepend the new item immediately from the server response
+          const createdItem = res.data ?? res.message;
+          if (createdItem && typeof createdItem === "object" && (createdItem as any).id) {
+            setExpenses((prev) => [(createdItem as Expense), ...prev.filter((e) => e.id !== (createdItem as any).id)]);
+          }
+
+          // Reload with NO filters (overrideParams = {}) to bypass stale closure
+          await loadExpenses(true, {});
+        } else {
+          // Edit: reload with current filters
+          await loadExpenses(true);
+        }
+
         await loadGlobalStats();
       } else {
         setFormError(res.message || "Failed to save expense.");
