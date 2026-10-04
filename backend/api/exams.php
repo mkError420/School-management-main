@@ -75,35 +75,68 @@ function ensureExamSchema($db) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper: resolve or auto-provision a lesson record to keep FK constraint valid
 // ─────────────────────────────────────────────────────────────────────────────
-function resolveExamLessonId($db, $subjectId, $classId, $teacherId = null, $startTime = null) {
-    if (empty($subjectId) || empty($classId)) {
+function resolveExamLessonId($db, &$subjectId, $classId, $teacherId = null, $startTime = null) {
+    if (empty($classId)) {
         return null;
     }
 
-    // 1. Look for existing lesson with subject + class + teacher
-    if (!empty($teacherId)) {
+    // 1. If subjectId is given, search for lesson with subject + class (+ teacher)
+    if (!empty($subjectId)) {
+        if (!empty($teacherId)) {
+            $match = $db->fetchOne(
+                "SELECT id, subject_id FROM lessons WHERE subject_id = ? AND class_id = ? AND teacher_id = ? LIMIT 1",
+                [$subjectId, $classId, $teacherId]
+            );
+            if ($match) {
+                return intval($match['id']);
+            }
+        }
         $match = $db->fetchOne(
-            "SELECT id FROM lessons WHERE subject_id = ? AND class_id = ? AND teacher_id = ? LIMIT 1",
-            [$subjectId, $classId, $teacherId]
+            "SELECT id, subject_id FROM lessons WHERE subject_id = ? AND class_id = ? LIMIT 1",
+            [$subjectId, $classId]
         );
         if ($match) {
             return intval($match['id']);
         }
-    }
+    } else {
+        // 2. If subjectId is NOT given, look for an existing lesson for this class (+ teacher)
+        if (!empty($teacherId)) {
+            $match = $db->fetchOne(
+                "SELECT id, subject_id FROM lessons WHERE class_id = ? AND teacher_id = ? LIMIT 1",
+                [$classId, $teacherId]
+            );
+            if ($match) {
+                $subjectId = intval($match['subject_id']);
+                return intval($match['id']);
+            }
+        }
+        $match = $db->fetchOne(
+            "SELECT id, subject_id FROM lessons WHERE class_id = ? LIMIT 1",
+            [$classId]
+        );
+        if ($match) {
+            $subjectId = intval($match['subject_id']);
+            return intval($match['id']);
+        }
 
-    // 2. Look for existing lesson with subject + class
-    $match = $db->fetchOne(
-        "SELECT id FROM lessons WHERE subject_id = ? AND class_id = ? LIMIT 1",
-        [$subjectId, $classId]
-    );
-    if ($match) {
-        return intval($match['id']);
+        // If no lesson exists for class, pick first available subject
+        $firstSubject = $db->fetchOne("SELECT id FROM subjects LIMIT 1");
+        $subjectId = $firstSubject ? intval($firstSubject['id']) : null;
     }
 
     // 3. Auto-provision a lesson record to satisfy foreign key constraint
-    $subject = $db->fetchOne("SELECT name FROM subjects WHERE id = ?", [$subjectId]);
-    $subjectName = $subject['name'] ?? 'Subject';
-    $lessonName = $subjectName . ' Exam';
+    $subjectName = 'Academic';
+    if (!empty($subjectId)) {
+        $subject = $db->fetchOne("SELECT name FROM subjects WHERE id = ?", [$subjectId]);
+        if ($subject && !empty($subject['name'])) {
+            $subjectName = $subject['name'];
+        }
+    } else {
+        $subjectId = intval($db->insert('subjects', ['name' => 'General']));
+        $subjectName = 'General';
+    }
+
+    $lessonName = 'Class Exam';
 
     $dayOfWeek = 'MONDAY';
     if (!empty($startTime)) {
@@ -138,8 +171,12 @@ function resolveExamLessonId($db, $subjectId, $classId, $teacherId = null, $star
             'teacher_id' => $teacherId,
         ]));
     } catch (Exception $e) {
-        $anyLesson = $db->fetchOne("SELECT id FROM lessons LIMIT 1");
-        return $anyLesson ? intval($anyLesson['id']) : null;
+        $anyLesson = $db->fetchOne("SELECT id, subject_id FROM lessons LIMIT 1");
+        if ($anyLesson) {
+            $subjectId = $subjectId ?: intval($anyLesson['subject_id']);
+            return intval($anyLesson['id']);
+        }
+        return null;
     }
 }
 
@@ -544,17 +581,17 @@ function createExam($db) {
 
     // Lesson resolution
     $lessonId = !empty($input['lesson_id']) ? intval($input['lesson_id']) : null;
-    if (!$lessonId && $subjectId && $classId) {
+    if (!$lessonId && $classId) {
         $lessonId = resolveExamLessonId($db, $subjectId, $classId, $teacherId, $startTime);
     }
 
-    // If lessonId is still not available (e.g. subject/class not chosen), try reading from lesson if provided
+    // If lessonId is still not available, check if lesson_id was directly provided
     if (!$lessonId && !empty($input['lesson_id'])) {
         $lessonId = intval($input['lesson_id']);
     }
 
-    if (!$lessonId && (empty($subjectId) || empty($classId))) {
-        Response::error("Subject and Class are required");
+    if (!$lessonId && empty($classId)) {
+        Response::error("Field 'Class' is required");
     }
 
     // If subject_id, class_id, teacher_id weren't explicitly provided, read from lesson

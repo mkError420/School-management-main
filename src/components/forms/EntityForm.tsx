@@ -93,7 +93,6 @@ const fieldsByEntity: Record<Entity, Field[]> = {
   ],
   exam: [
     { name: "title", label: "Exam Title", required: true, colSpan: 2, placeholder: "e.g. Midterm Examination" },
-    { name: "subject_id", label: "Subject", type: "select", required: true, resource: "subjects" },
     { name: "class_id", label: "Class", type: "select", required: true, resource: "classes" },
     { name: "teacher_id", label: "Teacher", type: "select", required: true, resource: "teachers" },
     { name: "start_time", label: "Date", type: "datetime-local", required: true },

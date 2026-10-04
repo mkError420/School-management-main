@@ -267,7 +267,6 @@ export const ExamsPage: React.FC = () => {
 
   const cols = [
     { header: "Exam Title", accessor: "title" },
-    { header: "Subject", accessor: "subject", className: "hidden md:table-cell" },
     { header: "Class", accessor: "class", className: "hidden md:table-cell" },
     { header: "Teacher", accessor: "teacher", className: "hidden lg:table-cell" },
     { header: "Date", accessor: "date", className: "hidden lg:table-cell" },
@@ -284,7 +283,6 @@ export const ExamsPage: React.FC = () => {
           <p className="text-xs font-normal text-gray-400 truncate max-w-[180px]">{item.description}</p>
         )}
       </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
       <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
