@@ -483,7 +483,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                           </button>
                           {hasExisting && existingAttachmentUrl && (
                             <a
-                              href={existingAttachmentUrl}
+                              href={`${existingAttachmentUrl}${api.getToken() ? (existingAttachmentUrl.includes('?') ? `&token=${encodeURIComponent(api.getToken()!)}` : `?token=${encodeURIComponent(api.getToken()!)}`) : ''}`}
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}

@@ -1,5 +1,3 @@
-// Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
-
 import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
@@ -8,6 +6,7 @@ import TableSearch from "@/components/TableSearch";
 import Image from "@/components/Image";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
+import { api } from "@/lib/api";
 
 // ───────────────────────────────────────────────
 // SUBJECTS
@@ -175,6 +174,89 @@ export const LessonsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 // EXAMS
 // ───────────────────────────────────────────────
+const RoutineBadge: React.FC<{
+  examId: number | string;
+  mime?: string;
+  label?: string;
+}> = ({ examId, mime, label }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const { blob, filename, mime: fetchedMime } = await api.downloadExamAttachment(examId);
+      const effectiveMime = fetchedMime || mime || "application/pdf";
+      const fileBlob = blob.type ? blob : new Blob([blob], { type: effectiveMime });
+      const objectUrl = URL.createObjectURL(fileBlob);
+
+      const isViewable = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"].includes(effectiveMime);
+      if (isViewable) {
+        const opened = window.open(objectUrl, "_blank");
+        if (!opened) {
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = filename || label || "exam_routine.pdf";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+      } else {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename || label || "exam_routine";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      // Fallback: direct navigation with token query param
+      const token = api.getToken();
+      const directUrl = `/backend/api/exams?action=attachment&id=${encodeURIComponent(String(examId))}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      window.open(directUrl, "_blank");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isPdf = mime === "application/pdf" || (!mime && (!label || label.toLowerCase().endsWith(".pdf")));
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={loading}
+      title={label ? `Open: ${label}` : "Open routine document"}
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold
+        bg-emerald-100 text-emerald-800 hover:bg-emerald-200 active:scale-95
+        dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60
+        transition-all cursor-pointer shadow-xs disabled:opacity-50"
+    >
+      {loading ? (
+        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+      ) : isPdf ? (
+        <svg className="h-3.5 w-3.5 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
+        </svg>
+      ) : (
+        <svg className="h-3.5 w-3.5 text-sky-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 9l4-4 4 4 4-6 4 6"/>
+        </svg>
+      )}
+      <span>{loading ? "Opening..." : "Routine"}</span>
+    </button>
+  );
+};
+
 export const ExamsPage: React.FC = () => {
   const role = useAccessRole();
   const [search, setSearch] = useState("");
@@ -213,31 +295,10 @@ export const ExamsPage: React.FC = () => {
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.total_marks ? `${item.total_marks} pts` : "—"}
       </td>
-      {/* Routine attachment badge */}
+      {/* Routine attachment badge — authenticated fetch to carry JWT token */}
       <td>
         {item.attachment_url ? (
-          <a
-            href={item.attachment_url}
-            target="_blank"
-            rel="noreferrer"
-            title={item.attachment_original_name || "View routine"}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold
-              bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300
-              transition-colors"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {item.attachment_mime_type === 'application/pdf' ? (
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
-              </svg>
-            ) : (
-              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M3 9l4-4 4 4 4-6 4 6"/>
-              </svg>
-            )}
-            Routine
-          </a>
+          <RoutineBadge examId={item.id} mime={item.attachment_mime_type} label={item.attachment_original_name} />
         ) : (
           <span className="text-gray-400 text-xs">—</span>
         )}

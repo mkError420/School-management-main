@@ -2,21 +2,24 @@
 
 class AuthMiddleware {
     public static function authenticate() {
+        $token = null;
         $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
         if (empty($authHeader) && function_exists('getallheaders')) {
             $headers = getallheaders();
             $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? '';
         }
         
-        if (empty($authHeader)) {
+        if (!empty($authHeader)) {
+            if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+                Response::unauthorized('Invalid authorization header format');
+            }
+            $token = $matches[1];
+        } elseif (!empty($_GET['token'])) {
+            $token = $_GET['token'];
+        } else {
             Response::unauthorized('Authorization header missing');
         }
         
-        if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            Response::unauthorized('Invalid authorization header format');
-        }
-        
-        $token = $matches[1];
         $decoded = JWTHandler::decode($token);
         
         if (!$decoded) {
@@ -51,18 +54,20 @@ class AuthMiddleware {
     }
     
     public static function optionalAuth() {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
+        $headers = function_exists('getallheaders') ? getallheaders() : [];
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? ($headers['Authorization'] ?? $headers['authorization'] ?? '');
         
-        if (empty($authHeader)) {
+        $token = null;
+        if (!empty($authHeader) && preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            $token = $matches[1];
+        } elseif (!empty($_GET['token'])) {
+            $token = $_GET['token'];
+        }
+        
+        if (!$token) {
             return null;
         }
         
-        if (!preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            return null;
-        }
-        
-        $token = $matches[1];
         return JWTHandler::decode($token);
     }
 }

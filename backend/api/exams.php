@@ -261,7 +261,7 @@ function getExam($db, $id) {
         Response::notFound('Exam not found');
     }
 
-    if ($user['role'] === 'teacher' && $exam['teacher_id'] !== $user['user_id']) {
+    if ($user['role'] === 'teacher' && !empty($exam['teacher_id']) && (string)$exam['teacher_id'] !== (string)$user['user_id']) {
         Response::forbidden('You can only view exams for your lessons');
     }
     if ($user['role'] === 'student') {
@@ -351,12 +351,12 @@ function downloadExamAttachment($db, $id) {
     }
 
     // Access control
-    if ($user['role'] === 'teacher' && $exam['teacher_id'] !== $user['user_id']) {
+    if ($user['role'] === 'teacher' && !empty($exam['teacher_id']) && (string)$exam['teacher_id'] !== (string)$user['user_id']) {
         http_response_code(403);
         echo json_encode(['success' => false, 'message' => 'Access denied']);
         exit;
     }
-    if ($user['role'] === 'student') {
+    if ($user['role'] === 'student' && !empty($exam['class_id'])) {
         $studentInClass = $db->fetchOne(
             "SELECT id FROM students WHERE id = ? AND class_id = ?",
             [$user['user_id'], $exam['class_id']]
@@ -367,7 +367,7 @@ function downloadExamAttachment($db, $id) {
             exit;
         }
     }
-    if ($user['role'] === 'parent') {
+    if ($user['role'] === 'parent' && !empty($exam['class_id'])) {
         $childInClass = $db->fetchOne(
             "SELECT id FROM students WHERE parent_id = ? AND class_id = ? LIMIT 1",
             [$user['user_id'], $exam['class_id']]
@@ -390,13 +390,16 @@ function downloadExamAttachment($db, $id) {
     $originalName = $exam['attachment_original_name'] ?: basename($filePath);
 
     // Stream the file
-    header('Content-Type: ' . $mime);
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    header('Content-Type: ' . $mime, true);
     header('Content-Length: ' . filesize($filePath));
+    header('Accept-Ranges: bytes');
     // Inline for images & PDFs, attachment (download) for everything else
     $inline = in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif']);
     header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . addslashes($originalName) . '"');
     header('Cache-Control: private, max-age=3600');
-    ob_end_clean();
     readfile($filePath);
     exit;
 }
