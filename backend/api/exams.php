@@ -57,10 +57,12 @@ function ensureExamSchema($db) {
         'updated_at'               => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
     ];
     foreach ($columnsToAdd as $col => $definition) {
-        $exists = $db->fetchAll("SHOW COLUMNS FROM exams LIKE ?", [$col]);
+        // SHOW COLUMNS does not support prepared-statement placeholders in MariaDB/MySQL,
+        // so we use safe string interpolation (col names are hardcoded constants, not user input).
+        $exists = $db->fetchAll("SHOW COLUMNS FROM `exams` LIKE '{$col}'");
         if (!$exists) {
             try {
-                $db->query("ALTER TABLE exams ADD COLUMN {$col} {$definition}");
+                $db->query("ALTER TABLE `exams` ADD COLUMN `{$col}` {$definition}");
             } catch (Exception $e) {
                 // Column may already exist in a concurrent request — safe to ignore
             }
