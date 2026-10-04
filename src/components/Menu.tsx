@@ -5,7 +5,7 @@ import { hasAdminAccess, useAuth } from "@/context/AuthContext";
 
 const menuItems = [
   {
-    title: "MENU",
+    title: "DASHBOARD",
     items: [
       {
         icon: "/home.png",
@@ -19,6 +19,11 @@ const menuItems = [
         href: "/class-schedule",
         visible: ["admin", "teacher", "student", "parent"],
       },
+    ],
+  },
+  {
+    title: "ACADEMICS",
+    items: [
       {
         icon: "/teacher.png",
         label: "Teachers",
@@ -36,18 +41,6 @@ const menuItems = [
         label: "Admissions",
         href: "/admissions",
         visible: ["admin"],
-      },
-      {
-        icon: "/finance.png",
-        label: "Fees",
-        href: "/fees",
-        visible: ["admin", "super_admin"],
-      },
-      {
-        icon: "/finance.png",
-        label: "Expenses",
-        href: "/expenses",
-        visible: ["admin", "super_admin"],
       },
       {
         icon: "/parent.png",
@@ -73,6 +66,28 @@ const menuItems = [
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
+    ],
+  },
+  {
+    title: "FINANCE",
+    items: [
+      {
+        icon: "/finance.png",
+        label: "Fees",
+        href: "/fees",
+        visible: ["admin", "super_admin"],
+      },
+      {
+        icon: "/finance.png",
+        label: "Expenses",
+        href: "/expenses",
+        visible: ["admin", "super_admin"],
+      },
+    ],
+  },
+  {
+    title: "ASSESSMENT",
+    items: [
       {
         icon: "/exam.png",
         label: "Exams",
@@ -97,6 +112,11 @@ const menuItems = [
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },
+    ],
+  },
+  {
+    title: "COMMUNICATION",
+    items: [
       {
         icon: "/calendar.png",
         label: "Events",
