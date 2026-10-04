@@ -469,7 +469,7 @@ function storeStudentImage() {
         Response::error('Choose a valid JPG, PNG, or WebP image for the student photo');
     }
 
-    $directory = dirname(__DIR__, 2) . '/public/images/students';
+    $directory = dirname(__DIR__, 2) . '/images/students';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         Response::serverError('Unable to prepare student image storage');
     }
@@ -486,7 +486,7 @@ function deleteStudentImage($imagePath) {
     if (!is_string($imagePath) || strpos($imagePath, '/images/students/') !== 0) {
         return;
     }
-    $filePath = dirname(__DIR__, 2) . '/public/images/students/' . basename($imagePath);
+    $filePath = dirname(__DIR__, 2) . '/images/students/' . basename($imagePath);
     if (is_file($filePath)) {
         unlink($filePath);
     }

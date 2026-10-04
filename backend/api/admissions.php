@@ -771,9 +771,9 @@ function storeAdmissionImage() {
         Response::error('Choose a valid JPG, PNG, or WebP image for the admission photo');
     }
 
-    // Store admission images in the shared students folder so they display
-    // correctly in both the admission view and the enrolled student profile.
-    $directory = dirname(__DIR__, 2) . '/public/images/students';
+    // On cPanel, dirname(__DIR__,2) resolves to public_html/ (the document root).
+    // Images must be saved directly there so /images/students/... is a valid URL.
+    $directory = dirname(__DIR__, 2) . '/images/students';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         Response::serverError('Unable to prepare admission image storage');
     }
@@ -792,9 +792,9 @@ function deleteAdmissionImage($imagePath) {
         return;
     }
     if (strpos($imagePath, '/images/admissions/') === 0) {
-        $filePath = dirname(__DIR__, 2) . '/public/images/admissions/' . basename($imagePath);
+        $filePath = dirname(__DIR__, 2) . '/images/admissions/' . basename($imagePath);
     } elseif (strpos($imagePath, '/images/students/') === 0) {
-        $filePath = dirname(__DIR__, 2) . '/public/images/students/' . basename($imagePath);
+        $filePath = dirname(__DIR__, 2) . '/images/students/' . basename($imagePath);
     } else {
         return;
     }

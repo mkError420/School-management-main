@@ -395,7 +395,7 @@ function storeParentImage() {
         Response::error('Choose a valid JPG, PNG, or WebP image for the parent photo');
     }
 
-    $directory = dirname(__DIR__, 2) . '/public/images/parents';
+    $directory = dirname(__DIR__, 2) . '/images/parents';
     if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
         Response::serverError('Unable to prepare parent image storage');
     }
@@ -412,7 +412,7 @@ function deleteParentImage($imagePath) {
     if (!is_string($imagePath) || strpos($imagePath, '/images/parents/') !== 0) {
         return;
     }
-    $filePath = dirname(__DIR__, 2) . '/public/images/parents/' . basename($imagePath);
+    $filePath = dirname(__DIR__, 2) . '/images/parents/' . basename($imagePath);
     if (is_file($filePath)) {
         unlink($filePath);
     }
