@@ -303,10 +303,10 @@ export const ExamsPage: React.FC = () => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
+          {role === "admin" && (
             <>
               <FormModal table="exam" type="update" data={item} onSuccess={fetchData} />
-              {role === "admin" && <FormModal table="exam" type="delete" id={item.id} onSuccess={fetchData} />}
+              <FormModal table="exam" type="delete" id={item.id} onSuccess={fetchData} />
             </>
           )}
         </div>
@@ -327,7 +327,7 @@ export const ExamsPage: React.FC = () => {
         </div>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search exams..." />
-          {(role === "admin" || role === "teacher") && <FormModal table="exam" type="create" onSuccess={fetchData} />}
+          {role === "admin" && <FormModal table="exam" type="create" onSuccess={fetchData} />}
         </div>
       </div>
       <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No exams found" />

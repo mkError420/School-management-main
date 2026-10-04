@@ -550,7 +550,7 @@ function downloadExamAttachment($db, $id) {
 // POST /exams  — create exam (accepts multipart/form-data OR JSON)
 // ─────────────────────────────────────────────────────────────────────────────
 function createExam($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher']);
+    $user = AuthMiddleware::requireRole('admin');
     ensureExamSchema($db);
 
     // Support both multipart/form-data (with file) and JSON
@@ -567,7 +567,7 @@ function createExam($db) {
 
     $subjectId = !empty($input['subject_id']) ? intval($input['subject_id']) : null;
     $classId   = !empty($input['class_id'])   ? intval($input['class_id'])   : null;
-    $teacherId = !empty($input['teacher_id']) ? trim($input['teacher_id'])   : ($user['role'] === 'teacher' ? $user['user_id'] : null);
+    $teacherId = !empty($input['teacher_id']) ? trim($input['teacher_id'])   : null;
 
     // Date / time resolution
     $startTime = !empty($input['start_time']) ? trim($input['start_time']) : (!empty($input['date']) ? trim($input['date']) : null);
@@ -671,7 +671,7 @@ function createExam($db) {
 // PUT /exams?id=X  — update exam
 // ─────────────────────────────────────────────────────────────────────────────
 function updateExam($db, $id) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher']);
+    AuthMiddleware::requireRole('admin');
     ensureExamSchema($db);
 
     // Support multipart/form-data (method override via _method=PUT)
@@ -687,11 +687,6 @@ function updateExam($db, $id) {
         Response::notFound('Exam not found');
     }
 
-    // Teachers may only edit their own exams OR exams with no assigned teacher
-    if ($user['role'] === 'teacher' && !empty($existing['teacher_id']) && (string)$existing['teacher_id'] !== (string)$user['user_id']) {
-        Response::forbidden('You can only update exams assigned to you');
-    }
-
     $data = [];
 
     $allowedFields = ['title', 'start_time', 'end_time', 'lesson_id', 'description', 'total_marks', 'subject_id', 'class_id', 'teacher_id', 'date'];
@@ -703,11 +698,6 @@ function updateExam($db, $id) {
                 $data[$field] = $input[$field];
             }
         }
-    }
-
-    // If teacher role updates and teacher_id not in payload, auto-assign their own ID
-    if ($user['role'] === 'teacher' && !isset($data['teacher_id'])) {
-        $data['teacher_id'] = $user['user_id'];
     }
 
     // Keep date updated with start_time

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
 
 type Entity =
   | "teacher" | "student" | "parent" | "subject" | "class" | "lesson"
@@ -161,17 +160,7 @@ const formatInputValue = (field: Field, value: any) => {
 };
 
 const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }) => {
-  const { role } = useAuth();
-
-  // For teachers creating/editing exams, remove the teacher_id field entirely —
-  // the backend auto-assigns it from their JWT token.
-  const fields = useMemo(() => {
-    const base = fieldsByEntity[entity];
-    if (entity === "exam" && role === "teacher") {
-      return base.filter((f) => f.name !== "teacher_id");
-    }
-    return base;
-  }, [entity, role]);
+  const fields = fieldsByEntity[entity];
   const [values, setValues] = useState<Record<string, any>>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
