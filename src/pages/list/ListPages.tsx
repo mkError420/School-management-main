@@ -1,4 +1,4 @@
-﻿// Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
+// Generic list page factory — used for Subjects, Classes, Lessons, Exams, Assignments, Results, Attendance, Events, Announcements
 
 import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
@@ -187,21 +187,60 @@ export const ExamsPage: React.FC = () => {
     { header: "Exam Title", accessor: "title" },
     { header: "Subject", accessor: "subject", className: "hidden md:table-cell" },
     { header: "Class", accessor: "class", className: "hidden md:table-cell" },
-    { header: "Teacher", accessor: "teacher", className: "hidden md:table-cell" },
+    { header: "Teacher", accessor: "teacher", className: "hidden lg:table-cell" },
     { header: "Date", accessor: "date", className: "hidden lg:table-cell" },
+    { header: "Marks", accessor: "marks", className: "hidden md:table-cell" },
+    { header: "Routine", accessor: "routine" },
     { header: "Actions", accessor: "actions" },
   ];
 
   const renderRow = (item: any) => (
     <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
-      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
+      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
+        {item.title}
+        {item.description && (
+          <p className="text-xs font-normal text-gray-400 truncate max-w-[180px]">{item.description}</p>
+        )}
+      </td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.subject_name || "—"}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
+      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
       </td>
       <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
         {item.start_time ? new Date(item.start_time).toLocaleDateString() : "—"}
+      </td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
+        {item.total_marks ? `${item.total_marks} pts` : "—"}
+      </td>
+      {/* Routine attachment badge */}
+      <td>
+        {item.attachment_url ? (
+          <a
+            href={item.attachment_url}
+            target="_blank"
+            rel="noreferrer"
+            title={item.attachment_original_name || "View routine"}
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold
+              bg-emerald-100 text-emerald-800 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300
+              transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {item.attachment_mime_type === 'application/pdf' ? (
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
+              </svg>
+            ) : (
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M3 9l4-4 4 4 4-6 4 6"/>
+              </svg>
+            )}
+            Routine
+          </a>
+        ) : (
+          <span className="text-gray-400 text-xs">—</span>
+        )}
       </td>
       <td>
         <div className="flex items-center gap-2">
@@ -219,7 +258,14 @@ export const ExamsPage: React.FC = () => {
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Exams</h1>
+        <div>
+          <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Exams</h1>
+          <p className="hidden md:block text-xs text-gray-400 mt-0.5">
+            {role === 'admin' ? 'Manage exams and upload exam routines (PDF/image)' :
+             role === 'teacher' ? 'Your class exams and routine documents' :
+             'Upcoming exams and downloadable routine schedules'}
+          </p>
+        </div>
         <div className="flex gap-3 items-center">
           <TableSearch value={search} onChange={setSearch} placeholder="Search exams..." />
           {(role === "admin" || role === "teacher") && <FormModal table="exam" type="create" onSuccess={fetchData} />}

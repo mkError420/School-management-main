@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 
 type Entity =
@@ -9,7 +9,7 @@ type SelectOption = { value: string; label: string };
 type Field = {
   name: string;
   label: string;
-  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select" | "multiselect" | "checkbox" | "file";
+  type?: "text" | "email" | "password" | "number" | "date" | "datetime-local" | "textarea" | "select" | "multiselect" | "checkbox" | "file" | "pdf-image";
   required?: boolean;
   options?: SelectOption[];
   resource?: string;
@@ -17,6 +17,8 @@ type Field = {
   resourcesByValue?: Record<string, string>;
   min?: number;
   max?: number;
+  accept?: string;
+  hint?: string;
 };
 
 const collectionNames: Record<string, string> = {
@@ -88,10 +90,19 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "teacher_id", label: "Teacher", type: "select", required: true, resource: "teachers" },
   ],
   exam: [
-    { name: "title", label: "Exam title", required: true },
+    { name: "title", label: "Exam / Routine Title", required: true },
+    { name: "description", label: "Description", type: "textarea" },
     { name: "start_time", label: "Start time", type: "datetime-local", required: true },
     { name: "end_time", label: "End time", type: "datetime-local", required: true },
+    { name: "total_marks", label: "Total marks", type: "number", min: 1 },
     { name: "lesson_id", label: "Lesson", type: "select", required: true, resource: "lessons" },
+    {
+      name: "routine_attachment",
+      label: "Exam Routine (PDF or Image)",
+      type: "pdf-image",
+      accept: "application/pdf,image/jpeg,image/png,image/webp,image/gif",
+      hint: "PDF, JPG, PNG, WebP or GIF — max 20 MB",
+    },
   ],
   assignment: [
     { name: "title", label: "Assignment title", required: true },
@@ -151,6 +162,12 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
   const [values, setValues] = useState<Record<string, any>>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Exam routine attachment state
+  const [routineFile, setRoutineFile] = useState<File | null>(null);
+  const [routinePreview, setRoutinePreview] = useState<string | null>(null); // image preview URL
+  const [removeAttachment, setRemoveAttachment] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const routineInputRef = useRef<HTMLInputElement>(null);
   const [options, setOptions] = useState<Record<string, SelectOption[]>>({});
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -185,7 +202,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     fields.forEach((field) => {
       if (field.name === "password") {
         initialValues[field.name] = "";
-      } else if (field.type === "file") {
+      } else if (field.type === "file" || field.type === "pdf-image") {
         initialValues[field.name] = null;
       } else if (entity === "teacher" && field.name === "subject_ids") {
         initialValues[field.name] = data?.subjects?.map((item: any) => String(item.id)) || [];
@@ -203,7 +220,22 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     });
     setValues(initialValues);
     setSelectedImage(null);
+    // Reset routine attachment state when data/entity changes
+    setRoutineFile(null);
+    setRoutinePreview(null);
+    setRemoveAttachment(false);
   }, [data, entity, fields]);
+
+  // Build image preview URL for newly-selected routine file
+  useEffect(() => {
+    if (!routineFile) { setRoutinePreview(null); return; }
+    if (routineFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(routineFile);
+      setRoutinePreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setRoutinePreview(null);
+  }, [routineFile]);
 
   useEffect(() => {
     if (!selectedImage) {
@@ -222,6 +254,23 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     setError(null);
   };
 
+  // Validate & set a routine attachment file
+  const applyRoutineFile = (file: File | null) => {
+    if (!file) return;
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowed.includes(file.type)) {
+      setError('Only PDF, JPG, PNG, WebP, or GIF files are allowed.');
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setError('File must be 20 MB or smaller.');
+      return;
+    }
+    setError(null);
+    setRoutineFile(file);
+    setRemoveAttachment(false);
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
@@ -230,7 +279,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     const payload: Record<string, any> = {};
     fields.forEach((field) => {
       if (field.name === "result_type" || field.name === "assessment_id") return;
-      if (field.type === "file") return;
+      if (field.type === "file" || field.type === "pdf-image") return;
       const value = values[field.name];
       if (field.name === "username" && type === "update") return;
       if (field.type === "datetime-local" && value) payload[field.name] = String(value).replace("T", " ") + (String(value).length === 16 ? ":00" : "");
@@ -247,7 +296,10 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
 
     try {
       let response;
-      if ((entity === "teacher" || entity === "student" || entity === "parent") && selectedImage) {
+      const needsProfileImage = (entity === "teacher" || entity === "student" || entity === "parent") && selectedImage;
+      const needsRoutine = entity === "exam" && (routineFile || removeAttachment);
+
+      if (needsProfileImage || needsRoutine) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
           if (Array.isArray(value)) {
@@ -256,7 +308,9 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
             formData.append(key, String(value));
           }
         });
-        formData.append("img", selectedImage, selectedImage.name);
+        if (needsProfileImage) formData.append("img", selectedImage!, selectedImage!.name);
+        if (routineFile) formData.append("routine_attachment", routineFile, routineFile.name);
+        if (removeAttachment) formData.append("remove_attachment", "1");
         response = type === "create"
           ? await api.create(apiResources[entity], formData)
           : await api.update(apiResources[entity], data?.id, formData);
@@ -336,6 +390,136 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                     <p className="mt-2 text-xs text-gray-500">JPG, PNG, or WebP. Maximum file size 5 MB.</p>
                     {type === "update" && data?.img && !selectedImage && <p className="mt-1 text-xs text-gray-500">Choose a new image to replace the current photo.</p>}
                   </div>
+                </div>
+              </div>
+            );
+          }
+
+          // ── PDF / Image upload widget (exam routines) ──────────────────────
+          if (field.type === "pdf-image") {
+            const existingAttachmentName = data?.attachment_original_name as string | undefined;
+            const existingAttachmentMime = data?.attachment_mime_type as string | undefined;
+            const existingAttachmentUrl  = data?.attachment_url as string | undefined;
+            const hasExisting = !removeAttachment && !!existingAttachmentName && !routineFile;
+            const isPdf = routineFile
+              ? routineFile.type === 'application/pdf'
+              : existingAttachmentMime === 'application/pdf';
+
+            const formatBytes = (bytes: number) => {
+              if (bytes < 1024) return `${bytes} B`;
+              if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+              return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+            };
+
+            return (
+              <div key={field.name} className="sm:col-span-2 flex flex-col gap-2 text-sm text-gray-700">
+                <span className="font-medium">{field.label}</span>
+
+                {/* Drop zone */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    const dropped = e.dataTransfer.files?.[0];
+                    if (dropped) applyRoutineFile(dropped);
+                  }}
+                  onClick={() => routineInputRef.current?.click()}
+                  className={`relative cursor-pointer rounded-xl border-2 border-dashed p-5 transition-all
+                    ${ dragOver
+                      ? 'border-sky-500 bg-sky-50 dark:bg-sky-900/20'
+                      : 'border-gray-300 bg-gray-50 hover:border-sky-400 hover:bg-sky-50/60 dark:bg-gray-700/40 dark:border-gray-600'
+                    }`}
+                >
+                  <input
+                    ref={routineInputRef}
+                    type="file"
+                    accept={field.accept || 'application/pdf,image/*'}
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) applyRoutineFile(f);
+                      e.target.value = '';
+                    }}
+                  />
+
+                  {/* Preview area */}
+                  {(routineFile || hasExisting) ? (
+                    <div className="flex items-start gap-4">
+                      {/* Thumbnail */}
+                      {isPdf ? (
+                        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                          <svg className="h-10 w-10 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
+                          </svg>
+                        </div>
+                      ) : routinePreview ? (
+                        <img src={routinePreview} alt="Preview" className="h-20 w-20 flex-shrink-0 rounded-lg border border-gray-200 object-cover" />
+                      ) : (
+                        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                          <svg className="h-10 w-10 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <path d="M3 9l4-4 4 4 4-6 4 6"/>
+                          </svg>
+                        </div>
+                      )}
+
+                      {/* File info */}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-gray-800 dark:text-gray-100">
+                          {routineFile ? routineFile.name : existingAttachmentName}
+                        </p>
+                        {routineFile && (
+                          <p className="text-xs text-gray-500 mt-0.5">{formatBytes(routineFile.size)} &middot; {routineFile.type}</p>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); routineInputRef.current?.click(); }}
+                            className="rounded-md bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800 hover:bg-sky-200 dark:bg-sky-900/40 dark:text-sky-300"
+                          >
+                            Replace file
+                          </button>
+                          {hasExisting && existingAttachmentUrl && (
+                            <a
+                              href={existingAttachmentUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="rounded-md bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300"
+                            >
+                              View current
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRoutineFile(null);
+                              setRoutinePreview(null);
+                              if (hasExisting) setRemoveAttachment(true);
+                            }}
+                            className="rounded-md bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Empty state */
+                    <div className="flex flex-col items-center gap-2 py-4 text-center">
+                      <svg className="h-10 w-10 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M12 16v-8m-4 4l4-4 4 4" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M20 16.7V18a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1.3" strokeLinecap="round"/>
+                      </svg>
+                      <div>
+                        <p className="font-semibold text-sky-600 dark:text-sky-400">Click or drag &amp; drop to upload</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{field.hint || 'PDF or image — max 20 MB'}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -198,6 +198,27 @@ class ApiService {
     return response.blob();
   }
 
+  async downloadExamAttachment(examId: number | string): Promise<{ blob: Blob; filename: string; mime: string }> {
+    const response = await fetch(
+      `${API_BASE_URL}/exams?action=attachment&id=${encodeURIComponent(String(examId))}`,
+      { headers: { Authorization: `Bearer ${this.getToken() || ''}` } }
+    );
+    if (!response.ok) {
+      let message = 'Attachment download failed.';
+      try {
+        const result = JSON.parse(await response.text());
+        message = result.message || message;
+      } catch { /* ignore */ }
+      throw new Error(message);
+    }
+    const contentDisposition = response.headers.get('Content-Disposition') || '';
+    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+    const filename = filenameMatch ? filenameMatch[1] : 'exam_routine';
+    const mime = response.headers.get('Content-Type') || 'application/octet-stream';
+    const blob = await response.blob();
+    return { blob, filename, mime };
+  }
+
   // Fee Management
   async getFeeStats() {
     return this.request('fees?action=stats', { method: 'GET' });
