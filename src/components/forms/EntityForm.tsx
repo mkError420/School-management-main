@@ -19,6 +19,8 @@ type Field = {
   max?: number;
   accept?: string;
   hint?: string;
+  colSpan?: number;
+  placeholder?: string;
 };
 
 const collectionNames: Record<string, string> = {
@@ -90,18 +92,19 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "teacher_id", label: "Teacher", type: "select", required: true, resource: "teachers" },
   ],
   exam: [
-    { name: "title", label: "Exam / Routine Title", required: true },
-    { name: "description", label: "Description", type: "textarea" },
-    { name: "start_time", label: "Start time", type: "datetime-local", required: true },
-    { name: "end_time", label: "End time", type: "datetime-local", required: true },
-    { name: "total_marks", label: "Total marks", type: "number", min: 1 },
-    { name: "lesson_id", label: "Lesson", type: "select", required: true, resource: "lessons" },
+    { name: "title", label: "Exam Title", required: true, colSpan: 2, placeholder: "e.g. Midterm Examination" },
+    { name: "subject_id", label: "Subject", type: "select", required: true, resource: "subjects" },
+    { name: "class_id", label: "Class", type: "select", required: true, resource: "classes" },
+    { name: "teacher_id", label: "Teacher", type: "select", required: true, resource: "teachers" },
+    { name: "start_time", label: "Date", type: "datetime-local", required: true },
+    { name: "total_marks", label: "Marks", type: "number", min: 1, placeholder: "e.g. 100" },
     {
       name: "routine_attachment",
-      label: "Exam Routine (PDF or Image)",
+      label: "Routine",
       type: "pdf-image",
       accept: "application/pdf,image/jpeg,image/png,image/webp,image/gif",
-      hint: "PDF, JPG, PNG, WebP or GIF — max 20 MB",
+      hint: "Upload routine schedule (PDF or Image) — max 20 MB",
+      colSpan: 2,
     },
   ],
   assignment: [
@@ -530,16 +533,18 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
           const inputClass = "w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-sky-500";
           const label = <span>{field.label}{field.required ? " *" : ""}</span>;
 
+          const colSpanClass = field.colSpan === 2 || field.type === "textarea" ? "sm:col-span-2" : "";
+
           return (
-            <label key={field.name} className={`flex flex-col gap-1.5 text-sm text-gray-700 ${field.type === "textarea" ? "sm:col-span-2" : ""}`}>
+            <label key={field.name} className={`flex flex-col gap-1.5 text-sm text-gray-700 ${colSpanClass}`}>
               {label}
               {field.type === "textarea" ? (
-                <textarea required={field.required} value={values[field.name] ?? ""} onChange={(event) => setValue(field.name, event.target.value)} rows={3} className={inputClass} />
+                <textarea required={field.required} value={values[field.name] ?? ""} onChange={(event) => setValue(field.name, event.target.value)} rows={3} className={inputClass} placeholder={field.placeholder} />
               ) : field.type === "select" || field.type === "multiselect" ? (
                 <select
                   required={field.required}
                   multiple={field.type === "multiselect"}
-                  value={values[field.name] ?? (field.type === "multiselect" ? [] : "")}
+                  value={field.type === "multiselect" ? (values[field.name] ?? []) : (values[field.name] != null ? String(values[field.name]) : "")}
                   onChange={(event) => setValue(field.name, field.type === "multiselect" ? Array.from(event.target.selectedOptions, (option) => option.value) : event.target.value)}
                   className={`${inputClass} ${field.type === "multiselect" ? "min-h-24" : ""}`}
                 >
@@ -553,6 +558,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                   disabled={field.name === "username" && type === "update"}
                   min={field.min}
                   max={field.max}
+                  placeholder={field.placeholder}
                   minLength={field.type === "password" ? 6 : undefined}
                   autoComplete={field.type === "password" ? "new-password" : undefined}
                   value={values[field.name] ?? ""}
