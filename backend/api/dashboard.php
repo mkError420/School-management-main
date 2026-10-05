@@ -25,6 +25,13 @@ try {
     $teacherCount = $db->fetchOne("SELECT COUNT(*) as total FROM teachers")['total'] ?? 0;
     $parentCount = $db->fetchOne("SELECT COUNT(*) as total FROM parents")['total'] ?? 0;
     $adminCount = $db->fetchOne("SELECT COUNT(*) as total FROM admins")['total'] ?? 0;
+    $staffCount = 0;
+    try {
+        $staffCount = $db->fetchOne("SELECT COUNT(*) as total FROM staff")['total'] ?? 0;
+    } catch (Exception $e) {}
+    if ($staffCount == 0) {
+        $staffCount = $adminCount;
+    }
     $classCount = $db->fetchOne("SELECT COUNT(*) as total FROM classes")['total'] ?? 0;
     $lessonCount = $db->fetchOne("SELECT COUNT(*) as total FROM lessons")['total'] ?? 0;
 
@@ -95,7 +102,7 @@ try {
             'students' => $studentCount,
             'teachers' => $teacherCount,
             'parents' => $parentCount,
-            'staff' => $adminCount,
+            'staff' => $staffCount,
             'classes' => $classCount,
             'lessons' => $lessonCount
         ],

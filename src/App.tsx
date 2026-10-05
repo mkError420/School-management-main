@@ -38,6 +38,7 @@ import AdmissionsPage from "@/pages/AdmissionsPage";
 import FeesPage from "@/pages/FeesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import RevenuePage from "@/pages/RevenuePage";
+import StaffPage from "@/pages/StaffPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -91,6 +92,7 @@ const App: React.FC = () => {
           {/* List Routes */}
           <Route path="list/teachers" element={<TeachersPage />} />
           <Route path="list/teachers/:id" element={<SingleTeacherPage />} />
+          <Route path="list/staff" element={<AdminRoute><StaffPage /></AdminRoute>} />
           <Route path="list/students" element={<StudentsPage />} />
           <Route path="list/students/:id" element={<SingleStudentPage />} />
           <Route path="list/parents" element={<ParentsPage />} />
@@ -114,6 +116,7 @@ const App: React.FC = () => {
           <Route path="fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
           <Route path="expenses" element={<AdminRoute><ExpensesPage /></AdminRoute>} />
           <Route path="revenue" element={<AdminRoute><RevenuePage /></AdminRoute>} />
+          <Route path="staff" element={<AdminRoute><StaffPage /></AdminRoute>} />
 
           {/* Catch-all redirect */}
           <Route path="*" element={<Navigate to="/" replace />} />

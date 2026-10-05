@@ -184,25 +184,25 @@ const RevenueSection: React.FC = () => {
           if (catRes.success && Array.isArray(catRes.data?.categories)) {
             rawFeeCats = catRes.data.categories;
           }
-        } catch {}
+        } catch { }
 
         // Fallback to localStorage for Fees if API returned empty
         if (rawInvoices.length === 0) {
           const storedInv = localStorage.getItem("mk_school_fees_invoices");
           if (storedInv) {
-            try { rawInvoices = JSON.parse(storedInv); } catch {}
+            try { rawInvoices = JSON.parse(storedInv); } catch { }
           }
         }
         if (rawPayments.length === 0) {
           const storedPay = localStorage.getItem("mk_school_fee_payments");
           if (storedPay) {
-            try { rawPayments = JSON.parse(storedPay); } catch {}
+            try { rawPayments = JSON.parse(storedPay); } catch { }
           }
         }
         if (rawFeeCats.length === 0) {
           const storedCats = localStorage.getItem("mk_school_fee_categories");
           if (storedCats) {
-            try { rawFeeCats = JSON.parse(storedCats); } catch {}
+            try { rawFeeCats = JSON.parse(storedCats); } catch { }
           }
         }
 
@@ -215,13 +215,13 @@ const RevenueSection: React.FC = () => {
           } else if (Array.isArray(raw)) {
             rawExpenses = raw;
           }
-        } catch {}
+        } catch { }
 
         // Fallback to localStorage for Expenses if empty
         if (rawExpenses.length === 0) {
           const storedExp = localStorage.getItem("mk_school_expenses");
           if (storedExp) {
-            try { rawExpenses = JSON.parse(storedExp); } catch {}
+            try { rawExpenses = JSON.parse(storedExp); } catch { }
           }
         }
 
@@ -639,9 +639,6 @@ const RevenueSection: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-500/20">
-                <Scale size={24} />
-              </div>
               <div>
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
                   Revenue & Financial Performance
@@ -757,14 +754,10 @@ const RevenueSection: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Revenue (Fees Inflow) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
               Total Revenue (Fees)
             </span>
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
-              <TrendingUp size={18} />
-            </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
@@ -786,14 +779,10 @@ const RevenueSection: React.FC = () => {
 
         {/* Card 2: Total Operating Expenses */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400">
               Total Expenses
             </span>
-            <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
-              <TrendingDown size={18} />
-            </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
@@ -816,41 +805,29 @@ const RevenueSection: React.FC = () => {
         {/* Card 3: Net Revenue (Surplus / Deficit) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition">
           <div
-            className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full pointer-events-none group-hover:scale-110 transition ${
-              summary.net_revenue >= 0 ? "bg-indigo-500/10" : "bg-red-500/10"
-            }`}
+            className={`absolute top-0 right-0 w-24 h-24 rounded-bl-full pointer-events-none group-hover:scale-110 transition ${summary.net_revenue >= 0 ? "bg-indigo-500/10" : "bg-red-500/10"
+              }`}
           />
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
               Net Revenue / Profit
             </span>
-            <div
-              className={`p-2 rounded-xl border ${
-                summary.net_revenue >= 0
-                  ? "bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800"
-                  : "bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 border-red-100 dark:border-red-800"
-              }`}
-            >
-              <Coins size={18} />
-            </div>
           </div>
           <div className="mt-3">
             <div
-              className={`text-2xl font-black tracking-tight ${
-                summary.net_revenue >= 0
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-rose-600 dark:text-rose-400"
-              }`}
+              className={`text-2xl font-black tracking-tight ${summary.net_revenue >= 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-rose-600 dark:text-rose-400"
+                }`}
             >
               {loading ? "..." : (summary.net_revenue < 0 ? "-" : "+") + fmt(Math.abs(summary.net_revenue))}
             </div>
             <div className="flex items-center gap-1.5 mt-2 text-xs">
               <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                  summary.net_revenue >= 0
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                    : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                }`}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full font-bold text-[10px] ${summary.net_revenue >= 0
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                  : "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300"
+                  }`}
               >
                 {summary.net_revenue >= 0 ? "+" : ""}
                 {summary.profit_margin}% Margin
@@ -868,14 +845,10 @@ const RevenueSection: React.FC = () => {
 
         {/* Card 4: Operating Health & Ratio */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm relative overflow-hidden group hover:shadow-md transition">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 rounded-bl-full pointer-events-none group-hover:scale-110 transition" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400">
               Financial Health
             </span>
-            <div className="p-2 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 border border-sky-100 dark:border-sky-800">
-              <Sparkles size={18} />
-            </div>
           </div>
           <div className="mt-3">
             {summary.total_income > 0 ? (
@@ -902,11 +875,10 @@ const RevenueSection: React.FC = () => {
       <div className="flex items-center border-b border-gray-200 dark:border-gray-700 gap-2 overflow-x-auto">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${
-            activeTab === "overview"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${activeTab === "overview"
+            ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
+            : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
         >
           <BarChart3 size={16} />
           <span>Overview & Visual Trends</span>
@@ -914,11 +886,10 @@ const RevenueSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("breakdown")}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${
-            activeTab === "breakdown"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${activeTab === "breakdown"
+            ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
+            : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
         >
           <PieChart size={16} />
           <span>Category Inflows & Outflows</span>
@@ -926,11 +897,10 @@ const RevenueSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("transactions")}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${
-            activeTab === "transactions"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${activeTab === "transactions"
+            ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
+            : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
         >
           <Receipt size={16} />
           <span>Cash Flow Ledger ({filteredTransactions.length})</span>
@@ -938,11 +908,10 @@ const RevenueSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("statement")}
-          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${
-            activeTab === "statement"
-              ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
-              : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`flex items-center gap-2 py-3 px-4 font-semibold text-sm border-b-2 transition whitespace-nowrap ${activeTab === "statement"
+            ? "border-emerald-600 text-emerald-600 dark:text-emerald-400"
+            : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+            }`}
         >
           <FileText size={16} />
           <span>Profit & Loss Statement</span>
@@ -970,33 +939,30 @@ const RevenueSection: React.FC = () => {
               <div className="flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl text-xs">
                 <button
                   onClick={() => setChartType("bars")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${
-                    chartType === "bars"
-                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
-                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${chartType === "bars"
+                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                    }`}
                 >
                   <BarChart3 size={14} />
                   <span>Bar Chart</span>
                 </button>
                 <button
                   onClick={() => setChartType("area")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${
-                    chartType === "area"
-                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
-                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${chartType === "area"
+                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                    }`}
                 >
                   <TrendingUp size={14} />
                   <span>Area Chart</span>
                 </button>
                 <button
                   onClick={() => setChartType("net")}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${
-                    chartType === "net"
-                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
-                      : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-medium transition ${chartType === "net"
+                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                    }`}
                 >
                   <LineChartIcon size={14} />
                   <span>Net Margin</span>
@@ -1131,9 +1097,8 @@ const RevenueSection: React.FC = () => {
                           {fmt(row.expense)}
                         </td>
                         <td
-                          className={`py-3 px-4 text-right font-bold ${
-                            isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                          }`}
+                          className={`py-3 px-4 text-right font-bold ${isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                            }`}
                         >
                           {(row.net < 0 ? "-" : "+") + fmt(Math.abs(row.net))}
                         </td>
@@ -1143,11 +1108,10 @@ const RevenueSection: React.FC = () => {
                         <td className="py-3 px-4 text-center">
                           {hasActivity ? (
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                isPositive
-                                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                  : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
-                              }`}
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${isPositive
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                                : "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
+                                }`}
                             >
                               {isPositive ? "Surplus" : "Deficit"}
                             </span>
@@ -1169,9 +1133,8 @@ const RevenueSection: React.FC = () => {
                       {fmt(summary.total_expenses)}
                     </td>
                     <td
-                      className={`py-3.5 px-4 text-right text-sm ${
-                        summary.net_revenue >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
-                      }`}
+                      className={`py-3.5 px-4 text-right text-sm ${summary.net_revenue >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                        }`}
                     >
                       {(summary.net_revenue < 0 ? "-" : "+") + fmt(Math.abs(summary.net_revenue))}
                     </td>
@@ -1180,11 +1143,10 @@ const RevenueSection: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-black ${
-                          summary.net_revenue >= 0
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
-                            : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200"
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-black ${summary.net_revenue >= 0
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200"
+                          : "bg-rose-100 text-rose-800 dark:bg-rose-900/60 dark:text-rose-200"
+                          }`}
                       >
                         {summary.net_revenue >= 0 ? "SURPLUS" : "DEFICIT"}
                       </span>
@@ -1412,11 +1374,10 @@ const RevenueSection: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                              isIncome
-                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                                : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[10px] ${isIncome
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                              : "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                              }`}
                           >
                             {isIncome ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                             {isIncome ? "Income" : "Expense"}
@@ -1438,23 +1399,21 @@ const RevenueSection: React.FC = () => {
                           {t.payment_method}
                         </td>
                         <td
-                          className={`py-3 px-4 text-right font-black text-sm ${
-                            isIncome
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-rose-600 dark:text-rose-400"
-                          }`}
+                          className={`py-3 px-4 text-right font-black text-sm ${isIncome
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
+                            }`}
                         >
                           {isIncome ? "+" : "-"}{fmt(t.amount)}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              t.status === "PAID"
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                : t.status === "APPROVED"
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${t.status === "PAID"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                              : t.status === "APPROVED"
                                 ? "bg-sky-50 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
                                 : "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                            }`}
+                              }`}
                           >
                             {t.status}
                           </span>
