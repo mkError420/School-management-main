@@ -1,22 +1,20 @@
-import React, { useEffect, useState } from "react";
-import UserCard from "@/components/UserCard";
+import React from "react";
+import DashboardStatsCards from "@/components/DashboardStatsCards";
 import CountChart from "@/components/CountChart";
 import AttendanceChart from "@/components/AttendanceChart";
 import FinanceChart from "@/components/FinanceChart";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
 import AdmissionSection from "@/components/AdmissionSection";
-import ExpenseSection from "@/components/expenses/ExpenseSection";
 import { api } from "@/lib/api";
+import { useEffect, useState } from "react";
 
 const AdminPage: React.FC = () => {
-  const [counts, setCounts] = useState({ students: 0, teachers: 0, parents: 0, staff: 0 });
   const [gender, setGender] = useState({ boys: 0, girls: 0 });
 
   useEffect(() => {
     api.getDashboard().then((res) => {
       if (res.success && res.data) {
-        setCounts(res.data.counts || {});
         setGender(res.data.gender || { boys: 0, girls: 0 });
       }
     }).catch(() => {});
@@ -26,13 +24,8 @@ const AdminPage: React.FC = () => {
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* LEFT */}
       <div className="w-full lg:w-2/3 flex flex-col gap-6">
-        {/* User Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <UserCard type="student" count={counts.students || undefined} />
-          <UserCard type="teacher" count={counts.teachers || undefined} />
-          <UserCard type="parent" count={counts.parents || undefined} />
-          <UserCard type="staff" count={counts.staff || undefined} />
-        </div>
+        {/* Dynamic Top Stats Cards (People + Finance KPIs) */}
+        <DashboardStatsCards />
 
         {/* Admissions Section - Showing last 5 applications on Home page */}
         <AdmissionSection maxItems={5} showViewAllLink />
@@ -51,9 +44,6 @@ const AdminPage: React.FC = () => {
         <div className="w-full min-h-[520px]">
           <FinanceChart />
         </div>
-
-        {/* Expense Section - Temporarily commented for debugging */}
-        {/* <ExpenseSection /> */}
       </div>
 
       {/* RIGHT */}
