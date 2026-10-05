@@ -220,7 +220,7 @@ const FeesSection: React.FC = () => {
         if (stored) {
           try {
             loadedInvoices = JSON.parse(stored);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -229,7 +229,7 @@ const FeesSection: React.FC = () => {
         if (storedCats) {
           try {
             loadedCategories = JSON.parse(storedCats);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -238,7 +238,7 @@ const FeesSection: React.FC = () => {
         if (storedPays) {
           try {
             loadedPayments = JSON.parse(storedPays);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -723,7 +723,7 @@ const FeesSection: React.FC = () => {
         academic_year: bulkForm.academic_year,
         notes: bulkForm.notes,
       });
-    } catch {}
+    } catch { }
 
     const newInvoices: FeeInvoice[] = targetStudents.map((st, i) => {
       const invNo = `INV-${new Date().getFullYear()}-${String(invoices.length + i + 101).padStart(4, "0")}`;
@@ -809,7 +809,7 @@ const FeesSection: React.FC = () => {
         transaction_ref: payForm.transaction_ref,
         notes: payForm.notes,
       });
-    } catch {}
+    } catch { }
 
     const newPaymentRecord: FeePayment = {
       id: Date.now(),
@@ -925,16 +925,16 @@ const FeesSection: React.FC = () => {
         notes: editInvoiceModal.notes,
         status: newStatus,
       });
-    } catch {}
+    } catch { }
 
     const updated = invoices.map((inv) =>
       inv.id === editInvoiceModal.id
         ? {
-            ...editInvoiceModal,
-            net_amount: net,
-            due_amount: Math.max(0, net - paid),
-            status: newStatus,
-          }
+          ...editInvoiceModal,
+          net_amount: net,
+          due_amount: Math.max(0, net - paid),
+          status: newStatus,
+        }
         : inv
     );
 
@@ -967,7 +967,7 @@ const FeesSection: React.FC = () => {
 
       try {
         await api.createFeeCategory(newCat);
-      } catch {}
+      } catch { }
 
       const updated = [...categories, newCat];
       setCategories(updated);
@@ -978,20 +978,20 @@ const FeesSection: React.FC = () => {
       const updated = categories.map((c) =>
         c.id === catId
           ? {
-              ...c,
-              name: categoryForm.name.trim(),
-              code: categoryForm.code.trim().toUpperCase(),
-              default_amount: Number(categoryForm.default_amount),
-              frequency: categoryForm.frequency,
-              status: categoryForm.status,
-              description: categoryForm.description,
-            }
+            ...c,
+            name: categoryForm.name.trim(),
+            code: categoryForm.code.trim().toUpperCase(),
+            default_amount: Number(categoryForm.default_amount),
+            frequency: categoryForm.frequency,
+            status: categoryForm.status,
+            description: categoryForm.description,
+          }
           : c
       );
 
       try {
         await api.updateFeeCategory(catId, categoryForm);
-      } catch {}
+      } catch { }
 
       setCategories(updated);
       syncToLocalStorage(invoices, payments, updated);
@@ -1006,7 +1006,7 @@ const FeesSection: React.FC = () => {
     if (deleteConfirm.type === "invoice") {
       try {
         await api.delete("fees", deleteConfirm.id);
-      } catch {}
+      } catch { }
       const updatedInvs = invoices.filter((i) => i.id !== deleteConfirm.id);
       const updatedPays = payments.filter((p) => p.invoice_id !== deleteConfirm.id);
       setInvoices(updatedInvs);
@@ -1016,7 +1016,7 @@ const FeesSection: React.FC = () => {
     } else if (deleteConfirm.type === "category") {
       try {
         await api.deleteFeeCategory(deleteConfirm.id);
-      } catch {}
+      } catch { }
       const updated = categories.filter((c) => c.id !== deleteConfirm.id);
       setCategories(updated);
       syncToLocalStorage(invoices, payments, updated);
@@ -1092,11 +1092,10 @@ const FeesSection: React.FC = () => {
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all ${
-            notification.type === "success"
-              ? "bg-emerald-500 text-white border-emerald-600"
-              : "bg-rose-500 text-white border-rose-600"
-          }`}
+          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all ${notification.type === "success"
+            ? "bg-emerald-500 text-white border-emerald-600"
+            : "bg-rose-500 text-white border-rose-600"
+            }`}
         >
           {notification.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{notification.message}</span>
@@ -1284,11 +1283,10 @@ const FeesSection: React.FC = () => {
       <div className="flex border-b border-gray-200 gap-1 overflow-x-auto custom-scrollbar">
         <button
           onClick={() => setActiveTab("invoices")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${
-            activeTab === "invoices"
-              ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "invoices"
+            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
         >
           <FileText size={17} />
           <span>All Invoices</span>
@@ -1299,11 +1297,10 @@ const FeesSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("payments")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${
-            activeTab === "payments"
-              ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "payments"
+            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
         >
           <CreditCard size={17} />
           <span>Payment Log</span>
@@ -1314,11 +1311,10 @@ const FeesSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("categories")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${
-            activeTab === "categories"
-              ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "categories"
+            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
         >
           <Tag size={17} />
           <span>Fee Structures & Categories</span>
@@ -1329,11 +1325,10 @@ const FeesSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("class_summary")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${
-            activeTab === "class_summary"
-              ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
-              : "border-transparent text-gray-500 hover:text-gray-800"
-          }`}
+          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "class_summary"
+            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            : "border-transparent text-gray-500 hover:text-gray-800"
+            }`}
         >
           <Building2 size={17} />
           <span>Class Collection Summary</span>
@@ -1379,11 +1374,10 @@ const FeesSection: React.FC = () => {
                       setStatusFilter(st);
                       setCurrentPage(1);
                     }}
-                    className={`px-3 py-1.5 rounded-lg transition ${
-                      statusFilter === st
-                        ? "bg-purple-600 text-white font-semibold shadow-xs"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg transition ${statusFilter === st
+                      ? "bg-purple-600 text-white font-semibold shadow-xs"
+                      : "text-gray-600 hover:text-gray-900"
+                      }`}
                   >
                     {st === "ALL" ? "All" : st.charAt(0) + st.slice(1).toLowerCase()}
                   </button>
@@ -1562,10 +1556,10 @@ const FeesSection: React.FC = () => {
               </tbody>
               {/* Column Totals Footer */}
               {paginatedInvoices.length > 0 && (() => {
-                const totAmt  = filteredInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
+                const totAmt = filteredInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
                 const totDisc = filteredInvoices.reduce((s, i) => s + Number(i.discount || 0), 0);
                 const totPaid = filteredInvoices.reduce((s, i) => s + Number(i.paid_amount || 0), 0);
-                const totDue  = filteredInvoices.reduce((s, i) => {
+                const totDue = filteredInvoices.reduce((s, i) => {
                   const net = Number(i.amount) - Number(i.discount || 0);
                   return s + Math.max(0, net - Number(i.paid_amount || 0));
                 }, 0);
@@ -1622,11 +1616,10 @@ const FeesSection: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => setCurrentPage(idx + 1)}
-                    className={`w-8 h-8 rounded-lg font-semibold transition ${
-                      currentPage === idx + 1
-                        ? "bg-purple-600 text-white"
-                        : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
+                    className={`w-8 h-8 rounded-lg font-semibold transition ${currentPage === idx + 1
+                      ? "bg-purple-600 text-white"
+                      : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
                   >
                     {idx + 1}
                   </button>
@@ -1800,11 +1793,10 @@ const FeesSection: React.FC = () => {
                         {cat.code}
                       </span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          cat.status === "ACTIVE"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.status === "ACTIVE"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-gray-100 text-gray-600"
+                          }`}
                       >
                         {cat.status}
                       </span>
@@ -1999,7 +1991,7 @@ const FeesSection: React.FC = () => {
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} (${c.default_amount})
+                        {c.name} ({cs}{c.default_amount})
                       </option>
                     ))}
                   </select>
