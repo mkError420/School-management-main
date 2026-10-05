@@ -292,6 +292,15 @@ class ApiService {
       method: 'DELETE',
     });
   }
+
+  // Revenue Analytics (Consolidates Fees & Expenses)
+  async getRevenueSummary(params: Record<string, string | number> = {}) {
+    return this.getAll('revenue', { action: 'summary', ...params });
+  }
+
+  async getRevenueTransactions(params: Record<string, string | number> = {}) {
+    return this.getAll('revenue', { action: 'transactions', ...params });
+  }
 }
 
 export const api = new ApiService();

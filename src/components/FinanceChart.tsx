@@ -485,6 +485,9 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
           <Link to="/expenses" className="text-rose-600 dark:text-rose-400 hover:underline font-medium">
             Expense Log &rarr;
           </Link>
+          <Link to="/revenue" className="text-emerald-600 dark:text-emerald-400 hover:underline font-medium">
+            Revenue Analytics &rarr;
+          </Link>
         </div>
       </div>
     </div>

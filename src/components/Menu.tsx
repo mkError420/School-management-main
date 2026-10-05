@@ -83,6 +83,12 @@ const menuItems = [
         href: "/expenses",
         visible: ["admin", "super_admin"],
       },
+      {
+        icon: "/finance.png",
+        label: "Revenue",
+        href: "/revenue",
+        visible: ["admin", "super_admin"],
+      },
     ],
   },
   {
