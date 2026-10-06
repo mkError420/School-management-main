@@ -15,7 +15,7 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
-  Sparkles,
+  ClipboardList,
   Trash2,
   TrendingUp,
   UserCheck,
@@ -850,7 +850,7 @@ export const AttendanceSection: React.FC = () => {
                 : "bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-750"
             }`}
           >
-            <Sparkles size={15} className="text-amber-400" />
+            <ClipboardList size={15} />
             Quick Roll Call
           </button>
 
@@ -999,7 +999,7 @@ export const AttendanceSection: React.FC = () => {
               : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
           }`}
         >
-          <Sparkles size={16} className="text-amber-500" />
+          <ClipboardList size={16} />
           Quick Roll Call Sheet
           {classStudents.length > 0 && (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-medium">
