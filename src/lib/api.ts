@@ -109,6 +109,11 @@ class ApiService {
     return this.request(`dashboard${qs}`, { method: 'GET' });
   }
 
+  // Attendance Weekly Metrics
+  async getAttendanceChartData() {
+    return this.request('dashboard?action=attendance', { method: 'GET' });
+  }
+
   // Finance Metrics (Fees as Income, Expenses as Expense)
   async getFinanceChartData(year?: number | string) {
     const qs = year ? `&year=${encodeURIComponent(String(year))}` : '';

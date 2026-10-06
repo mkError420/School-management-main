@@ -19,6 +19,14 @@ if ($action === 'finance') {
     exit;
 }
 
+if ($action === 'attendance') {
+    $attendanceData = getWeeklyAttendanceData($db, $role, $userId);
+    Response::success('Weekly attendance data retrieved', [
+        'attendance' => $attendanceData
+    ]);
+    exit;
+}
+
 try {
     // 1. Core metrics for Admin
     $studentCount = $db->fetchOne("SELECT COUNT(*) as total FROM students")['total'] ?? 0;
@@ -56,14 +64,8 @@ try {
          ORDER BY e.start_time ASC LIMIT 5"
     );
 
-    // 5. Weekly Attendance Data
-    $attendanceData = [
-        ['name' => 'Mon', 'present' => 60, 'absent' => 40],
-        ['name' => 'Tue', 'present' => 70, 'absent' => 60],
-        ['name' => 'Wed', 'present' => 90, 'absent' => 75],
-        ['name' => 'Thu', 'present' => 65, 'absent' => 55],
-        ['name' => 'Fri', 'present' => 65, 'absent' => 55],
-    ];
+    // 5. Weekly Attendance Data (Dynamically aggregated from attendance records)
+    $attendanceData = getWeeklyAttendanceData($db, $role, $userId);
 
     // 6. Dynamic Finance Data (Fees as Income, Expenses as Expense)
     $selectedYear = isset($_GET['finance_year']) ? intval($_GET['finance_year']) : intval(date('Y'));
@@ -257,4 +259,110 @@ function getFinanceChartData($db, $targetYear = null) {
         'net_balance' => round($totalIncome - $totalExpense, 2)
     ];
 }
+
+function getWeeklyAttendanceData($db, $role = 'admin', $userId = null) {
+    try {
+        $roleWhere = "";
+        $roleParams = [];
+        if ($role === 'teacher') {
+            $roleWhere = " AND l.teacher_id = ?";
+            $roleParams[] = $userId;
+        } elseif ($role === 'student') {
+            $roleWhere = " AND a.student_id = ?";
+            $roleParams[] = $userId;
+        } elseif ($role === 'parent') {
+            $roleWhere = " AND st.parent_id = ?";
+            $roleParams[] = $userId;
+        }
+
+        // Get latest attendance date
+        $maxRow = $db->fetchOne(
+            "SELECT MAX(a.date) as latest_date, COUNT(*) as total 
+             FROM attendance a 
+             LEFT JOIN lessons l ON a.lesson_id = l.id 
+             LEFT JOIN students st ON a.student_id = st.id 
+             WHERE 1=1" . $roleWhere,
+            $roleParams
+        );
+        $totalRecords = intval($maxRow['total'] ?? 0);
+
+        if ($totalRecords === 0 || empty($maxRow['latest_date'])) {
+            return [
+                ['name' => 'Sun', 'present' => 0, 'absent' => 0, 'present_count' => 0, 'absent_count' => 0, 'total' => 0, 'rate' => 0],
+                ['name' => 'Mon', 'present' => 0, 'absent' => 0, 'present_count' => 0, 'absent_count' => 0, 'total' => 0, 'rate' => 0],
+                ['name' => 'Tue', 'present' => 0, 'absent' => 0, 'present_count' => 0, 'absent_count' => 0, 'total' => 0, 'rate' => 0],
+                ['name' => 'Wed', 'present' => 0, 'absent' => 0, 'present_count' => 0, 'absent_count' => 0, 'total' => 0, 'rate' => 0],
+                ['name' => 'Thu', 'present' => 0, 'absent' => 0, 'present_count' => 0, 'absent_count' => 0, 'total' => 0, 'rate' => 0],
+            ];
+        }
+
+        $latestDate = $maxRow['latest_date'];
+
+        // Aggregate by distinct date within the latest 7-10 days
+        $sql = "SELECT 
+                    a.date,
+                    DATE_FORMAT(a.date, '%a') as short_day,
+                    COUNT(*) as total,
+                    SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
+                    SUM(CASE WHEN a.present = 0 THEN 1 ELSE 0 END) as absent_count
+                FROM attendance a
+                INNER JOIN students st ON a.student_id = st.id
+                LEFT JOIN lessons l ON a.lesson_id = l.id
+                WHERE a.date >= DATE_SUB(?, INTERVAL 7 DAY) AND a.date <= ?" . $roleWhere . "
+                GROUP BY a.date, short_day
+                ORDER BY a.date ASC";
+
+        $params = array_merge([$latestDate, $latestDate], $roleParams);
+        $rows = $db->fetchAll($sql, $params);
+
+        if (empty($rows)) {
+            $fallbackSql = "SELECT 
+                                a.date,
+                                DATE_FORMAT(a.date, '%a') as short_day,
+                                COUNT(*) as total,
+                                SUM(CASE WHEN a.present = 1 THEN 1 ELSE 0 END) as present_count,
+                                SUM(CASE WHEN a.present = 0 THEN 1 ELSE 0 END) as absent_count
+                            FROM attendance a
+                            INNER JOIN students st ON a.student_id = st.id
+                            LEFT JOIN lessons l ON a.lesson_id = l.id
+                            WHERE 1=1" . $roleWhere . "
+                            GROUP BY a.date, short_day
+                            ORDER BY a.date DESC LIMIT 7";
+            $rawRows = $db->fetchAll($fallbackSql, $roleParams);
+            $rows = array_reverse($rawRows);
+        }
+
+        $chart = [];
+        foreach ($rows as $r) {
+            $tot = intval($r['total']);
+            $pres = intval($r['present_count']);
+            $abs = intval($r['absent_count']);
+            $rate = $tot > 0 ? round(($pres / $tot) * 100) : 0;
+            $absRate = $tot > 0 ? (100 - $rate) : 0;
+
+            $chart[] = [
+                'name' => $r['short_day'],
+                'date' => $r['date'],
+                'present' => $rate,
+                'absent' => $absRate,
+                'present_count' => $pres,
+                'absent_count' => $abs,
+                'total' => $tot,
+                'rate' => $rate,
+            ];
+        }
+
+        return $chart;
+    } catch (Exception $e) {
+        error_log('Error generating dynamic weekly attendance: ' . $e->getMessage());
+        return [
+            ['name' => 'Mon', 'present' => 0, 'absent' => 0, 'total' => 0],
+            ['name' => 'Tue', 'present' => 0, 'absent' => 0, 'total' => 0],
+            ['name' => 'Wed', 'present' => 0, 'absent' => 0, 'total' => 0],
+            ['name' => 'Thu', 'present' => 0, 'absent' => 0, 'total' => 0],
+            ['name' => 'Fri', 'present' => 0, 'absent' => 0, 'total' => 0],
+        ];
+    }
+}
+
 

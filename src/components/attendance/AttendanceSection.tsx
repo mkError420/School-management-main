@@ -858,7 +858,6 @@ export const AttendanceSection: React.FC = () => {
             : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
         >
-          <ClipboardCheck size={16} />
           Attendance Records
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-750 text-slate-600 dark:text-slate-300 font-medium">
             {totalRecords}
@@ -872,7 +871,6 @@ export const AttendanceSection: React.FC = () => {
             : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
         >
-          <Sparkles size={16} className="text-amber-500" />
           Quick Roll Call Sheet
         </button>
 
@@ -883,7 +881,6 @@ export const AttendanceSection: React.FC = () => {
             : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
             }`}
         >
-          <Layers size={16} />
           Class Summaries
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-750 text-slate-600 dark:text-slate-300 font-medium">
             {classes.length}
