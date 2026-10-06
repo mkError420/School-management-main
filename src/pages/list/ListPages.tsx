@@ -340,6 +340,107 @@ export const ExamsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 // ASSIGNMENTS
 // ───────────────────────────────────────────────
+const AssignmentAttachmentBadge: React.FC<{
+  assignmentId: number | string;
+  mime?: string;
+  label?: string;
+}> = ({ assignmentId, mime, label }) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const { blob, filename, mime: fetchedMime } = await api.downloadAssignmentAttachment(assignmentId);
+      const effectiveMime = fetchedMime || mime || "application/octet-stream";
+      const fileBlob = blob.type ? blob : new Blob([blob], { type: effectiveMime });
+      const objectUrl = URL.createObjectURL(fileBlob);
+
+      const isViewable = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif"].includes(effectiveMime);
+      if (isViewable) {
+        const opened = window.open(objectUrl, "_blank");
+        if (!opened) {
+          const link = document.createElement("a");
+          link.href = objectUrl;
+          link.download = filename || label || "assignment";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+        }
+      } else {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename || label || "assignment_document";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+    } catch {
+      // Fallback: direct navigation with token query param
+      const token = api.getToken();
+      const directUrl = `/backend/api/assignments?action=attachment&id=${encodeURIComponent(String(assignmentId))}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      window.open(directUrl, "_blank");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isPdf = mime === "application/pdf" || (!mime && Boolean(label?.toLowerCase().endsWith(".pdf")));
+  const isImage = (mime && mime.startsWith("image/")) || (!mime && Boolean(label?.match(/\.(jpg|jpeg|png|webp|gif)$/i)));
+  const isWord = (mime && (mime.includes("word") || mime.includes("document"))) || (!mime && Boolean(label?.match(/\.(doc|docx)$/i)));
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={loading}
+      title={label ? `Open / Download: ${label}` : "Open assignment file"}
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold
+        bg-sky-100 text-sky-800 hover:bg-sky-200 active:scale-95
+        dark:bg-sky-900/40 dark:text-sky-300 dark:hover:bg-sky-900/60
+        transition-all cursor-pointer shadow-xs disabled:opacity-50"
+    >
+      {loading ? (
+        <svg className="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+        </svg>
+      ) : isPdf ? (
+        <svg className="h-3.5 w-3.5 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
+        </svg>
+      ) : isImage ? (
+        <svg className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      ) : isWord ? (
+        <svg className="h-3.5 w-3.5 text-blue-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      ) : (
+        <svg className="h-3.5 w-3.5 text-sky-600 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="12" y1="18" x2="12" y2="12"/>
+          <line x1="9" y1="15" x2="15" y2="15"/>
+        </svg>
+      )}
+      <span className="truncate max-w-[120px]">{loading ? "Opening..." : (label || "Attachment")}</span>
+    </button>
+  );
+};
+
 export const AssignmentsPage: React.FC = () => {
   const role = useAccessRole();
   const [search, setSearch] = useState("");
@@ -362,16 +463,12 @@ export const AssignmentsPage: React.FC = () => {
     <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
       <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
       <td className="py-3">
-        {item.attachment_url ? (
-          <a
-            href={`${item.attachment_url}${api.getToken() ? `&token=${encodeURIComponent(api.getToken()!)}` : ''}`}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300 dark:hover:bg-sky-900/50 transition border border-sky-200 dark:border-sky-800"
-            title={item.attachment_original_name || "Download / View Assignment"}
-          >
-            <span className="truncate max-w-[130px]">{item.attachment_original_name || "View File"}</span>
-          </a>
+        {item.assignment_attachment || item.attachment_url ? (
+          <AssignmentAttachmentBadge
+            assignmentId={item.id}
+            mime={item.attachment_mime_type}
+            label={item.attachment_original_name}
+          />
         ) : (
           <span className="text-gray-400 text-xs">—</span>
         )}

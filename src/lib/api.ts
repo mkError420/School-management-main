@@ -217,8 +217,29 @@ class ApiService {
       throw new Error(message);
     }
     const contentDisposition = response.headers.get('Content-Disposition') || '';
-    const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-    const filename = filenameMatch ? filenameMatch[1] : 'exam_routine';
+    const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : 'exam_routine';
+    const mime = response.headers.get('Content-Type') || 'application/octet-stream';
+    const blob = await response.blob();
+    return { blob, filename, mime };
+  }
+
+  async downloadAssignmentAttachment(assignmentId: number | string): Promise<{ blob: Blob; filename: string; mime: string }> {
+    const response = await fetch(
+      `${API_BASE_URL}/assignments?action=attachment&id=${encodeURIComponent(String(assignmentId))}`,
+      { headers: { Authorization: `Bearer ${this.getToken() || ''}` } }
+    );
+    if (!response.ok) {
+      let message = 'Assignment attachment download failed.';
+      try {
+        const result = JSON.parse(await response.text());
+        message = result.message || message;
+      } catch { /* ignore */ }
+      throw new Error(message);
+    }
+    const contentDisposition = response.headers.get('Content-Disposition') || '';
+    const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : 'assignment_document';
     const mime = response.headers.get('Content-Type') || 'application/octet-stream';
     const blob = await response.blob();
     return { blob, filename, mime };

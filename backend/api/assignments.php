@@ -81,9 +81,9 @@ function ensureAssignmentSchema($db) {
 }
 
 function getUploadDir() {
-    $dir = __DIR__ . '/../../public/uploads/assignments/';
+    $dir = __DIR__ . '/../uploads/assignments/';
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        @mkdir($dir, 0755, true);
     }
     return $dir;
 }
@@ -168,17 +168,26 @@ function handleAssignmentUpload() {
 
 function deleteAttachmentFile($storageName) {
     if (empty($storageName)) return;
-    $path = getUploadDir() . $storageName;
-    if (file_exists($path)) {
-        @unlink($path);
+    $path1 = getUploadDir() . $storageName;
+    if (file_exists($path1)) {
+        @unlink($path1);
+    }
+    $path2 = __DIR__ . '/../../public/uploads/assignments/' . $storageName;
+    if (file_exists($path2)) {
+        @unlink($path2);
     }
 }
 
 function downloadAssignmentAttachment($db, $id) {
-    AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::requireAnyRole(['admin', 'super_admin', 'teacher', 'student', 'parent']);
+    ensureAssignmentSchema($db);
+
+    if (!$id) {
+        Response::error('Assignment ID is required', 400);
+    }
 
     $assignment = $db->fetchOne(
-        "SELECT assignment_attachment, attachment_original_name, attachment_mime_type, attachment_size FROM assignments WHERE id = ?",
+        "SELECT a.* FROM assignments a WHERE a.id = ?",
         [$id]
     );
 
@@ -186,23 +195,39 @@ function downloadAssignmentAttachment($db, $id) {
         Response::notFound('No attachment found for this assignment');
     }
 
-    $filePath = getUploadDir() . $assignment['assignment_attachment'];
+    $fileName = $assignment['assignment_attachment'];
+    $filePath = getUploadDir() . $fileName;
     if (!file_exists($filePath)) {
-        Response::notFound('Attachment file not found on disk');
+        // Fallback paths
+        $alt1 = __DIR__ . '/../../public/uploads/assignments/' . $fileName;
+        $alt2 = __DIR__ . '/../uploads/assignments/' . $fileName;
+        if (file_exists($alt1)) {
+            $filePath = $alt1;
+        } elseif (file_exists($alt2)) {
+            $filePath = $alt2;
+        } else {
+            Response::notFound('Attachment file not found on disk');
+        }
     }
 
-    $mime     = $assignment['attachment_mime_type'] ?: 'application/octet-stream';
+    $mime     = $assignment['attachment_mime_type'] ?: (function_exists('mime_content_type') ? mime_content_type($filePath) : 'application/octet-stream');
     $origName = $assignment['attachment_original_name'] ?: basename($filePath);
     $size     = filesize($filePath);
 
+    // PDFs and images can be displayed inline in browser; Word/text/zip are downloaded
     $isViewable = in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'], true);
     $disposition = $isViewable ? 'inline' : 'attachment';
 
-    header('Content-Type: ' . $mime);
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+
+    header('Content-Type: ' . $mime, true);
     header('Content-Length: ' . $size);
-    header('Content-Disposition: ' . $disposition . '; filename="' . rawurlencode($origName) . '"');
-    header('Cache-Control: public, max-age=86400');
+    header('Content-Disposition: ' . $disposition . '; filename="' . addslashes($origName) . '"');
+    header('Cache-Control: private, max-age=3600');
     header('X-Content-Type-Options: nosniff');
+    header('Accept-Ranges: bytes');
 
     readfile($filePath);
     exit;
@@ -210,13 +235,13 @@ function downloadAssignmentAttachment($db, $id) {
 
 function formatAssignmentRow($a) {
     $a['attachment_url'] = !empty($a['assignment_attachment'])
-        ? '/backend/api/assignments.php?action=attachment&id=' . $a['id']
+        ? '/backend/api/assignments?action=attachment&id=' . $a['id']
         : null;
     return $a;
 }
 
 function getAssignments($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::requireAnyRole(['admin', 'super_admin', 'teacher', 'student', 'parent']);
     
     $page = intval($_GET['page'] ?? 1);
     $limit = intval($_GET['limit'] ?? 10);
@@ -244,15 +269,15 @@ function getAssignments($db) {
     $params = [];
 
     if ($user['role'] === 'teacher') {
-        $sql .= " AND (l.teacher_id = ? OR a.teacher_id = ?)";
+        $sql .= " AND (l.teacher_id = ? OR a.teacher_id = ? OR (a.teacher_id IS NULL AND a.lesson_id IS NULL))";
         $params[] = $user['user_id'];
         $params[] = $user['user_id'];
     } elseif ($user['role'] === 'student') {
-        $sql .= " AND (l.class_id = (SELECT class_id FROM students WHERE id = ?) OR a.class_id = (SELECT class_id FROM students WHERE id = ?))";
+        $sql .= " AND (l.class_id = (SELECT class_id FROM students WHERE id = ?) OR a.class_id = (SELECT class_id FROM students WHERE id = ?) OR (a.class_id IS NULL AND a.lesson_id IS NULL))";
         $params[] = $user['user_id'];
         $params[] = $user['user_id'];
     } elseif ($user['role'] === 'parent') {
-        $sql .= " AND (l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?) OR a.class_id IN (SELECT class_id FROM students WHERE parent_id = ?))";
+        $sql .= " AND (l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?) OR a.class_id IN (SELECT class_id FROM students WHERE parent_id = ?) OR (a.class_id IS NULL AND a.lesson_id IS NULL))";
         $params[] = $user['user_id'];
         $params[] = $user['user_id'];
     }
