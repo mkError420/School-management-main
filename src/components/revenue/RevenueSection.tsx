@@ -140,13 +140,33 @@ const RevenueSection: React.FC = () => {
       setError(null);
 
       try {
-        // Prepare query parameters
+        // Prepare query parameters with dynamic period handling
         const queryParams: Record<string, string | number> = {
           year: selectedYear,
+          period: periodPreset,
         };
         if (periodPreset === "custom" && customStartDate && customEndDate) {
           queryParams.start_date = customStartDate;
           queryParams.end_date = customEndDate;
+        } else if (periodPreset === "this_month") {
+          const now = new Date();
+          const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split("T")[0];
+          queryParams.start_date = firstDay;
+          queryParams.end_date = lastDay;
+        } else if (periodPreset === "last_month") {
+          const now = new Date();
+          const firstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().split("T")[0];
+          const lastDay = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().split("T")[0];
+          queryParams.start_date = firstDay;
+          queryParams.end_date = lastDay;
+        } else if (periodPreset === "quarter") {
+          const now = new Date();
+          const qMonth = Math.floor(now.getMonth() / 3) * 3;
+          const firstDay = new Date(now.getFullYear(), qMonth, 1).toISOString().split("T")[0];
+          const lastDay = new Date(now.getFullYear(), qMonth + 3, 0).toISOString().split("T")[0];
+          queryParams.start_date = firstDay;
+          queryParams.end_date = lastDay;
         }
 
         // Try direct backend API first
@@ -175,14 +195,17 @@ const RevenueSection: React.FC = () => {
             api.getFeeCategories(),
           ]);
 
-          if (feesRes.success && Array.isArray(feesRes.data?.fees)) {
-            rawInvoices = feesRes.data.fees;
+          const feesList = (feesRes as any)?.data?.fees || (feesRes as any)?.fees || (feesRes as any)?.data?.invoices || (feesRes as any)?.invoices;
+          if (Array.isArray(feesList) && feesList.length > 0) {
+            rawInvoices = feesList;
           }
-          if (payRes.success && Array.isArray(payRes.data?.payments)) {
-            rawPayments = payRes.data.payments;
+          const payList = (payRes as any)?.data?.payments || (payRes as any)?.payments;
+          if (Array.isArray(payList) && payList.length > 0) {
+            rawPayments = payList;
           }
-          if (catRes.success && Array.isArray(catRes.data?.categories)) {
-            rawFeeCats = catRes.data.categories;
+          const catList = (catRes as any)?.data?.categories || (catRes as any)?.categories;
+          if (Array.isArray(catList) && catList.length > 0) {
+            rawFeeCats = catList;
           }
         } catch { }
 
@@ -226,7 +249,7 @@ const RevenueSection: React.FC = () => {
         }
 
         // If API returned solid populated data and we have no newer local overrides, use API data
-        if (apiData && apiData.summary && (apiData.summary.total_income > 0 || apiData.summary.total_expenses > 0)) {
+        if (apiData && apiData.summary && (apiData.summary.total_income >= 0 || apiData.summary.total_expenses >= 0)) {
           setSummary(apiData.summary);
           setChartData(apiData.chart || []);
           setFeeCategories(apiData.fee_categories || []);
@@ -318,61 +341,56 @@ const RevenueSection: React.FC = () => {
         const unifiedTransactions: RevenueTransactionItem[] = [];
 
         // Sum from fee payments (actual cash inflow)
-        if (rawPayments.length > 0) {
-          rawPayments.forEach((p) => {
-            const pDate = p.payment_date || p.created_at;
-            if (matchesDateFilter(pDate)) {
-              const amt = Number(p.amount || 0);
+        const loggedInvoiceIds = new Set<number>();
+        rawPayments.forEach((p) => {
+          const pDate = p.payment_date || p.created_at;
+          if (matchesDateFilter(pDate)) {
+            const amt = Number(p.amount || 0);
+            calculatedIncome += amt;
+            paymentsCount += 1;
+            if (p.invoice_id) loggedInvoiceIds.add(Number(p.invoice_id));
+
+            unifiedTransactions.push({
+              id: `fee_${p.id || Math.random()}`,
+              type: "INCOME",
+              title: p.invoice_title || p.title || "Student Fee Payment",
+              ref_no: p.receipt_no || `REC-${p.id || 100}`,
+              category: p.category_name || "Fee Collection",
+              amount: amt,
+              date: (pDate || "").split("T")[0] || new Date().toISOString().split("T")[0],
+              payment_method: p.payment_method || "CASH",
+              party: p.student_name ? `${p.student_name} ${p.student_surname || ""}` : "Student",
+              status: "PAID",
+              notes: p.notes || "",
+            });
+          }
+        });
+
+        // Add any standalone paid invoices that do not have separate payment records
+        rawInvoices.forEach((inv) => {
+          if (!loggedInvoiceIds.has(Number(inv.id)) && Number(inv.paid_amount || 0) > 0) {
+            const invDate = inv.updated_at || inv.created_at || inv.due_date;
+            if (matchesDateFilter(invDate)) {
+              const amt = Number(inv.paid_amount || 0);
               calculatedIncome += amt;
               paymentsCount += 1;
 
               unifiedTransactions.push({
-                id: `fee_${p.id || Math.random()}`,
+                id: `inv_${inv.id}`,
                 type: "INCOME",
-                title: p.invoice_title || p.title || "Student Fee Payment",
-                ref_no: p.receipt_no || `REC-${p.id || 100}`,
-                category: p.category_name || "Fee Collection",
+                title: inv.title || "Tuition Fee Invoice",
+                ref_no: inv.invoice_no || `INV-${inv.id}`,
+                category: inv.category_name || "Tuition",
                 amount: amt,
-                date: (pDate || "").split("T")[0] || new Date().toISOString().split("T")[0],
-                payment_method: p.payment_method || "CASH",
-                party: p.student_name ? `${p.student_name} ${p.student_surname || ""}` : "Student",
-                status: "PAID",
-                notes: p.notes || "",
+                date: (invDate || "").split("T")[0] || new Date().toISOString().split("T")[0],
+                payment_method: "CASH",
+                party: inv.student_name ? `${inv.student_name} ${inv.student_surname || ""}` : "Student",
+                status: inv.status || "PAID",
+                notes: inv.notes || "",
               });
             }
-          });
-        } else {
-          // If no separate payment logs, use invoice paid amounts as income
-          calculatedIncome = rawInvoices.reduce((acc, inv) => {
-            const invDate = inv.updated_at || inv.created_at || inv.due_date;
-            if (matchesDateFilter(invDate)) {
-              return acc + Number(inv.paid_amount || 0);
-            }
-            return acc;
-          }, 0);
-          paymentsCount = rawInvoices.filter((inv) => Number(inv.paid_amount || 0) > 0).length;
-
-          rawInvoices.forEach((inv) => {
-            if (Number(inv.paid_amount || 0) > 0) {
-              const invDate = inv.updated_at || inv.created_at || inv.due_date;
-              if (matchesDateFilter(invDate)) {
-                unifiedTransactions.push({
-                  id: `inv_${inv.id}`,
-                  type: "INCOME",
-                  title: inv.title || "Tuition Fee Invoice",
-                  ref_no: inv.invoice_no || `INV-${inv.id}`,
-                  category: inv.category_name || "Tuition",
-                  amount: Number(inv.paid_amount || 0),
-                  date: (invDate || "").split("T")[0] || new Date().toISOString().split("T")[0],
-                  payment_method: "CASH",
-                  party: inv.student_name ? `${inv.student_name} ${inv.student_surname || ""}` : "Student",
-                  status: inv.status || "PAID",
-                  notes: inv.notes || "",
-                });
-              }
-            }
-          });
-        }
+          }
+        });
 
         // 2. Calculate Expenses
         let calculatedExpenses = 0;

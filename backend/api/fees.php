@@ -413,6 +413,17 @@ function getInvoices($db) {
     }
 
     Response::json([
+        'success' => true,
+        'data' => [
+            'fees' => $invoices,
+            'invoices' => $invoices,
+            'pagination' => [
+                'total' => $total,
+                'pages' => max(1, ceil($total / $limit)),
+                'limit' => $limit,
+                'page' => $page
+            ]
+        ],
         'fees' => $invoices,
         'invoices' => $invoices,
         'pagination' => [
@@ -516,6 +527,16 @@ function getPayments($db) {
     }
 
     Response::json([
+        'success' => true,
+        'data' => [
+            'payments' => $payments,
+            'pagination' => [
+                'total' => $total,
+                'pages' => max(1, ceil($total / $limit)),
+                'limit' => $limit,
+                'page' => $page
+            ]
+        ],
         'payments' => $payments,
         'pagination' => [
             'total' => $total,
