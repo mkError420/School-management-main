@@ -7,6 +7,7 @@ import Image from "@/components/Image";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 import { api } from "@/lib/api";
+import AttendanceSection from "@/components/attendance/AttendanceSection";
 
 // ───────────────────────────────────────────────
 // SUBJECTS
@@ -466,59 +467,7 @@ export const ResultsPage: React.FC = () => {
 // ATTENDANCE
 // ───────────────────────────────────────────────
 export const AttendancePage: React.FC = () => {
-  const role = useAccessRole();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("attendance", "attendance", page, 10, search);
-  useEffect(() => { setPage(1); }, [search]);
-  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
-
-  const cols = [
-    { header: "Student", accessor: "student" },
-    { header: "Lesson", accessor: "lesson", className: "hidden md:table-cell" },
-    { header: "Date", accessor: "date", className: "hidden md:table-cell" },
-    { header: "Status", accessor: "status" },
-    { header: "Actions", accessor: "actions" },
-  ];
-
-  const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
-      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
-        {item.student_name} {item.student_surname}
-      </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.lesson_name || "—"}</td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.date}</td>
-      <td>
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${item.present ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}>
-          {item.present ? "Present" : "Absent"}
-        </span>
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
-            <>
-              <FormModal table="attendance" type="update" data={item} onSuccess={fetchData} />
-              {role === "admin" && <FormModal table="attendance" type="delete" id={item.id} onSuccess={fetchData} />}
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">Attendance Records</h1>
-        <div className="flex gap-3 items-center">
-          <TableSearch value={search} onChange={setSearch} placeholder="Search attendance..." />
-          {(role === "admin" || role === "teacher") && <FormModal table="attendance" type="create" onSuccess={fetchData} />}
-        </div>
-      </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No attendance records found" />
-      <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
-    </div>
-  );
+  return <AttendanceSection />;
 };
 
 // ───────────────────────────────────────────────
