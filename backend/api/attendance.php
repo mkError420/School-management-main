@@ -84,18 +84,18 @@ function getAttendanceRecords($db) {
         $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
-    if (!empty($studentId)) {
+    if (!empty($studentId) && $studentId !== 'all') {
         $sql .= " AND a.student_id = ?";
         $params[] = $studentId;
     }
 
-    if (!empty($classId)) {
+    if (!empty($classId) && $classId !== 'all') {
         $sql .= " AND (l.class_id = ? OR st.class_id = ?)";
         $params[] = $classId;
         $params[] = $classId;
     }
 
-    if (!empty($lessonId)) {
+    if (!empty($lessonId) && $lessonId !== 'all') {
         $sql .= " AND a.lesson_id = ?";
         $params[] = $lessonId;
     }

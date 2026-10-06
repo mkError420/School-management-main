@@ -69,7 +69,7 @@ function getStudents($db) {
         $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
-    if (!empty($classId)) {
+    if (!empty($classId) && $classId !== 'all') {
         $sql .= " AND s.class_id = ?";
         $params[] = $classId;
     }

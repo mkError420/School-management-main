@@ -5,7 +5,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
-  Clock,
   Download,
   Filter,
   GraduationCap,
@@ -24,11 +23,11 @@ import {
   Users,
   X,
   AlertCircle,
-  FileSpreadsheet,
-  BookOpen,
+  ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
-import { useAuth, useAccessRole } from "@/context/AuthContext";
+import { useAccessRole } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
@@ -82,9 +81,10 @@ interface StudentItem {
   img?: string;
   class_id?: number | string;
   class_name?: string;
+  grade_level?: number | string;
 }
 
-// ─── Fallback Sample Data (for offline / instant preview) ─────────────────────
+// ─── Fallback Sample Data ───────────────────────────────────────────────────
 
 const FALLBACK_CLASSES: ClassItem[] = [
   { id: 1, name: "1A", grade_level: 1 },
@@ -112,12 +112,12 @@ const FALLBACK_LESSONS: LessonItem[] = [
 ];
 
 const FALLBACK_RECORDS: AttendanceRecord[] = [
-  { id: 1, date: "2026-10-06", present: true, student_id: "s1", student_name: "John", student_surname: "Connor", class_name: "1A", lesson_name: "Math 101", subject_name: "Mathematics" },
-  { id: 2, date: "2026-10-06", present: true, student_id: "s2", student_name: "Peter", student_surname: "Parker", class_name: "1B", lesson_name: "Physics Fundamentals", subject_name: "Physics" },
-  { id: 3, date: "2026-10-06", present: false, student_id: "s3", student_name: "Gwen", student_surname: "Stacy", class_name: "2A", lesson_name: "Biology Exploration", subject_name: "Biology" },
-  { id: 4, date: "2026-10-05", present: true, student_id: "s1", student_name: "John", student_surname: "Connor", class_name: "1A", lesson_name: "Math 101", subject_name: "Mathematics" },
-  { id: 5, date: "2026-10-05", present: true, student_id: "s4", student_name: "Dick", student_surname: "Grayson", class_name: "2B", lesson_name: "World History", subject_name: "History" },
-  { id: 6, date: "2026-10-04", present: false, student_id: "s5", student_name: "Jonathan", student_surname: "Lewis", class_name: "4A", lesson_name: "English Literature", subject_name: "English" },
+  { id: 1, date: "2026-10-06", present: true, student_id: "s1", student_name: "John", student_surname: "Connor", class_name: "1A", student_class_id: 1, lesson_name: "Math 101", subject_name: "Mathematics" },
+  { id: 2, date: "2026-10-06", present: true, student_id: "s2", student_name: "Peter", student_surname: "Parker", class_name: "1B", student_class_id: 2, lesson_name: "Physics Fundamentals", subject_name: "Physics" },
+  { id: 3, date: "2026-10-06", present: false, student_id: "s3", student_name: "Gwen", student_surname: "Stacy", class_name: "2A", student_class_id: 3, lesson_name: "Biology Exploration", subject_name: "Biology" },
+  { id: 4, date: "2026-10-05", present: true, student_id: "s1", student_name: "John", student_surname: "Connor", class_name: "1A", student_class_id: 1, lesson_name: "Math 101", subject_name: "Mathematics" },
+  { id: 5, date: "2026-10-05", present: true, student_id: "s4", student_name: "Dick", student_surname: "Grayson", class_name: "2B", student_class_id: 4, lesson_name: "World History", subject_name: "History" },
+  { id: 6, date: "2026-10-04", present: false, student_id: "s5", student_name: "Jonathan", student_surname: "Lewis", class_name: "4A", student_class_id: 7, lesson_name: "English Literature", subject_name: "English" },
 ];
 
 export const AttendanceSection: React.FC = () => {
@@ -128,9 +128,10 @@ export const AttendanceSection: React.FC = () => {
   // Navigation / Tabs
   const [activeTab, setActiveTab] = useState<"records" | "rollcall" | "classes">("records");
 
-  // Filter States
+  // Global Filter States for Records Tab
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [selectedStudent, setSelectedStudent] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [datePreset, setDatePreset] = useState<"all" | "today" | "yesterday" | "week" | "month" | "custom">("all");
   const [customDate, setCustomDate] = useState<string>("");
@@ -145,7 +146,7 @@ export const AttendanceSection: React.FC = () => {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [lessons, setLessons] = useState<LessonItem[]>([]);
-  const [students, setStudents] = useState<StudentItem[]>([]);
+  const [allStudents, setAllStudents] = useState<StudentItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -166,6 +167,10 @@ export const AttendanceSection: React.FC = () => {
   const [rollCallRoster, setRollCallRoster] = useState<Record<string, { present: boolean; note?: string }>>({});
   const [rollCallFilterSearch, setRollCallFilterSearch] = useState("");
   const [rollCallSaving, setRollCallSaving] = useState(false);
+
+  // Class-wise Dynamic Students for Roll Call
+  const [classStudents, setClassStudents] = useState<StudentItem[]>([]);
+  const [classStudentsLoading, setClassStudentsLoading] = useState<boolean>(false);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -188,14 +193,14 @@ export const AttendanceSection: React.FC = () => {
     }
   }, [feedback]);
 
-  // ─── Fetch Supporting Entities (Classes, Lessons, Students) ──────────────────
+  // ─── Fetch Supporting Entities (Classes, Lessons, All Students) ───────────────
 
   const loadSupportingData = useCallback(async () => {
     try {
       const [resClasses, resLessons, resStudents] = await Promise.all([
         api.getAll("classes", { limit: 100 }),
-        api.getAll("lessons", { limit: 150 }),
-        api.getAll("students", { limit: 300 }),
+        api.getAll("lessons", { limit: 200 }),
+        api.getAll("students", { limit: 500 }),
       ]);
 
       if (resClasses?.success && Array.isArray(resClasses.data?.classes)) {
@@ -215,14 +220,14 @@ export const AttendanceSection: React.FC = () => {
       }
 
       if (resStudents?.success && Array.isArray(resStudents.data?.students)) {
-        setStudents(resStudents.data.students);
+        setAllStudents(resStudents.data.students);
       } else {
-        setStudents(FALLBACK_STUDENTS);
+        setAllStudents(FALLBACK_STUDENTS);
       }
     } catch {
       setClasses(FALLBACK_CLASSES);
       setLessons(FALLBACK_LESSONS);
-      setStudents(FALLBACK_STUDENTS);
+      setAllStudents(FALLBACK_STUDENTS);
     }
   }, [rollCallClassId]);
 
@@ -230,8 +235,123 @@ export const AttendanceSection: React.FC = () => {
     loadSupportingData();
   }, [loadSupportingData]);
 
-  // ─── Date Preset Resolver ──────────────────────────────────────────────────
+  // ─── Dynamic Class-Wise Students for Roll Call ─────────────────────────────
+  // When admin selects a Class in Roll Call, fetch students for that class dynamically
+  useEffect(() => {
+    if (!rollCallClassId) return;
 
+    let isMounted = true;
+    setClassStudentsLoading(true);
+
+    // Call students API with class_id parameter
+    api.getAll("students", { class_id: rollCallClassId, limit: 300 })
+      .then((res) => {
+        if (!isMounted) return;
+
+        let studentsList: StudentItem[] = [];
+        if (res?.success && Array.isArray(res.data?.students) && res.data.students.length > 0) {
+          studentsList = res.data.students;
+        } else {
+          // Fallback: filter loaded allStudents by class_id or class_name
+          const selectedClassObj = classes.find((c) => String(c.id) === String(rollCallClassId));
+          studentsList = allStudents.filter(
+            (s) =>
+              String(s.class_id) === String(rollCallClassId) ||
+              (selectedClassObj && s.class_name === selectedClassObj.name)
+          );
+        }
+
+        setClassStudents(studentsList);
+
+        // Fetch existing attendance records for this class & date to pre-populate
+        api.getAll("attendance", { date: rollCallDate, class_id: rollCallClassId, limit: 300 })
+          .then((attRes) => {
+            if (!isMounted) return;
+            const existingMap: Record<string, { present: boolean; note?: string }> = {};
+
+            if (attRes?.success && Array.isArray(attRes.data?.attendance) && attRes.data.attendance.length > 0) {
+              attRes.data.attendance.forEach((r: any) => {
+                existingMap[r.student_id] = {
+                  present: Boolean(r.present),
+                  note: r.notes || "",
+                };
+              });
+            }
+
+            // Build fresh roster for each student
+            const nextRoster: Record<string, { present: boolean; note?: string }> = {};
+            studentsList.forEach((st) => {
+              if (existingMap[st.id] !== undefined) {
+                nextRoster[st.id] = existingMap[st.id];
+              } else {
+                nextRoster[st.id] = { present: true, note: "" };
+              }
+            });
+            setRollCallRoster(nextRoster);
+          })
+          .catch(() => {
+            const nextRoster: Record<string, { present: boolean; note?: string }> = {};
+            studentsList.forEach((st) => {
+              nextRoster[st.id] = { present: true, note: "" };
+            });
+            setRollCallRoster(nextRoster);
+          });
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        const selectedClassObj = classes.find((c) => String(c.id) === String(rollCallClassId));
+        const fallbackList = allStudents.filter(
+          (s) =>
+            String(s.class_id) === String(rollCallClassId) ||
+            (selectedClassObj && s.class_name === selectedClassObj.name)
+        );
+        setClassStudents(fallbackList);
+        const nextRoster: Record<string, { present: boolean; note?: string }> = {};
+        fallbackList.forEach((st) => {
+          nextRoster[st.id] = { present: true, note: "" };
+        });
+        setRollCallRoster(nextRoster);
+      })
+      .finally(() => {
+        if (isMounted) setClassStudentsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [rollCallClassId, rollCallDate, classes, allStudents]);
+
+  // Lessons for the chosen roll-call class
+  const classLessons = useMemo(() => {
+    if (!rollCallClassId) return lessons;
+    const filtered = lessons.filter(
+      (l) => !l.class_id || String(l.class_id) === String(rollCallClassId)
+    );
+    return filtered.length > 0 ? filtered : lessons;
+  }, [lessons, rollCallClassId]);
+
+  // Auto-select lesson for roll-call when class changes
+  useEffect(() => {
+    if (classLessons.length > 0) {
+      setRollCallLessonId(String(classLessons[0].id));
+    } else if (lessons.length > 0) {
+      setRollCallLessonId(String(lessons[0].id));
+    }
+  }, [classLessons, lessons, rollCallClassId]);
+
+  // ─── Filter Bar: Dynamic Students of Selected Class ────────────────────────
+  // When selectedClass changes in the Records tab, show only students of that class
+  const classFilterStudents = useMemo(() => {
+    if (selectedClass === "all") return allStudents;
+    const selectedClassObj = classes.find((c) => String(c.id) === String(selectedClass));
+    return allStudents.filter(
+      (s) =>
+        String(s.class_id) === String(selectedClass) ||
+        (selectedClassObj && s.class_name === selectedClassObj.name)
+    );
+  }, [allStudents, selectedClass, classes]);
+
+  // Date Filter Params Resolver
   const getDateFilterParams = useCallback(() => {
     const today = new Date();
     const formatYmd = (d: Date) => d.toISOString().split("T")[0];
@@ -274,6 +394,7 @@ export const AttendanceSection: React.FC = () => {
 
       if (search.trim()) params.search = search.trim();
       if (selectedClass !== "all") params.class_id = selectedClass;
+      if (selectedStudent !== "all") params.student_id = selectedStudent;
       if (selectedStatus !== "all") params.status = selectedStatus;
 
       const res = await api.getAll("attendance", params);
@@ -293,7 +414,6 @@ export const AttendanceSection: React.FC = () => {
         if (res.data.summary) {
           setSummary(res.data.summary);
         } else {
-          // Calculate client-side fallback summary
           const present = rawList.filter((r) => Boolean(r.present)).length;
           const total = rawList.length;
           const absent = total - present;
@@ -316,6 +436,12 @@ export const AttendanceSection: React.FC = () => {
               r.class_name?.toLowerCase().includes(q) ||
               r.lesson_name?.toLowerCase().includes(q)
           );
+        }
+        if (selectedClass !== "all") {
+          filtered = filtered.filter((r) => String(r.student_class_id) === String(selectedClass));
+        }
+        if (selectedStudent !== "all") {
+          filtered = filtered.filter((r) => String(r.student_id) === String(selectedStudent));
         }
         if (selectedStatus !== "all") {
           const isPres = selectedStatus === "present";
@@ -340,7 +466,7 @@ export const AttendanceSection: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, selectedClass, selectedStatus, getDateFilterParams]);
+  }, [page, limit, search, selectedClass, selectedStudent, selectedStatus, getDateFilterParams]);
 
   useEffect(() => {
     fetchRecords();
@@ -349,7 +475,7 @@ export const AttendanceSection: React.FC = () => {
   // Reset to page 1 on filter changes
   useEffect(() => {
     setPage(1);
-  }, [search, selectedClass, selectedStatus, datePreset, customDate]);
+  }, [search, selectedClass, selectedStudent, selectedStatus, datePreset, customDate]);
 
   // ─── Inline Status Toggle ──────────────────────────────────────────────────
 
@@ -383,7 +509,6 @@ export const AttendanceSection: React.FC = () => {
           message: `Updated ${record.student_name || "student"} to ${newStatus ? "Present" : "Absent"}`,
         });
       } else {
-        // Rollback
         fetchRecords();
         setFeedback({ type: "error", message: res?.message || "Failed to update attendance status" });
       }
@@ -414,18 +539,22 @@ export const AttendanceSection: React.FC = () => {
     }
   };
 
-  // ─── Single Record Add / Edit ──────────────────────────────────────────────
+  // ─── Single Record Add / Edit with Dynamic Class Students ─────────────────
 
   const handleOpenAdd = () => {
     setEditingRecord(null);
     const initialClassId = classes[0]?.id ? String(classes[0].id) : "";
-    const classLessons = lessons.filter((l) => !l.class_id || String(l.class_id) === initialClassId);
-    const classStudents = students.filter((s) => !s.class_id || String(s.class_id) === initialClassId);
+    const filteredClassStudents = allStudents.filter(
+      (s) => !initialClassId || String(s.class_id) === initialClassId
+    );
+    const filteredClassLessons = lessons.filter(
+      (l) => !l.class_id || String(l.class_id) === initialClassId
+    );
 
     setModalForm({
-      student_id: classStudents[0]?.id || (students[0]?.id ?? ""),
+      student_id: filteredClassStudents[0]?.id || (allStudents[0]?.id ?? ""),
       class_id: initialClassId,
-      lesson_id: classLessons[0]?.id ? String(classLessons[0].id) : (lessons[0]?.id ? String(lessons[0].id) : ""),
+      lesson_id: filteredClassLessons[0]?.id ? String(filteredClassLessons[0].id) : (lessons[0]?.id ? String(lessons[0].id) : ""),
       date: todayStr,
       present: true,
       notes: "",
@@ -435,9 +564,16 @@ export const AttendanceSection: React.FC = () => {
 
   const handleOpenEdit = (rec: AttendanceRecord) => {
     setEditingRecord(rec);
+    const studentObj = allStudents.find((s) => s.id === rec.student_id);
+    const determinedClassId = rec.student_class_id
+      ? String(rec.student_class_id)
+      : studentObj?.class_id
+      ? String(studentObj.class_id)
+      : "";
+
     setModalForm({
       student_id: rec.student_id,
-      class_id: rec.student_class_id ? String(rec.student_class_id) : "",
+      class_id: determinedClassId,
       lesson_id: rec.lesson_id ? String(rec.lesson_id) : "",
       date: rec.date || todayStr,
       present: Boolean(rec.present),
@@ -445,6 +581,21 @@ export const AttendanceSection: React.FC = () => {
     });
     setShowAddModal(true);
   };
+
+  // Modal Dynamic Students
+  const modalClassStudents = useMemo(() => {
+    if (!modalForm.class_id) return allStudents;
+    return allStudents.filter((s) => String(s.class_id) === String(modalForm.class_id));
+  }, [allStudents, modalForm.class_id]);
+
+  // Modal Dynamic Lessons
+  const modalClassLessons = useMemo(() => {
+    if (!modalForm.class_id) return lessons;
+    const filtered = lessons.filter(
+      (l) => !l.class_id || String(l.class_id) === String(modalForm.class_id)
+    );
+    return filtered.length > 0 ? filtered : lessons;
+  }, [lessons, modalForm.class_id]);
 
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -493,40 +644,8 @@ export const AttendanceSection: React.FC = () => {
     }
   };
 
-  // ─── Roll Call (Daily Sheet) Logic ──────────────────────────────────────────
+  // ─── Roll Call Actions ─────────────────────────────────────────────────────
 
-  // Students belonging to the chosen roll-call class
-  const classStudents = useMemo(() => {
-    if (!rollCallClassId) return students;
-    return students.filter((s) => String(s.class_id) === String(rollCallClassId));
-  }, [students, rollCallClassId]);
-
-  // Lessons for the chosen roll-call class
-  const classLessons = useMemo(() => {
-    if (!rollCallClassId) return lessons;
-    return lessons.filter((l) => !l.class_id || String(l.class_id) === String(rollCallClassId));
-  }, [lessons, rollCallClassId]);
-
-  // Auto-select lesson for roll-call when class changes
-  useEffect(() => {
-    if (classLessons.length > 0) {
-      setRollCallLessonId(String(classLessons[0].id));
-    } else if (lessons.length > 0) {
-      setRollCallLessonId(String(lessons[0].id));
-    }
-  }, [classLessons, lessons, rollCallClassId]);
-
-  // Initialize roll call roster when class or student list changes
-  useEffect(() => {
-    const nextRoster: Record<string, { present: boolean; note?: string }> = {};
-    classStudents.forEach((st) => {
-      // Retain existing state if already set, otherwise default to Present (true)
-      nextRoster[st.id] = rollCallRoster[st.id] ?? { present: true, note: "" };
-    });
-    setRollCallRoster(nextRoster);
-  }, [classStudents]);
-
-  // Filtered roster for search in roll-call
   const filteredRosterStudents = useMemo(() => {
     if (!rollCallFilterSearch.trim()) return classStudents;
     const q = rollCallFilterSearch.toLowerCase();
@@ -538,7 +657,6 @@ export const AttendanceSection: React.FC = () => {
     );
   }, [classStudents, rollCallFilterSearch]);
 
-  // Roll-call quick metrics
   const rollCallStats = useMemo(() => {
     const total = classStudents.length;
     let present = 0;
@@ -654,7 +772,7 @@ export const AttendanceSection: React.FC = () => {
     window.print();
   };
 
-  // ─── Class Attendance Analytics Summary ───────────────────────────────────
+  // ─── Class Summaries Analytics ─────────────────────────────────────────────
 
   const classSummaries = useMemo(() => {
     return classes.map((c) => {
@@ -665,7 +783,10 @@ export const AttendanceSection: React.FC = () => {
       const present = classRecs.filter((r) => Boolean(r.present)).length;
       const absent = total - present;
       const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-      const enrolledCount = students.filter((s) => String(s.class_id) === String(c.id)).length;
+      const enrolledCount = allStudents.filter(
+        (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
+      ).length;
+
       return {
         ...c,
         recordsCount: total,
@@ -675,7 +796,11 @@ export const AttendanceSection: React.FC = () => {
         enrolledCount,
       };
     });
-  }, [classes, records, students]);
+  }, [classes, records, allStudents]);
+
+  const activeSelectedClassObj = useMemo(() => {
+    return classes.find((c) => String(c.id) === String(rollCallClassId));
+  }, [classes, rollCallClassId]);
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -684,10 +809,11 @@ export const AttendanceSection: React.FC = () => {
       {/* Toast Notification */}
       {feedback && (
         <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium transition-all transform duration-300 animate-in slide-in-from-top ${feedback.type === "success"
-            ? "bg-emerald-600 text-white shadow-emerald-500/20"
-            : "bg-rose-600 text-white shadow-rose-500/20"
-            }`}
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium transition-all transform duration-300 animate-in slide-in-from-top ${
+            feedback.type === "success"
+              ? "bg-emerald-600 text-white shadow-emerald-500/20"
+              : "bg-rose-600 text-white shadow-rose-500/20"
+          }`}
         >
           {feedback.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{feedback.message}</span>
@@ -717,14 +843,14 @@ export const AttendanceSection: React.FC = () => {
 
         <div className="flex items-center flex-wrap gap-2.5">
           <button
-            onClick={() => {
-              setActiveTab("rollcall");
-            }}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition shadow-sm ${activeTab === "rollcall"
-              ? "bg-indigo-600 text-white shadow-indigo-600/20 hover:bg-indigo-700"
-              : "bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-750"
-              }`}
+            onClick={() => setActiveTab("rollcall")}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition shadow-sm ${
+              activeTab === "rollcall"
+                ? "bg-indigo-600 text-white shadow-indigo-600/20 hover:bg-indigo-700"
+                : "bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-750"
+            }`}
           >
+            <Sparkles size={15} className="text-amber-400" />
             Quick Roll Call
           </button>
 
@@ -767,7 +893,7 @@ export const AttendanceSection: React.FC = () => {
 
       {/* ─── KPI Stats Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-4">
-        {/* Card 1: Total Records */}
+        {/* Total Records */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 border border-slate-200/90 dark:border-gray-700/80 shadow-sm relative overflow-hidden transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Logged</span>
@@ -779,13 +905,13 @@ export const AttendanceSection: React.FC = () => {
             <h3 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-100">
               {summary.total}
             </h3>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-              <span>Class attendance sessions</span>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+              Class attendance records
             </p>
           </div>
         </div>
 
-        {/* Card 2: Attendance Rate */}
+        {/* Attendance Rate */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 border border-slate-200/90 dark:border-gray-700/80 shadow-sm relative overflow-hidden transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Attendance Rate</span>
@@ -802,7 +928,6 @@ export const AttendanceSection: React.FC = () => {
                 {summary.rate >= 80 ? "Optimal" : summary.rate >= 60 ? "Moderate" : "Low"}
               </span>
             </div>
-            {/* Progress bar */}
             <div className="w-full bg-slate-100 dark:bg-gray-700 h-1.5 rounded-full mt-2.5 overflow-hidden">
               <div
                 className="bg-emerald-500 h-full rounded-full transition-all duration-500"
@@ -812,7 +937,7 @@ export const AttendanceSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Present Count */}
+        {/* Present Count */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 border border-slate-200/90 dark:border-gray-700/80 shadow-sm relative overflow-hidden transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Present</span>
@@ -830,7 +955,7 @@ export const AttendanceSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 4: Absent Count */}
+        {/* Absent Count */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 md:p-5 border border-slate-200/90 dark:border-gray-700/80 shadow-sm relative overflow-hidden transition">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Absent</span>
@@ -853,11 +978,13 @@ export const AttendanceSection: React.FC = () => {
       <div className="flex border-b border-slate-200 dark:border-gray-700 gap-6">
         <button
           onClick={() => setActiveTab("records")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${activeTab === "records"
-            ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-            : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
+            activeTab === "records"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
         >
+          <ClipboardCheck size={16} />
           Attendance Records
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-750 text-slate-600 dark:text-slate-300 font-medium">
             {totalRecords}
@@ -866,21 +993,30 @@ export const AttendanceSection: React.FC = () => {
 
         <button
           onClick={() => setActiveTab("rollcall")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${activeTab === "rollcall"
-            ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-            : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
+            activeTab === "rollcall"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
         >
+          <Sparkles size={16} className="text-amber-500" />
           Quick Roll Call Sheet
+          {classStudents.length > 0 && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-medium">
+              {classStudents.length} Students
+            </span>
+          )}
         </button>
 
         <button
           onClick={() => setActiveTab("classes")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${activeTab === "classes"
-            ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-            : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-            }`}
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
+            activeTab === "classes"
+              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
+              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+          }`}
         >
+          <Layers size={16} />
           Class Summaries
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-gray-750 text-slate-600 dark:text-slate-300 font-medium">
             {classes.length}
@@ -891,10 +1027,10 @@ export const AttendanceSection: React.FC = () => {
       {/* ─── TAB 1: ATTENDANCE RECORDS ───────────────────────────────────── */}
       {activeTab === "records" && (
         <div className="flex flex-col gap-4">
-          {/* Filter Bar */}
+          {/* Filter Bar with Dynamic Class-Wise Student Selector */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
             {/* Search Input */}
-            <div className="relative flex-1 min-w-[220px]">
+            <div className="relative flex-1 min-w-[200px]">
               <Search
                 size={16}
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
@@ -918,18 +1054,45 @@ export const AttendanceSection: React.FC = () => {
 
             {/* Filter Dropdowns */}
             <div className="flex items-center flex-wrap gap-2.5">
-              {/* Class Filter */}
+              {/* Class Filter Dropdown */}
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Class:</span>
                 <select
                   value={selectedClass}
-                  onChange={(e) => setSelectedClass(e.target.value)}
-                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  onChange={(e) => {
+                    setSelectedClass(e.target.value);
+                    setSelectedStudent("all"); // Reset student when class changes
+                  }}
+                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
                 >
                   <option value="all">All Classes</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name}
+                  {classes.map((c) => {
+                    const studentCount = allStudents.filter(
+                      (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
+                    ).length;
+                    return (
+                      <option key={c.id} value={String(c.id)}>
+                        Class {c.name} {studentCount > 0 ? `(${studentCount} students)` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Dynamic Student Filter (Class-Wise) */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Student:</span>
+                <select
+                  value={selectedStudent}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
+                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 max-w-[190px] truncate"
+                >
+                  <option value="all">
+                    {selectedClass === "all" ? "All Students" : "All in this Class"}
+                  </option>
+                  {classFilterStudents.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      {st.name} {st.surname} ({st.username || st.id})
                     </option>
                   ))}
                 </select>
@@ -955,10 +1118,11 @@ export const AttendanceSection: React.FC = () => {
                   <button
                     key={preset}
                     onClick={() => setDatePreset(preset)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-lg capitalize transition ${datePreset === preset
-                      ? "bg-white dark:bg-gray-750 text-indigo-600 dark:text-indigo-400 font-semibold shadow-xs"
-                      : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                      }`}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-lg capitalize transition ${
+                      datePreset === preset
+                        ? "bg-white dark:bg-gray-750 text-indigo-600 dark:text-indigo-400 font-semibold shadow-xs"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                    }`}
                   >
                     {preset === "all" ? "All" : preset}
                   </button>
@@ -970,18 +1134,20 @@ export const AttendanceSection: React.FC = () => {
                     setCustomDate(e.target.value);
                     setDatePreset("custom");
                   }}
-                  className={`text-xs py-0.5 px-2 rounded-lg bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none border-l border-slate-200 dark:border-gray-700 ${datePreset === "custom" ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""
-                    }`}
+                  className={`text-xs py-0.5 px-2 rounded-lg bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none border-l border-slate-200 dark:border-gray-700 ${
+                    datePreset === "custom" ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""
+                  }`}
                   title="Specific Date"
                 />
               </div>
 
               {/* Clear Filter Button */}
-              {(search || selectedClass !== "all" || selectedStatus !== "all" || datePreset !== "all") && (
+              {(search || selectedClass !== "all" || selectedStudent !== "all" || selectedStatus !== "all" || datePreset !== "all") && (
                 <button
                   onClick={() => {
                     setSearch("");
                     setSelectedClass("all");
+                    setSelectedStudent("all");
                     setSelectedStatus("all");
                     setDatePreset("all");
                     setCustomDate("");
@@ -1028,7 +1194,7 @@ export const AttendanceSection: React.FC = () => {
                             No attendance records found
                           </span>
                           <span className="text-xs text-slate-400">
-                            Try adjusting your filters or use Quick Roll Call to record new attendance.
+                            Try adjusting filters or use Quick Roll Call to record attendance for a class.
                           </span>
                         </div>
                       </td>
@@ -1067,7 +1233,7 @@ export const AttendanceSection: React.FC = () => {
                         {/* Class */}
                         <td className="py-3 px-4">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-gray-600">
-                            {item.class_name || "—"}
+                            Class {item.class_name || "—"}
                           </span>
                         </td>
 
@@ -1098,14 +1264,16 @@ export const AttendanceSection: React.FC = () => {
                           <button
                             onClick={() => handleToggleStatus(item)}
                             title="Click to toggle Present / Absent"
-                            className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer ${item.present
-                              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
-                              : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100"
-                              }`}
+                            className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer ${
+                              item.present
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
+                                : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100"
+                            }`}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${item.present ? "bg-emerald-500" : "bg-rose-500"
-                                }`}
+                              className={`w-1.5 h-1.5 rounded-full ${
+                                item.present ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
                             />
                             <span>{item.present ? "Present" : "Absent"}</span>
                             <span className="text-[10px] opacity-40 group-hover:opacity-100 transition ml-0.5">
@@ -1184,46 +1352,54 @@ export const AttendanceSection: React.FC = () => {
         </div>
       )}
 
-      {/* ─── TAB 2: QUICK ROLL CALL / DAILY SHEET ────────────────────────── */}
+      {/* ─── TAB 2: QUICK ROLL CALL / DAILY SHEET (CLASS-WISE) ────────────── */}
       {activeTab === "rollcall" && (
         <div className="flex flex-col gap-5">
           {/* Roll Call Setup Card */}
           <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 flex-1">
-              {/* Date */}
+              {/* Roll Call Date */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                   Roll Call Date:
                 </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={rollCallDate}
-                    onChange={(e) => setRollCallDate(e.target.value)}
-                    className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={rollCallDate}
+                  onChange={(e) => setRollCallDate(e.target.value)}
+                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                />
               </div>
 
-              {/* Class */}
+              {/* Class Selection: Loads students dynamically from "All Students" */}
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  Select Class:
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Select Class:</span>
+                  {classStudentsLoading && (
+                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 animate-pulse font-normal">
+                      Loading students...
+                    </span>
+                  )}
                 </label>
                 <select
                   value={rollCallClassId}
                   onChange={(e) => setRollCallClassId(e.target.value)}
-                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
                 >
-                  {classes.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name} {c.grade_level ? `(Grade ${c.grade_level})` : ""}
-                    </option>
-                  ))}
+                  {classes.map((c) => {
+                    const count = allStudents.filter(
+                      (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
+                    ).length;
+                    return (
+                      <option key={c.id} value={String(c.id)}>
+                        Class {c.name} {c.grade_level ? `(Grade ${c.grade_level})` : ""} — {count} Students
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
-              {/* Lesson / Subject */}
+              {/* Lesson / Subject Selection */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                   Lesson / Session:
@@ -1240,7 +1416,7 @@ export const AttendanceSection: React.FC = () => {
                       </option>
                     ))
                   ) : (
-                    <option value="1">General Class Session</option>
+                    <option value="1">General Class Attendance</option>
                   )}
                 </select>
               </div>
@@ -1251,7 +1427,8 @@ export const AttendanceSection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleMarkAllRoster(true)}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5"
+                disabled={classStudentsLoading || classStudents.length === 0}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <CheckCircle2 size={14} />
                 All Present
@@ -1259,7 +1436,8 @@ export const AttendanceSection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleMarkAllRoster(false)}
-                className="px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition flex items-center gap-1.5"
+                disabled={classStudentsLoading || classStudents.length === 0}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <UserX size={14} />
                 All Absent
@@ -1267,11 +1445,15 @@ export const AttendanceSection: React.FC = () => {
             </div>
           </div>
 
-          {/* Roll Call Live Status Bar */}
+          {/* Roll Call Live Status Bar & Search */}
           <div className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-4 flex-wrap text-xs md:text-sm font-semibold">
-              <span className="text-slate-700 dark:text-slate-200">
-                Total Enrolled: <strong className="text-indigo-600 dark:text-indigo-400">{rollCallStats.total}</strong>
+            <div className="flex items-center gap-3.5 flex-wrap text-xs md:text-sm font-semibold">
+              <span className="text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Class {activeSelectedClassObj?.name || ""} Roster:</span>
+                <strong className="text-indigo-600 dark:text-indigo-400 px-2 py-0.5 bg-white dark:bg-gray-800 rounded-md shadow-xs border border-indigo-100 dark:border-gray-700">
+                  {classStudents.length} Students
+                </strong>
               </span>
               <span className="text-emerald-700 dark:text-emerald-400">
                 Present: <strong>{rollCallStats.present}</strong> ({rollCallStats.rate}%)
@@ -1298,15 +1480,29 @@ export const AttendanceSection: React.FC = () => {
 
           {/* Roll Call Students Grid / List */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm overflow-hidden">
-            {filteredRosterStudents.length === 0 ? (
+            {classStudentsLoading ? (
+              <div className="p-12 text-center text-slate-400 dark:text-slate-500">
+                <RefreshCw className="animate-spin text-indigo-600 mx-auto mb-2" size={26} />
+                <p className="font-semibold text-slate-700 dark:text-slate-300">
+                  Loading students from All Students for Class {activeSelectedClassObj?.name || ""}...
+                </p>
+              </div>
+            ) : filteredRosterStudents.length === 0 ? (
               <div className="p-12 text-center text-slate-400 dark:text-slate-500">
                 <Users size={36} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
                 <p className="font-semibold text-slate-700 dark:text-slate-300">
-                  No students found for this class
+                  No students found in Class {activeSelectedClassObj?.name || ""}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  Select a different class or check if students are assigned to this class.
+                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                  There are currently no students enrolled in this class in the system. You can assign or add students from the Students page.
                 </p>
+                <Link
+                  to="/list/students"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  <ExternalLink size={13} />
+                  Open All Students Page
+                </Link>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-gray-750">
@@ -1317,12 +1513,13 @@ export const AttendanceSection: React.FC = () => {
                   return (
                     <div
                       key={st.id}
-                      className={`p-3.5 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition ${isPresent
-                        ? "hover:bg-slate-50/60 dark:hover:bg-gray-750/30"
-                        : "bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-50/40"
-                        }`}
+                      className={`p-3.5 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition ${
+                        isPresent
+                          ? "hover:bg-slate-50/60 dark:hover:bg-gray-750/30"
+                          : "bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-50/40"
+                      }`}
                     >
-                      {/* Left: Student Identity */}
+                      {/* Student Identity */}
                       <div className="flex items-center gap-3 min-w-[240px]">
                         <span className="text-xs font-mono text-slate-400 w-5 text-right">
                           {idx + 1}.
@@ -1331,32 +1528,39 @@ export const AttendanceSection: React.FC = () => {
                           <img
                             src={st.img}
                             alt={st.name}
-                            className={`w-10 h-10 rounded-full object-cover border-2 flex-shrink-0 ${isPresent
-                              ? "border-emerald-500/80 shadow-xs shadow-emerald-500/10"
-                              : "border-rose-500/80 shadow-xs shadow-rose-500/10 grayscale-20"
-                              }`}
+                            className={`w-10 h-10 rounded-full object-cover border-2 flex-shrink-0 ${
+                              isPresent
+                                ? "border-emerald-500/80 shadow-xs shadow-emerald-500/10"
+                                : "border-rose-500/80 shadow-xs shadow-rose-500/10"
+                            }`}
                           />
                         ) : (
                           <div
-                            className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center flex-shrink-0 border-2 ${isPresent
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300"
-                              : "bg-rose-50 text-rose-700 border-rose-400 dark:bg-rose-950/40 dark:text-rose-300"
-                              }`}
+                            className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center flex-shrink-0 border-2 ${
+                              isPresent
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300"
+                                : "bg-rose-50 text-rose-700 border-rose-400 dark:bg-rose-950/40 dark:text-rose-300"
+                            }`}
                           >
                             {st.name[0]}
                           </div>
                         )}
                         <div>
-                          <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
-                            {st.name} {st.surname}
-                          </h4>
-                          <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                              {st.name} {st.surname}
+                            </h4>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-slate-400">
+                              Class {activeSelectedClassObj?.name || st.class_name || ""}
+                            </span>
+                          </div>
+                          <p className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
                             {st.username || st.id}
-                          </span>
+                          </p>
                         </div>
                       </div>
 
-                      {/* Middle: Optional Note / Remarks */}
+                      {/* Optional Note / Remarks */}
                       <div className="flex-1 max-w-sm">
                         <input
                           type="text"
@@ -1367,17 +1571,18 @@ export const AttendanceSection: React.FC = () => {
                         />
                       </div>
 
-                      {/* Right: Modern Segmented Switch */}
+                      {/* Status Toggle Switch */}
                       <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-900 p-1 rounded-xl border border-slate-200 dark:border-gray-700 self-start md:self-auto">
                         <button
                           type="button"
                           onClick={() => {
                             if (!isPresent) handleToggleRosterStudent(st.id);
                           }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${isPresent
-                            ? "bg-emerald-600 text-white shadow-xs"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            }`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                            isPresent
+                              ? "bg-emerald-600 text-white shadow-xs"
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                          }`}
                         >
                           <CheckCircle2 size={13} />
                           Present
@@ -1387,10 +1592,11 @@ export const AttendanceSection: React.FC = () => {
                           onClick={() => {
                             if (isPresent) handleToggleRosterStudent(st.id);
                           }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${!isPresent
-                            ? "bg-rose-600 text-white shadow-xs"
-                            : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                            }`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                            !isPresent
+                              ? "bg-rose-600 text-white shadow-xs"
+                              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                          }`}
                         >
                           <UserX size={13} />
                           Absent
@@ -1405,13 +1611,13 @@ export const AttendanceSection: React.FC = () => {
             {/* Bottom Save Action Bar */}
             <div className="p-4 bg-slate-50 dark:bg-gray-750/70 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                Ready to record attendance for <strong>{rollCallStats.total}</strong> students on <strong>{rollCallDate}</strong>
+                Ready to record attendance for <strong>{rollCallStats.total}</strong> students in <strong>Class {activeSelectedClassObj?.name || ""}</strong> on <strong>{rollCallDate}</strong>
               </span>
 
               <button
                 type="button"
                 onClick={handleSaveRollCall}
-                disabled={rollCallSaving || filteredRosterStudents.length === 0}
+                disabled={rollCallSaving || classStudentsLoading || filteredRosterStudents.length === 0}
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition"
               >
                 {rollCallSaving ? (
@@ -1455,12 +1661,13 @@ export const AttendanceSection: React.FC = () => {
                     </div>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls.rate >= 80
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                      : cls.rate >= 60
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
+                      cls.rate >= 80
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        : cls.rate >= 60
                         ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
                         : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                      }`}
+                    }`}
                   >
                     {cls.rate}% Rate
                   </span>
@@ -1505,6 +1712,7 @@ export const AttendanceSection: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setSelectedClass(String(cls.id));
+                    setSelectedStudent("all");
                     setActiveTab("records");
                   }}
                   className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
@@ -1527,7 +1735,7 @@ export const AttendanceSection: React.FC = () => {
         </div>
       )}
 
-      {/* ─── MODAL: CREATE / EDIT ATTENDANCE RECORD ─────────────────────── */}
+      {/* ─── MODAL: CREATE / EDIT ATTENDANCE RECORD (DYNAMIC CLASS-WISE) ─── */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg border border-slate-200 dark:border-gray-700 shadow-2xl overflow-hidden">
@@ -1558,7 +1766,46 @@ export const AttendanceSection: React.FC = () => {
                 />
               </div>
 
-              {/* Student */}
+              {/* Class Selector: Dynamically updates the student and lesson dropdowns */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
+                  Class <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={modalForm.class_id}
+                  onChange={(e) => {
+                    const newClassId = e.target.value;
+                    const filteredStudents = allStudents.filter(
+                      (s) => String(s.class_id) === String(newClassId)
+                    );
+                    const filteredLessons = lessons.filter(
+                      (l) => !l.class_id || String(l.class_id) === String(newClassId)
+                    );
+                    setModalForm((f) => ({
+                      ...f,
+                      class_id: newClassId,
+                      student_id: filteredStudents[0]?.id || "",
+                      lesson_id: filteredLessons[0]?.id ? String(filteredLessons[0].id) : f.lesson_id,
+                    }));
+                  }}
+                  className="w-full py-2 px-3 text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+                >
+                  <option value="">Select a class...</option>
+                  {classes.map((c) => {
+                    const count = allStudents.filter(
+                      (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
+                    ).length;
+                    return (
+                      <option key={c.id} value={String(c.id)}>
+                        Class {c.name} {count > 0 ? `(${count} Students)` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              {/* Student Selector: Dynamically filtered to students in chosen class */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                   Student <span className="text-rose-500">*</span>
@@ -1570,15 +1817,20 @@ export const AttendanceSection: React.FC = () => {
                   className="w-full py-2 px-3 text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">Select a student...</option>
-                  {students.map((st) => (
+                  {modalClassStudents.map((st) => (
                     <option key={st.id} value={st.id}>
-                      {st.name} {st.surname} {st.class_name ? `(${st.class_name})` : ""}
+                      {st.name} {st.surname} ({st.username || st.id})
                     </option>
                   ))}
                 </select>
+                {modalClassStudents.length === 0 && modalForm.class_id && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    No students currently enrolled in this class.
+                  </p>
+                )}
               </div>
 
-              {/* Lesson */}
+              {/* Lesson / Session */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
                   Lesson / Session <span className="text-rose-500">*</span>
@@ -1590,7 +1842,7 @@ export const AttendanceSection: React.FC = () => {
                   className="w-full py-2 px-3 text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="">Select a lesson...</option>
-                  {lessons.map((l) => (
+                  {modalClassLessons.map((l) => (
                     <option key={l.id} value={String(l.id)}>
                       {l.name}
                     </option>
