@@ -208,7 +208,31 @@ const FeesSection: React.FC = () => {
         loadedInvoices = feesRes.data.fees;
       }
       if (catRes.success && Array.isArray(catRes.data?.categories) && catRes.data.categories.length > 0) {
-        loadedCategories = catRes.data.categories;
+        // Merge DB categories with any locally-edited ones stored in localStorage
+        // This ensures edits that hit the DB are shown, but if DB is stale, local overrides win per-ID
+        const dbCats: FeeCategory[] = catRes.data.categories;
+        const storedCatsRaw = localStorage.getItem("mk_school_fee_categories");
+        if (storedCatsRaw) {
+          try {
+            const localCats: FeeCategory[] = JSON.parse(storedCatsRaw);
+            // Build a map of local overrides keyed by numeric ID
+            const localMap = new Map(localCats.map((c) => [Number(c.id), c]));
+            // For each DB category, prefer the local version if it has a newer default_amount
+            loadedCategories = dbCats.map((dbCat) => {
+              const local = localMap.get(Number(dbCat.id));
+              // If local exists and its amount differs from DB, prefer local
+              // (means DB update may have failed; keep local edit)
+              if (local && Number(local.default_amount) !== Number(dbCat.default_amount)) {
+                return { ...dbCat, ...local, id: dbCat.id };
+              }
+              return dbCat;
+            });
+          } catch {
+            loadedCategories = dbCats;
+          }
+        } else {
+          loadedCategories = dbCats;
+        }
       }
       if (payRes.success && Array.isArray(payRes.data?.payments)) {
         loadedPayments = payRes.data.payments;
@@ -953,11 +977,12 @@ const FeesSection: React.FC = () => {
     }
 
     if (categoryModal.mode === "create") {
+      const tempId = Date.now();
       const newCat: FeeCategory = {
-        id: Date.now(),
+        id: tempId,
         name: categoryForm.name.trim(),
         code: categoryForm.code.trim().toUpperCase() || categoryForm.name.slice(0, 4).toUpperCase(),
-        default_amount: Number(categoryForm.default_amount),
+        default_amount: isNaN(Number(categoryForm.default_amount)) ? 0 : Number(categoryForm.default_amount),
         frequency: categoryForm.frequency,
         status: categoryForm.status,
         description: categoryForm.description,
@@ -966,8 +991,14 @@ const FeesSection: React.FC = () => {
       };
 
       try {
-        await api.createFeeCategory(newCat);
-      } catch { }
+        const res = await api.createFeeCategory(newCat);
+        // If the backend assigned a real ID, use it so future edits work
+        if (res?.success && res?.data?.id) {
+          newCat.id = Number(res.data.id);
+        }
+      } catch {
+        showToast("error", "DB save failed — category saved locally only");
+      }
 
       const updated = [...categories, newCat];
       setCategories(updated);
@@ -975,27 +1006,36 @@ const FeesSection: React.FC = () => {
       showToast("success", `Category "${newCat.name}" added!`);
     } else if (categoryModal.mode === "edit" && categoryModal.data) {
       const catId = categoryModal.data.id;
+      const safeAmount = isNaN(Number(categoryForm.default_amount)) ? 0 : Number(categoryForm.default_amount);
+      // Use Number() coercion on both sides: PHP returns IDs as strings,
+      // locally-created categories use Date.now() (number). Strict === would silently fail.
+      const updatedCat = {
+        name: categoryForm.name.trim(),
+        code: categoryForm.code.trim().toUpperCase(),
+        default_amount: safeAmount,
+        frequency: categoryForm.frequency,
+        status: categoryForm.status,
+        description: categoryForm.description,
+      };
       const updated = categories.map((c) =>
-        c.id === catId
-          ? {
-            ...c,
-            name: categoryForm.name.trim(),
-            code: categoryForm.code.trim().toUpperCase(),
-            default_amount: Number(categoryForm.default_amount),
-            frequency: categoryForm.frequency,
-            status: categoryForm.status,
-            description: categoryForm.description,
-          }
-          : c
+        Number(c.id) === Number(catId) ? { ...c, ...updatedCat } : c
       );
 
-      try {
-        await api.updateFeeCategory(catId, categoryForm);
-      } catch { }
-
+      // First update local state & localStorage so UI reflects the change immediately
       setCategories(updated);
       syncToLocalStorage(invoices, payments, updated);
-      showToast("success", `Category "${categoryForm.name}" updated!`);
+
+      // Then push to DB
+      try {
+        const res = await api.updateFeeCategory(catId, updatedCat);
+        if (res?.success) {
+          showToast("success", `Category "${categoryForm.name}" updated!`);
+        } else {
+          showToast("error", `DB update failed: ${res?.message || "Unknown error"}. Saved locally.`);
+        }
+      } catch (err: any) {
+        showToast("error", `DB update failed: ${err?.message || "Network error"}. Saved locally.`);
+      }
     }
 
     setCategoryModal({ open: false, mode: "create", data: null });
@@ -1017,7 +1057,7 @@ const FeesSection: React.FC = () => {
       try {
         await api.deleteFeeCategory(deleteConfirm.id);
       } catch { }
-      const updated = categories.filter((c) => c.id !== deleteConfirm.id);
+      const updated = categories.filter((c) => Number(c.id) !== Number(deleteConfirm.id));
       setCategories(updated);
       syncToLocalStorage(invoices, payments, updated);
       showToast("success", `Fee Category removed`);

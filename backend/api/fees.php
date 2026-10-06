@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 $db = Database::getInstance();
 ensureFeesTables($db);
@@ -841,6 +841,7 @@ function handlePut($db, $action, $id) {
 
         $db->update('fee_categories', [
             'name' => $data['name'] ?? $cat['name'],
+            'code' => isset($data['code']) ? strtoupper(trim($data['code'])) : $cat['code'],
             'description' => $data['description'] ?? $cat['description'],
             'default_amount' => isset($data['default_amount']) ? floatval($data['default_amount']) : $cat['default_amount'],
             'frequency' => $data['frequency'] ?? $cat['frequency'],
