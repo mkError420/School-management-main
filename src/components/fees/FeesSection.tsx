@@ -201,41 +201,44 @@ const FeesSection: React.FC = () => {
       ]);
 
       let loadedInvoices: FeeInvoice[] = [];
-      let loadedCategories: FeeCategory[] = defaultCategories;
+      let loadedCategories: FeeCategory[] = [];
       let loadedPayments: FeePayment[] = [];
 
-      if (feesRes.success && Array.isArray(feesRes.data?.fees)) {
-        loadedInvoices = feesRes.data.fees;
+      const rawInvoices = (feesRes as any)?.data?.fees || (feesRes as any)?.fees || (feesRes as any)?.data?.invoices || (feesRes as any)?.invoices;
+      if (Array.isArray(rawInvoices) && rawInvoices.length > 0) {
+        loadedInvoices = rawInvoices;
       }
-      if (catRes.success && Array.isArray(catRes.data?.categories) && catRes.data.categories.length > 0) {
-        // Merge DB categories with any locally-edited ones stored in localStorage
-        // This ensures edits that hit the DB are shown, but if DB is stale, local overrides win per-ID
-        const dbCats: FeeCategory[] = catRes.data.categories;
+
+      const rawCats = (catRes as any)?.data?.categories || (catRes as any)?.categories;
+      if (Array.isArray(rawCats) && rawCats.length > 0) {
+        loadedCategories = rawCats.map((c: any) => ({
+          ...c,
+          id: Number(c.id),
+          default_amount: Number(c.default_amount) || 0,
+        }));
+        // Update local cache with DB data
+        localStorage.setItem("mk_school_fee_categories", JSON.stringify(loadedCategories));
+      } else {
+        // Fall back to localStorage if DB returned empty
         const storedCatsRaw = localStorage.getItem("mk_school_fee_categories");
         if (storedCatsRaw) {
           try {
             const localCats: FeeCategory[] = JSON.parse(storedCatsRaw);
-            // Build a map of local overrides keyed by numeric ID
-            const localMap = new Map(localCats.map((c) => [Number(c.id), c]));
-            // For each DB category, prefer the local version if it has a newer default_amount
-            loadedCategories = dbCats.map((dbCat) => {
-              const local = localMap.get(Number(dbCat.id));
-              // If local exists and its amount differs from DB, prefer local
-              // (means DB update may have failed; keep local edit)
-              if (local && Number(local.default_amount) !== Number(dbCat.default_amount)) {
-                return { ...dbCat, ...local, id: dbCat.id };
-              }
-              return dbCat;
-            });
-          } catch {
-            loadedCategories = dbCats;
-          }
-        } else {
-          loadedCategories = dbCats;
+            if (Array.isArray(localCats) && localCats.length > 0) {
+              loadedCategories = localCats;
+            }
+          } catch { }
         }
       }
-      if (payRes.success && Array.isArray(payRes.data?.payments)) {
-        loadedPayments = payRes.data.payments;
+
+      // If still empty (first run and DB empty), fall back to defaults
+      if (loadedCategories.length === 0) {
+        loadedCategories = defaultCategories;
+      }
+
+      const rawPayments = (payRes as any)?.data?.payments || (payRes as any)?.payments;
+      if (Array.isArray(rawPayments) && rawPayments.length > 0) {
+        loadedPayments = rawPayments;
       }
 
       // If backend had no invoices or backend is empty, check localStorage or seed default mock set
@@ -1028,11 +1031,23 @@ const FeesSection: React.FC = () => {
       // Then push to DB
       try {
         const res = await api.updateFeeCategory(catId, updatedCat);
-        // Backend returns {message:"..."} with no explicit success field on success;
-        // only auth/not-found errors set success:false. So treat anything != false as success.
         if (res?.success === false) {
-          showToast("error", `DB update failed: ${res?.message || "Unknown error"}. Saved locally.`);
+          showToast("error", `DB update failed: ${res?.message || "Unknown error"}. Saved locally only.`);
         } else {
+          // Refetch from DB to confirm the saved state is reflected correctly
+          try {
+            const catRes = await api.getFeeCategories();
+            const freshCats = (catRes as any)?.data?.categories || (catRes as any)?.categories;
+            if (Array.isArray(freshCats) && freshCats.length > 0) {
+              const normalized = freshCats.map((c: any) => ({
+                ...c,
+                id: Number(c.id),
+                default_amount: Number(c.default_amount) || 0,
+              }));
+              setCategories(normalized);
+              syncToLocalStorage(invoices, payments, normalized);
+            }
+          } catch { /* keep local state if refetch fails */ }
           showToast("success", `Category "${categoryForm.name}" updated!`);
         }
       } catch (err: any) {

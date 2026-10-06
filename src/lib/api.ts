@@ -286,8 +286,10 @@ class ApiService {
   }
 
   async updateFeeCategory(id: number | string, data: any) {
+    // Use POST instead of PUT: some PHP hosting environments strip the body from PUT requests,
+    // causing php://input to return empty and the update to silently write back old values.
     return this.request(`fees?action=update-category&id=${encodeURIComponent(String(id))}`, {
-      method: 'PUT',
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }

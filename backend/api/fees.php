@@ -317,7 +317,17 @@ function getCategories($db) {
             GROUP BY fc.id
             ORDER BY fc.name ASC";
     $categories = $db->fetchAll($sql);
-    Response::json(['categories' => $categories]);
+    foreach ($categories as &$cat) {
+        $cat['id'] = intval($cat['id']);
+        $cat['default_amount'] = floatval($cat['default_amount']);
+        $cat['total_invoices'] = intval($cat['total_invoices'] ?? 0);
+        $cat['total_revenue'] = floatval($cat['total_revenue'] ?? 0);
+    }
+    Response::json([
+        'success' => true,
+        'categories' => $categories,
+        'data' => ['categories' => $categories]
+    ]);
 }
 
 function getInvoices($db) {
@@ -556,6 +566,7 @@ function getReceipt($db, $id) {
 function handlePost($db, $action) {
     AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
     $data = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+    $id = $_GET['id'] ?? null;
 
     if ($action === 'record-payment') {
         recordPayment($db, $data);
@@ -569,6 +580,37 @@ function handlePost($db, $action) {
 
     if ($action === 'create-category') {
         createCategory($db, $data);
+        return;
+    }
+
+    // update-category via POST (POST reliably carries body on all PHP hosts)
+    if ($action === 'update-category') {
+        $catId = $id ?? ($data['id'] ?? ($_GET['id'] ?? null));
+        if (!$catId) Response::error('Category ID is required');
+        $cat = $db->fetchOne("SELECT * FROM fee_categories WHERE id = ?", [$catId]);
+        if (!$cat) Response::error('Category not found', 404);
+
+        $db->update('fee_categories', [
+            'name'           => isset($data['name'])           ? trim($data['name'])                       : $cat['name'],
+            'code'           => isset($data['code'])           ? strtoupper(trim($data['code']))           : $cat['code'],
+            'description'    => isset($data['description'])    ? trim($data['description'])                : $cat['description'],
+            'default_amount' => isset($data['default_amount']) ? floatval($data['default_amount'])         : floatval($cat['default_amount']),
+            'frequency'      => isset($data['frequency'])      ? $data['frequency']                        : $cat['frequency'],
+            'status'         => isset($data['status'])         ? $data['status']                           : $cat['status'],
+        ], 'id = ?', [$catId]);
+
+        $updatedCat = $db->fetchOne("SELECT * FROM fee_categories WHERE id = ?", [$catId]);
+        if ($updatedCat) {
+            $updatedCat['id'] = intval($updatedCat['id']);
+            $updatedCat['default_amount'] = floatval($updatedCat['default_amount']);
+        }
+
+        Response::json([
+            'success' => true,
+            'message' => 'Fee category updated successfully',
+            'data' => $updatedCat,
+            'category' => $updatedCat
+        ]);
         return;
     }
 
@@ -837,20 +879,32 @@ function handlePut($db, $action, $id) {
     $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
     if ($action === 'update-category') {
-        if (!$id) Response::error('Category ID is required');
-        $cat = $db->fetchOne("SELECT * FROM fee_categories WHERE id = ?", [$id]);
+        $catId = $id ?? ($data['id'] ?? ($_GET['id'] ?? null));
+        if (!$catId) Response::error('Category ID is required');
+        $cat = $db->fetchOne("SELECT * FROM fee_categories WHERE id = ?", [$catId]);
         if (!$cat) Response::error('Category not found', 404);
 
         $db->update('fee_categories', [
-            'name' => $data['name'] ?? $cat['name'],
+            'name' => isset($data['name']) ? trim($data['name']) : $cat['name'],
             'code' => isset($data['code']) ? strtoupper(trim($data['code'])) : $cat['code'],
-            'description' => $data['description'] ?? $cat['description'],
-            'default_amount' => isset($data['default_amount']) ? floatval($data['default_amount']) : $cat['default_amount'],
+            'description' => isset($data['description']) ? trim($data['description']) : $cat['description'],
+            'default_amount' => isset($data['default_amount']) ? floatval($data['default_amount']) : floatval($cat['default_amount']),
             'frequency' => $data['frequency'] ?? $cat['frequency'],
             'status' => $data['status'] ?? $cat['status']
-        ], 'id = ?', [$id]);
+        ], 'id = ?', [$catId]);
 
-        Response::json(['success' => true, 'message' => 'Fee category updated successfully']);
+        $updatedCat = $db->fetchOne("SELECT * FROM fee_categories WHERE id = ?", [$catId]);
+        if ($updatedCat) {
+            $updatedCat['id'] = intval($updatedCat['id']);
+            $updatedCat['default_amount'] = floatval($updatedCat['default_amount']);
+        }
+
+        Response::json([
+            'success' => true,
+            'message' => 'Fee category updated successfully',
+            'data' => $updatedCat,
+            'category' => $updatedCat
+        ]);
         return;
     }
 
@@ -903,7 +957,7 @@ function handleDelete($db, $action, $id) {
             Response::error('Cannot delete category: it is currently used by invoices. You can set its status to Inactive instead.');
         }
         $db->query("DELETE FROM fee_categories WHERE id = ?", [$id]);
-        Response::json(['message' => 'Fee category deleted successfully']);
+        Response::json(['success' => true, 'message' => 'Fee category deleted successfully']);
         return;
     }
 
