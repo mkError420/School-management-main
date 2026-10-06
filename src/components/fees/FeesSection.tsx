@@ -1028,10 +1028,12 @@ const FeesSection: React.FC = () => {
       // Then push to DB
       try {
         const res = await api.updateFeeCategory(catId, updatedCat);
-        if (res?.success) {
-          showToast("success", `Category "${categoryForm.name}" updated!`);
-        } else {
+        // Backend returns {message:"..."} with no explicit success field on success;
+        // only auth/not-found errors set success:false. So treat anything != false as success.
+        if (res?.success === false) {
           showToast("error", `DB update failed: ${res?.message || "Unknown error"}. Saved locally.`);
+        } else {
+          showToast("success", `Category "${categoryForm.name}" updated!`);
         }
       } catch (err: any) {
         showToast("error", `DB update failed: ${err?.message || "Network error"}. Saved locally.`);

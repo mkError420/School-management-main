@@ -825,8 +825,10 @@ function createCategory($db, $data) {
     ]);
 
     Response::json([
+        'success' => true,
         'message' => 'Fee category created successfully',
-        'id' => $id
+        'id' => $id,
+        'data' => ['id' => $id]
     ], 201);
 }
 
@@ -848,7 +850,7 @@ function handlePut($db, $action, $id) {
             'status' => $data['status'] ?? $cat['status']
         ], 'id = ?', [$id]);
 
-        Response::json(['message' => 'Fee category updated successfully']);
+        Response::json(['success' => true, 'message' => 'Fee category updated successfully']);
         return;
     }
 
