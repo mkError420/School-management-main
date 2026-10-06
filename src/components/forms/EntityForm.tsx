@@ -107,10 +107,17 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     },
   ],
   assignment: [
-    { name: "title", label: "Assignment title", required: true },
-    { name: "start_date", label: "Start date", type: "datetime-local", required: true },
-    { name: "due_date", label: "Due date", type: "datetime-local", required: true },
-    { name: "lesson_id", label: "Lesson", type: "select", required: true, resource: "lessons" },
+    { name: "title", label: "Assignment Title", required: true, colSpan: 2, placeholder: "e.g. Science Chapter 4 Problem Set" },
+    { name: "start_date", label: "Start Date", type: "datetime-local", required: true },
+    { name: "due_date", label: "Due Date", type: "datetime-local", required: true },
+    {
+      name: "assignment_attachment",
+      label: "Upload Assignment",
+      type: "pdf-image",
+      accept: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/jpeg,image/png,image/webp,image/gif",
+      hint: "Upload assignment file (PDF, Word, Text, or Image) — max 25 MB",
+      colSpan: 2,
+    },
   ],
   result: [
     { name: "score", label: "Score (%)", type: "number", required: true, min: 0, max: 100 },
@@ -256,16 +263,27 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     setError(null);
   };
 
-  // Validate & set a routine attachment file
+  // Validate & set an attachment file (exam routine or assignment upload)
   const applyRoutineFile = (file: File | null) => {
     if (!file) return;
-    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowed.includes(file.type)) {
-      setError('Only PDF, JPG, PNG, WebP, or GIF files are allowed.');
+    const allowed = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif'
+    ];
+    const allowedExts = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    const hasValidExt = allowedExts.some((ext) => file.name.toLowerCase().endsWith(ext));
+    if (!allowed.includes(file.type) && !hasValidExt) {
+      setError('Only PDF, Word (.doc/.docx), Text (.txt), or image files are allowed.');
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setError('File must be 20 MB or smaller.');
+    if (file.size > 25 * 1024 * 1024) {
+      setError('File must be 25 MB or smaller.');
       return;
     }
     setError(null);
@@ -299,9 +317,9 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     try {
       let response;
       const needsProfileImage = (entity === "teacher" || entity === "student" || entity === "parent") && selectedImage;
-      const needsRoutine = entity === "exam" && (routineFile || removeAttachment);
+      const needsAttachment = (entity === "exam" || entity === "assignment") && (routineFile || removeAttachment);
 
-      if (needsProfileImage || needsRoutine) {
+      if (needsProfileImage || needsAttachment) {
         const formData = new FormData();
         Object.entries(payload).forEach(([key, value]) => {
           if (Array.isArray(value)) {
@@ -311,7 +329,8 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
           }
         });
         if (needsProfileImage) formData.append("img", selectedImage!, selectedImage!.name);
-        if (routineFile) formData.append("routine_attachment", routineFile, routineFile.name);
+        if (routineFile && entity === "exam") formData.append("routine_attachment", routineFile, routineFile.name);
+        if (routineFile && entity === "assignment") formData.append("assignment_attachment", routineFile, routineFile.name);
         if (removeAttachment) formData.append("remove_attachment", "1");
         response = type === "create"
           ? await api.create(apiResources[entity], formData)
