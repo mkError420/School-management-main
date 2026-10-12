@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import BigCalendar from "@/components/BigCalendar";
+import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -312,6 +313,7 @@ const ParentDashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="w-full xl:w-1/3 flex flex-col gap-6">
+          <EventCalendar />
           <Announcements />
         </div>
       </div>

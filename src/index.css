@@ -285,3 +285,42 @@ html.dark .rbc-timeslot-group {
   }
 }
 
+/* ==========================================================================
+   News Ticker Animations (Infinite Vertical Bottom-to-Top & Horizontal)
+   ========================================================================== */
+@keyframes ticker-vertical {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes ticker-horizontal {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker-vertical {
+  animation: ticker-vertical var(--ticker-duration, 26s) linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker-vertical:hover,
+.ticker-paused .animate-ticker-vertical {
+  animation-play-state: paused !important;
+}
+
+.animate-ticker-horizontal {
+  animation: ticker-horizontal var(--ticker-h-duration, 28s) linear infinite;
+  will-change: transform;
+}
+
+.animate-ticker-horizontal:hover {
+  animation-play-state: paused !important;
+}

@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import BigCalendar from "@/components/BigCalendar";
+import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
 import AttendanceChart from "@/components/AttendanceChart";
 import { useAuth } from "@/context/AuthContext";
@@ -214,7 +215,7 @@ const TeacherDashboardPage: React.FC = () => {
         </div>
 
         {/* Right Panel */}
-        <div className="w-full xl:w-[340px] flex-shrink-0 flex flex-col gap-5">
+        <div className="w-full xl:w-[380px] flex-shrink-0 flex flex-col gap-5">
           <div className={`${cardBg} border rounded-2xl shadow-sm overflow-hidden`}>
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-gray-700">
               <h2 className={`font-bold text-sm ${textPrimary}`}>Weekly Attendance Trends</h2>
@@ -223,6 +224,7 @@ const TeacherDashboardPage: React.FC = () => {
               <AttendanceChart />
             </div>
           </div>
+          <EventCalendar />
           <Announcements />
         </div>
       </div>
