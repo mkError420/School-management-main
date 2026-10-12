@@ -79,6 +79,7 @@ interface StudentItem {
   id: string;
   name: string;
   surname: string;
+  roll?: string;
   username?: string;
   img?: string;
   class_id?: number | string;
@@ -97,11 +98,11 @@ const FALLBACK_CLASSES: ClassItem[] = [
 ];
 
 const FALLBACK_STUDENTS: StudentItem[] = [
-  { id: "s1", name: "John", surname: "Connor", username: "johnconnor", class_id: 1, class_name: "1A", img: "https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200" },
-  { id: "s2", name: "Peter", surname: "Parker", username: "peterparker", class_id: 2, class_name: "1B", img: "https://images.pexels.com/photos/936126/pexels-photo-936126.jpeg?auto=compress&cs=tinysrgb&w=1200" },
-  { id: "s3", name: "Gwen", surname: "Stacy", username: "gwenstacy", class_id: 3, class_name: "2A", img: "https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&w=1200" },
-  { id: "s4", name: "Dick", surname: "Grayson", username: "dickgrayson", class_id: 4, class_name: "2B", img: "https://images.pexels.com/photos/428328/pexels-photo-428328.jpeg?auto=compress&cs=tinysrgb&w=1200" },
-  { id: "s5", name: "Jonathan", surname: "Lewis", username: "jonathanlewis", class_id: 7, class_name: "4A", img: "https://images.pexels.com/photos/1187765/pexels-photo-1187765.jpeg?auto=compress&cs=tinysrgb&w=1200" },
+  { id: "s1", name: "John", surname: "Connor", roll: "1", username: "johnconnor", class_id: 1, class_name: "1A", img: "https://images.pexels.com/photos/2888150/pexels-photo-2888150.jpeg?auto=compress&cs=tinysrgb&w=1200" },
+  { id: "s2", name: "Peter", surname: "Parker", roll: "2", username: "peterparker", class_id: 2, class_name: "1B", img: "https://images.pexels.com/photos/936126/pexels-photo-936126.jpeg?auto=compress&cs=tinysrgb&w=1200" },
+  { id: "s3", name: "Gwen", surname: "Stacy", roll: "3", username: "gwenstacy", class_id: 3, class_name: "2A", img: "https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&w=1200" },
+  { id: "s4", name: "Dick", surname: "Grayson", roll: "4", username: "dickgrayson", class_id: 4, class_name: "2B", img: "https://images.pexels.com/photos/428328/pexels-photo-428328.jpeg?auto=compress&cs=tinysrgb&w=1200" },
+  { id: "s5", name: "Jonathan", surname: "Lewis", roll: "5", username: "jonathanlewis", class_id: 7, class_name: "4A", img: "https://images.pexels.com/photos/1187765/pexels-photo-1187765.jpeg?auto=compress&cs=tinysrgb&w=1200" },
 ];
 
 const FALLBACK_LESSONS: LessonItem[] = [
@@ -129,7 +130,6 @@ export const AttendanceSection: React.FC = () => {
 
   // Navigation / Tabs
   const [activeTab, setActiveTab] = useState<"records" | "rollcall" | "classes">("records");
-  const [recordsViewMode, setRecordsViewMode] = useState<"spreadsheet" | "list">("spreadsheet");
 
   // Global Filter States for Records Tab
   const [search, setSearch] = useState("");
@@ -1027,380 +1027,16 @@ export const AttendanceSection: React.FC = () => {
         </button>
       </div>
 
-      {/* ─── TAB 1: ATTENDANCE RECORDS ───────────────────────────────────── */}
+      {/* ─── TAB 1: ATTENDANCE RECORDS (SPREADSHEET REGISTER) ─────────── */}
       {activeTab === "records" && (
-        <div className="flex flex-col gap-4">
-          {/* Sub-bar: View Mode Switcher (Spreadsheet Matrix vs Detailed Log View) */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center p-1 bg-slate-100/90 dark:bg-gray-800/90 rounded-xl border border-slate-200 dark:border-gray-700/80 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setRecordsViewMode("spreadsheet")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  recordsViewMode === "spreadsheet"
-                    ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                }`}
-              >
-                <Table size={14} />
-                <span>Spreadsheet Register</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setRecordsViewMode("list")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
-                  recordsViewMode === "list"
-                    ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-                }`}
-              >
-                <ClipboardCheck size={14} />
-                <span>Detailed Log View</span>
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
-              {recordsViewMode === "spreadsheet"
-                ? "Interactive spreadsheet matrix with real-time automated calculations and in-cell marking"
-                : "Individual attendance log entries and raw session records"}
-            </p>
-          </div>
-
-          {recordsViewMode === "spreadsheet" ? (
-            <AttendanceSpreadsheet
-              classes={classes}
-              initialClassId={selectedClass !== "all" ? selectedClass : undefined}
-              role={role}
-              onRefreshParent={fetchRecords}
-            />
-          ) : (
-            <>
-              {/* Filter Bar with Dynamic Class-Wise Student Selector */}
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
-                {/* Search Input */}
-            <div className="relative flex-1 min-w-[200px]">
-              <Search
-                size={16}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-              />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search student, class, or lesson..."
-                className="w-full pl-9 pr-8 py-2 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Dropdowns */}
-            <div className="flex items-center flex-wrap gap-2.5">
-              {/* Class Filter Dropdown */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Class:</span>
-                <select
-                  value={selectedClass}
-                  onChange={(e) => {
-                    setSelectedClass(e.target.value);
-                    setSelectedStudent("all"); // Reset student when class changes
-                  }}
-                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
-                >
-                  <option value="all">All Classes</option>
-                  {classes.map((c) => {
-                    const studentCount = allStudents.filter(
-                      (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
-                    ).length;
-                    return (
-                      <option key={c.id} value={String(c.id)}>
-                        Class {c.name} {studentCount > 0 ? `(${studentCount} students)` : ""}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              {/* Dynamic Student Filter (Class-Wise) */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Student:</span>
-                <select
-                  value={selectedStudent}
-                  onChange={(e) => setSelectedStudent(e.target.value)}
-                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 max-w-[190px] truncate"
-                >
-                  <option value="all">
-                    {selectedClass === "all" ? "All Students" : "All in this Class"}
-                  </option>
-                  {classFilterStudents.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name} {st.surname} ({st.username || st.id})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Status Filter */}
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Status:</span>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="text-xs md:text-sm py-1.5 px-2.5 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  <option value="all">All Status</option>
-                  <option value="present">Present Only</option>
-                  <option value="absent">Absent Only</option>
-                </select>
-              </div>
-
-              {/* Date Presets */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-gray-900 p-1 rounded-xl border border-slate-200 dark:border-gray-700">
-                {(["all", "today", "yesterday", "week"] as const).map((preset) => (
-                  <button
-                    key={preset}
-                    onClick={() => setDatePreset(preset)}
-                    className={`px-2.5 py-1 text-xs font-medium rounded-lg capitalize transition ${
-                      datePreset === preset
-                        ? "bg-white dark:bg-gray-750 text-indigo-600 dark:text-indigo-400 font-semibold shadow-xs"
-                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                    }`}
-                  >
-                    {preset === "all" ? "All" : preset}
-                  </button>
-                ))}
-                <input
-                  type="date"
-                  value={customDate}
-                  onChange={(e) => {
-                    setCustomDate(e.target.value);
-                    setDatePreset("custom");
-                  }}
-                  className={`text-xs py-0.5 px-2 rounded-lg bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none border-l border-slate-200 dark:border-gray-700 ${
-                    datePreset === "custom" ? "font-semibold text-indigo-600 dark:text-indigo-400" : ""
-                  }`}
-                  title="Specific Date"
-                />
-              </div>
-
-              {/* Clear Filter Button */}
-              {(search || selectedClass !== "all" || selectedStudent !== "all" || selectedStatus !== "all" || datePreset !== "all") && (
-                <button
-                  onClick={() => {
-                    setSearch("");
-                    setSelectedClass("all");
-                    setSelectedStudent("all");
-                    setSelectedStatus("all");
-                    setDatePreset("all");
-                    setCustomDate("");
-                  }}
-                  className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-medium px-2 py-1"
-                >
-                  <RotateCcw size={12} />
-                  Reset
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Records Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-gray-700/80 bg-slate-50/75 dark:bg-gray-750/50 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-4">Student</th>
-                    <th className="py-3 px-4">Class</th>
-                    <th className="py-3 px-4 hidden md:table-cell">Lesson / Subject</th>
-                    <th className="py-3 px-4">Date</th>
-                    <th className="py-3 px-4">Status & Quick Toggle</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-gray-700/60 text-xs md:text-sm">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <RefreshCw className="animate-spin text-indigo-600" size={24} />
-                          <span>Loading attendance records...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : records.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 dark:text-slate-500">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <ClipboardCheck size={36} className="text-slate-300 dark:text-slate-600" />
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
-                            No attendance records found
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            Try adjusting filters or use Quick Roll Call to record attendance for a class.
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    records.map((item) => (
-                      <tr
-                        key={item.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-gray-750/30 transition text-slate-700 dark:text-slate-200"
-                      >
-                        {/* Student Info */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            {item.student_img ? (
-                              <img
-                                src={item.student_img}
-                                alt={item.student_name}
-                                className="w-8 h-8 rounded-full object-cover border border-slate-200 dark:border-gray-700 flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center justify-center flex-shrink-0">
-                                {item.student_name?.[0] || "S"}
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-semibold text-slate-800 dark:text-slate-100">
-                                {item.student_name} {item.student_surname}
-                              </p>
-                              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
-                                ID: {item.student_id}
-                              </p>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Class */}
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-gray-600">
-                            Class {item.class_name || "—"}
-                          </span>
-                        </td>
-
-                        {/* Lesson / Subject */}
-                        <td className="py-3 px-4 hidden md:table-cell">
-                          <div className="flex flex-col">
-                            <span className="font-medium text-slate-800 dark:text-slate-200">
-                              {item.lesson_name || "General Session"}
-                            </span>
-                            {item.subject_name && (
-                              <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                                {item.subject_name}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Date */}
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                            <Calendar size={13} className="text-slate-400" />
-                            <span>{item.date}</span>
-                          </div>
-                        </td>
-
-                        {/* Status & Quick Toggle */}
-                        <td className="py-3 px-4">
-                          <button
-                            onClick={() => handleToggleStatus(item)}
-                            title="Click to toggle Present / Absent"
-                            className={`group inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer ${
-                              item.present
-                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100"
-                                : "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100"
-                            }`}
-                          >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                item.present ? "bg-emerald-500" : "bg-rose-500"
-                              }`}
-                            />
-                            <span>{item.present ? "Present" : "Absent"}</span>
-                            <span className="text-[10px] opacity-40 group-hover:opacity-100 transition ml-0.5">
-                              ⇄
-                            </span>
-                          </button>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <button
-                              onClick={() => handleOpenEdit(item)}
-                              title="Edit Record"
-                              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-gray-700 transition"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            {role === "admin" && (
-                              <button
-                                onClick={() => setDeleteId(item.id)}
-                                title="Delete Record"
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination Bar */}
-            <div className="p-4 border-t border-slate-100 dark:border-gray-700/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
-              <div className="flex items-center gap-2">
-                <span>Rows per page:</span>
-                <select
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                  className="py-1 px-2 rounded-lg bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200"
-                >
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-                <span>
-                  Showing {(page - 1) * limit + 1} - {Math.min(page * limit, totalRecords)} of {totalRecords} records
-                </span>
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1 || loading}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-40 transition"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span className="px-2 font-medium text-slate-700 dark:text-slate-300">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages || loading}
-                  className="p-1.5 rounded-lg border border-slate-200 dark:border-gray-700 hover:bg-slate-100 dark:hover:bg-gray-700 disabled:opacity-40 transition"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+        <AttendanceSpreadsheet
+          classes={classes}
+          initialClassId={selectedClass !== "all" ? selectedClass : undefined}
+          role={role}
+          onRefreshParent={fetchRecords}
+        />
       )}
-    </div>
-  )}
+
 
       {/* ─── TAB 2: QUICK ROLL CALL / DAILY SHEET (CLASS-WISE) ────────────── */}
       {activeTab === "rollcall" && (
@@ -1605,7 +1241,7 @@ export const AttendanceSection: React.FC = () => {
                             </span>
                           </div>
                           <p className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
-                            {st.username || st.id}
+                            {st.roll ? `Roll: ${st.roll}` : (st.username || st.id)}
                           </p>
                         </div>
                       </div>

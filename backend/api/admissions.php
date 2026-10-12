@@ -51,6 +51,7 @@ function ensureAdmissionsTable($db) {
         $sql = "CREATE TABLE IF NOT EXISTS admissions (
             id INT AUTO_INCREMENT PRIMARY KEY,
             application_no VARCHAR(50) UNIQUE NOT NULL,
+            roll VARCHAR(50) NULL,
             first_name VARCHAR(100) NOT NULL,
             last_name VARCHAR(100) NOT NULL,
             email VARCHAR(255),
@@ -83,7 +84,13 @@ function ensureAdmissionsTable($db) {
         throw new Exception('Database setup error: ' . $e->getMessage());
     }
 
-    // Safely add username, password, img if existing table doesn't have them
+    // Safely add roll, username, password, img if existing table doesn't have them
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'roll'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN roll VARCHAR(50) NULL AFTER application_no");
+        }
+    } catch (Exception $e) {}
     try {
         $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'username'");
         if (empty($cols)) {
@@ -100,6 +107,14 @@ function ensureAdmissionsTable($db) {
         $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'img'");
         if (empty($cols)) {
             $db->query("ALTER TABLE admissions ADD COLUMN img VARCHAR(255) NULL AFTER password");
+        }
+    } catch (Exception $e) {}
+
+    // Also ensure roll column exists on students table
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'roll'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE students ADD COLUMN roll VARCHAR(50) NULL AFTER username");
         }
     } catch (Exception $e) {}
 
@@ -121,7 +136,7 @@ function syncStudentsWithAdmissions($db) {
     try {
         // Find enrolled students in students table who do NOT yet have an admission record
         $unlinkedStudents = $db->fetchAll(
-            "SELECT s.id, s.username, s.name, s.surname, s.email, s.phone, s.address, s.img,
+            "SELECT s.id, s.username, s.roll, s.name, s.surname, s.email, s.phone, s.address, s.img,
                     s.blood_type, s.sex, s.class_id, s.grade_id, s.parent_id, s.created_at,
                     p.name as p_name, p.surname as p_surname, p.phone as p_phone, p.email as p_email
              FROM students s
@@ -151,6 +166,7 @@ function syncStudentsWithAdmissions($db) {
                     $db->update('admissions', [
                         'enrolled_student_id' => $student['id'],
                         'status' => 'APPROVED',
+                        'roll' => !empty($student['roll']) ? $student['roll'] : null,
                         'username' => $student['username'] ?? null,
                         'img' => $student['img'] ?? null,
                         'class_id' => $student['class_id'],
@@ -181,6 +197,7 @@ function syncStudentsWithAdmissions($db) {
 
                 $db->insert('admissions', [
                     'application_no' => $appNo,
+                    'roll' => !empty($student['roll']) ? $student['roll'] : null,
                     'username' => $student['username'] ?? null,
                     'first_name' => $student['name'],
                     'last_name' => $student['surname'],
@@ -323,6 +340,7 @@ function getAdmissions($db) {
     $offset = ($page - 1) * $limit;
 
     $sql = "SELECT a.*, 
+                   COALESCE(NULLIF(a.roll, ''), s.roll) as roll,
                    COALESCE(a.username, s.username) as username,
                    COALESCE(a.img, s.img) as img,
                    c.name as class_name, g.level as grade_level,
@@ -346,9 +364,9 @@ function getAdmissions($db) {
     }
 
     if (!empty($search)) {
-        $sql .= " AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.application_no LIKE ? OR a.email LIKE ? OR a.parent_name LIKE ? OR a.enrolled_student_id LIKE ?)";
+        $sql .= " AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.application_no LIKE ? OR a.roll LIKE ? OR a.email LIKE ? OR a.parent_name LIKE ? OR a.enrolled_student_id LIKE ?)";
         $term = "%{$search}%";
-        $params = array_merge($params, [$term, $term, $term, $term, $term, $term]);
+        $params = array_merge($params, [$term, $term, $term, $term, $term, $term, $term]);
     }
 
     // Dynamic counts by status
@@ -388,6 +406,7 @@ function getAdmission($db, $id) {
 
     $admission = $db->fetchOne(
         "SELECT a.*, 
+                COALESCE(NULLIF(a.roll, ''), s.roll) as roll,
                 COALESCE(a.username, s.username) as username,
                 COALESCE(a.img, s.img) as img,
                 c.name as class_name, g.level as grade_level,
@@ -409,7 +428,7 @@ function getAdmission($db, $id) {
     $enrolledStudent = null;
     if (!empty($admission['enrolled_student_id'])) {
         $enrolledStudent = $db->fetchOne(
-            "SELECT id, username, name, surname, email, phone, class_id FROM students WHERE id = ?",
+            "SELECT id, username, roll, name, surname, email, phone, class_id FROM students WHERE id = ?",
             [$admission['enrolled_student_id']]
         );
     }
@@ -429,6 +448,7 @@ function createAdmission($db) {
 
     $firstName = trim($input['first_name'] ?? $input['name'] ?? '');
     $lastName = trim($input['last_name'] ?? $input['surname'] ?? '');
+    $roll = trim($input['roll'] ?? '');
     $sex = strtoupper($input['sex'] ?? $input['gender'] ?? 'MALE');
     $gender = ($sex === 'FEMALE') ? 'FEMALE' : 'MALE';
 
@@ -471,6 +491,7 @@ function createAdmission($db) {
 
     $data = [
         'application_no' => $appNo,
+        'roll' => !empty($roll) ? $roll : null,
         'username' => $username,
         'password' => $hashedPassword,
         'first_name' => $firstName,
@@ -509,7 +530,7 @@ function createAdmission($db) {
             }
         }
 
-        $created = $db->fetchOne("SELECT a.*, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
+        $created = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
         Response::success('Admission application created successfully', $created, 201);
     } catch (Exception $e) {
         Response::error('Failed to create admission: ' . $e->getMessage());
@@ -531,7 +552,7 @@ function updateAdmission($db, $id) {
     // Remove _method override key from input so it doesn't get written to DB
     unset($input['_method']);
 
-    $allowed = ['username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
+    $allowed = ['roll', 'username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
 
     $data = [];
     foreach ($allowed as $f) {
@@ -540,6 +561,8 @@ function updateAdmission($db, $id) {
                 $data['first_name'] = trim($input[$f]);
             } elseif ($f === 'surname') {
                 $data['last_name'] = trim($input[$f]);
+            } elseif ($f === 'roll') {
+                $data['roll'] = trim($input[$f]);
             } elseif ($f === 'sex' || $f === 'gender') {
                 $data['gender'] = strtoupper($input[$f]) === 'FEMALE' ? 'FEMALE' : 'MALE';
             } elseif ($f === 'status') {
@@ -606,6 +629,7 @@ function updateAdmission($db, $id) {
             $stdUpdate = [];
             if (isset($data['first_name'])) $stdUpdate['name'] = $data['first_name'];
             if (isset($data['last_name'])) $stdUpdate['surname'] = $data['last_name'];
+            if (isset($data['roll'])) $stdUpdate['roll'] = $data['roll'];
             if (isset($data['username']) && !empty($data['username'])) $stdUpdate['username'] = $data['username'];
             if (!empty($data['password'])) $stdUpdate['password'] = $data['password'];
             if (isset($data['email'])) $stdUpdate['email'] = $data['email'];
@@ -627,7 +651,7 @@ function updateAdmission($db, $id) {
 
     try {
         $db->update('admissions', $data, 'id = ?', [$id]);
-        $updated = $db->fetchOne("SELECT a.*, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
+        $updated = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
         Response::success('Admission updated successfully', $updated);
     } catch (Exception $e) {
         Response::error('Failed to update admission: ' . $e->getMessage());
@@ -725,6 +749,7 @@ function enrollStudentFromAdmission($db, $data) {
 
         $db->insert('students', [
             'id' => $studentId,
+            'roll' => !empty($data['roll']) ? $data['roll'] : null,
             'username' => $username,
             'password' => $hashedPass,
             'name' => $data['first_name'],

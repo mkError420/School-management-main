@@ -33,6 +33,7 @@ import { api } from "@/lib/api";
 
 export interface AdmissionItem {
   id: number;
+  roll?: string;
   application_no: string;
   first_name: string;
   last_name: string;
@@ -73,6 +74,7 @@ export interface AdmissionCounts {
 const ITEMS_PER_PAGE = 25;
 
 const emptyAdmissionForm = {
+  roll: "",
   username: "",
   password: "",
   first_name: "",
@@ -302,6 +304,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const openEditModal = (item: AdmissionItem) => {
     setEditItem(item);
     setFormData({
+      roll: item.roll || "",
       username: item.username || "",
       password: "",
       first_name: item.first_name || "",
@@ -336,6 +339,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     e.preventDefault();
     setFormError(null);
 
+    if (!formData.roll.trim()) { setFormError("Roll number is required."); return; }
     if (!formData.username.trim()) { setFormError("Username is required."); return; }
     if (!editItem && (!formData.password || formData.password.length < 6)) {
       setFormError("Password is required (minimum 6 characters)."); return;
@@ -408,6 +412,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
       let res;
       const commonPayload: Record<string, any> = {
+        roll: formData.roll.trim() || null,
         username: formData.username.trim(),
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
@@ -488,12 +493,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   // Export to CSV
   const handleExportCsv = () => {
     const headers = [
-      "Application No", "Student Name", "Gender", "Date of Birth",
+      "Application No", "Roll", "Student Name", "Gender", "Date of Birth",
       "Grade", "Class", "Parent Name", "Parent Phone", "Parent Email",
       "Previous School", "Status", "Applied Date", "Notes",
     ];
     const rows = filteredAdmissions.map((item) => [
       item.application_no,
+      item.roll || "",
       `${item.first_name} ${item.last_name}`,
       item.gender,
       item.date_of_birth || "",
@@ -753,6 +759,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           <thead className="bg-gray-50/80 dark:bg-gray-800/80 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800 font-semibold uppercase tracking-wider text-[11px]">
             <tr>
               <th className="py-3 px-3.5">Application</th>
+              <th className="py-3 px-3.5 text-center w-20">Roll</th>
               <th className="py-3 px-3.5">Applicant Student</th>
               <th className="py-3 px-3.5">Placement</th>
               <th className="py-3 px-3.5">Parent / Guardian</th>
@@ -764,7 +771,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-gray-700 dark:text-gray-300">
             {loading ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-400">
+                <td colSpan={8} className="text-center py-12 text-gray-400">
                   <div className="flex items-center justify-center gap-2">
                     <RefreshCw size={16} className="animate-spin text-purple-600" />
                     <span>Loading admission records...</span>
@@ -773,7 +780,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
               </tr>
             ) : pagedAdmissions.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-gray-400">
+                <td colSpan={8} className="text-center py-10 text-gray-400">
                   {filteredAdmissions.length === 0 && admissions.length > 0
                     ? "No applications match your search or filters."
                     : "No admission applications found. Click \"+ New Admission\" to create one."
@@ -792,6 +799,17 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     <span className="font-mono text-[11px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-purple-700 dark:text-purple-300">
                       {item.application_no}
                     </span>
+                  </td>
+
+                  {/* Roll # */}
+                  <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                    {item.roll ? (
+                      <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                        {item.roll}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 dark:text-gray-600 font-mono text-xs">—</span>
+                    )}
                   </td>
 
                   {/* Student */}
@@ -1065,6 +1083,22 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                  />
+                </label>
+
+                {/* Roll */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="flex items-center justify-between">
+                    <span className="font-semibold text-purple-700 dark:text-purple-300">Roll *</span>
+                    <span className="text-[10px] text-gray-400 font-normal">Student Roll Number</span>
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 1, 01, 101"
+                    value={formData.roll}
+                    onChange={(e) => setFormData({ ...formData, roll: e.target.value })}
+                    className="w-full rounded-lg border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-purple-50/20 dark:bg-purple-950/20 text-gray-900 dark:text-white font-medium transition"
                   />
                 </label>
 
@@ -1489,6 +1523,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       <span className="font-mono text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded">
                         {detailsItem.application_no}
                       </span>
+                      {detailsItem.roll && (
+                        <span className="font-semibold text-[11px] text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-950 px-2 py-0.5 rounded">
+                          Roll: {detailsItem.roll}
+                        </span>
+                      )}
                       <StatusBadge status={detailsItem.status} size="xs" />
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">Applied: {detailsItem.applied_date || "Recent"}</p>
@@ -1506,13 +1545,23 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
             {/* Content */}
             <div className="p-5 space-y-4 max-h-[55vh] overflow-y-auto text-xs">
-              {/* Username */}
-              {detailsItem.username && (
-                <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
-                  <span className="text-gray-500 font-medium">Username:</span>
-                  <span className="font-mono font-bold text-gray-800 dark:text-gray-200">@{detailsItem.username}</span>
+              {/* Roll & Username */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30 px-3 py-2">
+                  <span className="text-gray-500 font-medium">Roll No:</span>
+                  <span className="font-bold text-purple-700 dark:text-purple-300">{detailsItem.roll || "Not assigned"}</span>
                 </div>
-              )}
+                {detailsItem.username ? (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
+                    <span className="text-gray-500 font-medium">Username:</span>
+                    <span className="font-mono font-bold text-gray-800 dark:text-gray-200">@{detailsItem.username}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2 text-gray-400">
+                    <span>No username</span>
+                  </div>
+                )}
+              </div>
 
               {/* Placement + Specs */}
               <div className="grid grid-cols-2 gap-3">

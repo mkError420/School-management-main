@@ -405,7 +405,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
       });
       const stat = studentStats[st.id] || { present: 0, absent: 0, total: 0, rate: 0 };
       return [
-        `"${st.roll || st.id}"`,
+        `"${st.roll || ""}"`,
         `"${st.name} ${st.surname}"`,
         ...stCells,
         stat.present,
@@ -768,7 +768,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
                     >
                       {/* Sticky Col 1: Roll */}
                       <td className="sticky left-0 z-10 bg-white dark:bg-gray-800 group-hover:bg-indigo-50/50 dark:group-hover:bg-gray-750 py-2 px-3 text-center font-bold text-slate-600 dark:text-slate-400 border-r border-slate-200 dark:border-gray-700">
-                        {st.roll || st.id}
+                        {st.roll || "—"}
                       </td>
 
                       {/* Sticky Col 2: Student Avatar & Name */}

@@ -58,6 +58,13 @@ function ensureAttendanceSchema($db) {
             }
         }
     }
+
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'roll'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE students ADD COLUMN roll VARCHAR(50) NULL AFTER username");
+        }
+    } catch (Exception $e) {}
 }
 
 /**
@@ -145,7 +152,9 @@ function getAttendanceSpreadsheet($db) {
     }
     
     // Fetch students
-    $stSql = "SELECT s.id, s.name, s.surname, s.username as roll, s.img, s.class_id, c.name as class_name 
+    $stSql = "SELECT s.id, s.name, s.surname, 
+                     COALESCE(s.roll, '') as roll, 
+                     s.username, s.img, s.class_id, c.name as class_name 
               FROM students s 
               LEFT JOIN classes c ON s.class_id = c.id 
               WHERE 1=1";
@@ -163,12 +172,12 @@ function getAttendanceSpreadsheet($db) {
     }
     
     if (!empty($search)) {
-        $stSql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ?)";
+        $stSql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ? OR s.roll LIKE ?)";
         $searchTerm = "%{$search}%";
-        $stParams = array_merge($stParams, [$searchTerm, $searchTerm, $searchTerm]);
+        $stParams = array_merge($stParams, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
-    $stSql .= " ORDER BY CAST(s.username AS UNSIGNED) ASC, s.name ASC";
+    $stSql .= " ORDER BY (CASE WHEN s.roll IS NOT NULL AND s.roll != '' THEN 0 ELSE 1 END), CAST(s.roll AS UNSIGNED) ASC, s.roll ASC, s.name ASC";
     $students = $db->fetchAll($stSql, $stParams);
     
     if (empty($students)) {
@@ -301,7 +310,8 @@ function getAttendanceRecords($db) {
     
     $sql = "SELECT a.*, 
                    st.name as student_name, st.surname as student_surname, st.img as student_img,
-                   st.username as student_roll,
+                   COALESCE(st.roll, '') as student_roll,
+                   st.username as student_username,
                    COALESCE(st.class_id, l.class_id) as student_class_id,
                    l.name as lesson_name, s.name as subject_name,
                    COALESCE(c.name, sc.name) as class_name,
@@ -328,9 +338,9 @@ function getAttendanceRecords($db) {
     }
     
     if (!empty($search)) {
-        $sql .= " AND (st.name LIKE ? OR st.surname LIKE ? OR st.username LIKE ? OR l.name LIKE ? OR c.name LIKE ? OR sc.name LIKE ?)";
+        $sql .= " AND (st.name LIKE ? OR st.surname LIKE ? OR st.username LIKE ? OR st.roll LIKE ? OR l.name LIKE ? OR c.name LIKE ? OR sc.name LIKE ?)";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
     if (!empty($studentId) && $studentId !== 'all') {

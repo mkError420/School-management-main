@@ -1,6 +1,14 @@
 <?php
 
 $db = Database::getInstance();
+
+try {
+    $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'roll'");
+    if (empty($cols)) {
+        $db->query("ALTER TABLE students ADD COLUMN roll VARCHAR(50) NULL AFTER username");
+    }
+} catch (Exception $e) {}
+
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
@@ -64,9 +72,9 @@ function getStudents($db) {
     $params = [];
     
     if (!empty($search)) {
-        $sql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ? OR s.email LIKE ?)";
+        $sql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ? OR s.roll LIKE ? OR s.email LIKE ?)";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
     if (!empty($classId) && $classId !== 'all') {
@@ -266,6 +274,7 @@ function createStudent($db) {
     try {
         $db->insert('students', [
             'id'         => $id,
+            'roll'       => !empty($input['roll']) ? $input['roll'] : null,
             'username'   => $input['username'],
             'password'   => $hashedPassword,
             'name'       => $input['name'],
@@ -299,6 +308,7 @@ function createStudent($db) {
 
             $db->insert('admissions', [
                 'application_no'      => $appNo,
+                'roll'                => !empty($input['roll']) ? $input['roll'] : null,
                 'first_name'          => $input['name'],
                 'last_name'           => $input['surname'],
                 'email'               => $input['email'] ?? null,
@@ -349,7 +359,7 @@ function updateStudent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
+    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
@@ -385,6 +395,7 @@ function updateStudent($db, $id) {
         // Sync updates to admissions table if linked
         try {
             $admData = [];
+            if (isset($data['roll'])) $admData['roll'] = $data['roll'];
             if (isset($data['name'])) $admData['first_name'] = $data['name'];
             if (isset($data['surname'])) $admData['last_name'] = $data['surname'];
             if (isset($data['email'])) $admData['email'] = $data['email'];
