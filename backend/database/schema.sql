@@ -129,10 +129,23 @@ CREATE TABLE IF NOT EXISTS exams (
 CREATE TABLE IF NOT EXISTS assignments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    start_date DATETIME NOT NULL,
+    description TEXT NULL,
+    start_date DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
     due_date DATETIME NOT NULL,
-    lesson_id INT NOT NULL,
-    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
+    assignment_attachment VARCHAR(500) NULL,
+    attachment_original_name VARCHAR(255) NULL,
+    attachment_mime_type VARCHAR(127) NULL,
+    attachment_size INT UNSIGNED NULL,
+    lesson_id INT NULL,
+    class_id INT NULL,
+    subject_id INT NULL,
+    teacher_id VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE SET NULL,
+    FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL,
+    FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL,
+    FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS results (

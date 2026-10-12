@@ -58,7 +58,12 @@ function ensureAssignmentSchema($db) {
         $db->query("ALTER TABLE `assignments` MODIFY COLUMN `lesson_id` INT NULL");
     } catch (Exception $e) {}
 
-    // 2. Add assignment attachment columns
+    // 2. Allow start_date to be NULL / default CURRENT_TIMESTAMP
+    try {
+        $db->query("ALTER TABLE `assignments` MODIFY COLUMN `start_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP");
+    } catch (Exception $e) {}
+
+    // 3. Add assignment attachment and academic relation columns
     $columnsToAdd = [
         'assignment_attachment'    => 'VARCHAR(500) NULL AFTER due_date',
         'attachment_original_name' => 'VARCHAR(255) NULL AFTER assignment_attachment',
@@ -252,6 +257,9 @@ function getAssignments($db) {
     $offset = ($page - 1) * $limit;
     
     $sql = "SELECT a.*, 
+                   COALESCE(a.class_id, l.class_id) as class_id,
+                   COALESCE(a.subject_id, l.subject_id) as subject_id,
+                   COALESCE(a.teacher_id, l.teacher_id) as teacher_id,
                    COALESCE(c_direct.name, c.name) as class_name,
                    COALESCE(s_direct.name, s.name) as subject_name,
                    COALESCE(t_direct.name, t.name) as teacher_name, 
@@ -283,9 +291,9 @@ function getAssignments($db) {
     }
     
     if (!empty($search)) {
-        $sql .= " AND (a.title LIKE ? OR s.name LIKE ? OR c.name LIKE ? OR s_direct.name LIKE ? OR c_direct.name LIKE ?)";
+        $sql .= " AND (a.title LIKE ? OR s.name LIKE ? OR c.name LIKE ? OR s_direct.name LIKE ? OR c_direct.name LIKE ? OR t.name LIKE ? OR t.surname LIKE ? OR t_direct.name LIKE ? OR t_direct.surname LIKE ?)";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
     if (!empty($lessonId)) {
@@ -325,6 +333,9 @@ function getAssignment($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
     
     $sql = "SELECT a.*, 
+                   COALESCE(a.class_id, l.class_id) as class_id,
+                   COALESCE(a.subject_id, l.subject_id) as subject_id,
+                   COALESCE(a.teacher_id, l.teacher_id) as teacher_id,
                    COALESCE(c_direct.name, c.name) as class_name,
                    COALESCE(s_direct.name, s.name) as subject_name,
                    COALESCE(t_direct.name, t.name) as teacher_name, 
@@ -438,6 +449,7 @@ function updateAssignment($db, $id) {
     if (isset($input['description'])) $data['description'] = trim($input['description']);
     if (isset($input['class_id'])) $data['class_id'] = !empty($input['class_id']) ? intval($input['class_id']) : null;
     if (isset($input['subject_id'])) $data['subject_id'] = !empty($input['subject_id']) ? intval($input['subject_id']) : null;
+    if (isset($input['teacher_id'])) $data['teacher_id'] = !empty($input['teacher_id']) ? trim($input['teacher_id']) : null;
     
     $uploadInfo = handleAssignmentUpload();
     if ($uploadInfo) {

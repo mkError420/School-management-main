@@ -186,14 +186,18 @@ function getTeacher($db, $id) {
 
     $assignments = $db->fetchAll(
         "SELECT a.id, a.title, a.start_date, a.due_date, l.id as lesson_id,
-                l.name as lesson_name, s.name as subject_name, c.name as class_name
+                l.name as lesson_name, 
+                COALESCE(s_direct.name, s.name) as subject_name, 
+                COALESCE(c_direct.name, c.name) as class_name
          FROM assignments a
-         INNER JOIN lessons l ON a.lesson_id = l.id
+         LEFT JOIN lessons l ON a.lesson_id = l.id
          LEFT JOIN subjects s ON l.subject_id = s.id
          LEFT JOIN classes c ON l.class_id = c.id
-         WHERE l.teacher_id = ?
+         LEFT JOIN subjects s_direct ON a.subject_id = s_direct.id
+         LEFT JOIN classes c_direct ON a.class_id = c_direct.id
+         WHERE (l.teacher_id = ? OR a.teacher_id = ?)
          ORDER BY a.due_date DESC",
-        [$id]
+        [$id, $id]
     );
 
     $students = $db->fetchAll(

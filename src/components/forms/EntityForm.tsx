@@ -107,17 +107,19 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     },
   ],
   assignment: [
-    { name: "title", label: "Assignment Title", required: true, colSpan: 2, placeholder: "e.g. Science Chapter 4 Problem Set" },
-    { name: "start_date", label: "Start Date", type: "datetime-local", required: true },
-    { name: "due_date", label: "Due Date", type: "datetime-local", required: true },
+    { name: "title", label: "Title", required: true, colSpan: 2, placeholder: "e.g. Science Chapter 4 Problem Set" },
     {
       name: "assignment_attachment",
-      label: "Upload Assignment",
+      label: "Attachment",
       type: "pdf-image",
       accept: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/jpeg,image/png,image/webp,image/gif",
       hint: "Upload assignment file (PDF, Word, Text, or Image) — max 25 MB",
       colSpan: 2,
     },
+    { name: "subject_id", label: "Subject", type: "select", required: true, resource: "subjects" },
+    { name: "class_id", label: "Class", type: "select", required: true, resource: "classes" },
+    { name: "teacher_id", label: "Teacher", type: "select", required: true, resource: "teachers" },
+    { name: "due_date", label: "Due Date", type: "datetime-local", required: true },
   ],
   result: [
     { name: "score", label: "Score (%)", type: "number", required: true, min: 0, max: 100 },

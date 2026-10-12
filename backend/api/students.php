@@ -200,13 +200,15 @@ function getStudent($db, $id) {
 
     $assignments = $db->fetchAll(
         "SELECT a.id, a.title, a.start_date, a.due_date,
-                l.name as lesson_name, s.name as subject_name
+                l.name as lesson_name, 
+                COALESCE(s_direct.name, s.name) as subject_name
          FROM assignments a
-         INNER JOIN lessons l ON a.lesson_id = l.id
+         LEFT JOIN lessons l ON a.lesson_id = l.id
          LEFT JOIN subjects s ON l.subject_id = s.id
-         WHERE l.class_id = ?
+         LEFT JOIN subjects s_direct ON a.subject_id = s_direct.id
+         WHERE (l.class_id = ? OR a.class_id = ?)
          ORDER BY a.due_date",
-        [$classId]
+        [$classId, $classId]
     );
 
     $announcements = $db->fetchAll(
