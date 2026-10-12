@@ -15,7 +15,6 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
-  ClipboardList,
   Trash2,
   TrendingUp,
   UserCheck,
@@ -23,10 +22,8 @@ import {
   Users,
   X,
   AlertCircle,
-  ExternalLink,
   Table,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAccessRole } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -129,7 +126,7 @@ export const AttendanceSection: React.FC = () => {
   const { theme } = useTheme();
 
   // Navigation / Tabs
-  const [activeTab, setActiveTab] = useState<"records" | "rollcall" | "classes">("records");
+  const [activeTab, setActiveTab] = useState<"records" | "classes">("records");
 
   // Global Filter States for Records Tab
   const [search, setSearch] = useState("");
@@ -162,18 +159,8 @@ export const AttendanceSection: React.FC = () => {
     rate: 0,
   });
 
-  // Roll Call (Daily Sheet) State
+  // Date helper
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
-  const [rollCallDate, setRollCallDate] = useState<string>(todayStr);
-  const [rollCallClassId, setRollCallClassId] = useState<string>("");
-  const [rollCallLessonId, setRollCallLessonId] = useState<string>("");
-  const [rollCallRoster, setRollCallRoster] = useState<Record<string, { present: boolean; note?: string }>>({});
-  const [rollCallFilterSearch, setRollCallFilterSearch] = useState("");
-  const [rollCallSaving, setRollCallSaving] = useState(false);
-
-  // Class-wise Dynamic Students for Roll Call
-  const [classStudents, setClassStudents] = useState<StudentItem[]>([]);
-  const [classStudentsLoading, setClassStudentsLoading] = useState<boolean>(false);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -208,12 +195,8 @@ export const AttendanceSection: React.FC = () => {
 
       if (resClasses?.success && Array.isArray(resClasses.data?.classes)) {
         setClasses(resClasses.data.classes);
-        if (!rollCallClassId && resClasses.data.classes.length > 0) {
-          setRollCallClassId(String(resClasses.data.classes[0].id));
-        }
       } else {
         setClasses(FALLBACK_CLASSES);
-        if (!rollCallClassId) setRollCallClassId(String(FALLBACK_CLASSES[0].id));
       }
 
       if (resLessons?.success && Array.isArray(resLessons.data?.lessons)) {
@@ -232,115 +215,13 @@ export const AttendanceSection: React.FC = () => {
       setLessons(FALLBACK_LESSONS);
       setAllStudents(FALLBACK_STUDENTS);
     }
-  }, [rollCallClassId]);
+  }, []);
 
   useEffect(() => {
     loadSupportingData();
   }, [loadSupportingData]);
 
-  // ─── Dynamic Class-Wise Students for Roll Call ─────────────────────────────
-  // When admin selects a Class in Roll Call, fetch students for that class dynamically
-  useEffect(() => {
-    if (!rollCallClassId) return;
 
-    let isMounted = true;
-    setClassStudentsLoading(true);
-
-    // Call students API with class_id parameter
-    api.getAll("students", { class_id: rollCallClassId, limit: 300 })
-      .then((res) => {
-        if (!isMounted) return;
-
-        let studentsList: StudentItem[] = [];
-        if (res?.success && Array.isArray(res.data?.students) && res.data.students.length > 0) {
-          studentsList = res.data.students;
-        } else {
-          // Fallback: filter loaded allStudents by class_id or class_name
-          const selectedClassObj = classes.find((c) => String(c.id) === String(rollCallClassId));
-          studentsList = allStudents.filter(
-            (s) =>
-              String(s.class_id) === String(rollCallClassId) ||
-              (selectedClassObj && s.class_name === selectedClassObj.name)
-          );
-        }
-
-        setClassStudents(studentsList);
-
-        // Fetch existing attendance records for this class & date to pre-populate
-        api.getAll("attendance", { date: rollCallDate, class_id: rollCallClassId, limit: 300 })
-          .then((attRes) => {
-            if (!isMounted) return;
-            const existingMap: Record<string, { present: boolean; note?: string }> = {};
-
-            if (attRes?.success && Array.isArray(attRes.data?.attendance) && attRes.data.attendance.length > 0) {
-              attRes.data.attendance.forEach((r: any) => {
-                existingMap[r.student_id] = {
-                  present: Boolean(r.present),
-                  note: r.notes || "",
-                };
-              });
-            }
-
-            // Build fresh roster for each student
-            const nextRoster: Record<string, { present: boolean; note?: string }> = {};
-            studentsList.forEach((st) => {
-              if (existingMap[st.id] !== undefined) {
-                nextRoster[st.id] = existingMap[st.id];
-              } else {
-                nextRoster[st.id] = { present: true, note: "" };
-              }
-            });
-            setRollCallRoster(nextRoster);
-          })
-          .catch(() => {
-            const nextRoster: Record<string, { present: boolean; note?: string }> = {};
-            studentsList.forEach((st) => {
-              nextRoster[st.id] = { present: true, note: "" };
-            });
-            setRollCallRoster(nextRoster);
-          });
-      })
-      .catch(() => {
-        if (!isMounted) return;
-        const selectedClassObj = classes.find((c) => String(c.id) === String(rollCallClassId));
-        const fallbackList = allStudents.filter(
-          (s) =>
-            String(s.class_id) === String(rollCallClassId) ||
-            (selectedClassObj && s.class_name === selectedClassObj.name)
-        );
-        setClassStudents(fallbackList);
-        const nextRoster: Record<string, { present: boolean; note?: string }> = {};
-        fallbackList.forEach((st) => {
-          nextRoster[st.id] = { present: true, note: "" };
-        });
-        setRollCallRoster(nextRoster);
-      })
-      .finally(() => {
-        if (isMounted) setClassStudentsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [rollCallClassId, rollCallDate, classes, allStudents]);
-
-  // Lessons for the chosen roll-call class
-  const classLessons = useMemo(() => {
-    if (!rollCallClassId) return lessons;
-    const filtered = lessons.filter(
-      (l) => !l.class_id || String(l.class_id) === String(rollCallClassId)
-    );
-    return filtered.length > 0 ? filtered : lessons;
-  }, [lessons, rollCallClassId]);
-
-  // Auto-select lesson for roll-call when class changes
-  useEffect(() => {
-    if (classLessons.length > 0) {
-      setRollCallLessonId(String(classLessons[0].id));
-    } else if (lessons.length > 0) {
-      setRollCallLessonId(String(lessons[0].id));
-    }
-  }, [classLessons, lessons, rollCallClassId]);
 
   // ─── Filter Bar: Dynamic Students of Selected Class ────────────────────────
   // When selectedClass changes in the Records tab, show only students of that class
@@ -571,8 +452,8 @@ export const AttendanceSection: React.FC = () => {
     const determinedClassId = rec.student_class_id
       ? String(rec.student_class_id)
       : studentObj?.class_id
-      ? String(studentObj.class_id)
-      : "";
+        ? String(studentObj.class_id)
+        : "";
 
     setModalForm({
       student_id: rec.student_id,
@@ -647,98 +528,7 @@ export const AttendanceSection: React.FC = () => {
     }
   };
 
-  // ─── Roll Call Actions ─────────────────────────────────────────────────────
 
-  const filteredRosterStudents = useMemo(() => {
-    if (!rollCallFilterSearch.trim()) return classStudents;
-    const q = rollCallFilterSearch.toLowerCase();
-    return classStudents.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.surname.toLowerCase().includes(q) ||
-        (s.username && s.username.toLowerCase().includes(q))
-    );
-  }, [classStudents, rollCallFilterSearch]);
-
-  const rollCallStats = useMemo(() => {
-    const total = classStudents.length;
-    let present = 0;
-    classStudents.forEach((st) => {
-      if (rollCallRoster[st.id]?.present) present++;
-    });
-    const absent = total - present;
-    const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-    return { total, present, absent, rate };
-  }, [classStudents, rollCallRoster]);
-
-  const handleMarkAllRoster = (presentState: boolean) => {
-    setRollCallRoster((prev) => {
-      const next = { ...prev };
-      classStudents.forEach((st) => {
-        next[st.id] = { ...(next[st.id] || {}), present: presentState };
-      });
-      return next;
-    });
-  };
-
-  const handleToggleRosterStudent = (studentId: string) => {
-    setRollCallRoster((prev) => ({
-      ...prev,
-      [studentId]: {
-        ...(prev[studentId] || {}),
-        present: !prev[studentId]?.present,
-      },
-    }));
-  };
-
-  const handleRosterNoteChange = (studentId: string, note: string) => {
-    setRollCallRoster((prev) => ({
-      ...prev,
-      [studentId]: {
-        ...(prev[studentId] || { present: true }),
-        note,
-      },
-    }));
-  };
-
-  const handleSaveRollCall = async () => {
-    if (classStudents.length === 0) {
-      setFeedback({ type: "error", message: "No students in this class to record attendance for." });
-      return;
-    }
-    const finalLessonId = rollCallLessonId || (lessons[0]?.id ? String(lessons[0].id) : "1");
-
-    setRollCallSaving(true);
-    try {
-      const batchPayload = classStudents.map((st) => ({
-        student_id: st.id,
-        lesson_id: finalLessonId,
-        date: rollCallDate,
-        present: rollCallRoster[st.id]?.present ? 1 : 0,
-        notes: rollCallRoster[st.id]?.note || "",
-      }));
-
-      const res = await api.create("attendance", {
-        date: rollCallDate,
-        lesson_id: finalLessonId,
-        batch: batchPayload,
-      });
-
-      if (res?.success) {
-        setFeedback({
-          type: "success",
-          message: `Class attendance successfully saved for ${batchPayload.length} students on ${rollCallDate}!`,
-        });
-        fetchRecords();
-      } else {
-        setFeedback({ type: "error", message: res?.message || "Failed to save roll call." });
-      }
-    } catch (err: any) {
-      setFeedback({ type: "error", message: err?.message || "Error submitting roll call." });
-    } finally {
-      setRollCallSaving(false);
-    }
-  };
 
   // ─── Export CSV & Print ────────────────────────────────────────────────────
 
@@ -801,9 +591,7 @@ export const AttendanceSection: React.FC = () => {
     });
   }, [classes, records, allStudents]);
 
-  const activeSelectedClassObj = useMemo(() => {
-    return classes.find((c) => String(c.id) === String(rollCallClassId));
-  }, [classes, rollCallClassId]);
+
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -812,11 +600,10 @@ export const AttendanceSection: React.FC = () => {
       {/* Toast Notification */}
       {feedback && (
         <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium transition-all transform duration-300 animate-in slide-in-from-top ${
-            feedback.type === "success"
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-medium transition-all transform duration-300 animate-in slide-in-from-top ${feedback.type === "success"
               ? "bg-emerald-600 text-white shadow-emerald-500/20"
               : "bg-rose-600 text-white shadow-rose-500/20"
-          }`}
+            }`}
         >
           {feedback.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{feedback.message}</span>
@@ -845,18 +632,6 @@ export const AttendanceSection: React.FC = () => {
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">
-          <button
-            onClick={() => setActiveTab("rollcall")}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs md:text-sm font-semibold transition shadow-sm ${
-              activeTab === "rollcall"
-                ? "bg-indigo-600 text-white shadow-indigo-600/20 hover:bg-indigo-700"
-                : "bg-white dark:bg-gray-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-gray-700 hover:bg-slate-50 dark:hover:bg-gray-750"
-            }`}
-          >
-            <ClipboardList size={15} />
-            Quick Roll Call
-          </button>
-
           {(role === "admin" || role === "teacher") && (
             <button
               onClick={handleOpenAdd}
@@ -981,11 +756,10 @@ export const AttendanceSection: React.FC = () => {
       <div className="flex border-b border-slate-200 dark:border-gray-700 gap-6">
         <button
           onClick={() => setActiveTab("records")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
-            activeTab === "records"
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${activeTab === "records"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
               : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+            }`}
         >
           <ClipboardCheck size={16} />
           Attendance Records
@@ -995,29 +769,11 @@ export const AttendanceSection: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setActiveTab("rollcall")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
-            activeTab === "rollcall"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
-              : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <ClipboardList size={16} />
-          Quick Roll Call Sheet
-          {classStudents.length > 0 && (
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-medium">
-              {classStudents.length} Students
-            </span>
-          )}
-        </button>
-
-        <button
           onClick={() => setActiveTab("classes")}
-          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
-            activeTab === "classes"
+          className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${activeTab === "classes"
               ? "border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-400"
               : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+            }`}
         >
           <Layers size={16} />
           Class Summaries
@@ -1038,292 +794,7 @@ export const AttendanceSection: React.FC = () => {
       )}
 
 
-      {/* ─── TAB 2: QUICK ROLL CALL / DAILY SHEET (CLASS-WISE) ────────────── */}
-      {activeTab === "rollcall" && (
-        <div className="flex flex-col gap-5">
-          {/* Roll Call Setup Card */}
-          <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 flex-1">
-              {/* Roll Call Date */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  Roll Call Date:
-                </label>
-                <input
-                  type="date"
-                  value={rollCallDate}
-                  onChange={(e) => setRollCallDate(e.target.value)}
-                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
-              </div>
-
-              {/* Class Selection: Loads students dynamically from "All Students" */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span>Select Class:</span>
-                  {classStudentsLoading && (
-                    <span className="text-[10px] text-indigo-600 dark:text-indigo-400 animate-pulse font-normal">
-                      Loading students...
-                    </span>
-                  )}
-                </label>
-                <select
-                  value={rollCallClassId}
-                  onChange={(e) => setRollCallClassId(e.target.value)}
-                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
-                >
-                  {classes.map((c) => {
-                    const count = allStudents.filter(
-                      (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
-                    ).length;
-                    return (
-                      <option key={c.id} value={String(c.id)}>
-                        Class {c.name} {c.grade_level ? `(Grade ${c.grade_level})` : ""} — {count} Students
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              {/* Lesson / Subject Selection */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                  Lesson / Session:
-                </label>
-                <select
-                  value={rollCallLessonId}
-                  onChange={(e) => setRollCallLessonId(e.target.value)}
-                  className="w-full py-2 px-3 text-xs md:text-sm rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                >
-                  {classLessons.length > 0 ? (
-                    classLessons.map((l) => (
-                      <option key={l.id} value={String(l.id)}>
-                        {l.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="1">General Class Attendance</option>
-                  )}
-                </select>
-              </div>
-            </div>
-
-            {/* Quick Bulk Actions */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => handleMarkAllRoster(true)}
-                disabled={classStudentsLoading || classStudents.length === 0}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <CheckCircle2 size={14} />
-                All Present
-              </button>
-              <button
-                type="button"
-                onClick={() => handleMarkAllRoster(false)}
-                disabled={classStudentsLoading || classStudents.length === 0}
-                className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition flex items-center gap-1.5 disabled:opacity-50"
-              >
-                <UserX size={14} />
-                All Absent
-              </button>
-            </div>
-          </div>
-
-          {/* Roll Call Live Status Bar & Search */}
-          <div className="bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5 flex-wrap text-xs md:text-sm font-semibold">
-              <span className="text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
-                <GraduationCap size={16} className="text-indigo-600 dark:text-indigo-400" />
-                <span>Class {activeSelectedClassObj?.name || ""} Roster:</span>
-                <strong className="text-indigo-600 dark:text-indigo-400 px-2 py-0.5 bg-white dark:bg-gray-800 rounded-md shadow-xs border border-indigo-100 dark:border-gray-700">
-                  {classStudents.length} Students
-                </strong>
-              </span>
-              <span className="text-emerald-700 dark:text-emerald-400">
-                Present: <strong>{rollCallStats.present}</strong> ({rollCallStats.rate}%)
-              </span>
-              <span className="text-rose-700 dark:text-rose-400">
-                Absent: <strong>{rollCallStats.absent}</strong>
-              </span>
-            </div>
-
-            <div className="relative min-w-[200px]">
-              <Search
-                size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"
-              />
-              <input
-                type="text"
-                value={rollCallFilterSearch}
-                onChange={(e) => setRollCallFilterSearch(e.target.value)}
-                placeholder="Search class roster..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          {/* Roll Call Students Grid / List */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm overflow-hidden">
-            {classStudentsLoading ? (
-              <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-                <RefreshCw className="animate-spin text-indigo-600 mx-auto mb-2" size={26} />
-                <p className="font-semibold text-slate-700 dark:text-slate-300">
-                  Loading students from All Students for Class {activeSelectedClassObj?.name || ""}...
-                </p>
-              </div>
-            ) : filteredRosterStudents.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 dark:text-slate-500">
-                <Users size={36} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                <p className="font-semibold text-slate-700 dark:text-slate-300">
-                  No students found in Class {activeSelectedClassObj?.name || ""}
-                </p>
-                <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                  There are currently no students enrolled in this class in the system. You can assign or add students from the Students page.
-                </p>
-                <Link
-                  to="/list/students"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-3 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  <ExternalLink size={13} />
-                  Open All Students Page
-                </Link>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100 dark:divide-gray-750">
-                {filteredRosterStudents.map((st, idx) => {
-                  const state = rollCallRoster[st.id] ?? { present: true };
-                  const isPresent = state.present;
-
-                  return (
-                    <div
-                      key={st.id}
-                      className={`p-3.5 md:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition ${
-                        isPresent
-                          ? "hover:bg-slate-50/60 dark:hover:bg-gray-750/30"
-                          : "bg-rose-50/20 dark:bg-rose-950/10 hover:bg-rose-50/40"
-                      }`}
-                    >
-                      {/* Student Identity */}
-                      <div className="flex items-center gap-3 min-w-[240px]">
-                        <span className="text-xs font-mono text-slate-400 w-5 text-right">
-                          {idx + 1}.
-                        </span>
-                        {st.img ? (
-                          <img
-                            src={st.img}
-                            alt={st.name}
-                            className={`w-10 h-10 rounded-full object-cover border-2 flex-shrink-0 ${
-                              isPresent
-                                ? "border-emerald-500/80 shadow-xs shadow-emerald-500/10"
-                                : "border-rose-500/80 shadow-xs shadow-rose-500/10"
-                            }`}
-                          />
-                        ) : (
-                          <div
-                            className={`w-10 h-10 rounded-full font-bold text-sm flex items-center justify-center flex-shrink-0 border-2 ${
-                              isPresent
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                : "bg-rose-50 text-rose-700 border-rose-400 dark:bg-rose-950/40 dark:text-rose-300"
-                            }`}
-                          >
-                            {st.name[0]}
-                          </div>
-                        )}
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
-                              {st.name} {st.surname}
-                            </h4>
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-gray-700 text-slate-500 dark:text-slate-400">
-                              Class {activeSelectedClassObj?.name || st.class_name || ""}
-                            </span>
-                          </div>
-                          <p className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
-                            {st.roll ? `Roll: ${st.roll}` : (st.username || st.id)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Optional Note / Remarks */}
-                      <div className="flex-1 max-w-sm">
-                        <input
-                          type="text"
-                          value={state.note || ""}
-                          onChange={(e) => handleRosterNoteChange(st.id, e.target.value)}
-                          placeholder="Optional remarks (e.g. late 10m, sick leave)"
-                          className="w-full py-1.5 px-3 text-xs rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                        />
-                      </div>
-
-                      {/* Status Toggle Switch */}
-                      <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-gray-900 p-1 rounded-xl border border-slate-200 dark:border-gray-700 self-start md:self-auto">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!isPresent) handleToggleRosterStudent(st.id);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                            isPresent
-                              ? "bg-emerald-600 text-white shadow-xs"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                          }`}
-                        >
-                          <CheckCircle2 size={13} />
-                          Present
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isPresent) handleToggleRosterStudent(st.id);
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                            !isPresent
-                              ? "bg-rose-600 text-white shadow-xs"
-                              : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-                          }`}
-                        >
-                          <UserX size={13} />
-                          Absent
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Bottom Save Action Bar */}
-            <div className="p-4 bg-slate-50 dark:bg-gray-750/70 border-t border-slate-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                Ready to record attendance for <strong>{rollCallStats.total}</strong> students in <strong>Class {activeSelectedClassObj?.name || ""}</strong> on <strong>{rollCallDate}</strong>
-              </span>
-
-              <button
-                type="button"
-                onClick={handleSaveRollCall}
-                disabled={rollCallSaving || classStudentsLoading || filteredRosterStudents.length === 0}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 disabled:opacity-50 transition"
-              >
-                {rollCallSaving ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" />
-                    Saving Roll Call...
-                  </>
-                ) : (
-                  <>
-                    <ClipboardCheck size={16} />
-                    Save Class Attendance
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── TAB 3: CLASS SUMMARIES & ANALYTICS ───────────────────────────── */}
+      {/* ─── TAB 2: CLASS SUMMARIES & ANALYTICS ───────────────────────────── */}
       {activeTab === "classes" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {classSummaries.map((cls) => (
@@ -1347,13 +818,12 @@ export const AttendanceSection: React.FC = () => {
                     </div>
                   </div>
                   <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${
-                      cls.rate >= 80
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold border ${cls.rate >= 80
                         ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
                         : cls.rate >= 60
-                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
-                    }`}
+                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
+                          : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                      }`}
                   >
                     {cls.rate}% Rate
                   </span>
@@ -1405,16 +875,7 @@ export const AttendanceSection: React.FC = () => {
                 >
                   View Records ({cls.recordsCount})
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRollCallClassId(String(cls.id));
-                    setActiveTab("rollcall");
-                  }}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                >
-                  Take Roll Call →
-                </button>
+
               </div>
             </div>
           ))}
