@@ -245,6 +245,27 @@ class ApiService {
     return { blob, filename, mime };
   }
 
+  async downloadEventAttachment(eventId: number | string): Promise<{ blob: Blob; filename: string; mime: string }> {
+    const response = await fetch(
+      `${API_BASE_URL}/events?action=attachment&id=${encodeURIComponent(String(eventId))}`,
+      { headers: { Authorization: `Bearer ${this.getToken() || ''}` } }
+    );
+    if (!response.ok) {
+      let message = 'Event document download failed.';
+      try {
+        const result = JSON.parse(await response.text());
+        message = result.message || message;
+      } catch { /* ignore */ }
+      throw new Error(message);
+    }
+    const contentDisposition = response.headers.get('Content-Disposition') || '';
+    const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+    const filename = filenameMatch ? decodeURIComponent(filenameMatch[1]) : 'event_document';
+    const mime = response.headers.get('Content-Type') || 'application/octet-stream';
+    const blob = await response.blob();
+    return { blob, filename, mime };
+  }
+
   // Fee Management
   async getFeeStats() {
     return this.request('fees?action=stats', { method: 'GET' });

@@ -135,11 +135,19 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "present", label: "Present", type: "checkbox" },
   ],
   event: [
-    { name: "title", label: "Event title", required: true },
-    { name: "description", label: "Description", type: "textarea" },
+    { name: "title", label: "Event Title", required: true, colSpan: 2, placeholder: "e.g. Annual Sports Meet 2026" },
+    { name: "description", label: "Description", type: "textarea", colSpan: 2, placeholder: "Provide event details, schedule, or notes..." },
     { name: "start_time", label: "Start time", type: "datetime-local", required: true },
     { name: "end_time", label: "End time", type: "datetime-local", required: true },
-    { name: "class_id", label: "Class (optional)", type: "select", resource: "classes" },
+    { name: "class_id", label: "Class (optional)", type: "select", resource: "classes", colSpan: 2 },
+    {
+      name: "document_attachment",
+      label: "Upload Document (Image or PDF)",
+      type: "pdf-image",
+      accept: "application/pdf,image/jpeg,image/png,image/webp,image/gif",
+      hint: "Upload event document, circular, or flyer (PDF or Image) — max 25 MB",
+      colSpan: 2,
+    },
   ],
   announcement: [
     { name: "title", label: "Announcement title", required: true },
@@ -320,7 +328,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     try {
       let response;
       const needsProfileImage = (entity === "teacher" || entity === "student" || entity === "parent") && selectedImage;
-      const needsAttachment = (entity === "exam" || entity === "assignment") && (routineFile || removeAttachment);
+      const needsAttachment = (entity === "exam" || entity === "assignment" || entity === "event") && (routineFile || removeAttachment);
 
       if (needsProfileImage || needsAttachment) {
         const formData = new FormData();
@@ -334,6 +342,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         if (needsProfileImage) formData.append("img", selectedImage!, selectedImage!.name);
         if (routineFile && entity === "exam") formData.append("routine_attachment", routineFile, routineFile.name);
         if (routineFile && entity === "assignment") formData.append("assignment_attachment", routineFile, routineFile.name);
+        if (routineFile && entity === "event") formData.append("document_attachment", routineFile, routineFile.name);
         if (removeAttachment) formData.append("remove_attachment", "1");
         response = type === "create"
           ? await api.create(apiResources[entity], formData)

@@ -221,7 +221,7 @@ const EventCalendar: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/90 text-[10px] font-black tracking-wider uppercase shadow-xs">
             <Radio size={11} className="animate-pulse text-white" />
-            <span>LIVE TICKER</span>
+            <span>LIVE EVENTS</span>
           </div>
 
           {/* Horizontal Scrolling Marquee */}

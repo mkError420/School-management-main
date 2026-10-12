@@ -543,6 +543,7 @@ export const EventsPage: React.FC = () => {
 
   const cols = [
     { header: "Title", accessor: "title" },
+    { header: "Document", accessor: "document" },
     { header: "Class", accessor: "class", className: "hidden md:table-cell" },
     { header: "Start Date", accessor: "start", className: "hidden md:table-cell" },
     { header: "End Date", accessor: "end", className: "hidden lg:table-cell" },
@@ -552,6 +553,31 @@ export const EventsPage: React.FC = () => {
   const renderRow = (item: any) => (
     <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
       <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.title}</td>
+      <td className="py-3">
+        {item.attachment_url || item.document_attachment ? (
+          <a
+            href={`${item.attachment_url || `/backend/api/events?action=attachment&id=${item.id}`}${api.getToken() ? `&token=${encodeURIComponent(api.getToken()!)}` : ''}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold bg-purple-100 hover:bg-purple-200 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 transition"
+          >
+            {item.attachment_mime_type === "application/pdf" ? (
+              <svg className="h-3.5 w-3.5 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zM9 13h2v5H9zm4-3h2v8h-2zm-8 1h2v4H5z"/>
+              </svg>
+            ) : (
+              <svg className="h-3.5 w-3.5 text-purple-500 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            )}
+            <span className="truncate max-w-[120px]">{item.attachment_original_name || "Document"}</span>
+          </a>
+        ) : (
+          <span className="text-gray-400 text-xs">—</span>
+        )}
+      </td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "All Classes"}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.start_time ? new Date(item.start_time).toLocaleDateString() : "—"}
