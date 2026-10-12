@@ -56,14 +56,14 @@ function ensureAssignmentSchema($db) {
     // 1. Allow lesson_id to be NULL so Lesson is no longer mandatory
     try {
         $db->query("ALTER TABLE `assignments` MODIFY COLUMN `lesson_id` INT NULL");
-    } catch (Exception $e) {}
+    } catch (\Throwable $e) {}
 
     // 2. Allow start_date to be NULL / default CURRENT_TIMESTAMP
     try {
         $db->query("ALTER TABLE `assignments` MODIFY COLUMN `start_date` DATETIME NULL DEFAULT CURRENT_TIMESTAMP");
-    } catch (Exception $e) {}
+    } catch (\Throwable $e) {}
 
-    // 3. Add assignment attachment and academic relation columns
+    // 3. Add assignment attachment and academic relation columns safely
     $columnsToAdd = [
         'assignment_attachment'    => 'VARCHAR(500) NULL AFTER due_date',
         'attachment_original_name' => 'VARCHAR(255) NULL AFTER assignment_attachment',
@@ -76,12 +76,12 @@ function ensureAssignmentSchema($db) {
         'updated_at'               => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
     ];
     foreach ($columnsToAdd as $col => $definition) {
-        $exists = $db->fetchAll("SHOW COLUMNS FROM `assignments` LIKE '{$col}'");
-        if (!$exists) {
-            try {
+        try {
+            $exists = $db->fetchAll("SHOW COLUMNS FROM `assignments` LIKE '{$col}'");
+            if (empty($exists)) {
                 $db->query("ALTER TABLE `assignments` ADD COLUMN `{$col}` {$definition}");
-            } catch (Exception $e) {}
-        }
+            }
+        } catch (\Throwable $e) {}
     }
 }
 
@@ -256,7 +256,16 @@ function getAssignments($db) {
     
     $offset = ($page - 1) * $limit;
     
-    $sql = "SELECT a.*, 
+    $sql = "SELECT a.id,
+                   a.title,
+                   a.description,
+                   a.start_date,
+                   a.due_date,
+                   a.assignment_attachment,
+                   a.attachment_original_name,
+                   a.attachment_mime_type,
+                   a.attachment_size,
+                   a.lesson_id,
                    COALESCE(a.class_id, l.class_id) as class_id,
                    COALESCE(a.subject_id, l.subject_id) as subject_id,
                    COALESCE(a.teacher_id, l.teacher_id) as teacher_id,
@@ -307,7 +316,16 @@ function getAssignments($db) {
         $params[] = $classId;
     }
     
-    $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
+    $wherePart = substr($sql, strpos($sql, "WHERE 1=1"));
+    $countSql = "SELECT COUNT(*) as total FROM assignments a
+                 LEFT JOIN lessons l ON a.lesson_id = l.id
+                 LEFT JOIN subjects s ON l.subject_id = s.id
+                 LEFT JOIN classes c ON l.class_id = c.id
+                 LEFT JOIN teachers t ON l.teacher_id = t.id
+                 LEFT JOIN classes c_direct ON a.class_id = c_direct.id
+                 LEFT JOIN subjects s_direct ON a.subject_id = s_direct.id
+                 LEFT JOIN teachers t_direct ON a.teacher_id = t_direct.id
+                 " . $wherePart;
     $totalResult = $db->fetchOne($countSql, $params);
     $total = $totalResult['total'] ?? 0;
     
@@ -332,7 +350,16 @@ function getAssignments($db) {
 function getAssignment($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
     
-    $sql = "SELECT a.*, 
+    $sql = "SELECT a.id,
+                   a.title,
+                   a.description,
+                   a.start_date,
+                   a.due_date,
+                   a.assignment_attachment,
+                   a.attachment_original_name,
+                   a.attachment_mime_type,
+                   a.attachment_size,
+                   a.lesson_id,
                    COALESCE(a.class_id, l.class_id) as class_id,
                    COALESCE(a.subject_id, l.subject_id) as subject_id,
                    COALESCE(a.teacher_id, l.teacher_id) as teacher_id,
