@@ -329,6 +329,40 @@ class ApiService {
   async getRevenueTransactions(params: Record<string, string | number> = {}) {
     return this.getAll('revenue', { action: 'transactions', ...params });
   }
+
+  // Bangladesh Result System & Result Sheet APIs
+  async getResultSheet(studentId: string | number, examId?: string | number) {
+    const qs = examId ? `&exam_id=${encodeURIComponent(String(examId))}` : '';
+    return this.request(`results?action=sheet&student_id=${encodeURIComponent(String(studentId))}${qs}`, { method: 'GET' });
+  }
+
+  async getTabulationSheet(classId: string | number, examId?: string | number) {
+    const qs = examId ? `&exam_id=${encodeURIComponent(String(examId))}` : '';
+    return this.request(`results?action=tabulation&class_id=${encodeURIComponent(String(classId))}${qs}`, { method: 'GET' });
+  }
+
+  async getGradingScale() {
+    return this.request('results?action=scale', { method: 'GET' });
+  }
+
+  async bulkSaveResults(data: {
+    exam_id?: number | null;
+    assignment_id?: number | null;
+    total_marks?: number;
+    results: Array<{
+      student_id: string;
+      score: number;
+      cq_marks?: number;
+      mcq_marks?: number;
+      practical_marks?: number;
+      total_marks?: number;
+    }>;
+  }) {
+    return this.request('results?action=bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiService();

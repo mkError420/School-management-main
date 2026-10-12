@@ -122,10 +122,11 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "due_date", label: "Due Date", type: "datetime-local", required: true },
   ],
   result: [
-    { name: "score", label: "Score (%)", type: "number", required: true, min: 0, max: 100 },
+    { name: "score", label: "Marks Obtained", type: "number", required: true, min: 0, max: 500, placeholder: "e.g. 85" },
+    { name: "total_marks", label: "Full Marks", type: "number", min: 1, max: 500, placeholder: "Default 100" },
     { name: "student_id", label: "Student", type: "select", required: true, resource: "students" },
-    { name: "result_type", label: "Result type", type: "select", required: true, options: [{ value: "exam", label: "Exam" }, { value: "assignment", label: "Assignment" }] },
-    { name: "assessment_id", label: "Exam or assignment", type: "select", required: true, resourcesByValue: { exam: "exams", assignment: "assignments" } },
+    { name: "result_type", label: "Assessment Type", type: "select", required: true, options: [{ value: "exam", label: "Exam" }, { value: "assignment", label: "Assignment" }] },
+    { name: "assessment_id", label: "Exam or Assignment", type: "select", required: true, resourcesByValue: { exam: "exams", assignment: "assignments" } },
   ],
   attendance: [
     { name: "date", label: "Date", type: "date", required: true },

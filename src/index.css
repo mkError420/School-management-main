@@ -274,5 +274,14 @@ html.dark .rbc-timeslot-group {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
+  #printable-result-sheet {
+    visibility: visible !important;
+    box-shadow: none !important;
+  }
+  #printable-result-sheet * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
 

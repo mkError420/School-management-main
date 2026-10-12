@@ -6,6 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import { useAccessRole } from "@/context/AuthContext";
+import ResultSheetModal from "@/components/results/ResultSheetModal";
 
 const localizer = momentLocalizer(moment);
 
@@ -115,6 +116,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   const role = useAccessRole();
   const navigate = useNavigate();
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const student = details.student;
   const fullName = `${student.name} ${student.surname}`.trim();
   const presentCount = details.attendance.filter((record) => Boolean(Number(record.present))).length;
@@ -233,10 +235,31 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         </section>
 
         <section id="student-results" className="rounded-md border border-gray-100 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-gray-900">Results</h2><span className="text-xs text-gray-500">{details.results.length}</span></div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-gray-900">Results</h2>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSheetOpen(true)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded-md transition cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Result Sheet
+              </button>
+              <span className="text-xs text-gray-500">{details.results.length}</span>
+            </div>
+          </div>
           {details.results.length ? <div className="mt-3 divide-y divide-gray-100">{details.results.map((result) => <div key={result.id} className="flex items-center justify-between gap-3 py-2.5"><div className="min-w-0"><p className="truncate text-sm font-medium text-gray-800">{result.exam_title || result.assignment_title || "Assessment"}</p><p className="truncate text-xs text-gray-500">{result.subject_name || "Subject not available"}{result.date ? ` · ${formatDate(result.date)}` : ""}</p></div><span className="shrink-0 text-sm font-semibold text-gray-800">{result.score}%</span></div>)}</div> : <p className="mt-3 text-sm text-gray-500">No results recorded.</p>}
         </section>
       </div>
+
+      <ResultSheetModal
+        isOpen={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        studentId={student.id}
+      />
     </div>
   );
 };
