@@ -24,12 +24,14 @@ import {
   X,
   AlertCircle,
   ExternalLink,
+  Table,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAccessRole } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import AttendanceSpreadsheet from "./AttendanceSpreadsheet";
 
 // ─── Interfaces ─────────────────────────────────────────────────────────────
 
@@ -127,6 +129,7 @@ export const AttendanceSection: React.FC = () => {
 
   // Navigation / Tabs
   const [activeTab, setActiveTab] = useState<"records" | "rollcall" | "classes">("records");
+  const [recordsViewMode, setRecordsViewMode] = useState<"spreadsheet" | "list">("spreadsheet");
 
   // Global Filter States for Records Tab
   const [search, setSearch] = useState("");
@@ -1027,9 +1030,54 @@ export const AttendanceSection: React.FC = () => {
       {/* ─── TAB 1: ATTENDANCE RECORDS ───────────────────────────────────── */}
       {activeTab === "records" && (
         <div className="flex flex-col gap-4">
-          {/* Filter Bar with Dynamic Class-Wise Student Selector */}
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
-            {/* Search Input */}
+          {/* Sub-bar: View Mode Switcher (Spreadsheet Matrix vs Detailed Log View) */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center p-1 bg-slate-100/90 dark:bg-gray-800/90 rounded-xl border border-slate-200 dark:border-gray-700/80 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setRecordsViewMode("spreadsheet")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  recordsViewMode === "spreadsheet"
+                    ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+              >
+                <Table size={14} />
+                <span>Spreadsheet Register</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecordsViewMode("list")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  recordsViewMode === "list"
+                    ? "bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+                }`}
+              >
+                <ClipboardCheck size={14} />
+                <span>Detailed Log View</span>
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
+              {recordsViewMode === "spreadsheet"
+                ? "Interactive spreadsheet matrix with real-time automated calculations and in-cell marking"
+                : "Individual attendance log entries and raw session records"}
+            </p>
+          </div>
+
+          {recordsViewMode === "spreadsheet" ? (
+            <AttendanceSpreadsheet
+              classes={classes}
+              initialClassId={selectedClass !== "all" ? selectedClass : undefined}
+              role={role}
+              onRefreshParent={fetchRecords}
+            />
+          ) : (
+            <>
+              {/* Filter Bar with Dynamic Class-Wise Student Selector */}
+              <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap">
+                {/* Search Input */}
             <div className="relative flex-1 min-w-[200px]">
               <Search
                 size={16}
@@ -1349,8 +1397,10 @@ export const AttendanceSection: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
+    </div>
+  )}
 
       {/* ─── TAB 2: QUICK ROLL CALL / DAILY SHEET (CLASS-WISE) ────────────── */}
       {activeTab === "rollcall" && (

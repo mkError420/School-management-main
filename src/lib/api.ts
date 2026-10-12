@@ -363,6 +363,31 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // Attendance Spreadsheet & Marking APIs
+  async getAttendanceSpreadsheet(params: {
+    class_id?: string | number;
+    month?: string;
+    start_date?: string;
+    end_date?: string;
+    search?: string;
+  } = {}) {
+    return this.getAll('attendance', { action: 'spreadsheet', ...params });
+  }
+
+  async markAttendanceRecord(data: {
+    student_id: string;
+    date: string;
+    present: boolean | number;
+    lesson_id?: number | string;
+    class_id?: number | string;
+    notes?: string;
+  }) {
+    return this.request('attendance', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiService();
