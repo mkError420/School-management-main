@@ -68,6 +68,13 @@ function getEvents($db) {
         $params[] = $classId;
     }
     
+    $date = $_GET['date'] ?? '';
+    if (!empty($date)) {
+        $sql .= " AND (DATE(e.start_time) <= ? AND DATE(e.end_time) >= ?)";
+        $params[] = $date;
+        $params[] = $date;
+    }
+    
     $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
     $totalResult = $db->fetchOne($countSql, $params);
     $total = $totalResult['total'] ?? 0;

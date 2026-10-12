@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -526,9 +527,17 @@ export const AttendancePage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const EventsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  const [search, setSearch] = useState(initialSearch);
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("events", "events", page, 10, search);
+
+  useEffect(() => {
+    const q = searchParams.get("search") || "";
+    if (q) setSearch(q);
+  }, [searchParams]);
+
   useEffect(() => { setPage(1); }, [search]);
   useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
 
