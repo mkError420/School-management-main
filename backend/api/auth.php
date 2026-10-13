@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../utils/StudentIdGenerator.php';
 
 $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -136,8 +137,13 @@ function handleRegister($db, $input) {
                     }
                 }
                 
+                $idInfo = StudentIdGenerator::generate($db, $input['class_id'], $input['roll'] ?? null);
+                $studentId = $idInfo['id'];
+                $roll = $idInfo['roll'];
+                
                 $db->insert('students', [
-                    'id' => $id,
+                    'id' => $studentId,
+                    'roll' => $roll,
                     'username' => $username,
                     'password' => $hashedPassword,
                     'name' => $input['name'],

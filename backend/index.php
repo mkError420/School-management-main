@@ -14,6 +14,7 @@ require_once __DIR__ . '/utils/Response.php';
 require_once __DIR__ . '/utils/JWTHandler.php';
 require_once __DIR__ . '/utils/AuthMiddleware.php';
 require_once __DIR__ . '/utils/CorsMiddleware.php';
+require_once __DIR__ . '/utils/StudentIdGenerator.php';
 
 // Handle CORS
 CorsMiddleware::handle();

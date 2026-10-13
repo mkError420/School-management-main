@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../utils/StudentIdGenerator.php';
 
 $db = Database::getInstance();
 ensureAdmissionsTable($db);
@@ -744,12 +745,15 @@ function enrollStudentFromAdmission($db, $data) {
             ? (str_starts_with($data['password'], '$2y$') ? $data['password'] : password_hash($data['password'], PASSWORD_DEFAULT))
             : password_hash('Student123!', PASSWORD_DEFAULT);
 
-        $studentId = uniqid('std_');
+        // Generate student ID based on: Current Year, Class, Roll (e.g. 20261A01)
+        $idInfo = StudentIdGenerator::generate($db, $classId, $data['roll'] ?? null);
+        $studentId = $idInfo['id'];
+        $roll = $idInfo['roll'];
         $gender = ($data['gender'] === 'FEMALE' || (isset($data['sex']) && strtoupper($data['sex']) === 'FEMALE')) ? 'FEMALE' : 'MALE';
 
         $db->insert('students', [
             'id' => $studentId,
-            'roll' => !empty($data['roll']) ? $data['roll'] : null,
+            'roll' => $roll,
             'username' => $username,
             'password' => $hashedPass,
             'name' => $data['first_name'],

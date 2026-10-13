@@ -52,6 +52,7 @@ const fieldsByEntity: Record<Entity, Field[]> = {
   ],
   student: [
     { name: "username", label: "Username", required: true },
+    { name: "roll", label: "Roll (optional)" },
     { name: "password", label: "Password", type: "password", required: true },
     { name: "name", label: "First name", required: true },
     { name: "surname", label: "Last name", required: true },

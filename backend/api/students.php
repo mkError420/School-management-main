@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../utils/StudentIdGenerator.php';
 
 $db = Database::getInstance();
 
@@ -262,8 +263,10 @@ function createStudent($db) {
     // Hash password
     $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
 
-    // Generate unique ID
-    $id = uniqid();
+    // Generate student ID based on: Current Year, Class, Roll (e.g. 20261A01)
+    $idInfo = StudentIdGenerator::generate($db, $input['class_id'], $input['roll'] ?? null);
+    $id = $idInfo['id'];
+    $roll = $idInfo['roll'];
 
     // Handle photo upload (multipart only)
     $uploadedImage = null;
@@ -274,7 +277,7 @@ function createStudent($db) {
     try {
         $db->insert('students', [
             'id'         => $id,
-            'roll'       => !empty($input['roll']) ? $input['roll'] : null,
+            'roll'       => $roll,
             'username'   => $input['username'],
             'password'   => $hashedPassword,
             'name'       => $input['name'],
@@ -308,7 +311,7 @@ function createStudent($db) {
 
             $db->insert('admissions', [
                 'application_no'      => $appNo,
-                'roll'                => !empty($input['roll']) ? $input['roll'] : null,
+                'roll'                => $roll,
                 'first_name'          => $input['name'],
                 'last_name'           => $input['surname'],
                 'email'               => $input['email'] ?? null,

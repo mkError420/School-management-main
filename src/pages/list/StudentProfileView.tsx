@@ -14,6 +14,7 @@ export interface StudentProfileDetails {
   student: {
     id: string;
     username: string;
+    roll?: string | null;
     name: string;
     surname: string;
     email?: string | null;
@@ -153,7 +154,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Student profile</p>
             <h1 className="mt-1 break-words text-lg font-bold">{fullName}</h1>
-            <p className="mt-0.5 truncate text-xs text-slate-700">ID: {student.id} · @{student.username}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-700">ID: {student.id}{student.roll ? ` · Roll: ${student.roll}` : ""} · @{student.username}</p>
             <div className="mt-3 grid gap-1 text-xs sm:grid-cols-2">
               <span className="flex min-w-0 items-center gap-1.5"><Mail size={12} /><span className="truncate">{student.email || "Email not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><Phone size={12} /><span className="truncate">{student.phone || "Phone not provided"}</span></span>

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
 import { Link } from "react-router-dom";
 import FormModal from "@/components/FormModal";
@@ -11,6 +11,7 @@ import { GraduationCap, ArrowRight, UserPlus } from "lucide-react";
 
 interface Student {
   id: string;
+  roll?: string;
   username: string;
   name: string;
   surname: string;
