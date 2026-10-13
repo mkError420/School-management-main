@@ -615,57 +615,7 @@ export const EventsPage: React.FC = () => {
 
 // ───────────────────────────────────────────────
 // ANNOUNCEMENTS
-// ───────────────────────────────────────────────
-export const AnnouncementsPage: React.FC = () => {
-  const role = useAccessRole();
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("announcements", "announcements", page, 10, search);
-  useEffect(() => { setPage(1); }, [search]);
-  useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);
-
-  const cols = [
-    { header: "Title", accessor: "title" },
-    { header: "Class", accessor: "class", className: "hidden md:table-cell" },
-    { header: "Date", accessor: "date", className: "hidden md:table-cell" },
-    { header: "Actions", accessor: "actions" },
-  ];
-
-  const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
-      <td className="py-3">
-        <p className="font-semibold text-gray-800 dark:text-gray-100">{item.title}</p>
-        <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 line-clamp-1">{item.description}</p>
-      </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "All"}</td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.date}</td>
-      <td>
-        <div className="flex items-center gap-2">
-          {(role === "admin" || role === "teacher") && (
-            <>
-              <FormModal table="announcement" type="update" data={item} onSuccess={fetchData} />
-              {role === "admin" && <FormModal table="announcement" type="delete" id={item.id} onSuccess={fetchData} />}
-            </>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-
-  return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Announcements</h1>
-        <div className="flex gap-3 items-center">
-          <TableSearch value={search} onChange={setSearch} placeholder="Search announcements..." />
-          {(role === "admin" || role === "teacher") && <FormModal table="announcement" type="create" onSuccess={fetchData} />}
-        </div>
-      </div>
-      <Table columns={cols} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No announcements found" />
-      <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
-    </div>
-  );
-};
+export { default as AnnouncementsPage } from "./AnnouncementsPage";
 
 export default SubjectsPage;
 

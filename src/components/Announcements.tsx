@@ -8,6 +8,10 @@ interface Announcement {
   description: string;
   date: string;
   class_name?: string;
+  document_attachment?: string | null;
+  attachment_url?: string | null;
+  attachment_original_name?: string | null;
+  attachment_mime_type?: string | null;
 }
 
 const bgColors = ["bg-lamaPurpleLight", "bg-lamaYellowLight", "bg-lamaSkyLight"];
@@ -56,15 +60,27 @@ const Announcements: React.FC = () => {
           : items.length === 0 && !error
             ? <p className="text-sm text-gray-500 dark:text-gray-400">No announcements yet.</p>
             : items.map((item, i) => (
-              <div key={item.id} className={`${bgColors[i % bgColors.length]} dark:bg-opacity-20 rounded-xl p-3`}>
+              <Link
+                to="/list/announcements"
+                key={item.id}
+                className={`${bgColors[i % bgColors.length]} dark:bg-opacity-20 rounded-xl p-3 block hover:opacity-95 transition`}
+              >
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight">{item.title}</h2>
+                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight truncate">
+                    {item.title}
+                  </h2>
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-700 rounded-md px-1.5 py-0.5 whitespace-nowrap ml-2">
                     {item.date}
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{item.description}</p>
-              </div>
+                {(item.document_attachment || item.attachment_url) && (
+                  <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                    <span>Attached Document / Image</span>
+                  </div>
+                )}
+              </Link>
             ))}
       </div>
     </div>

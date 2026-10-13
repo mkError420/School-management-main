@@ -3,10 +3,18 @@
 $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
+$action = $_GET['action'] ?? null;
+
+// Allow _method override for multipart/form-data PUT requests
+if ($method === 'POST' && isset($_POST['_method']) && strtoupper($_POST['_method']) === 'PUT') {
+    $method = 'PUT';
+}
 
 switch ($method) {
     case 'GET':
-        if ($id) {
+        if ($action === 'attachment') {
+            downloadAnnouncementAttachment($db, $id);
+        } elseif ($id) {
             getAnnouncement($db, $id);
         } else {
             getAnnouncements($db);
@@ -35,13 +43,182 @@ switch ($method) {
         Response::methodNotAllowed();
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper: ensure attachment columns exist (auto-migration on first use)
+// ─────────────────────────────────────────────────────────────────────────────
+function ensureAnnouncementSchema($db) {
+    $columnsToAdd = [
+        'document_attachment'      => 'VARCHAR(500) NULL AFTER class_id',
+        'attachment_original_name' => 'VARCHAR(255) NULL AFTER document_attachment',
+        'attachment_mime_type'     => 'VARCHAR(127) NULL AFTER attachment_original_name',
+        'attachment_size'          => 'INT UNSIGNED NULL AFTER attachment_mime_type',
+        'updated_at'               => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+    ];
+    foreach ($columnsToAdd as $col => $definition) {
+        $exists = $db->fetchAll("SHOW COLUMNS FROM `announcements` LIKE '{$col}'");
+        if (!$exists) {
+            try {
+                $db->query("ALTER TABLE `announcements` ADD COLUMN `{$col}` {$definition}");
+            } catch (Exception $e) {
+                // Column may already exist
+            }
+        }
+    }
+}
+
+function getUploadDir() {
+    $dir = __DIR__ . '/../uploads/';
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    return $dir;
+}
+
+function handleAnnouncementDocumentUpload() {
+    $fileKey = null;
+    if (isset($_FILES['document_attachment']) && $_FILES['document_attachment']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $fileKey = 'document_attachment';
+    } elseif (isset($_FILES['attachment']) && $_FILES['attachment']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $fileKey = 'attachment';
+    } elseif (isset($_FILES['file']) && $_FILES['file']['error'] !== UPLOAD_ERR_NO_FILE) {
+        $fileKey = 'file';
+    }
+    if (!$fileKey) {
+        return null;
+    }
+
+    $file = $_FILES[$fileKey];
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $messages = [
+            UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
+            UPLOAD_ERR_FORM_SIZE  => 'File exceeds form size limit.',
+            UPLOAD_ERR_PARTIAL    => 'File was only partially uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+            UPLOAD_ERR_EXTENSION  => 'A PHP extension blocked the upload.',
+        ];
+        Response::error($messages[$file['error']] ?? 'File upload error.');
+    }
+
+    $maxSize = 25 * 1024 * 1024; // 25 MB
+    if ($file['size'] > $maxSize) {
+        Response::error('File must be 25 MB or smaller.');
+    }
+
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime  = $finfo->file($file['tmp_name']);
+
+    $allowedMimes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+    ];
+    $allowedExts = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+    $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+    if (!in_array($mime, $allowedMimes, true) && !in_array($fileExt, $allowedExts, true)) {
+        Response::error('Only PDF, Word (.doc/.docx), Text (.txt), or image (JPG, PNG, WebP, GIF) documents are allowed.');
+    }
+
+    $extMap = [
+        'application/pdf' => 'pdf',
+        'application/msword' => 'doc',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'text/plain' => 'txt',
+        'image/jpeg'      => 'jpg',
+        'image/png'       => 'png',
+        'image/webp'      => 'webp',
+        'image/gif'       => 'gif',
+    ];
+    $ext = $extMap[$mime] ?? ($fileExt ?: 'bin');
+    $storageName = 'announcement_doc_' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+    $uploadDir   = getUploadDir();
+    $destination = $uploadDir . $storageName;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        Response::error('Failed to save uploaded file. Check server permissions.');
+    }
+
+    return [
+        'storage_name'  => $storageName,
+        'original_name' => basename($file['name']),
+        'mime_type'     => $mime,
+        'file_size'     => $file['size'],
+    ];
+}
+
+function deleteAttachmentFile($storageName) {
+    if (empty($storageName)) return;
+    $path = getUploadDir() . $storageName;
+    if (file_exists($path)) {
+        @unlink($path);
+    }
+}
+
+function downloadAnnouncementAttachment($db, $id) {
+    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
+
+    if (!$id) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Announcement ID is required']);
+        exit;
+    }
+
+    $visibility = AuthMiddleware::isAdmin($user)
+        ? ['sql' => '1=1', 'params' => []]
+        : announcementVisibility($user);
+
+    $announcement = $db->fetchOne(
+        "SELECT a.document_attachment, a.attachment_original_name, a.attachment_mime_type, a.class_id
+         FROM announcements a
+         WHERE a.id = ? AND " . $visibility['sql'],
+        array_merge([$id], $visibility['params'])
+    );
+
+    if (!$announcement || empty($announcement['document_attachment'])) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'Attachment not found']);
+        exit;
+    }
+
+    $filePath = getUploadDir() . $announcement['document_attachment'];
+    if (!file_exists($filePath)) {
+        http_response_code(404);
+        echo json_encode(['success' => false, 'message' => 'File not found on server']);
+        exit;
+    }
+
+    $mime         = $announcement['attachment_mime_type'] ?: mime_content_type($filePath);
+    $originalName = $announcement['attachment_original_name'] ?: basename($filePath);
+
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    header('Content-Type: ' . $mime, true);
+    header('Content-Length: ' . filesize($filePath));
+    header('Accept-Ranges: bytes');
+    $inline = in_array($mime, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . addslashes($originalName) . '"');
+    header('Cache-Control: private, max-age=3600');
+    readfile($filePath);
+    exit;
+}
+
 function getAnnouncements($db) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
     
     $page = intval($_GET['page'] ?? 1);
     $limit = intval($_GET['limit'] ?? 10);
     $search = $_GET['search'] ?? '';
     $classId = $_GET['class_id'] ?? '';
+    $hasAttachment = $_GET['has_attachment'] ?? '';
     
     $offset = ($page - 1) * $limit;
     
@@ -64,19 +241,34 @@ function getAnnouncements($db) {
     }
     
     if (!empty($classId)) {
-        $sql .= " AND (a.class_id = ? OR a.class_id IS NULL)";
-        $params[] = $classId;
+        if ($classId === 'school_wide' || $classId === 'all_classes') {
+            $sql .= " AND a.class_id IS NULL";
+        } else {
+            $sql .= " AND a.class_id = ?";
+            $params[] = $classId;
+        }
+    }
+
+    if ($hasAttachment === '1' || $hasAttachment === 'true') {
+        $sql .= " AND a.document_attachment IS NOT NULL AND a.document_attachment != ''";
     }
     
     $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
     $totalResult = $db->fetchOne($countSql, $params);
     $total = $totalResult['total'] ?? 0;
     
-    $sql .= " ORDER BY a.date DESC LIMIT ? OFFSET ?";
+    $sql .= " ORDER BY a.date DESC, a.id DESC LIMIT ? OFFSET ?";
     $params[] = $limit;
     $params[] = $offset;
     
     $announcements = $db->fetchAll($sql, $params);
+
+    foreach ($announcements as &$ann) {
+        $ann['attachment_url'] = !empty($ann['document_attachment'])
+            ? '/backend/api/announcements?action=attachment&id=' . $ann['id']
+            : null;
+    }
+    unset($ann);
     
     Response::success('Announcements retrieved successfully', [
         'announcements' => $announcements,
@@ -91,6 +283,7 @@ function getAnnouncements($db) {
 
 function getAnnouncement($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
 
     $visibility = AuthMiddleware::isAdmin($user)
         ? ['sql' => '1=1', 'params' => []]
@@ -107,6 +300,10 @@ function getAnnouncement($db, $id) {
     if (!$announcement) {
         Response::notFound('Announcement not found');
     }
+
+    $announcement['attachment_url'] = !empty($announcement['document_attachment'])
+        ? '/backend/api/announcements?action=attachment&id=' . $announcement['id']
+        : null;
     
     Response::success('Announcement retrieved successfully', ['announcement' => $announcement]);
 }
@@ -135,25 +332,46 @@ function announcementVisibility($user) {
 
 function createAnnouncement($db) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher']);
-    $input = json_decode(file_get_contents('php://input'), true);
+    ensureAnnouncementSchema($db);
+
+    $isMultipart = !empty($_POST) || !empty($_FILES);
+    $input = $isMultipart ? $_POST : json_decode(file_get_contents('php://input'), true);
     
     if (empty($input['title']) || empty($input['date'])) {
         Response::error('Title and date are required');
     }
+
+    $uploadInfo = handleAnnouncementDocumentUpload();
     
-    $announcementId = $db->insert('announcements', [
-        'title' => $input['title'],
-        'description' => $input['description'] ?? '',
-        'date' => $input['date'],
-        'class_id' => !empty($input['class_id']) ? $input['class_id'] : null
-    ]);
+    $announcementData = [
+        'title'                    => $input['title'],
+        'description'              => $input['description'] ?? '',
+        'date'                     => $input['date'],
+        'class_id'                 => !empty($input['class_id']) ? $input['class_id'] : null,
+        'document_attachment'      => $uploadInfo['storage_name'] ?? null,
+        'attachment_original_name' => $uploadInfo['original_name'] ?? null,
+        'attachment_mime_type'     => $uploadInfo['mime_type'] ?? null,
+        'attachment_size'          => $uploadInfo['file_size'] ?? null,
+    ];
+
+    $announcementId = $db->insert('announcements', $announcementData);
+
+    $created = $db->fetchOne("SELECT a.*, c.name as class_name FROM announcements a LEFT JOIN classes c ON a.class_id = c.id WHERE a.id = ?", [$announcementId]);
+    if ($created) {
+        $created['attachment_url'] = !empty($created['document_attachment'])
+            ? '/backend/api/announcements?action=attachment&id=' . $created['id']
+            : null;
+    }
     
-    Response::success('Announcement created successfully', ['id' => $announcementId], 201);
+    Response::success('Announcement created successfully', ['id' => $announcementId, 'announcement' => $created], 201);
 }
 
 function updateAnnouncement($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher']);
-    $input = json_decode(file_get_contents('php://input'), true);
+    ensureAnnouncementSchema($db);
+
+    $isMultipart = !empty($_POST) || !empty($_FILES);
+    $input = $isMultipart ? $_POST : json_decode(file_get_contents('php://input'), true);
     
     $announcement = $db->fetchOne("SELECT * FROM announcements WHERE id = ?", [$id]);
     if (!$announcement) {
@@ -165,22 +383,48 @@ function updateAnnouncement($db, $id) {
     if (isset($input['description'])) $data['description'] = $input['description'];
     if (isset($input['date'])) $data['date'] = $input['date'];
     if (array_key_exists('class_id', $input)) $data['class_id'] = $input['class_id'] ?: null;
+
+    $uploadInfo = handleAnnouncementDocumentUpload();
+    if ($uploadInfo) {
+        deleteAttachmentFile($announcement['document_attachment'] ?? '');
+        $data['document_attachment']       = $uploadInfo['storage_name'];
+        $data['attachment_original_name'] = $uploadInfo['original_name'];
+        $data['attachment_mime_type']     = $uploadInfo['mime_type'];
+        $data['attachment_size']          = $uploadInfo['file_size'];
+    } elseif (!empty($input['remove_attachment'])) {
+        deleteAttachmentFile($announcement['document_attachment'] ?? '');
+        $data['document_attachment']       = null;
+        $data['attachment_original_name'] = null;
+        $data['attachment_mime_type']     = null;
+        $data['attachment_size']          = null;
+    }
     
     if (empty($data)) {
         Response::error('No fields provided to update');
     }
     
     $db->update('announcements', $data, 'id = ?', [$id]);
-    Response::success('Announcement updated successfully');
+
+    $updated = $db->fetchOne("SELECT a.*, c.name as class_name FROM announcements a LEFT JOIN classes c ON a.class_id = c.id WHERE a.id = ?", [$id]);
+    if ($updated) {
+        $updated['attachment_url'] = !empty($updated['document_attachment'])
+            ? '/backend/api/announcements?action=attachment&id=' . $updated['id']
+            : null;
+    }
+
+    Response::success('Announcement updated successfully', ['announcement' => $updated]);
 }
 
 function deleteAnnouncement($db, $id) {
     $user = AuthMiddleware::requireRole('admin');
+    ensureAnnouncementSchema($db);
     
     $announcement = $db->fetchOne("SELECT * FROM announcements WHERE id = ?", [$id]);
     if (!$announcement) {
         Response::notFound('Announcement not found');
     }
+
+    deleteAttachmentFile($announcement['document_attachment'] ?? '');
     
     $db->delete('announcements', 'id = ?', [$id]);
     Response::success('Announcement deleted successfully');

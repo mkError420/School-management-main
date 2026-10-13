@@ -190,6 +190,11 @@ CREATE TABLE IF NOT EXISTS announcements (
     description TEXT,
     date DATE NOT NULL,
     class_id INT,
+    document_attachment VARCHAR(500) NULL,
+    attachment_original_name VARCHAR(255) NULL,
+    attachment_mime_type VARCHAR(127) NULL,
+    attachment_size INT UNSIGNED NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
 

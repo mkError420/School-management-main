@@ -150,10 +150,18 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     },
   ],
   announcement: [
-    { name: "title", label: "Announcement title", required: true },
-    { name: "description", label: "Description", type: "textarea" },
-    { name: "date", label: "Date", type: "date", required: true },
-    { name: "class_id", label: "Class (optional)", type: "select", resource: "classes" },
+    { name: "title", label: "Announcement Title", required: true, colSpan: 2, placeholder: "e.g. School Annual Sports Day Announcement" },
+    { name: "description", label: "Description / Notice Details", type: "textarea", colSpan: 2, placeholder: "Provide comprehensive announcement details, schedule, or notes..." },
+    { name: "date", label: "Announcement Date", type: "date", required: true },
+    { name: "class_id", label: "Class (optional - leave blank for all)", type: "select", resource: "classes" },
+    {
+      name: "document_attachment",
+      label: "Upload Document or Image",
+      type: "pdf-image",
+      accept: "application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/jpeg,image/png,image/webp,image/gif",
+      hint: "Upload announcement document, circular notice, or flyer image (PDF, Word, Text, Image) — max 25 MB",
+      colSpan: 2,
+    },
   ],
 };
 
@@ -328,7 +336,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     try {
       let response;
       const needsProfileImage = (entity === "teacher" || entity === "student" || entity === "parent") && selectedImage;
-      const needsAttachment = (entity === "exam" || entity === "assignment" || entity === "event") && (routineFile || removeAttachment);
+      const needsAttachment = (entity === "exam" || entity === "assignment" || entity === "event" || entity === "announcement") && (routineFile || removeAttachment);
 
       if (needsProfileImage || needsAttachment) {
         const formData = new FormData();
@@ -342,7 +350,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         if (needsProfileImage) formData.append("img", selectedImage!, selectedImage!.name);
         if (routineFile && entity === "exam") formData.append("routine_attachment", routineFile, routineFile.name);
         if (routineFile && entity === "assignment") formData.append("assignment_attachment", routineFile, routineFile.name);
-        if (routineFile && entity === "event") formData.append("document_attachment", routineFile, routineFile.name);
+        if (routineFile && (entity === "event" || entity === "announcement")) formData.append("document_attachment", routineFile, routineFile.name);
         if (removeAttachment) formData.append("remove_attachment", "1");
         response = type === "create"
           ? await api.create(apiResources[entity], formData)
