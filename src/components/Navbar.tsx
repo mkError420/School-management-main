@@ -5,6 +5,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Link, useLocation } from "react-router-dom";
 import { LogOut, Moon, Sun } from "lucide-react";
 import { api } from "@/lib/api";
+import NavbarSearch from "@/components/NavbarSearch";
 
 const Navbar: React.FC = () => {
   const { user, role, logout } = useAuth();
@@ -46,19 +47,12 @@ const Navbar: React.FC = () => {
   }, [location.pathname, role]);
 
   return (
-    <div className="flex items-center justify-between p-4 bg-white shadow-sm border-b border-gray-200">
+    <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-800 transition-colors">
       {/* Searchbar */}
-      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 px-3 py-1.5 focus-within:ring-purple-500 bg-gray-50">
-        <Image src="/search.png" alt="" width={14} height={14} />
-        <input
-          type="text"
-          placeholder="Search courses, students, teachers..."
-          className="w-[220px] bg-transparent outline-none text-xs text-gray-700"
-        />
-      </div>
+      <NavbarSearch />
 
       {/* Icons & User Profile */}
-      <div className="flex items-center gap-4 justify-end w-full">
+      <div className="flex items-center gap-3 sm:gap-4 justify-end">
         <button
           type="button"
           onClick={toggleTheme}

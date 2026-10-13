@@ -9,13 +9,14 @@ import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 import { api } from "@/lib/api";
 import AttendanceSection from "@/components/attendance/AttendanceSection";
+import { useSearchParamState } from "@/lib/useSearchParamState";
 
 // ───────────────────────────────────────────────
 // SUBJECTS
 // ───────────────────────────────────────────────
 export const SubjectsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("subjects", "subjects", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
@@ -66,7 +67,7 @@ export const SubjectsPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const ClassesPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("classes", "classes", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
@@ -121,7 +122,7 @@ export const ClassesPage: React.FC = () => {
 // ───────────────────────────────────────────────
 export const LessonsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("lessons", "lessons", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
@@ -261,7 +262,7 @@ const RoutineBadge: React.FC<{
 
 export const ExamsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("exams", "exams", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
@@ -444,7 +445,7 @@ const AssignmentAttachmentBadge: React.FC<{
 
 export const AssignmentsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("assignments", "assignments", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);

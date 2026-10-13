@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAccessRole } from "@/context/AuthContext";
 import FormModal from "@/components/FormModal";
@@ -67,11 +68,19 @@ const AnnouncementsPage: React.FC = () => {
   const [totalCount, setTotalCount] = useState<number>(0);
 
   // Filters & Controls
-  const [search, setSearch] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState<string>(() => searchParams.get("search") || "");
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [attachmentFilter, setAttachmentFilter] = useState<string>("all"); // 'all', 'with_attachment', 'images', 'documents'
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null) {
+      setSearch(q);
+    }
+  }, [searchParams]);
 
   // Notice Details / Attachment Preview Modal state
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);

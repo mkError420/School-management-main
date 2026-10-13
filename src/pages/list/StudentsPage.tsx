@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -37,8 +37,17 @@ const columns = [
 
 const StudentsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const q = searchParams.get("search");
+    if (q !== null) {
+      setSearch(q);
+    }
+  }, [searchParams]);
+
   const { data: students, loading, error, pagination, refresh: fetchStudents } = useApiList<Student>("students", "students", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
   useEffect(() => { if (page > pagination.pages) setPage(pagination.pages); }, [page, pagination.pages]);

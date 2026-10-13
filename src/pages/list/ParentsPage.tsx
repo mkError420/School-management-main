@@ -1,10 +1,11 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
+import { useSearchParamState } from "@/lib/useSearchParamState";
 
 const columns = [
   { header: "Info", accessor: "info" },
@@ -16,7 +17,7 @@ const columns = [
 
 const ParentsPage: React.FC = () => {
   const role = useAccessRole();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("parents", "parents", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
