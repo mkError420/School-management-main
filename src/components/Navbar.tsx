@@ -11,24 +11,36 @@ const Navbar: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
 
   useEffect(() => {
     let active = true;
-    const loadUnreadCount = async () => {
-      const response = await api.getAll("messages", { folder: "inbox" });
-      if (active && response.success) setUnreadMessages(Number(response.data?.unread_count) || 0);
+    const loadUnreadCounts = async () => {
+      try {
+        const [msgRes, annRes] = await Promise.all([
+          api.getAll("messages", { folder: "inbox" }),
+          api.getAll("announcements", { action: "unread-count" }),
+        ]);
+        if (!active) return;
+        if (msgRes.success) setUnreadMessages(Number(msgRes.data?.unread_count) || 0);
+        if (annRes.success) setUnreadAnnouncements(Number(annRes.data?.unread_count) || 0);
+      } catch {
+        // Silently ignore transient network errors
+      }
     };
-    const refresh = () => { void loadUnreadCount(); };
+    const refresh = () => { void loadUnreadCounts(); };
 
     refresh();
     window.addEventListener("focus", refresh);
     window.addEventListener("school-messages-updated", refresh);
+    window.addEventListener("school-announcements-updated", refresh);
     const interval = window.setInterval(refresh, 60000);
 
     return () => {
       active = false;
       window.removeEventListener("focus", refresh);
       window.removeEventListener("school-messages-updated", refresh);
+      window.removeEventListener("school-announcements-updated", refresh);
       window.clearInterval(interval);
     };
   }, [location.pathname, role]);
@@ -79,9 +91,11 @@ const Navbar: React.FC = () => {
           title="Announcements"
         >
           <Image src="/announcement.png" alt="Announcements" width={18} height={18} />
-          <div className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-purple-600 text-white rounded-full text-[10px] font-bold">
-            3
-          </div>
+          {unreadAnnouncements > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center bg-purple-600 text-white rounded-full text-[9px] font-bold px-1">
+              {unreadAnnouncements > 99 ? "99+" : unreadAnnouncements}
+            </span>
+          )}
         </Link>
 
         {/* User Info */}

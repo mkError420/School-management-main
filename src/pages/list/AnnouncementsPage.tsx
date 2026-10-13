@@ -40,6 +40,7 @@ export interface AnnouncementItem {
   attachment_mime_type?: string | null;
   attachment_size?: number | null;
   attachment_url?: string | null;
+  is_read?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -76,6 +77,8 @@ const AnnouncementsPage: React.FC = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | string | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [markingAllRead, setMarkingAllRead] = useState<boolean>(false);
 
   // Load available classes for target filter
   useEffect(() => {
@@ -145,6 +148,9 @@ const AnnouncementsPage: React.FC = () => {
         const p = res.data.pagination;
         setTotalPages(Math.max(1, Number(p?.pages) || 1));
         setTotalCount(Number(p?.total) || items.length);
+        if (res.data.unread_count !== undefined) {
+          setUnreadCount(Number(res.data.unread_count) || 0);
+        }
       } else {
         setAnnouncements([]);
         setError(res.message || "Failed to load announcements");
@@ -162,6 +168,15 @@ const AnnouncementsPage: React.FC = () => {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
+  // Sync when announcements are updated anywhere
+  useEffect(() => {
+    const handleSync = () => { void fetchAnnouncements(true); };
+    window.addEventListener("school-announcements-updated", handleSync);
+    return () => {
+      window.removeEventListener("school-announcements-updated", handleSync);
+    };
+  }, [fetchAnnouncements]);
+
   // Reset page when search or class filter changes
   useEffect(() => {
     setPage(1);
@@ -177,6 +192,38 @@ const AnnouncementsPage: React.FC = () => {
     ).length;
     return { total, schoolWide, classSpecific, withAttachments };
   }, [announcements, totalCount]);
+
+  // Open details and mark single announcement as read
+  const openAnnouncementDetails = async (item: AnnouncementItem) => {
+    setSelectedAnnouncement(item);
+    if (!item.is_read) {
+      setAnnouncements((prev) =>
+        prev.map((a) => (a.id === item.id ? { ...a, is_read: true } : a))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      try {
+        await api.create("announcements?action=mark-read", { id: item.id });
+        window.dispatchEvent(new Event("school-announcements-updated"));
+      } catch (err) {
+        console.error("Failed to mark announcement as read", err);
+      }
+    }
+  };
+
+  // Mark all visible announcements as read
+  const handleMarkAllAsRead = async () => {
+    setMarkingAllRead(true);
+    try {
+      await api.create("announcements?action=mark-all-read", {});
+      setAnnouncements((prev) => prev.map((a) => ({ ...a, is_read: true })));
+      setUnreadCount(0);
+      window.dispatchEvent(new Event("school-announcements-updated"));
+    } catch (err) {
+      console.error("Failed to mark all announcements as read", err);
+    } finally {
+      setMarkingAllRead(false);
+    }
+  };
 
   // Build authenticated media URL for viewing/downloading
   const getAttachmentUrl = (item: AnnouncementItem) => {
@@ -331,6 +378,19 @@ const AnnouncementsPage: React.FC = () => {
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-purple-600" : ""}`} />
             <span>Refresh</span>
           </button>
+
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              onClick={handleMarkAllAsRead}
+              disabled={markingAllRead}
+              title="Mark all announcements as read"
+              className="flex items-center gap-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3.5 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/50 active:scale-95 transition cursor-pointer"
+            >
+              <CheckCircle className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              <span>{markingAllRead ? "Marking..." : `Mark all as read (${unreadCount})`}</span>
+            </button>
+          )}
 
           {(role === "admin" || role === "teacher") && (
             <div className="flex items-center">
@@ -595,7 +655,7 @@ const AnnouncementsPage: React.FC = () => {
                   return (
                     <tr
                       key={item.id}
-                      onClick={() => setSelectedAnnouncement(item)}
+                      onClick={() => openAnnouncementDetails(item)}
                       className="group cursor-pointer transition hover:bg-purple-50/50 dark:hover:bg-purple-950/20"
                     >
                       {/* Title & Description */}
@@ -605,8 +665,13 @@ const AnnouncementsPage: React.FC = () => {
                             <Bell className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 transition truncate">
-                              {item.title}
+                            <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 transition truncate flex items-center gap-2">
+                              <span className="truncate">{item.title}</span>
+                              {!item.is_read && (
+                                <span className="shrink-0 rounded-full bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                                  New
+                                </span>
+                              )}
                             </h4>
                             <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
                               {item.description || "No detailed description provided."}
@@ -700,7 +765,7 @@ const AnnouncementsPage: React.FC = () => {
                           {/* View details */}
                           <button
                             type="button"
-                            onClick={() => setSelectedAnnouncement(item)}
+                            onClick={() => openAnnouncementDetails(item)}
                             title="View full notice details"
                             className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/50 transition cursor-pointer"
                           >
@@ -767,7 +832,7 @@ const AnnouncementsPage: React.FC = () => {
               return (
                 <div
                   key={item.id}
-                  onClick={() => setSelectedAnnouncement(item)}
+                  onClick={() => openAnnouncementDetails(item)}
                   className="group relative flex flex-col justify-between rounded-2xl border border-gray-200 dark:border-gray-700/70 bg-white dark:bg-gray-800 p-5 shadow-xs transition-all hover:-translate-y-1 hover:shadow-lg cursor-pointer overflow-hidden"
                 >
                   {/* Top Color Accent */}
@@ -797,8 +862,13 @@ const AnnouncementsPage: React.FC = () => {
                     </div>
 
                     {/* Notice Title */}
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 transition line-clamp-2">
-                      {item.title}
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 transition line-clamp-2 flex items-center gap-2">
+                      <span className="line-clamp-2 flex-1">{item.title}</span>
+                      {!item.is_read && (
+                        <span className="shrink-0 rounded-full bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                          New
+                        </span>
+                      )}
                     </h3>
 
                     {/* Notice Body */}
@@ -852,7 +922,7 @@ const AnnouncementsPage: React.FC = () => {
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedAnnouncement(item)}
+                      onClick={() => openAnnouncementDetails(item)}
                       className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1"
                     >
                       <span>Read More</span>

@@ -14,6 +14,8 @@ switch ($method) {
     case 'GET':
         if ($action === 'attachment') {
             downloadAnnouncementAttachment($db, $id);
+        } elseif ($action === 'unread-count') {
+            getUnreadAnnouncementsCount($db);
         } elseif ($id) {
             getAnnouncement($db, $id);
         } else {
@@ -22,7 +24,13 @@ switch ($method) {
         break;
         
     case 'POST':
-        createAnnouncement($db);
+        if ($action === 'mark-read') {
+            markAnnouncementRead($db);
+        } elseif ($action === 'mark-all-read') {
+            markAllAnnouncementsRead($db);
+        } else {
+            createAnnouncement($db);
+        }
         break;
         
     case 'PUT':
@@ -64,6 +72,17 @@ function ensureAnnouncementSchema($db) {
             }
         }
     }
+
+    try {
+        $db->query("CREATE TABLE IF NOT EXISTS announcement_reads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            announcement_id INT NOT NULL,
+            user_id VARCHAR(255) NOT NULL,
+            read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_user_announcement (user_id, announcement_id),
+            FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    } catch (Exception $e) {}
 }
 
 function getUploadDir() {
@@ -210,6 +229,78 @@ function downloadAnnouncementAttachment($db, $id) {
     exit;
 }
 
+function calculateUnreadAnnouncementsCount($db, $user) {
+    $visibility = AuthMiddleware::isAdmin($user)
+        ? ['sql' => '1=1', 'params' => []]
+        : announcementVisibility($user);
+
+    $sql = "SELECT COUNT(*) as unread_count 
+            FROM announcements a 
+            WHERE {$visibility['sql']} 
+              AND a.id NOT IN (SELECT announcement_id FROM announcement_reads WHERE user_id = ?)";
+    
+    $params = array_merge($visibility['params'], [$user['user_id']]);
+    $res = $db->fetchOne($sql, $params);
+    return intval($res['unread_count'] ?? 0);
+}
+
+function getUnreadAnnouncementsCount($db) {
+    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
+
+    $count = calculateUnreadAnnouncementsCount($db, $user);
+    Response::success('Unread count retrieved successfully', ['unread_count' => $count]);
+}
+
+function markAnnouncementRead($db) {
+    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
+
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $announcementId = $input['id'] ?? $_GET['id'] ?? null;
+
+    if (!$announcementId) {
+        Response::error('Announcement ID is required');
+    }
+
+    if ($announcementId === 'all') {
+        markAllAnnouncementsRead($db);
+        return;
+    }
+
+    $db->query(
+        "INSERT IGNORE INTO announcement_reads (announcement_id, user_id) VALUES (?, ?)",
+        [$announcementId, $user['user_id']]
+    );
+
+    $unread = calculateUnreadAnnouncementsCount($db, $user);
+    Response::success('Announcement marked as read', [
+        'unread_count' => $unread,
+        'announcement_id' => $announcementId
+    ]);
+}
+
+function markAllAnnouncementsRead($db) {
+    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    ensureAnnouncementSchema($db);
+
+    $visibility = AuthMiddleware::isAdmin($user)
+        ? ['sql' => '1=1', 'params' => []]
+        : announcementVisibility($user);
+
+    $sql = "INSERT IGNORE INTO announcement_reads (announcement_id, user_id)
+            SELECT a.id, ?
+            FROM announcements a
+            WHERE {$visibility['sql']}";
+    $params = array_merge([$user['user_id']], $visibility['params']);
+    
+    $db->query($sql, $params);
+
+    Response::success('All announcements marked as read', [
+        'unread_count' => 0
+    ]);
+}
+
 function getAnnouncements($db) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
     ensureAnnouncementSchema($db);
@@ -222,11 +313,13 @@ function getAnnouncements($db) {
     
     $offset = ($page - 1) * $limit;
     
-    $sql = "SELECT a.*, c.name as class_name 
+    $sql = "SELECT a.*, c.name as class_name,
+                   CASE WHEN ar.id IS NOT NULL THEN 1 ELSE 0 END as is_read
             FROM announcements a 
             LEFT JOIN classes c ON a.class_id = c.id 
+            LEFT JOIN announcement_reads ar ON ar.announcement_id = a.id AND ar.user_id = ?
             WHERE 1=1";
-    $params = [];
+    $params = [$user['user_id']];
 
     if (!AuthMiddleware::isAdmin($user)) {
         $visibility = announcementVisibility($user);
@@ -267,11 +360,13 @@ function getAnnouncements($db) {
         $ann['attachment_url'] = !empty($ann['document_attachment'])
             ? '/backend/api/announcements?action=attachment&id=' . $ann['id']
             : null;
+        $ann['is_read'] = !empty($ann['is_read']);
     }
     unset($ann);
     
     Response::success('Announcements retrieved successfully', [
         'announcements' => $announcements,
+        'unread_count'  => calculateUnreadAnnouncementsCount($db, $user),
         'pagination' => [
             'page' => $page,
             'limit' => $limit,
@@ -301,9 +396,16 @@ function getAnnouncement($db, $id) {
         Response::notFound('Announcement not found');
     }
 
+    // Auto mark announcement as read for the user
+    $db->query(
+        "INSERT IGNORE INTO announcement_reads (announcement_id, user_id) VALUES (?, ?)",
+        [$id, $user['user_id']]
+    );
+
     $announcement['attachment_url'] = !empty($announcement['document_attachment'])
         ? '/backend/api/announcements?action=attachment&id=' . $announcement['id']
         : null;
+    $announcement['is_read'] = true;
     
     Response::success('Announcement retrieved successfully', ['announcement' => $announcement]);
 }

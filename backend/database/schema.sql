@@ -199,6 +199,15 @@ CREATE TABLE IF NOT EXISTS announcements (
     FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS announcement_reads (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    announcement_id INT NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_user_announcement (user_id, announcement_id),
+    FOREIGN KEY (announcement_id) REFERENCES announcements(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     conversation_id VARCHAR(64) NOT NULL,
