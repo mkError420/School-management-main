@@ -209,6 +209,8 @@ CREATE TABLE IF NOT EXISTS messages (
     body TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     read_at TIMESTAMP NULL DEFAULT NULL,
+    deleted_by_sender TINYINT(1) NOT NULL DEFAULT 0,
+    deleted_by_recipient TINYINT(1) NOT NULL DEFAULT 0,
     INDEX idx_messages_conversation (conversation_id, created_at),
     INDEX idx_messages_recipient (recipient_id, recipient_role, created_at),
     INDEX idx_messages_sender (sender_id, sender_role, created_at)

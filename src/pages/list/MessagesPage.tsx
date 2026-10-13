@@ -6,20 +6,33 @@ import { useAccessRole, useAuth } from "@/context/AuthContext";
 type Folder = "inbox" | "sent" | "compose";
 type Audience = "admin" | "teacher" | "student" | "parent";
 
+interface BroadcastRecipient {
+  id: string;
+  name: string;
+  role: string;
+  img?: string | null;
+}
+
 interface MessageRecord {
   id: number;
   sender_id: string;
   sender_role: string;
   sender_name: string;
+  sender_img?: string | null;
   recipient_id: string;
   recipient_role: string;
   recipient_name: string;
+  recipient_img?: string | null;
   subject: string;
   body: string;
   created_at: string;
   read_at: string | null;
   conversation_id: string;
   attachments?: MessageAttachment[];
+  // Broadcast / sent-folder grouping
+  is_broadcast?: boolean;
+  broadcast_recipients?: BroadcastRecipient[];
+  recipient_count?: number;
 }
 
 interface MessageAttachment {
@@ -37,12 +50,84 @@ interface RecipientOption {
   email?: string;
   role: string;
   class_name?: string;
+  img?: string | null;
 }
 
 const formatDateTime = (value: string) => {
-  const date = new Date(value.replace(" ", "T"));
+  if (!value) return "";
+  const normalized = value.endsWith("Z") || value.includes("+")
+    ? value
+    : value.replace(" ", "T") + "Z";
+  const date = new Date(normalized);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 };
+
+/** Renders a single circular avatar â€” image if available, else coloured initials */
+const AvatarBubble: React.FC<{ name: string; img?: string | null; size?: number; className?: string }> = ({
+  name, img, size = 36, className = "",
+}) => {
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+
+  // Stable colour from name hash
+  const colours = [
+    "bg-sky-500", "bg-indigo-500", "bg-emerald-500", "bg-rose-500",
+    "bg-amber-500", "bg-purple-500", "bg-teal-500", "bg-pink-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
+  const colour = colours[Math.abs(hash) % colours.length];
+
+  const style = { width: size, height: size, fontSize: Math.max(10, size / 2.8) };
+
+  if (img) {
+    return (
+      <img
+        src={img.startsWith("http") ? img : `/uploads/${img}`}
+        alt={name}
+        style={style}
+        className={`rounded-full object-cover ring-2 ring-white shrink-0 ${className}`}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  return (
+    <span
+      style={style}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${colour} ring-2 ring-white ${className}`}
+    >
+      {initials || "?"}
+    </span>
+  );
+};
+
+/** Stacked avatar row for broadcast messages â€“ shows up to 4 overlapping bubbles + overflow badge */
+const AvatarStack: React.FC<{ recipients: BroadcastRecipient[]; total: number }> = ({ recipients, total }) => {
+  const shown = recipients.slice(0, 4);
+  const overflow = total - shown.length;
+  return (
+    <span className="inline-flex items-center" aria-label={`${total} recipients`}>
+      {shown.map((r, idx) => (
+        <span key={r.id} style={{ marginLeft: idx === 0 ? 0 : -8, zIndex: shown.length - idx }} className="relative">
+          <AvatarBubble name={r.name} img={r.img} size={28} />
+        </span>
+      ))}
+      {overflow > 0 && (
+        <span
+          style={{ width: 28, height: 28, marginLeft: -8, fontSize: 10 }}
+          className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-bold text-gray-700 ring-2 ring-white"
+        >
+          +{overflow}
+        </span>
+      )}
+    </span>
+  );
+};
+
 
 const MessagesPage: React.FC = () => {
   const { user } = useAuth();
@@ -316,10 +401,10 @@ const MessagesPage: React.FC = () => {
     }
   };
 
-  // Delete an entire conversation - Available for everyone!
+  // Delete an entire conversation - Soft delete from user's view
   const deleteConversation = async (conversationId: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
-    if (!window.confirm("Delete this entire conversation? All messages in this conversation thread will be permanently removed.")) {
+    if (!window.confirm("Remove this conversation from your view? The other party's messages will not be affected.")) {
       return;
     }
 
@@ -338,7 +423,7 @@ const MessagesPage: React.FC = () => {
         setSelected(null);
         setConversationMessages([]);
       }
-      setNotice("Conversation deleted successfully.");
+      setNotice("Conversation removed from your view successfully.");
       window.dispatchEvent(new Event("school-messages-updated"));
     } catch {
       setError("Unable to reach the server. Try again.");
@@ -347,9 +432,13 @@ const MessagesPage: React.FC = () => {
     }
   };
 
-  // Delete a single message - Available for everyone!
+  // Delete a single message - Only sender can delete their own message
   const deleteMessage = async (message: MessageRecord, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
+    if (String(message.sender_id) !== String(user?.id)) {
+      setError("You can only delete messages that you sent.");
+      return;
+    }
     if (!window.confirm("Delete this message? This cannot be undone.")) return;
 
     setDeletingId(message.id);
@@ -424,7 +513,7 @@ const MessagesPage: React.FC = () => {
 
   return (
     <div className="m-4 mt-0 flex-1 space-y-4 pb-8">
-      {/* ─── Header ────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <header className="flex flex-wrap items-end justify-between gap-3 py-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Communication</p>
@@ -455,9 +544,9 @@ const MessagesPage: React.FC = () => {
         </div>
       )}
 
-      {/* ─── Main Content Box ─────────────────────────────── */}
+      {/* â”€â”€â”€ Main Content Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid min-h-[620px] overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
-        {/* ─── Left Sidebar Navigation ────────────────────── */}
+        {/* â”€â”€â”€ Left Sidebar Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <aside className="border-b border-gray-200 bg-gray-50 p-3 lg:border-b-0 lg:border-r">
           <div className="relative mb-3">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -511,9 +600,9 @@ const MessagesPage: React.FC = () => {
           )}
         </aside>
 
-        {/* ─── Center / Right Pane ────────────────────────── */}
+        {/* â”€â”€â”€ Center / Right Pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         {folder === "compose" ? (
-          /* ─── Compose View: Available to EVERYONE ──────── */
+          /* â”€â”€â”€ Compose View: Available to EVERYONE â”€â”€â”€â”€â”€â”€â”€â”€ */
           <section className="min-w-0 p-5 md:p-7">
             <div className="mb-5 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-50 text-sky-700">
@@ -562,7 +651,7 @@ const MessagesPage: React.FC = () => {
                         <option key={recipient.id} value={recipient.id}>
                           {displayName}
                           {recipient.class_name ? ` (${recipient.class_name})` : ""}
-                          {recipient.email ? ` · ${recipient.email}` : ""}
+                          {recipient.email ? ` Â· ${recipient.email}` : ""}
                         </option>
                       );
                     })}
@@ -625,9 +714,9 @@ const MessagesPage: React.FC = () => {
             </form>
           </section>
         ) : (
-          /* ─── Messages List & Active Thread View ───────── */
+          /* â”€â”€â”€ Messages List & Active Thread View â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
           <section className="grid min-w-0 md:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.4fr)]">
-            {/* ─── List of Messages ───────────────────────── */}
+            {/* â”€â”€â”€ List of Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="min-w-0 border-b border-gray-200 md:border-b-0 md:border-r">
               <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                 <h2 className="text-sm font-semibold text-gray-800">
@@ -660,8 +749,10 @@ const MessagesPage: React.FC = () => {
                 <div className="max-h-[560px] overflow-y-auto">
                   {messages.map((message) => {
                     const active = selected?.conversation_id === message.conversation_id;
+                    const isBroadcast = message.is_broadcast === true;
                     const otherName = folder === "sent" ? message.recipient_name : message.sender_name;
                     const otherRole = folder === "sent" ? message.recipient_role : message.sender_role;
+                    const otherImg = folder === "sent" ? message.recipient_img : message.sender_img;
                     const isUnread = !message.read_at && folder === "inbox";
 
                     return (
@@ -676,25 +767,48 @@ const MessagesPage: React.FC = () => {
                           onClick={() => void selectMessage(message)}
                           className="block w-full px-4 pt-3 text-left"
                         >
-                          <div className="flex items-start justify-between gap-2">
-                            <span className={`truncate text-sm ${isUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
-                              {otherName}
-                            </span>
-                            <span className="shrink-0 text-[10px] text-gray-400">
-                              {formatDateTime(message.created_at)}
-                            </span>
+                          <div className="flex items-center gap-3">
+                            {/* Avatar area */}
+                            <div className="shrink-0">
+                              {isBroadcast && message.broadcast_recipients?.length ? (
+                                <AvatarStack
+                                  recipients={message.broadcast_recipients}
+                                  total={message.recipient_count ?? message.broadcast_recipients.length}
+                                />
+                              ) : (
+                                <AvatarBubble name={otherName || "?"} img={otherImg} size={36} />
+                              )}
+                            </div>
+
+                            {/* Text */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`truncate text-sm ${
+                                  isUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"
+                                }`}>
+                                  {isBroadcast
+                                    ? `${otherRole ? otherRole.charAt(0).toUpperCase() + otherRole.slice(1) : ""} Broadcast (${message.recipient_count ?? "All"})`
+                                    : otherName}
+                                </span>
+                                <span className="shrink-0 text-[10px] text-gray-400">
+                                  {formatDateTime(message.created_at)}
+                                </span>
+                              </div>
+                              <p className={`mt-0.5 truncate text-sm ${
+                                isUnread ? "font-bold text-gray-800" : "text-gray-600"
+                              }`}>
+                                {message.subject}
+                              </p>
+                              <p className="mt-0.5 truncate text-xs text-gray-500">
+                                {message.body}
+                              </p>
+                            </div>
                           </div>
-                          <p className={`mt-1 truncate text-sm ${isUnread ? "font-bold text-gray-800" : "text-gray-600"}`}>
-                            {message.subject}
-                          </p>
-                          <p className="mt-1 truncate text-xs text-gray-500">
-                            {message.body}
-                          </p>
                         </button>
 
                         <div className="flex items-center justify-between px-4 pb-3 pt-2">
                           <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">
-                            {otherRole}
+                            {isBroadcast ? `${message.recipient_count ?? ""} recipients` : otherRole}
                           </span>
 
                           {/* Delete Conversation action available to EVERYONE */}
@@ -702,8 +816,8 @@ const MessagesPage: React.FC = () => {
                             type="button"
                             onClick={(e) => void deleteConversation(message.conversation_id, e)}
                             disabled={deletingConversationId === message.conversation_id}
-                            aria-label={`Delete conversation with ${otherName}`}
-                            title="Delete entire conversation"
+                            aria-label={`Remove conversation with ${otherName}`}
+                            title="Remove conversation from your view"
                             className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-red-50 hover:text-red-700 opacity-80 group-hover:opacity-100 disabled:opacity-50"
                           >
                             <Trash2 size={13} />
@@ -717,25 +831,48 @@ const MessagesPage: React.FC = () => {
               )}
             </div>
 
-            {/* ─── Active Conversation Thread ──────────────── */}
+            {/* â”€â”€â”€ Active Conversation Thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <article className="min-w-0 p-5 md:p-7 flex flex-col justify-between">
               {selected ? (
                 <>
                   <div>
                     {/* Conversation Header with DELETE CONVERSATION for EVERYONE */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation Thread</p>
-                        <h2 className="mt-1 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {(() => {
+                          const isOwn = String(selected.sender_id) === String(user?.id);
+                          const isBcast = selected.is_broadcast === true;
+                          if (isBcast && selected.broadcast_recipients?.length) {
+                            return (
+                              <AvatarStack
+                                recipients={selected.broadcast_recipients}
+                                total={selected.recipient_count ?? selected.broadcast_recipients.length}
+                              />
+                            );
+                          }
+                          const name = isOwn ? selected.recipient_name : selected.sender_name;
+                          const img = isOwn ? selected.recipient_img : selected.sender_img;
+                          return <AvatarBubble name={name || "?"} img={img} size={40} />;
+                        })()}
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation Thread</p>
+                          <h2 className="mt-0.5 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2>
+                          {selected.is_broadcast && (
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              <Users size={11} className="inline mr-1" />
+                              Broadcast to {selected.recipient_count ?? "all"} {selected.recipient_role}s
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0">
                         <span className="text-xs text-gray-500">{conversationMessages.length} messages</span>
                         {/* Delete Conversation Button - EVERYONE CAN DELETE */}
                         <button
                           type="button"
                           onClick={() => void deleteConversation(selected.conversation_id)}
                           disabled={deletingConversationId === selected.conversation_id}
-                          title="Delete entire conversation thread"
+                          title="Remove conversation from your view"
                           className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer disabled:opacity-50"
                         >
                           <Trash2 size={13} />
@@ -751,16 +888,23 @@ const MessagesPage: React.FC = () => {
                       ) : (
                         conversationMessages.map((message) => {
                           const ownMessage = (String(message.sender_id) === String(user?.id));
+                          const avatarName = ownMessage ? (user?.username ?? "You") : message.sender_name;
+                          const avatarImg = ownMessage ? null : message.sender_img;
 
                           return (
-                            <div key={message.id} className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-[90%] rounded-lg p-3.5 sm:max-w-[78%] ${
+                            <div key={message.id} className={`flex items-end gap-2.5 ${ownMessage ? "flex-row-reverse" : "flex-row"}`}>
+                              {/* Profile avatar beside bubble */}
+                              <div className="shrink-0 pb-1">
+                                <AvatarBubble name={avatarName} img={avatarImg} size={34} />
+                              </div>
+
+                              <div className={`max-w-[85%] rounded-lg p-3.5 sm:max-w-[72%] ${
                                 ownMessage ? "bg-sky-100 text-sky-950" : "bg-gray-100 text-gray-800"
                               }`}>
                                 <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs">
                                   <span className="font-semibold">
                                     {ownMessage ? "You" : message.sender_name}{" "}
-                                    <span className="font-normal capitalize opacity-70">· {message.sender_role}</span>
+                                    <span className="font-normal capitalize opacity-70">Â· {message.sender_role}</span>
                                   </span>
                                   <time className="opacity-60">{formatDateTime(message.created_at)}</time>
                                 </div>
@@ -791,19 +935,21 @@ const MessagesPage: React.FC = () => {
                                   </ul>
                                 )}
 
-                                {/* Individual message delete button */}
-                                <div className="mt-3 flex justify-end border-t border-black/10 pt-2">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => void deleteMessage(message, e)}
-                                    disabled={deletingId === message.id}
-                                    title="Delete this message"
-                                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"
-                                  >
-                                    <Trash2 size={12} />
-                                    <span>{deletingId === message.id ? "Deleting..." : "Delete message"}</span>
-                                  </button>
-                                </div>
+                                {/* Individual message delete button - only for messages you sent */}
+                                {ownMessage && (
+                                  <div className="mt-3 flex justify-end border-t border-black/10 pt-2">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => void deleteMessage(message, e)}
+                                      disabled={deletingId === message.id}
+                                      title="Delete this message"
+                                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>{deletingId === message.id ? "Deleting..." : "Delete message"}</span>
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
@@ -813,7 +959,7 @@ const MessagesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* ─── Realtime Reply Form ──────────────────────── */}
+                  {/* â”€â”€â”€ Realtime Reply Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                   {selected.conversation_id ? (
                     <form onSubmit={sendReply} className="border-t border-gray-100 pt-4">
                       <label className="sr-only" htmlFor="reply-body">Reply</label>

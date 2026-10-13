@@ -65,6 +65,14 @@ function ensureMessageSchema($db) {
         // ENUM modified or compatible
     }
 
+    // Soft-delete columns: each party can remove their own copy without affecting the other
+    try {
+        $db->query("ALTER TABLE messages ADD COLUMN deleted_by_sender TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (Exception $e) { /* column already exists */ }
+    try {
+        $db->query("ALTER TABLE messages ADD COLUMN deleted_by_recipient TINYINT(1) NOT NULL DEFAULT 0");
+    } catch (Exception $e) { /* column already exists */ }
+
     $db->query(
         "CREATE TABLE IF NOT EXISTS message_attachments (
             id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -80,8 +88,10 @@ function ensureMessageSchema($db) {
     );
 }
 
-function messageSelectSql() {
-    return "SELECT m.*,
+function messageSelectSql($userId = null) {
+    // Base SELECT — UTC suffix on created_at so browsers parse timezone correctly
+    $select = "SELECT m.*,
+                   DATE_FORMAT(CONVERT_TZ(m.created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%H:%i:%sZ') AS created_at,
                    COALESCE(NULLIF(CONCAT_WS(' ', st.name, st.surname), ''),
                             NULLIF(CONCAT_WS(' ', sp.name, sp.surname), ''),
                             NULLIF(CONCAT_WS(' ', sr.name, sr.surname), ''),
@@ -89,7 +99,9 @@ function messageSelectSql() {
                    COALESCE(NULLIF(CONCAT_WS(' ', rt.name, rt.surname), ''),
                             NULLIF(CONCAT_WS(' ', rp.name, rp.surname), ''),
                             NULLIF(CONCAT_WS(' ', rs.name, rs.surname), ''),
-                            ra.username, m.recipient_role) as recipient_name
+                            ra.username, m.recipient_role) as recipient_name,
+                   COALESCE(st.img, sp.img, sr.img) as sender_img,
+                   COALESCE(rt.img, rp.img, rs.img) as recipient_img
             FROM messages m
             LEFT JOIN teachers st ON m.sender_role = 'teacher' AND st.id = m.sender_id
             LEFT JOIN parents sp ON m.sender_role = 'parent' AND sp.id = m.sender_id
@@ -99,6 +111,18 @@ function messageSelectSql() {
             LEFT JOIN parents rp ON m.recipient_role = 'parent' AND rp.id = m.recipient_id
             LEFT JOIN students rs ON m.recipient_role = 'student' AND rs.id = m.recipient_id
             LEFT JOIN admins ra ON (m.recipient_role IN ('admin', 'super_admin')) AND ra.id = m.recipient_id";
+    return $select;
+}
+
+/** Filter clause to hide soft-deleted rows for a specific user */
+function messageVisibilityWhere($userId) {
+    // A message is visible to the sender unless they soft-deleted it
+    // A message is visible to the recipient unless they soft-deleted it
+    $uid = $userId; // used inline via sprintf
+    return "(
+        (m.sender_id = '{$uid}'    AND m.deleted_by_sender    = 0) OR
+        (m.recipient_id = '{$uid}' AND m.deleted_by_recipient = 0)
+    )";
 }
 
 function addMessageAttachments($db, &$messages) {
@@ -141,7 +165,7 @@ function getMessageRecipients($db) {
     
     // 1. Admins & Super Admins
     if (in_array($targetRole, ['all', 'admin', 'super_admin'], true)) {
-        $admins = $db->fetchAll("SELECT id, username, email, role FROM admins ORDER BY username ASC");
+        $admins = $db->fetchAll("SELECT id, username, email, role, NULL as img FROM admins ORDER BY username ASC");
         foreach ($admins as $adm) {
             $recipients[] = [
                 'id' => $adm['id'],
@@ -149,14 +173,15 @@ function getMessageRecipients($db) {
                 'surname' => '',
                 'username' => $adm['username'],
                 'email' => $adm['email'] ?? '',
-                'role' => $adm['role'] ?? 'admin'
+                'role' => $adm['role'] ?? 'admin',
+                'img' => null
             ];
         }
     }
     
     // 2. Teachers
     if (in_array($targetRole, ['all', 'teacher'], true)) {
-        $teachers = $db->fetchAll("SELECT id, name, surname, username, email, 'teacher' as role FROM teachers ORDER BY name ASC, surname ASC");
+        $teachers = $db->fetchAll("SELECT id, name, surname, username, email, 'teacher' as role, img FROM teachers ORDER BY name ASC, surname ASC");
         foreach ($teachers as $tch) {
             $recipients[] = $tch;
         }
@@ -164,7 +189,7 @@ function getMessageRecipients($db) {
     
     // 3. Parents
     if (in_array($targetRole, ['all', 'parent'], true)) {
-        $parents = $db->fetchAll("SELECT id, name, surname, username, email, 'parent' as role FROM parents ORDER BY name ASC, surname ASC");
+        $parents = $db->fetchAll("SELECT id, name, surname, username, email, 'parent' as role, img FROM parents ORDER BY name ASC, surname ASC");
         foreach ($parents as $par) {
             $recipients[] = $par;
         }
@@ -172,7 +197,7 @@ function getMessageRecipients($db) {
     
     // 4. Students
     if (in_array($targetRole, ['all', 'student'], true)) {
-        $students = $db->fetchAll("SELECT s.id, s.name, s.surname, s.username, s.email, 'student' as role, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id ORDER BY s.name ASC, s.surname ASC");
+        $students = $db->fetchAll("SELECT s.id, s.name, s.surname, s.username, s.email, 'student' as role, c.name as class_name, s.img FROM students s LEFT JOIN classes c ON s.class_id = c.id ORDER BY s.name ASC, s.surname ASC");
         foreach ($students as $std) {
             $recipients[] = $std;
         }
@@ -205,10 +230,85 @@ function getMessages($db) {
     }
 
     if ($folder === 'sent') {
+        // For SENT folder: group by conversation_id and return one representative message per conversation.
+        // This prevents broadcast messages (sent to all teachers/students/parents) from creating hundreds of rows.
         $where = 'm.sender_id = ?';
-    } else {
-        $where = 'm.recipient_id = ?';
+        $params = [$user['user_id']];
+
+        if ($search !== '') {
+            $where .= ' AND (m.subject LIKE ? OR m.body LIKE ?)';
+            $term = '%' . $search . '%';
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        // Fetch all sent messages, grouped by conversation_id; pick the representative (first sent in each conversation by current user)
+        // Exclude messages the sender has soft-deleted from their sent view
+        $rawMessages = $db->fetchAll(
+            messageSelectSql() . " WHERE {$where} AND m.deleted_by_sender = 0 ORDER BY m.created_at DESC, m.id DESC LIMIT 500",
+            $params
+        );
+
+        // Deduplicate: one row per conversation_id (keep the most recent as representative)
+        $seenConversations = [];
+        $messages = [];
+        foreach ($rawMessages as $msg) {
+            $convId = $msg['conversation_id'];
+            if (!isset($seenConversations[$convId])) {
+                $seenConversations[$convId] = true;
+                $msg['is_broadcast'] = false;
+                $msg['broadcast_recipients'] = [];
+                $msg['recipient_count'] = 1;
+                $messages[] = $msg;
+            } else {
+                // Mark representative as broadcast and increment recipient_count
+                foreach ($messages as &$existing) {
+                    if ($existing['conversation_id'] === $convId) {
+                        $existing['is_broadcast'] = true;
+                        $existing['recipient_count'] = ($existing['recipient_count'] ?? 1) + 1;
+                        // Collect up to 5 recipient previews for avatar stack
+                        if (count($existing['broadcast_recipients']) < 5) {
+                            $existing['broadcast_recipients'][] = [
+                                'id' => $msg['recipient_id'],
+                                'name' => $msg['recipient_name'],
+                                'role' => $msg['recipient_role'],
+                                'img' => $msg['recipient_img'] ?? null
+                            ];
+                        }
+                        break;
+                    }
+                }
+                unset($existing);
+            }
+        }
+
+        // Also add the first recipient into broadcast_recipients for all broadcast messages
+        foreach ($messages as &$msg) {
+            if ($msg['is_broadcast'] && !empty($msg['broadcast_recipients'])) {
+                // Prepend the representative message's recipient at front
+                array_unshift($msg['broadcast_recipients'], [
+                    'id' => $msg['recipient_id'],
+                    'name' => $msg['recipient_name'],
+                    'role' => $msg['recipient_role'],
+                    'img' => $msg['recipient_img'] ?? null
+                ]);
+                $msg['broadcast_recipients'] = array_slice($msg['broadcast_recipients'], 0, 5);
+            }
+        }
+        unset($msg);
+
+        addMessageAttachments($db, $messages);
+
+        Response::success('Messages retrieved successfully', [
+            'messages' => array_values($messages),
+            'unread_count' => unreadMessageCount($db, $user),
+            'folder' => $folder
+        ]);
+        return;
     }
+
+    // INBOX folder: only show messages not soft-deleted by the recipient
+    $where = 'm.recipient_id = ? AND m.deleted_by_recipient = 0';
     $params = [$user['user_id']];
 
     if ($search !== '') {
@@ -246,8 +346,14 @@ function getConversation($db, $user, $conversationId) {
         [$conversationId, $user['user_id']]
     );
 
+    // Only show messages not soft-deleted for this user, using safe inline filter
+    $uid = str_replace("'", "''", $user['user_id']); // minimal SQL-safe escaping for inline use
+    $visibility = "(
+        (m.sender_id = '{$uid}'    AND m.deleted_by_sender    = 0) OR
+        (m.recipient_id = '{$uid}' AND m.deleted_by_recipient = 0)
+    )";
     $messages = $db->fetchAll(
-        messageSelectSql() . ' WHERE m.conversation_id = ? ORDER BY m.created_at ASC, m.id ASC',
+        messageSelectSql() . " WHERE m.conversation_id = ? AND {$visibility} ORDER BY m.created_at ASC, m.id ASC",
         [$conversationId]
     );
     addMessageAttachments($db, $messages);
@@ -533,51 +639,53 @@ function deleteConversation($db, $conversationId) {
         Response::error('Conversation ID is required');
     }
 
-    // Allow deleting if user is participant in this conversation OR is admin/super_admin
-    $isAuthorized = AuthMiddleware::isAdmin($user);
-    if (!$isAuthorized) {
-        $participant = $db->fetchOne(
-            'SELECT id FROM messages WHERE conversation_id = ? AND (sender_id = ? OR recipient_id = ?) LIMIT 1',
-            [$conversationId, $user['user_id'], $user['user_id']]
-        );
-        if ($participant) {
-            $isAuthorized = true;
+    // Confirm user is a participant
+    $participant = $db->fetchOne(
+        'SELECT id FROM messages WHERE conversation_id = ? AND (sender_id = ? OR recipient_id = ?) LIMIT 1',
+        [$conversationId, $user['user_id'], $user['user_id']]
+    );
+    if (!$participant) {
+        Response::forbidden('You are not a participant in this conversation');
+    }
+
+    // Soft-delete: mark the caller's copies as deleted (does NOT affect the other party's view)
+    // Messages where user is the SENDER -> set deleted_by_sender = 1
+    $db->query(
+        'UPDATE messages SET deleted_by_sender = 1 WHERE conversation_id = ? AND sender_id = ?',
+        [$conversationId, $user['user_id']]
+    );
+    // Messages where user is the RECIPIENT -> set deleted_by_recipient = 1
+    $db->query(
+        'UPDATE messages SET deleted_by_recipient = 1 WHERE conversation_id = ? AND recipient_id = ?',
+        [$conversationId, $user['user_id']]
+    );
+
+    // Physically purge any message rows where BOTH sides have soft-deleted
+    $bothDeleted = $db->fetchAll(
+        'SELECT id FROM messages WHERE conversation_id = ? AND deleted_by_sender = 1 AND deleted_by_recipient = 1',
+        [$conversationId]
+    );
+    if ($bothDeleted) {
+        $ids = array_column($bothDeleted, 'id');
+        $ph  = implode(',', array_fill(0, count($ids), '?'));
+
+        $attachments = $db->fetchAll("SELECT storage_name FROM message_attachments WHERE message_id IN ({$ph})", $ids);
+        try {
+            $db->beginTransaction();
+            $db->query("DELETE FROM message_attachments WHERE message_id IN ({$ph})", $ids);
+            $db->query("DELETE FROM messages WHERE id IN ({$ph})", $ids);
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollback();
+            error_log('Conversation purge failed: ' . $e->getMessage());
+        }
+        foreach ($attachments as $att) {
+            $path = __DIR__ . '/../storage/message-attachments/' . basename($att['storage_name']);
+            if (is_file($path)) { @unlink($path); }
         }
     }
 
-    if (!$isAuthorized) {
-        Response::forbidden('You do not have permission to delete this conversation');
-    }
-
-    $messages = $db->fetchAll('SELECT id FROM messages WHERE conversation_id = ?', [$conversationId]);
-    if (empty($messages)) {
-        Response::notFound('Conversation not found');
-    }
-
-    $messageIds = array_column($messages, 'id');
-    $placeholders = implode(',', array_fill(0, count($messageIds), '?'));
-
-    $attachments = $db->fetchAll("SELECT storage_name FROM message_attachments WHERE message_id IN ({$placeholders})", $messageIds);
-
-    try {
-        $db->beginTransaction();
-        $db->query("DELETE FROM message_attachments WHERE message_id IN ({$placeholders})", $messageIds);
-        $db->query("DELETE FROM messages WHERE conversation_id = ?", [$conversationId]);
-        $db->commit();
-    } catch (Exception $e) {
-        $db->rollback();
-        error_log('Conversation deletion failed: ' . $e->getMessage());
-        Response::serverError('Unable to delete this conversation');
-    }
-
-    foreach ($attachments as $attachment) {
-        $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
-        if (is_file($path)) {
-            @unlink($path);
-        }
-    }
-
-    Response::success('Conversation deleted successfully');
+    Response::success('Conversation removed from your view');
 }
 
 function deleteMessage($db, $id) {
@@ -593,34 +701,48 @@ function deleteMessage($db, $id) {
         Response::notFound('Message not found');
     }
 
-    $isAuthorized = AuthMiddleware::isAdmin($user) ||
-        ((string)$message['sender_id'] === (string)$user['user_id']) ||
-        ((string)$message['recipient_id'] === (string)$user['user_id']);
+    // Only the SENDER of a message may delete it.
+    // Recipients cannot delete someone else's sent message from the thread.
+    $isSender    = (string)$message['sender_id']    === (string)$user['user_id'];
+    $isRecipient = (string)$message['recipient_id'] === (string)$user['user_id'];
+    $isAdmin     = AuthMiddleware::isAdmin($user);
 
-    if (!$isAuthorized) {
-        Response::forbidden('You do not have permission to delete this message');
+    if (!$isSender && !$isAdmin) {
+        Response::forbidden('You can only delete messages you have sent');
     }
 
-    $attachments = $db->fetchAll(
-        'SELECT storage_name FROM message_attachments WHERE message_id = ?',
-        [$id]
-    );
-
-    try {
-        $db->beginTransaction();
-        $db->delete('message_attachments', 'message_id = ?', [$id]);
-        $db->delete('messages', 'id = ?', [$id]);
-        $db->commit();
-    } catch (Exception $e) {
-        $db->rollback();
-        error_log('Message deletion failed: ' . $e->getMessage());
-        Response::serverError('Unable to delete this message');
-    }
-
-    foreach ($attachments as $attachment) {
-        $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
-        if (is_file($path)) {
-            @unlink($path);
+    // Soft-delete: mark deleted_by_sender; if recipient also deleted → hard delete
+    if ($isSender) {
+        if ($message['deleted_by_recipient']) {
+            // Both sides done — hard delete
+            $attachments = $db->fetchAll('SELECT storage_name FROM message_attachments WHERE message_id = ?', [$id]);
+            $db->beginTransaction();
+            $db->delete('message_attachments', 'message_id = ?', [$id]);
+            $db->delete('messages', 'id = ?', [$id]);
+            $db->commit();
+            foreach ($attachments as $att) {
+                $path = __DIR__ . '/../storage/message-attachments/' . basename($att['storage_name']);
+                if (is_file($path)) { @unlink($path); }
+            }
+        } else {
+            $db->query('UPDATE messages SET deleted_by_sender = 1 WHERE id = ?', [$id]);
+        }
+    } elseif ($isAdmin) {
+        // Admin hard-deletes directly
+        $attachments = $db->fetchAll('SELECT storage_name FROM message_attachments WHERE message_id = ?', [$id]);
+        try {
+            $db->beginTransaction();
+            $db->delete('message_attachments', 'message_id = ?', [$id]);
+            $db->delete('messages', 'id = ?', [$id]);
+            $db->commit();
+        } catch (Exception $e) {
+            $db->rollback();
+            error_log('Message deletion failed: ' . $e->getMessage());
+            Response::serverError('Unable to delete this message');
+        }
+        foreach ($attachments as $att) {
+            $path = __DIR__ . '/../storage/message-attachments/' . basename($att['storage_name']);
+            if (is_file($path)) { @unlink($path); }
         }
     }
 
