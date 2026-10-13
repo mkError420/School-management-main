@@ -185,6 +185,18 @@ class ApiService {
     });
   }
 
+  async deleteConversation(conversationId: string) {
+    return this.request(`messages?conversation_id=${encodeURIComponent(conversationId)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getMessageRecipients(role: string = 'all') {
+    return this.request(`messages?action=recipients&role=${encodeURIComponent(role)}`, {
+      method: 'GET',
+    });
+  }
+
   async downloadMessageAttachment(id: number | string): Promise<Blob> {
     const response = await fetch(`${API_BASE_URL}/messages?action=attachment&id=${encodeURIComponent(String(id))}`, {
       headers: { Authorization: `Bearer ${this.getToken() || ''}` },

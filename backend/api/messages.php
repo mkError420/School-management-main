@@ -5,9 +5,14 @@ $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 $action = $_GET['action'] ?? '';
+$conversationId = $_GET['conversation_id'] ?? null;
 
 if ($method === 'GET' && $action === 'attachment') {
     downloadMessageAttachment($db, $id);
+}
+
+if ($method === 'GET' && $action === 'recipients') {
+    getMessageRecipients($db);
 }
 
 switch ($method) {
@@ -28,7 +33,11 @@ switch ($method) {
         markMessageRead($db, $id);
         break;
     case 'DELETE':
-        deleteMessage($db, $id);
+        if (!empty($conversationId)) {
+            deleteConversation($db, $conversationId);
+        } else {
+            deleteMessage($db, $id);
+        }
         break;
     default:
         Response::methodNotAllowed();
@@ -48,6 +57,13 @@ function ensureMessageSchema($db) {
         }
     }
     $db->query("UPDATE messages SET conversation_id = CONCAT('legacy-', id) WHERE conversation_id IS NULL OR conversation_id = ''");
+
+    try {
+        $db->query("ALTER TABLE messages MODIFY COLUMN sender_role ENUM('admin', 'super_admin', 'teacher', 'student', 'parent') NOT NULL");
+        $db->query("ALTER TABLE messages MODIFY COLUMN recipient_role ENUM('admin', 'super_admin', 'teacher', 'student', 'parent') NOT NULL");
+    } catch (Exception $e) {
+        // ENUM modified or compatible
+    }
 
     $db->query(
         "CREATE TABLE IF NOT EXISTS message_attachments (
@@ -78,11 +94,11 @@ function messageSelectSql() {
             LEFT JOIN teachers st ON m.sender_role = 'teacher' AND st.id = m.sender_id
             LEFT JOIN parents sp ON m.sender_role = 'parent' AND sp.id = m.sender_id
             LEFT JOIN students sr ON m.sender_role = 'student' AND sr.id = m.sender_id
-            LEFT JOIN admins sa ON m.sender_role = 'admin' AND sa.id = m.sender_id
+            LEFT JOIN admins sa ON (m.sender_role IN ('admin', 'super_admin')) AND sa.id = m.sender_id
             LEFT JOIN teachers rt ON m.recipient_role = 'teacher' AND rt.id = m.recipient_id
             LEFT JOIN parents rp ON m.recipient_role = 'parent' AND rp.id = m.recipient_id
             LEFT JOIN students rs ON m.recipient_role = 'student' AND rs.id = m.recipient_id
-            LEFT JOIN admins ra ON m.recipient_role = 'admin' AND ra.id = m.recipient_id";
+            LEFT JOIN admins ra ON (m.recipient_role IN ('admin', 'super_admin')) AND ra.id = m.recipient_id";
 }
 
 function addMessageAttachments($db, &$messages) {
@@ -111,19 +127,75 @@ function addMessageAttachments($db, &$messages) {
 
 function unreadMessageCount($db, $user) {
     $unread = $db->fetchOne(
-        'SELECT COUNT(*) as total FROM messages WHERE recipient_id = ? AND recipient_role = ? AND read_at IS NULL',
-        [$user['user_id'], $user['role']]
+        'SELECT COUNT(*) as total FROM messages WHERE recipient_id = ? AND read_at IS NULL',
+        [$user['user_id']]
     );
     return (int) ($unread['total'] ?? 0);
 }
 
+function getMessageRecipients($db) {
+    $user = AuthMiddleware::authenticate();
+    $targetRole = $_GET['role'] ?? 'all';
+    
+    $recipients = [];
+    
+    // 1. Admins & Super Admins
+    if (in_array($targetRole, ['all', 'admin', 'super_admin'], true)) {
+        $admins = $db->fetchAll("SELECT id, username, email, role FROM admins ORDER BY username ASC");
+        foreach ($admins as $adm) {
+            $recipients[] = [
+                'id' => $adm['id'],
+                'name' => $adm['username'],
+                'surname' => '',
+                'username' => $adm['username'],
+                'email' => $adm['email'] ?? '',
+                'role' => $adm['role'] ?? 'admin'
+            ];
+        }
+    }
+    
+    // 2. Teachers
+    if (in_array($targetRole, ['all', 'teacher'], true)) {
+        $teachers = $db->fetchAll("SELECT id, name, surname, username, email, 'teacher' as role FROM teachers ORDER BY name ASC, surname ASC");
+        foreach ($teachers as $tch) {
+            $recipients[] = $tch;
+        }
+    }
+    
+    // 3. Parents
+    if (in_array($targetRole, ['all', 'parent'], true)) {
+        $parents = $db->fetchAll("SELECT id, name, surname, username, email, 'parent' as role FROM parents ORDER BY name ASC, surname ASC");
+        foreach ($parents as $par) {
+            $recipients[] = $par;
+        }
+    }
+    
+    // 4. Students
+    if (in_array($targetRole, ['all', 'student'], true)) {
+        $students = $db->fetchAll("SELECT s.id, s.name, s.surname, s.username, s.email, 'student' as role, c.name as class_name FROM students s LEFT JOIN classes c ON s.class_id = c.id ORDER BY s.name ASC, s.surname ASC");
+        foreach ($students as $std) {
+            $recipients[] = $std;
+        }
+    }
+    
+    // Filter out current user from recipients list
+    $filtered = array_values(array_filter($recipients, function($r) use ($user) {
+        return (string)$r['id'] !== (string)$user['user_id'];
+    }));
+    
+    Response::success('Recipients loaded successfully', [
+        'recipients' => $filtered
+    ]);
+}
+
 function getMessages($db) {
     $user = AuthMiddleware::authenticate();
-    if (AuthMiddleware::isAdmin($user)) $user['role'] = 'admin';
     ensureMessageSchema($db);
+
     $conversationId = trim($_GET['conversation_id'] ?? '');
     if ($conversationId !== '') {
         getConversation($db, $user, $conversationId);
+        return;
     }
 
     $folder = $_GET['folder'] ?? 'inbox';
@@ -131,14 +203,14 @@ function getMessages($db) {
     if (!in_array($folder, ['inbox', 'sent'], true)) {
         Response::error('Invalid message folder');
     }
-    if ($folder === 'sent' && !AuthMiddleware::isAdmin($user)) {
-        Response::forbidden('Only administrators can view sent messages');
-    }
 
-    $where = $folder === 'sent'
-        ? 'm.sender_id = ? AND m.sender_role = ?'
-        : 'm.recipient_id = ? AND m.recipient_role = ?';
-    $params = [$user['user_id'], $user['role']];
+    if ($folder === 'sent') {
+        $where = 'm.sender_id = ?';
+    } else {
+        $where = 'm.recipient_id = ?';
+    }
+    $params = [$user['user_id']];
+
     if ($search !== '') {
         $where .= ' AND (m.subject LIKE ? OR m.body LIKE ?)';
         $term = '%' . $search . '%';
@@ -161,17 +233,19 @@ function getMessages($db) {
 
 function getConversation($db, $user, $conversationId) {
     $participant = $db->fetchOne(
-        'SELECT id FROM messages WHERE conversation_id = ? AND ((sender_id = ? AND sender_role = ?) OR (recipient_id = ? AND recipient_role = ?)) LIMIT 1',
-        [$conversationId, $user['user_id'], $user['role'], $user['user_id'], $user['role']]
+        'SELECT id FROM messages WHERE conversation_id = ? AND (sender_id = ? OR recipient_id = ?) LIMIT 1',
+        [$conversationId, $user['user_id'], $user['user_id']]
     );
-    if (!$participant) {
+    if (!$participant && !AuthMiddleware::isAdmin($user)) {
         Response::notFound('Conversation not found');
     }
 
+    // Mark messages as read for this recipient
     $db->query(
-        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND recipient_id = ? AND recipient_role = ? AND read_at IS NULL',
-        [$conversationId, $user['user_id'], $user['role']]
+        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE conversation_id = ? AND recipient_id = ? AND read_at IS NULL',
+        [$conversationId, $user['user_id']]
     );
+
     $messages = $db->fetchAll(
         messageSelectSql() . ' WHERE m.conversation_id = ? ORDER BY m.created_at ASC, m.id ASC',
         [$conversationId]
@@ -183,6 +257,7 @@ function getConversation($db, $user, $conversationId) {
         'unread_count' => unreadMessageCount($db, $user),
         'conversation_id' => $conversationId
     ]);
+    exit;
 }
 
 function parseMessageInput() {
@@ -211,6 +286,8 @@ function collectMessageUploads() {
         'png' => ['image/png'],
         'jpg' => ['image/jpeg'],
         'jpeg' => ['image/jpeg'],
+        'webp' => ['image/webp'],
+        'gif' => ['image/gif'],
     ];
 
     $names = is_array($upload['name']) ? $upload['name'] : [$upload['name']];
@@ -231,7 +308,7 @@ function collectMessageUploads() {
         }
         $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if (!isset($allowed[$extension])) {
-            Response::error('Allowed attachments: PDF, Word, Excel, PowerPoint, TXT, PNG, and JPG');
+            Response::error('Allowed attachments: PDF, Word, Excel, PowerPoint, TXT, PNG, JPG, WebP, and GIF');
         }
 
         $mimeType = 'application/octet-stream';
@@ -263,7 +340,6 @@ function collectMessageUploads() {
 
 function sendMessage($db) {
     $user = AuthMiddleware::authenticate();
-    if (AuthMiddleware::isAdmin($user)) $user['role'] = 'admin';
     ensureMessageSchema($db);
     $input = parseMessageInput();
     $conversationId = trim($input['conversation_id'] ?? '');
@@ -282,50 +358,70 @@ function sendMessage($db) {
     $uploads = collectMessageUploads();
     $recipients = [];
     $isReply = $conversationId !== '';
+
+    $senderRole = in_array($user['role'], ['admin', 'super_admin'], true) ? 'admin' : $user['role'];
+
     if ($isReply) {
         $original = $db->fetchOne(
-            'SELECT * FROM messages WHERE conversation_id = ? AND ((sender_id = ? AND sender_role = ?) OR (recipient_id = ? AND recipient_role = ?)) ORDER BY id ASC LIMIT 1',
-            [$conversationId, $user['user_id'], $user['role'], $user['user_id'], $user['role']]
+            'SELECT * FROM messages WHERE conversation_id = ? AND (sender_id = ? OR recipient_id = ?) ORDER BY id ASC LIMIT 1',
+            [$conversationId, $user['user_id'], $user['user_id']]
         );
         if (!$original) {
             Response::notFound('Conversation not found');
         }
 
-        if ($original['sender_id'] === $user['user_id'] && $original['sender_role'] === $user['role']) {
+        if ((string)$original['sender_id'] === (string)$user['user_id']) {
             $counterpartId = $original['recipient_id'];
             $counterpartRole = $original['recipient_role'];
         } else {
             $counterpartId = $original['sender_id'];
             $counterpartRole = $original['sender_role'];
         }
-        if (!AuthMiddleware::isAdmin($user) && $counterpartRole !== 'admin') {
-            Response::forbidden('Replies are only available in administrator conversations');
-        }
+
         if ($subject === '') {
-            $subject = $original['subject'];
+            $subject = $original['subject'] ?: 'Re: Message';
         }
         $recipients[] = ['id' => $counterpartId, 'role' => $counterpartRole];
     } else {
-        if (!AuthMiddleware::isAdmin($user)) {
-            Response::forbidden('Start conversations by replying to an administrator message');
-        }
         $audience = $input['audience'] ?? '';
-        if (!in_array($audience, ['teacher', 'parent', 'student'], true)) {
-            Response::error('Choose teachers, parents, or students as the audience');
+        if (!in_array($audience, ['admin', 'super_admin', 'teacher', 'parent', 'student'], true)) {
+            Response::error('Choose admin, teacher, parent, or student as the audience');
         }
         if ($subject === '') {
             Response::error('Subject is required');
         }
-        $tables = ['teacher' => 'teachers', 'parent' => 'parents', 'student' => 'students'];
+
+        $tables = [
+            'admin' => 'admins',
+            'super_admin' => 'admins',
+            'teacher' => 'teachers',
+            'parent' => 'parents',
+            'student' => 'students'
+        ];
         $table = $tables[$audience];
         $recipientId = trim($input['recipient_id'] ?? '');
-        $recipientRows = $recipientId !== ''
-            ? $db->fetchAll("SELECT id FROM {$table} WHERE id = ?", [$recipientId])
-            : $db->fetchAll("SELECT id FROM {$table}");
-        foreach ($recipientRows as $recipient) {
-            $recipients[] = ['id' => $recipient['id'], 'role' => $audience];
+
+        if ($recipientId !== '') {
+            $row = $db->fetchOne("SELECT id FROM {$table} WHERE id = ?", [$recipientId]);
+            if (!$row) {
+                Response::error('Recipient not found');
+            }
+            $targetRole = in_array($audience, ['admin', 'super_admin'], true) ? 'admin' : $audience;
+            $recipients[] = ['id' => $row['id'], 'role' => $targetRole];
+        } else {
+            // If empty recipient_id: broadcast (allowed for admin or sending to administration)
+            if (!AuthMiddleware::isAdmin($user) && !in_array($audience, ['admin', 'super_admin'], true)) {
+                Response::error('Please choose a specific recipient');
+            }
+            $rows = $db->fetchAll("SELECT id FROM {$table}");
+            $targetRole = in_array($audience, ['admin', 'super_admin'], true) ? 'admin' : $audience;
+            foreach ($rows as $r) {
+                if ((string)$r['id'] === (string)$user['user_id']) continue;
+                $recipients[] = ['id' => $r['id'], 'role' => $targetRole];
+            }
         }
     }
+
     if (!$recipients) {
         Response::error('There are no recipients for this message');
     }
@@ -338,12 +434,13 @@ function sendMessage($db) {
     $storedPaths = [];
     try {
         $db->beginTransaction();
+        $finalConversationId = $isReply ? $conversationId : bin2hex(random_bytes(16));
+
         foreach ($recipients as $recipient) {
-            $messageConversationId = $isReply ? $conversationId : bin2hex(random_bytes(16));
             $messageId = $db->insert('messages', [
-                'conversation_id' => $messageConversationId,
+                'conversation_id' => $finalConversationId,
                 'sender_id' => $user['user_id'],
-                'sender_role' => $user['role'],
+                'sender_role' => $senderRole,
                 'recipient_id' => $recipient['id'],
                 'recipient_role' => $recipient['role'],
                 'subject' => $subject,
@@ -372,7 +469,7 @@ function sendMessage($db) {
         $db->rollback();
         foreach ($storedPaths as $path) {
             if (is_file($path)) {
-                unlink($path);
+                @unlink($path);
             }
         }
         error_log('Message delivery failed: ' . $e->getMessage());
@@ -381,15 +478,12 @@ function sendMessage($db) {
 
     Response::success($isReply ? 'Reply sent successfully' : 'Message sent successfully', [
         'recipient_count' => count($recipients),
-        'conversation_id' => $isReply ? $conversationId : null
+        'conversation_id' => $finalConversationId
     ], 201);
 }
 
 function downloadMessageAttachment($db, $attachmentId) {
     $user = AuthMiddleware::authenticate();
-    if (AuthMiddleware::isAdmin($user)) {
-        $user['role'] = 'admin';
-    }
     ensureMessageSchema($db);
     if (!$attachmentId) {
         Response::error('Attachment ID is required');
@@ -401,9 +495,16 @@ function downloadMessageAttachment($db, $attachmentId) {
          WHERE a.id = ?",
         [$attachmentId]
     );
-    if (!$attachment || !(($attachment['sender_id'] === $user['user_id'] && $attachment['sender_role'] === $user['role']) ||
-        ($attachment['recipient_id'] === $user['user_id'] && $attachment['recipient_role'] === $user['role']))) {
+    if (!$attachment) {
         Response::notFound('Attachment not found');
+    }
+
+    $isAuthorized = AuthMiddleware::isAdmin($user) ||
+        ((string)$attachment['sender_id'] === (string)$user['user_id']) ||
+        ((string)$attachment['recipient_id'] === (string)$user['user_id']);
+
+    if (!$isAuthorized) {
+        Response::forbidden('Access denied to this attachment');
     }
 
     $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
@@ -411,34 +512,100 @@ function downloadMessageAttachment($db, $attachmentId) {
         Response::notFound('Attachment file is unavailable');
     }
     $fileName = str_replace(["\r", "\n", '"'], '', $attachment['original_name']);
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
     header_remove('Content-Type');
     header('Content-Type: ' . $attachment['mime_type']);
     header('Content-Length: ' . filesize($path));
     header("Content-Disposition: attachment; filename*=UTF-8''" . rawurlencode($fileName));
     header('X-Content-Type-Options: nosniff');
+    header('Cache-Control: private, max-age=3600');
     readfile($path);
     exit;
 }
 
+function deleteConversation($db, $conversationId) {
+    $user = AuthMiddleware::authenticate();
+    ensureMessageSchema($db);
+
+    if (empty($conversationId)) {
+        Response::error('Conversation ID is required');
+    }
+
+    // Allow deleting if user is participant in this conversation OR is admin/super_admin
+    $isAuthorized = AuthMiddleware::isAdmin($user);
+    if (!$isAuthorized) {
+        $participant = $db->fetchOne(
+            'SELECT id FROM messages WHERE conversation_id = ? AND (sender_id = ? OR recipient_id = ?) LIMIT 1',
+            [$conversationId, $user['user_id'], $user['user_id']]
+        );
+        if ($participant) {
+            $isAuthorized = true;
+        }
+    }
+
+    if (!$isAuthorized) {
+        Response::forbidden('You do not have permission to delete this conversation');
+    }
+
+    $messages = $db->fetchAll('SELECT id FROM messages WHERE conversation_id = ?', [$conversationId]);
+    if (empty($messages)) {
+        Response::notFound('Conversation not found');
+    }
+
+    $messageIds = array_column($messages, 'id');
+    $placeholders = implode(',', array_fill(0, count($messageIds), '?'));
+
+    $attachments = $db->fetchAll("SELECT storage_name FROM message_attachments WHERE message_id IN ({$placeholders})", $messageIds);
+
+    try {
+        $db->beginTransaction();
+        $db->query("DELETE FROM message_attachments WHERE message_id IN ({$placeholders})", $messageIds);
+        $db->query("DELETE FROM messages WHERE conversation_id = ?", [$conversationId]);
+        $db->commit();
+    } catch (Exception $e) {
+        $db->rollback();
+        error_log('Conversation deletion failed: ' . $e->getMessage());
+        Response::serverError('Unable to delete this conversation');
+    }
+
+    foreach ($attachments as $attachment) {
+        $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    Response::success('Conversation deleted successfully');
+}
+
 function deleteMessage($db, $id) {
     $user = AuthMiddleware::authenticate();
-    if (($user['role'] ?? '') !== 'super_admin') {
-        Response::forbidden('Only a super admin can delete messages');
-    }
+    ensureMessageSchema($db);
+
     if (!$id) {
         Response::error('Message ID is required');
     }
 
-    ensureMessageSchema($db);
-    $message = $db->fetchOne('SELECT id FROM messages WHERE id = ?', [$id]);
+    $message = $db->fetchOne('SELECT * FROM messages WHERE id = ?', [$id]);
     if (!$message) {
         Response::notFound('Message not found');
+    }
+
+    $isAuthorized = AuthMiddleware::isAdmin($user) ||
+        ((string)$message['sender_id'] === (string)$user['user_id']) ||
+        ((string)$message['recipient_id'] === (string)$user['user_id']);
+
+    if (!$isAuthorized) {
+        Response::forbidden('You do not have permission to delete this message');
     }
 
     $attachments = $db->fetchAll(
         'SELECT storage_name FROM message_attachments WHERE message_id = ?',
         [$id]
     );
+
     try {
         $db->beginTransaction();
         $db->delete('message_attachments', 'message_id = ?', [$id]);
@@ -452,8 +619,8 @@ function deleteMessage($db, $id) {
 
     foreach ($attachments as $attachment) {
         $path = __DIR__ . '/../storage/message-attachments/' . basename($attachment['storage_name']);
-        if (is_file($path) && !unlink($path)) {
-            error_log('Unable to remove deleted message attachment: ' . basename($attachment['storage_name']));
+        if (is_file($path)) {
+            @unlink($path);
         }
     }
 
@@ -464,15 +631,15 @@ function markMessageRead($db, $id) {
     $user = AuthMiddleware::authenticate();
     ensureMessageSchema($db);
     $message = $db->fetchOne(
-        'SELECT id FROM messages WHERE id = ? AND recipient_id = ? AND recipient_role = ?',
-        [$id, $user['user_id'], $user['role']]
+        'SELECT id FROM messages WHERE id = ? AND recipient_id = ?',
+        [$id, $user['user_id']]
     );
     if (!$message) {
         Response::notFound('Message not found');
     }
     $db->query(
-        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND recipient_role = ? AND read_at IS NULL',
-        [$id, $user['user_id'], $user['role']]
+        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE id = ? AND recipient_id = ? AND read_at IS NULL',
+        [$id, $user['user_id']]
     );
     Response::success('Message marked as read');
 }
@@ -481,8 +648,8 @@ function markAllMessagesRead($db) {
     $user = AuthMiddleware::authenticate();
     ensureMessageSchema($db);
     $db->query(
-        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND recipient_role = ? AND read_at IS NULL',
-        [$user['user_id'], $user['role']]
+        'UPDATE messages SET read_at = CURRENT_TIMESTAMP WHERE recipient_id = ? AND read_at IS NULL',
+        [$user['user_id']]
     );
     Response::success('All messages marked as read');
 }

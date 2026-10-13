@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Trash2, Users, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Download, FileText, Inbox, Mail, MailCheck, Paperclip, Plus, Search, Send, Trash2, Users, X, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAccessRole, useAuth } from "@/context/AuthContext";
 
 type Folder = "inbox" | "sent" | "compose";
-type Audience = "teacher" | "parent" | "student";
+type Audience = "admin" | "teacher" | "student" | "parent";
 
 interface MessageRecord {
   id: number;
@@ -35,13 +35,9 @@ interface RecipientOption {
   surname?: string;
   username?: string;
   email?: string;
+  role: string;
+  class_name?: string;
 }
-
-const resourceByAudience: Record<Audience, string> = {
-  teacher: "teachers",
-  parent: "parents",
-  student: "students",
-};
 
 const formatDateTime = (value: string) => {
   const date = new Date(value.replace(" ", "T"));
@@ -49,10 +45,10 @@ const formatDateTime = (value: string) => {
 };
 
 const MessagesPage: React.FC = () => {
-  const { user, role: authenticatedRole } = useAuth();
+  const { user } = useAuth();
   const role = useAccessRole();
   const isAdmin = role === "admin";
-  const isSuperAdmin = authenticatedRole === "super_admin";
+
   const [folder, setFolder] = useState<Folder>("inbox");
   const [messages, setMessages] = useState<MessageRecord[]>([]);
   const [selected, setSelected] = useState<MessageRecord | null>(null);
@@ -63,27 +59,42 @@ const MessagesPage: React.FC = () => {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [audience, setAudience] = useState<Audience>("teacher");
+
+  // Compose states
+  const [audience, setAudience] = useState<Audience>(isAdmin ? "teacher" : "admin");
   const [recipientId, setRecipientId] = useState("");
   const [recipients, setRecipients] = useState<RecipientOption[]>([]);
   const [loadingRecipients, setLoadingRecipients] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [composeFiles, setComposeFiles] = useState<File[]>([]);
+
+  // Reply states
   const [replyBody, setReplyBody] = useState("");
   const [replyFiles, setReplyFiles] = useState<File[]>([]);
   const [sending, setSending] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
+
+  // Deletion states
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom of conversation
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Realtime Polling for messages list
   useEffect(() => {
     if (folder === "compose") return;
     let active = true;
     setLoading(true);
     setError(null);
-    setSelected(null);
+
     const loadMessages = async (initialLoad: boolean) => {
       if (initialLoad) setLoading(true);
       try {
@@ -108,65 +119,102 @@ const MessagesPage: React.FC = () => {
     void loadMessages(true);
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible") void loadMessages(false);
-    }, 5000);
-    return () => { active = false; window.clearInterval(interval); };
+    }, 4000);
+
+    const onFocus = () => {
+      if (document.visibilityState === "visible") void loadMessages(false);
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [folder, refreshKey, search]);
 
+  // Load recipients for compose
   useEffect(() => {
-    if (folder !== "compose" || !isAdmin) return;
+    if (folder !== "compose") return;
     let active = true;
     setLoadingRecipients(true);
     setRecipientId("");
-    api.getAll(resourceByAudience[audience], { page: 1, limit: 1000 }).then((response) => {
-      if (!active) return;
-      const records = response.data?.[resourceByAudience[audience]];
-      if (!response.success || !Array.isArray(records)) {
-        setError(response.message || `Unable to load ${audience} recipients.`);
-        setRecipients([]);
-        return;
-      }
-      setRecipients(records);
-      setError(null);
-    }).catch((requestError: unknown) => {
-      if (active) setError(requestError instanceof Error ? requestError.message : `Unable to load ${audience} recipients.`);
-    }).finally(() => {
-      if (active) setLoadingRecipients(false);
-    });
-    return () => { active = false; };
-  }, [audience, folder, isAdmin]);
 
+    api.getMessageRecipients(audience)
+      .then((response) => {
+        if (!active) return;
+        const records = response.data?.recipients;
+        if (!response.success || !Array.isArray(records)) {
+          setError(response.message || `Unable to load ${audience} recipients.`);
+          setRecipients([]);
+          return;
+        }
+        setRecipients(records);
+        setError(null);
+      })
+      .catch((requestError: unknown) => {
+        if (active) setError(requestError instanceof Error ? requestError.message : `Unable to load ${audience} recipients.`);
+      })
+      .finally(() => {
+        if (active) setLoadingRecipients(false);
+      });
+
+    return () => { active = false; };
+  }, [audience, folder]);
+
+  // Realtime Polling for active conversation thread
   useEffect(() => {
     if (!selected?.conversation_id) {
       setConversationMessages(selected ? [selected] : []);
       return;
     }
+
     let active = true;
     let initialLoad = true;
+    let previousCount = 0;
+
     const loadConversation = async () => {
       if (initialLoad) setThreadLoading(true);
       const response = await api.getAll("messages", { conversation_id: selected.conversation_id });
       if (!active) return;
       if (response.success && Array.isArray(response.data?.messages)) {
-        setConversationMessages(response.data.messages);
+        const msgs = response.data.messages;
+        setConversationMessages(msgs);
         setUnreadCount(Number(response.data.unread_count) || 0);
-        setMessages((current) => current.map((item) => item.conversation_id === selected.conversation_id && item.recipient_role === role
-          ? { ...item, read_at: item.read_at || new Date().toISOString() }
-          : item));
+
+        setMessages((current) => current.map((item) =>
+          item.conversation_id === selected.conversation_id && (item.recipient_id === user?.id)
+            ? { ...item, read_at: item.read_at || new Date().toISOString() }
+            : item
+        ));
         window.dispatchEvent(new Event("school-messages-updated"));
+
+        // If new message arrived, scroll to bottom
+        if (msgs.length > previousCount) {
+          previousCount = msgs.length;
+          setTimeout(scrollToBottom, 100);
+        }
       } else if (initialLoad) {
         setError(response.message || "Unable to load this conversation.");
       }
+
       if (initialLoad) {
         initialLoad = false;
         setThreadLoading(false);
+        setTimeout(scrollToBottom, 150);
       }
     };
+
     void loadConversation();
     const interval = window.setInterval(() => {
       if (document.visibilityState === "visible") void loadConversation();
-    }, 3000);
-    return () => { active = false; window.clearInterval(interval); };
-  }, [role, selected?.conversation_id, threadRefreshKey]);
+    }, 2500);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [selected?.conversation_id, threadRefreshKey, user?.id]);
 
   useEffect(() => {
     if (selected?.conversation_id && !messages.some((message) => message.conversation_id === selected.conversation_id)) {
@@ -199,20 +247,24 @@ const MessagesPage: React.FC = () => {
     setSending(true);
     setError(null);
     setNotice(null);
+
     const formData = new FormData();
     formData.append("audience", audience);
     if (recipientId) formData.append("recipient_id", recipientId);
     formData.append("subject", subject.trim());
     formData.append("body", body.trim());
     composeFiles.forEach((file) => formData.append("attachments[]", file, file.name));
+
     const response = await api.uploadMessage(formData);
     setSending(false);
+
     if (!response.success) {
       setError(response.message || "Unable to send message.");
       return;
     }
-    const deliveredTo = Number(response.data?.recipient_count) || 0;
-    setNotice(`Message delivered to ${deliveredTo} ${audience}${deliveredTo === 1 ? "" : "s"}.`);
+
+    const deliveredTo = Number(response.data?.recipient_count) || 1;
+    setNotice(`Message sent successfully (${deliveredTo} recipient${deliveredTo === 1 ? "" : "s"}).`);
     setSubject("");
     setBody("");
     setComposeFiles([]);
@@ -223,22 +275,28 @@ const MessagesPage: React.FC = () => {
   const sendReply = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selected?.conversation_id || !replyBody.trim()) return;
+
     setSendingReply(true);
     setError(null);
+
     const formData = new FormData();
     formData.append("conversation_id", selected.conversation_id);
     formData.append("body", replyBody.trim());
     replyFiles.forEach((file) => formData.append("attachments[]", file, file.name));
+
     const response = await api.uploadMessage(formData);
     setSendingReply(false);
+
     if (!response.success) {
       setError(response.message || "Unable to send reply.");
       return;
     }
+
     setReplyBody("");
     setReplyFiles([]);
     setNotice("Reply sent.");
     setThreadRefreshKey((value) => value + 1);
+    setTimeout(scrollToBottom, 200);
     window.dispatchEvent(new Event("school-messages-updated"));
   };
 
@@ -258,10 +316,45 @@ const MessagesPage: React.FC = () => {
     }
   };
 
-  const deleteMessage = async (message: MessageRecord) => {
-    if (!isSuperAdmin || !window.confirm(`Delete this message from both the sender's and recipient's inboxes? This cannot be undone.`)) return;
+  // Delete an entire conversation - Available for everyone!
+  const deleteConversation = async (conversationId: string, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    if (!window.confirm("Delete this entire conversation? All messages in this conversation thread will be permanently removed.")) {
+      return;
+    }
+
+    setDeletingConversationId(conversationId);
+    setError(null);
+
+    try {
+      const response = await api.deleteConversation(conversationId);
+      if (!response.success) {
+        setError(response.message || "Unable to delete conversation.");
+        return;
+      }
+
+      setMessages((current) => current.filter((item) => item.conversation_id !== conversationId));
+      if (selected?.conversation_id === conversationId) {
+        setSelected(null);
+        setConversationMessages([]);
+      }
+      setNotice("Conversation deleted successfully.");
+      window.dispatchEvent(new Event("school-messages-updated"));
+    } catch {
+      setError("Unable to reach the server. Try again.");
+    } finally {
+      setDeletingConversationId(null);
+    }
+  };
+
+  // Delete a single message - Available for everyone!
+  const deleteMessage = async (message: MessageRecord, event?: React.MouseEvent) => {
+    if (event) event.stopPropagation();
+    if (!window.confirm("Delete this message? This cannot be undone.")) return;
+
     setDeletingId(message.id);
     setError(null);
+
     try {
       const response = await api.delete("messages", message.id);
       if (!response.success) {
@@ -271,16 +364,19 @@ const MessagesPage: React.FC = () => {
 
       setMessages((current) => current.filter((item) => item.id !== message.id));
       setConversationMessages((current) => current.filter((item) => item.id !== message.id));
+
       if (selected?.id === message.id) {
         setSelected(null);
         setConversationMessages([]);
       } else if (selected?.conversation_id && selected.conversation_id === message.conversation_id) {
         setThreadRefreshKey((current) => current + 1);
       }
-      if (message.recipient_id === user?.id && message.recipient_role === role && !message.read_at) {
+
+      if (message.recipient_id === user?.id && !message.read_at) {
         setUnreadCount((current) => Math.max(0, current - 1));
       }
-      setNotice("Message deleted from both sender and recipient inboxes.");
+
+      setNotice("Message deleted successfully.");
       window.dispatchEvent(new Event("school-messages-updated"));
     } catch {
       setError("Unable to reach the server. Try again.");
@@ -291,10 +387,32 @@ const MessagesPage: React.FC = () => {
 
   const attachmentPicker = (files: File[], setFiles: React.Dispatch<React.SetStateAction<File[]>>, inputId: string) => (
     <div className="space-y-2">
-      <label htmlFor={inputId} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50"><Paperclip size={14} /> Attach files</label>
-      <input id={inputId} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg" className="sr-only" onChange={(event) => setFiles((current) => [...current, ...Array.from(event.target.files || [])].slice(0, 5))} />
-      {files.length > 0 && <ul className="flex flex-wrap gap-2">{files.map((file, index) => <li key={`${file.name}-${file.lastModified}-${index}`} className="flex max-w-full items-center gap-2 rounded-md bg-gray-100 px-2.5 py-1.5 text-xs text-gray-700"><FileText size={13} /><span className="max-w-48 truncate">{file.name}</span><span className="shrink-0 text-gray-400">{(file.size / 1024 / 1024).toFixed(1)} MB</span><button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}><X size={13} /></button></li>)}</ul>}
-      <p className="text-[11px] text-gray-400">Up to 5 files, 10 MB each. PDF, Office documents, TXT, PNG, or JPG.</p>
+      <label htmlFor={inputId} className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50">
+        <Paperclip size={14} /> Attach files
+      </label>
+      <input
+        id={inputId}
+        type="file"
+        multiple
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.webp,.gif"
+        className="sr-only"
+        onChange={(event) => setFiles((current) => [...current, ...Array.from(event.target.files || [])].slice(0, 5))}
+      />
+      {files.length > 0 && (
+        <ul className="flex flex-wrap gap-2">
+          {files.map((file, index) => (
+            <li key={`${file.name}-${file.lastModified}-${index}`} className="flex max-w-full items-center gap-2 rounded-md bg-gray-100 px-2.5 py-1.5 text-xs text-gray-700">
+              <FileText size={13} />
+              <span className="max-w-48 truncate">{file.name}</span>
+              <span className="shrink-0 text-gray-400">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+              <button type="button" onClick={() => setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`}>
+                <X size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="text-[11px] text-gray-400">Up to 5 files, 10 MB each. PDF, Office documents, TXT, PNG, JPG, or WebP.</p>
     </div>
   );
 
@@ -306,109 +424,433 @@ const MessagesPage: React.FC = () => {
 
   return (
     <div className="m-4 mt-0 flex-1 space-y-4 pb-8">
+      {/* ─── Header ────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-3 py-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Communication</p>
           <h1 className="mt-1 text-2xl font-semibold text-gray-900">Messages</h1>
-          <p className="mt-1 text-sm text-gray-500">{isAdmin ? "Send targeted messages and review delivery." : "Messages sent to your account."}</p>
+          <p className="mt-1 text-sm text-gray-500">Realtime messaging system between students, teachers, parents, and administrators.</p>
         </div>
-        {isAdmin && <button onClick={() => openFolder("compose")} className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800"><Plus size={16} /> Compose</button>}
+
+        {/* Compose Button - Available for EVERYONE */}
+        <button
+          onClick={() => openFolder("compose")}
+          className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 transition shadow-xs"
+        >
+          <Plus size={16} /> Compose Message
+        </button>
       </header>
 
-      {notice && <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status">{notice}</div>}
-      {error && <div className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert"><span>{error}</span><button onClick={() => setRefreshKey((value) => value + 1)} className="shrink-0 font-semibold underline">Retry</button></div>}
+      {notice && (
+        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 flex items-center justify-between" role="status">
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} className="text-green-700 hover:text-green-900"><X size={14} /></button>
+        </div>
+      )}
 
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <span>{error}</span>
+          <button onClick={() => setRefreshKey((value) => value + 1)} className="shrink-0 font-semibold underline">Retry</button>
+        </div>
+      )}
+
+      {/* ─── Main Content Box ─────────────────────────────── */}
       <div className="grid min-h-[620px] overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* ─── Left Sidebar Navigation ────────────────────── */}
         <aside className="border-b border-gray-200 bg-gray-50 p-3 lg:border-b-0 lg:border-r">
           <div className="relative mb-3">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search messages" className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-sky-500" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search messages..."
+              className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-sky-500"
+            />
           </div>
+
           <nav className="flex gap-2 lg:flex-col">
-            <button onClick={() => openFolder("inbox")} className={`flex flex-1 items-center justify-between rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${folder === "inbox" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"}`}>
+            <button
+              onClick={() => openFolder("inbox")}
+              className={`flex flex-1 items-center justify-between rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
+                folder === "inbox" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
               <span className="flex items-center gap-2"><Inbox size={16} /> Inbox</span>
               {unreadCount > 0 && <span className="rounded-full bg-sky-700 px-2 py-0.5 text-[11px] font-semibold text-white">{unreadCount}</span>}
             </button>
-            {isAdmin && <>
-              <button onClick={() => openFolder("sent")} className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${folder === "sent" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"}`}><Send size={16} /> Sent</button>
-              <button onClick={() => openFolder("compose")} className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${folder === "compose" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"}`}><Plus size={16} /> Compose</button>
-            </>}
+
+            {/* Sent Folder - Available for EVERYONE */}
+            <button
+              onClick={() => openFolder("sent")}
+              className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
+                folder === "sent" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <Send size={16} /> Sent
+            </button>
+
+            {/* Compose Folder - Available for EVERYONE */}
+            <button
+              onClick={() => openFolder("compose")}
+              className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
+                folder === "compose" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <Plus size={16} /> Compose
+            </button>
           </nav>
-          {folder === "inbox" && unreadCount > 0 && <button onClick={markAllRead} className="mt-3 hidden w-full items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 lg:flex"><MailCheck size={14} /> Mark all read</button>}
+
+          {folder === "inbox" && unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="mt-3 hidden w-full items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 lg:flex"
+            >
+              <MailCheck size={14} /> Mark all read
+            </button>
+          )}
         </aside>
 
-        {folder === "compose" && isAdmin ? (
+        {/* ─── Center / Right Pane ────────────────────────── */}
+        {folder === "compose" ? (
+          /* ─── Compose View: Available to EVERYONE ──────── */
           <section className="min-w-0 p-5 md:p-7">
-            <div className="mb-5 flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-50 text-sky-700"><Send size={19} /></span><div><h2 className="text-lg font-semibold text-gray-900">Compose message</h2><p className="text-sm text-gray-500">Choose a role and optionally target one person.</p></div></div>
+            <div className="mb-5 flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+                <Send size={19} />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Compose message</h2>
+                <p className="text-sm text-gray-500">Send an instant message to any teacher, student, parent, or administration.</p>
+              </div>
+            </div>
+
             <form onSubmit={sendMessage} className="max-w-3xl space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">Audience
-                  <select value={audience} onChange={(event) => setAudience(event.target.value as Audience)} className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500">
-                    <option value="teacher">Teachers</option><option value="parent">Parents</option><option value="student">Students</option>
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                  Recipient Role
+                  <select
+                    value={audience}
+                    onChange={(event) => setAudience(event.target.value as Audience)}
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                  >
+                    <option value="admin">Administrators / School Office</option>
+                    <option value="teacher">Teachers</option>
+                    <option value="student">Students</option>
+                    <option value="parent">Parents</option>
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">Recipient
-                  <select value={recipientId} onChange={(event) => setRecipientId(event.target.value)} disabled={loadingRecipients} className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500 disabled:bg-gray-100">
-                    <option value="">All {audience}s</option>
-                    {recipients.map((recipient) => <option key={recipient.id} value={recipient.id}>{[recipient.name, recipient.surname].filter(Boolean).join(" ") || recipient.username || recipient.id}{recipient.email ? ` · ${recipient.email}` : ""}</option>)}
+
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                  Recipient Name
+                  <select
+                    value={recipientId}
+                    onChange={(event) => setRecipientId(event.target.value)}
+                    disabled={loadingRecipients}
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500 disabled:bg-gray-100"
+                  >
+                    {isAdmin ? (
+                      <option value="">All {audience}s (Broadcast)</option>
+                    ) : audience === "admin" ? (
+                      <option value="">School Administration (All Office Admins)</option>
+                    ) : (
+                      <option value="">Select a {audience}...</option>
+                    )}
+                    {recipients.map((recipient) => {
+                      const displayName = [recipient.name, recipient.surname].filter(Boolean).join(" ") || recipient.username || recipient.id;
+                      return (
+                        <option key={recipient.id} value={recipient.id}>
+                          {displayName}
+                          {recipient.class_name ? ` (${recipient.class_name})` : ""}
+                          {recipient.email ? ` · ${recipient.email}` : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                 </label>
               </div>
-              <div className="flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800"><Users size={14} />{recipientId ? "This message will be delivered to one selected recipient." : `This message will be delivered separately to all ${recipients.length} ${audience}${recipients.length === 1 ? "" : "s"}.`}</div>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">Subject
-                <input required maxLength={255} value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="Message subject" className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500" />
+
+              <div className="flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">
+                <Users size={14} />
+                {recipientId
+                  ? "Delivering privately to the selected recipient."
+                  : audience === "admin"
+                  ? "Delivering to school administration."
+                  : `Delivering to all ${recipients.length} ${audience}${recipients.length === 1 ? "" : "s"}.`}
+              </div>
+
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                Subject
+                <input
+                  required
+                  maxLength={255}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="Message subject"
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                />
               </label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">Message
-                <textarea required rows={9} value={body} onChange={(event) => setBody(event.target.value)} placeholder="Write your message..." className="resize-y rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500" />
+
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                Message Body
+                <textarea
+                  required
+                  rows={9}
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  placeholder="Write your message..."
+                  className="resize-y rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                />
               </label>
+
               {attachmentPicker(composeFiles, setComposeFiles, "compose-attachments")}
-              <div className="flex justify-end"><button type="submit" disabled={sending || loadingRecipients || recipients.length === 0} className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={15} />{sending ? "Sending..." : "Send message"}</button></div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => openFolder("inbox")}
+                  className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sending || loadingRecipients || (!recipientId && !isAdmin && audience !== "admin")}
+                  className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Send size={15} />
+                  {sending ? "Sending..." : "Send message"}
+                </button>
+              </div>
             </form>
           </section>
         ) : (
+          /* ─── Messages List & Active Thread View ───────── */
           <section className="grid min-w-0 md:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.4fr)]">
+            {/* ─── List of Messages ───────────────────────── */}
             <div className="min-w-0 border-b border-gray-200 md:border-b-0 md:border-r">
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3"><h2 className="text-sm font-semibold text-gray-800">{folder === "sent" ? "Sent messages" : "Inbox"}</h2>{folder === "inbox" && unreadCount > 0 && <button onClick={markAllRead} className="text-xs font-medium text-sky-700 hover:underline">Mark all read</button>}</div>
-              {loading ? <p className="p-5 text-sm text-gray-500">Loading messages...</p> : messages.length === 0 ? <div className="flex min-h-52 flex-col items-center justify-center px-5 text-center"><Mail size={26} className="text-gray-300" /><p className="mt-3 text-sm font-medium text-gray-700">{error ? "Messages could not be loaded" : folder === "sent" ? "No sent messages yet" : "Your inbox is clear"}</p><p className="mt-1 text-xs text-gray-500">{error ? "Use Retry above to try again." : folder === "inbox" ? "Messages addressed to your account appear here." : "Messages you send will appear here."}</p></div> : <div className="max-h-[560px] overflow-y-auto">{messages.map((message) => {
-                const active = selected?.id === message.id;
-                const otherName = folder === "sent" ? message.recipient_name : message.sender_name;
-                const otherRole = folder === "sent" ? message.recipient_role : message.sender_role;
-                return <div key={message.id} className={`border-b border-gray-100 transition ${active ? "bg-sky-50" : "hover:bg-gray-50"}`}>
-                  <button type="button" onClick={() => void selectMessage(message)} className="block w-full px-4 pt-3 text-left">
-                    <div className="flex items-start justify-between gap-2"><span className={`truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-900" : "font-medium text-gray-700"}`}>{otherName}</span><span className="shrink-0 text-[10px] text-gray-400">{formatDateTime(message.created_at)}</span></div>
-                    <p className={`mt-1 truncate text-sm ${!message.read_at && folder === "inbox" ? "font-semibold text-gray-800" : "text-gray-600"}`}>{message.subject}</p>
-                    <p className="mt-1 truncate text-xs text-gray-500">{message.body}</p>
+              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <h2 className="text-sm font-semibold text-gray-800">
+                  {folder === "sent" ? "Sent messages" : "Inbox"}
+                </h2>
+                {folder === "inbox" && unreadCount > 0 && (
+                  <button onClick={markAllRead} className="text-xs font-medium text-sky-700 hover:underline">
+                    Mark all read
                   </button>
-                  <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                    <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">{otherRole}</span>
-                    {isSuperAdmin && <button type="button" onClick={() => void deleteMessage(message)} disabled={deletingId === message.id} aria-label={`Delete message from ${message.sender_name}`} title="Delete message" className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"><Trash2 size={13} />{deletingId === message.id ? "Deleting..." : "Delete"}</button>}
-                  </div>
-                </div>;
-              })}</div>}
-            </div>
-            <article className="min-w-0 p-5 md:p-7">
-              {selected ? <>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4"><div><p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation</p><h2 className="mt-1 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2></div><span className="text-xs text-gray-500">{conversationMessages.length} messages</span></div>
-                <div className="max-h-[460px] space-y-4 overflow-y-auto py-5">
-                  {threadLoading && conversationMessages.length === 0 ? <p className="text-sm text-gray-500">Loading conversation...</p> : conversationMessages.map((message) => {
-                    const ownMessage = message.sender_id === user?.id && message.sender_role === role;
-                    return <div key={message.id} className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}>
-                      <div className={`max-w-[90%] rounded-lg p-3.5 sm:max-w-[78%] ${ownMessage ? "bg-sky-100 text-sky-950" : "bg-gray-100 text-gray-800"}`}>
-                        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs"><span className="font-semibold">{ownMessage ? "You" : message.sender_name} <span className="font-normal capitalize opacity-70">· {message.sender_role}</span></span><time className="opacity-60">{formatDateTime(message.created_at)}</time></div>
-                        {message.id === conversationMessages[0]?.id && <p className="mb-1 text-xs font-semibold">{message.subject}</p>}
-                        <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
-                        {!!message.attachments?.length && <ul className="mt-3 space-y-1.5 border-t border-black/10 pt-2">{message.attachments.map((attachment) => <li key={attachment.id}><button type="button" onClick={() => void downloadAttachment(attachment)} className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-white/50"><Download size={13} /><span className="truncate">{attachment.original_name}</span><span className="shrink-0 opacity-60">{(attachment.file_size / 1024 / 1024).toFixed(1)} MB</span></button></li>)}</ul>}
-                        {isSuperAdmin && <div className="mt-3 flex justify-end border-t border-black/10 pt-2"><button type="button" onClick={() => void deleteMessage(message)} disabled={deletingId === message.id} className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"><Trash2 size={13} />{deletingId === message.id ? "Deleting..." : "Delete message"}</button></div>}
+                )}
+              </div>
+
+              {loading ? (
+                <p className="p-5 text-sm text-gray-500">Loading messages...</p>
+              ) : messages.length === 0 ? (
+                <div className="flex min-h-52 flex-col items-center justify-center px-5 text-center">
+                  <Mail size={26} className="text-gray-300" />
+                  <p className="mt-3 text-sm font-medium text-gray-700">
+                    {error ? "Messages could not be loaded" : folder === "sent" ? "No sent messages yet" : "Your inbox is clear"}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {error
+                      ? "Use Retry above to try again."
+                      : folder === "inbox"
+                      ? "Messages addressed to your account appear here."
+                      : "Messages you send will appear here."}
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-[560px] overflow-y-auto">
+                  {messages.map((message) => {
+                    const active = selected?.conversation_id === message.conversation_id;
+                    const otherName = folder === "sent" ? message.recipient_name : message.sender_name;
+                    const otherRole = folder === "sent" ? message.recipient_role : message.sender_role;
+                    const isUnread = !message.read_at && folder === "inbox";
+
+                    return (
+                      <div
+                        key={message.id}
+                        className={`border-b border-gray-100 transition group ${
+                          active ? "bg-sky-50" : isUnread ? "bg-sky-50/40 hover:bg-gray-50" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => void selectMessage(message)}
+                          className="block w-full px-4 pt-3 text-left"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <span className={`truncate text-sm ${isUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                              {otherName}
+                            </span>
+                            <span className="shrink-0 text-[10px] text-gray-400">
+                              {formatDateTime(message.created_at)}
+                            </span>
+                          </div>
+                          <p className={`mt-1 truncate text-sm ${isUnread ? "font-bold text-gray-800" : "text-gray-600"}`}>
+                            {message.subject}
+                          </p>
+                          <p className="mt-1 truncate text-xs text-gray-500">
+                            {message.body}
+                          </p>
+                        </button>
+
+                        <div className="flex items-center justify-between px-4 pb-3 pt-2">
+                          <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">
+                            {otherRole}
+                          </span>
+
+                          {/* Delete Conversation action available to EVERYONE */}
+                          <button
+                            type="button"
+                            onClick={(e) => void deleteConversation(message.conversation_id, e)}
+                            disabled={deletingConversationId === message.conversation_id}
+                            aria-label={`Delete conversation with ${otherName}`}
+                            title="Delete entire conversation"
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-red-50 hover:text-red-700 opacity-80 group-hover:opacity-100 disabled:opacity-50"
+                          >
+                            <Trash2 size={13} />
+                            <span className="hidden sm:inline">Delete</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>;
+                    );
                   })}
                 </div>
-                {selected.conversation_id ? <form onSubmit={sendReply} className="border-t border-gray-100 pt-4">
-                  <label className="sr-only" htmlFor="reply-body">Reply</label>
-                  <textarea id="reply-body" required rows={3} value={replyBody} onChange={(event) => setReplyBody(event.target.value)} placeholder="Write a reply..." className="w-full resize-y rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-sky-500" />
-                  <div className="mt-3 flex flex-wrap items-end justify-between gap-3">{attachmentPicker(replyFiles, setReplyFiles, "reply-attachments")}<button type="submit" disabled={sendingReply || !replyBody.trim()} className="inline-flex shrink-0 items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"><Send size={14} />{sendingReply ? "Sending..." : "Send reply"}</button></div>
-                </form> : <p className="border-t border-gray-100 pt-3 text-xs text-gray-500">This older message has no reply thread available.</p>}
-              </> : <div className="flex min-h-64 flex-col items-center justify-center text-center"><Mail size={30} className="text-gray-300" /><p className="mt-3 text-sm font-medium text-gray-700">Select a message</p><p className="mt-1 text-xs text-gray-500">Conversation and attachments appear here.</p></div>}
+              )}
+            </div>
+
+            {/* ─── Active Conversation Thread ──────────────── */}
+            <article className="min-w-0 p-5 md:p-7 flex flex-col justify-between">
+              {selected ? (
+                <>
+                  <div>
+                    {/* Conversation Header with DELETE CONVERSATION for EVERYONE */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation Thread</p>
+                        <h2 className="mt-1 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500">{conversationMessages.length} messages</span>
+                        {/* Delete Conversation Button - EVERYONE CAN DELETE */}
+                        <button
+                          type="button"
+                          onClick={() => void deleteConversation(selected.conversation_id)}
+                          disabled={deletingConversationId === selected.conversation_id}
+                          title="Delete entire conversation thread"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />
+                          <span>Delete Conversation</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Messages Scroll Area */}
+                    <div className="max-h-[460px] space-y-4 overflow-y-auto py-5">
+                      {threadLoading && conversationMessages.length === 0 ? (
+                        <p className="text-sm text-gray-500">Loading conversation...</p>
+                      ) : (
+                        conversationMessages.map((message) => {
+                          const ownMessage = (String(message.sender_id) === String(user?.id));
+
+                          return (
+                            <div key={message.id} className={`flex ${ownMessage ? "justify-end" : "justify-start"}`}>
+                              <div className={`max-w-[90%] rounded-lg p-3.5 sm:max-w-[78%] ${
+                                ownMessage ? "bg-sky-100 text-sky-950" : "bg-gray-100 text-gray-800"
+                              }`}>
+                                <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs">
+                                  <span className="font-semibold">
+                                    {ownMessage ? "You" : message.sender_name}{" "}
+                                    <span className="font-normal capitalize opacity-70">· {message.sender_role}</span>
+                                  </span>
+                                  <time className="opacity-60">{formatDateTime(message.created_at)}</time>
+                                </div>
+
+                                {message.id === conversationMessages[0]?.id && (
+                                  <p className="mb-1 text-xs font-semibold">{message.subject}</p>
+                                )}
+
+                                <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
+
+                                {!!message.attachments?.length && (
+                                  <ul className="mt-3 space-y-1.5 border-t border-black/10 pt-2">
+                                    {message.attachments.map((attachment) => (
+                                      <li key={attachment.id}>
+                                        <button
+                                          type="button"
+                                          onClick={() => void downloadAttachment(attachment)}
+                                          className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-white/50"
+                                        >
+                                          <Download size={13} />
+                                          <span className="truncate">{attachment.original_name}</span>
+                                          <span className="shrink-0 opacity-60">
+                                            {(attachment.file_size / 1024 / 1024).toFixed(1)} MB
+                                          </span>
+                                        </button>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+
+                                {/* Individual message delete button */}
+                                <div className="mt-3 flex justify-end border-t border-black/10 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => void deleteMessage(message, e)}
+                                    disabled={deletingId === message.id}
+                                    title="Delete this message"
+                                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"
+                                  >
+                                    <Trash2 size={12} />
+                                    <span>{deletingId === message.id ? "Deleting..." : "Delete message"}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </div>
+
+                  {/* ─── Realtime Reply Form ──────────────────────── */}
+                  {selected.conversation_id ? (
+                    <form onSubmit={sendReply} className="border-t border-gray-100 pt-4">
+                      <label className="sr-only" htmlFor="reply-body">Reply</label>
+                      <textarea
+                        id="reply-body"
+                        required
+                        rows={3}
+                        value={replyBody}
+                        onChange={(event) => setReplyBody(event.target.value)}
+                        placeholder="Write a reply..."
+                        className="w-full resize-y rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-sky-500"
+                      />
+                      <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                        {attachmentPicker(replyFiles, setReplyFiles, "reply-attachments")}
+                        <button
+                          type="submit"
+                          disabled={sendingReply || !replyBody.trim()}
+                          className="inline-flex shrink-0 items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Send size={14} />
+                          {sendingReply ? "Sending..." : "Send reply"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <p className="border-t border-gray-100 pt-3 text-xs text-gray-500">
+                      This older message has no reply thread available.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="flex min-h-64 flex-col items-center justify-center text-center m-auto">
+                  <Mail size={30} className="text-gray-300" />
+                  <p className="mt-3 text-sm font-medium text-gray-700">Select a message or compose a new one</p>
+                  <p className="mt-1 text-xs text-gray-500">Conversation messages and attached files will appear here.</p>
+                </div>
+              )}
             </article>
           </section>
         )}
