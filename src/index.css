@@ -400,7 +400,74 @@ html.dark .rbc-timeslot-group {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Print optimizations */
+/* ==========================================================================
+   Login Card: Always Force Light-Mode Theme (immune to dark-mode globals)
+   ========================================================================== */
+
+/* Card background always crisp white */
+html.dark .login-card {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+  color: #000000 !important;
+}
+
+/* Reset all headings & paragraphs inside the card */
+html.dark .login-card h1,
+html.dark .login-card h2,
+html.dark .login-card h3,
+html.dark .login-card h4,
+html.dark .login-card h5,
+html.dark .login-card h6,
+html.dark .login-card p,
+html.dark .login-card label,
+html.dark .login-card .text-black,
+html.dark .login-card .text-gray-900,
+html.dark .login-card .text-gray-800,
+html.dark .login-card .text-gray-700 {
+  color: #000000 !important;
+}
+
+html.dark .login-card .text-gray-600 { color: #374151 !important; }
+html.dark .login-card .text-gray-500 { color: #6b7280 !important; }
+html.dark .login-card .text-gray-400 { color: #9ca3af !important; }
+html.dark .login-card .text-gray-300 { color: #d1d5db !important; }
+
+/* Inputs, selects: always light bg / dark text */
+html.dark .login-card input,
+html.dark .login-card select,
+html.dark .login-card textarea {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  border-color: #d1d5db !important;
+}
+
+html.dark .login-card input::placeholder,
+html.dark .login-card textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* Container backgrounds */
+html.dark .login-card .bg-white   { background-color: #ffffff !important; }
+html.dark .login-card .bg-gray-50 { background-color: #f9fafb !important; }
+html.dark .login-card .bg-gray-100 { background-color: #f3f4f6 !important; }
+
+/* Borders */
+html.dark .login-card .border-gray-200 { border-color: #e5e7eb !important; }
+html.dark .login-card .border-gray-300 { border-color: #d1d5db !important; }
+
+/* Demo account icon box */
+html.dark .login-card .text-gray-700 { color: #374151 !important; }
+
+/* Error text */
+html.dark .login-card .text-\[#D32F45\] { color: #D32F45 !important; }
+html.dark .login-card .border-red-200  { border-color: #fecaca !important; }
+html.dark .login-card .bg-red-50       { background-color: #fef2f2 !important; }
+
+/* Hover state text for demo buttons */
+html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !important; }
+
+/* ==========================================================================
+   Print
+   ========================================================================== */
 @media print {
   .no-print,
   aside,

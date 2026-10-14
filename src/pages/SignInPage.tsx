@@ -49,7 +49,7 @@ const SignInPage: React.FC = () => {
       <img src="/images/bgimage2.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center" />
       <div className="absolute inset-0 bg-slate-950/45" aria-hidden="true" />
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 sm:px-6">
-        <main className="w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+        <main className="login-card w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
           <header className="mb-7">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#707E94] shadow-sm">
