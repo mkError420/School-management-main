@@ -11,6 +11,7 @@ import {
   Clock,
   Download,
   Eye,
+  EyeOff,
   Filter,
   GraduationCap,
   Mail,
@@ -167,6 +168,8 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const [parentForm, setParentForm] = useState(emptyParentForm);
   const [selectedParentImage, setSelectedParentImage] = useState<File | null>(null);
   const [parentImagePreview, setParentImagePreview] = useState<string | null>(null);
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+  const [showParentPassword, setShowParentPassword] = useState(false);
 
   // Debounce search
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1075,15 +1078,26 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 {/* Password */}
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                   <span>Password {editItem ? <span className="font-normal text-gray-400">(leave blank to keep)</span> : "*"}</span>
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={6}
-                    required={!editItem}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showStudentPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      minLength={6}
+                      required={!editItem}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 pr-10 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowStudentPassword((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                      aria-label={showStudentPassword ? "Hide password" : "Show password"}
+                    >
+                      {showStudentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </label>
 
                 {/* Roll */}
@@ -1362,32 +1376,47 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       ].map(({ label, field, type, required }) => (
                         <label key={field} className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
                           <span>{label}</span>
-                          <input
-                            type={type}
-                            required={required}
-                            autoComplete={type === "password" ? "new-password" : undefined}
-                            minLength={type === "password" ? 6 : undefined}
-                            value={(parentForm as any)[field]}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (field === "name") {
-                                setParentForm(prev => ({
-                                  ...prev, name: val,
-                                  username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
-                                    ? `${val.toLowerCase()}.${prev.surname.toLowerCase()}` : prev.username
-                                }));
-                              } else if (field === "surname") {
-                                setParentForm(prev => ({
-                                  ...prev, surname: val,
-                                  username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
-                                    ? `${prev.name.toLowerCase()}.${val.toLowerCase()}` : prev.username
-                                }));
-                              } else {
-                                setParentForm({ ...parentForm, [field]: val });
-                              }
-                            }}
-                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                          />
+                          <div className="relative">
+                            <input
+                              type={field === "password" ? (showParentPassword ? "text" : "password") : type}
+                              required={required}
+                              autoComplete={type === "password" ? "new-password" : undefined}
+                              minLength={type === "password" ? 6 : undefined}
+                              value={(parentForm as any)[field]}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (field === "name") {
+                                  setParentForm(prev => ({
+                                    ...prev, name: val,
+                                    username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
+                                      ? `${val.toLowerCase()}.${prev.surname.toLowerCase()}` : prev.username
+                                  }));
+                                } else if (field === "surname") {
+                                  setParentForm(prev => ({
+                                    ...prev, surname: val,
+                                    username: !prev.username || prev.username === `${prev.name.toLowerCase()}.${prev.surname.toLowerCase()}`
+                                      ? `${prev.name.toLowerCase()}.${val.toLowerCase()}` : prev.username
+                                  }));
+                                } else {
+                                  setParentForm({ ...parentForm, [field]: val });
+                                }
+                              }}
+                              className={`w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
+                                field === "password" ? "pr-8" : ""
+                              }`}
+                            />
+                            {field === "password" && (
+                              <button
+                                type="button"
+                                tabIndex={-1}
+                                onClick={() => setShowParentPassword((prev) => !prev)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                aria-label={showParentPassword ? "Hide password" : "Show password"}
+                              >
+                                {showParentPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                              </button>
+                            )}
+                          </div>
                         </label>
                       ))}
                       <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300 sm:col-span-2">

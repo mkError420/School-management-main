@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Check, KeyRound, Pencil, Plus, Search, Shield, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
+import { Check, Eye, EyeOff, KeyRound, Pencil, Plus, Search, Shield, ShieldCheck, Trash2, UserRound, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 
@@ -33,6 +33,7 @@ const AdminUsersPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [draft, setDraft] = useState<AdminDraft>(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState<AdminAccount | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -231,7 +232,26 @@ const AdminUsersPage: React.FC = () => {
               </label>
               <label className="block text-sm font-medium text-gray-700">
                 Password {editingId && <span className="font-normal text-gray-500">(leave blank to keep current)</span>}
-                <input required={!editingId} minLength={8} type="password" autoComplete="new-password" value={draft.password} onChange={(event) => setDraft({ ...draft, password: event.target.value })} className={`${fieldClass} mt-1.5`} />
+                <div className="relative mt-1.5">
+                  <input
+                    required={!editingId}
+                    minLength={8}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={draft.password}
+                    onChange={(event) => setDraft({ ...draft, password: event.target.value })}
+                    className={`${fieldClass} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
               <p className="flex items-center gap-2 text-xs text-gray-500"><KeyRound size={14} aria-hidden="true" />Passwords are stored as secure hashes.</p>
               <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">

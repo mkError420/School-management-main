@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Building2, Check, DollarSign, Image as ImageIcon, KeyRound, Link as LinkIcon, LogOut, Moon, RotateCcw, ShieldCheck, Sun, Upload, UserRound, X } from "lucide-react";
+import { Building2, Check, DollarSign, Eye, EyeOff, Image as ImageIcon, KeyRound, Link as LinkIcon, LogOut, Moon, RotateCcw, ShieldCheck, Sun, Upload, UserRound, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CURRENCY_OPTIONS, useSiteSettings } from "@/context/SiteSettingsContext";
@@ -27,6 +27,9 @@ const SettingsPage: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -534,39 +537,72 @@ const SettingsPage: React.FC = () => {
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <label className="block text-sm font-semibold text-black dark:text-white">
                 Current password
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                  className={`${inputClass} mt-1.5`}
-                />
+                <div className="relative mt-1.5">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    className={`${inputClass} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-black dark:text-white">
                   New password
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
-                    className={`${inputClass} mt-1.5`}
-                  />
+                  <div className="relative mt-1.5">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      className={`${inputClass} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      aria-label={showNewPassword ? "Hide password" : "Show password"}
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </label>
                 <label className="block text-sm font-semibold text-black dark:text-white">
                   Confirm new password
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    className={`${inputClass} mt-1.5`}
-                  />
+                  <div className="relative mt-1.5">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className={`${inputClass} pr-10`}
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </label>
               </div>
               {passwordFeedback && (

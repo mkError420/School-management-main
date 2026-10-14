@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
 
 type Entity =
@@ -199,6 +200,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
   const routineInputRef = useRef<HTMLInputElement>(null);
   const [options, setOptions] = useState<Record<string, SelectOption[]>>({});
   const [loadingOptions, setLoadingOptions] = useState(true);
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -381,10 +383,29 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         {fields.map((field) => {
           if (entity === "result" && field.name === "assessment_id" && !values.result_type) return null;
           if (field.name === "password" && type === "update") {
+            const isVisible = Boolean(showPasswords[field.name]);
             return (
               <label key={field.name} className="flex flex-col gap-1.5 text-sm text-gray-700">
                 {field.label} (leave blank to keep current)
-                <input type="password" autoComplete="new-password" value={values[field.name] || ""} onChange={(event) => setValue(field.name, event.target.value)} minLength={6} className="rounded-md border border-gray-300 px-3 py-2 outline-none focus:border-sky-500" />
+                <div className="relative">
+                  <input
+                    type={isVisible ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={values[field.name] || ""}
+                    onChange={(event) => setValue(field.name, event.target.value)}
+                    minLength={6}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 pr-10 outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPasswords(prev => ({ ...prev, [field.name]: !prev[field.name] }))}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={isVisible ? "Hide password" : "Show password"}
+                  >
+                    {isVisible ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </label>
             );
           }
@@ -590,6 +611,29 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                   {field.type !== "multiselect" && <option value="">Select {field.label.toLowerCase()}</option>}
                   {fieldOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
+              ) : field.type === "password" || field.name === "password" ? (
+                <div className="relative">
+                  <input
+                    required={field.required}
+                    type={showPasswords[field.name] ? "text" : "password"}
+                    disabled={field.name === "username" && type === "update"}
+                    placeholder={field.placeholder}
+                    minLength={6}
+                    autoComplete="new-password"
+                    value={values[field.name] ?? ""}
+                    onChange={(event) => setValue(field.name, event.target.value)}
+                    className={`${inputClass} pr-10`}
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPasswords(prev => ({ ...prev, [field.name]: !prev[field.name] }))}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPasswords[field.name] ? "Hide password" : "Show password"}
+                  >
+                    {showPasswords[field.name] ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               ) : (
                 <input
                   required={field.required}
@@ -598,8 +642,6 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
                   min={field.min}
                   max={field.max}
                   placeholder={field.placeholder}
-                  minLength={field.type === "password" ? 6 : undefined}
-                  autoComplete={field.type === "password" ? "new-password" : undefined}
                   value={values[field.name] ?? ""}
                   onChange={(event) => setValue(field.name, event.target.value)}
                   className={`${inputClass} ${field.name === "username" && type === "update" ? "bg-gray-100 text-gray-500" : ""}`}

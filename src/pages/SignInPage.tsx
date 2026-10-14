@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { resolveLogoUrl, useSiteSettings } from "@/context/SiteSettingsContext";
 
@@ -26,6 +26,7 @@ const SignInPage: React.FC = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,15 +106,26 @@ const SignInPage: React.FC = () => {
 
             <label className="block text-sm font-semibold text-black">
               Password
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
-                required
-                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-black outline-none transition placeholder:text-gray-500 focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
-              />
+              <div className="relative mt-1.5">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  className="w-full rounded-md border border-gray-300 bg-white px-4 py-3 pr-11 text-sm text-black outline-none transition placeholder:text-gray-500 focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 transition"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                </button>
+              </div>
             </label>
 
             {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-[#D32F45] font-medium">{error}</p>}

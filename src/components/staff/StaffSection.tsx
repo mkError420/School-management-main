@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Briefcase,
@@ -12,6 +12,7 @@ import {
   Coins,
   Download,
   Eye,
+  EyeOff,
   FileSpreadsheet,
   Filter,
   GraduationCap,
@@ -255,6 +256,7 @@ const StaffSection: React.FC = () => {
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [editItem, setEditItem] = useState<StaffMember | null>(null);
   const [detailsItem, setDetailsItem] = useState<StaffMember | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<StaffMember | null>(null);
@@ -1386,13 +1388,24 @@ const StaffSection: React.FC = () => {
                       <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Initial Portal Password
                       </label>
-                      <input
-                        type="password"
-                        placeholder="Default: teacher123"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Default: teacher123"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full px-3 py-1.5 pr-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
