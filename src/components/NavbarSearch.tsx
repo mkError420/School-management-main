@@ -317,11 +317,10 @@ export const NavbarSearch: React.FC = () => {
                     setActiveTab(tab.key);
                     setSelectedIndex(-1);
                   }}
-                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition cursor-pointer ${
-                    active
-                      ? "bg-[#D32F45] text-white shadow-xs"
-                      : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  }`}
+                  className={`text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition cursor-pointer ${active
+                    ? "bg-[#D32F45] text-white shadow-xs"
+                    : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
+                    }`}
                 >
                   {tab.label} ({count})
                 </button>
@@ -339,9 +338,6 @@ export const NavbarSearch: React.FC = () => {
             </div>
           ) : !hasQuery ? (
             <div className="p-4 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] mb-2">
-                <Sparkles className="h-5 w-5" />
-              </div>
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
                 Quick Global Search
               </p>
@@ -366,11 +362,10 @@ export const NavbarSearch: React.FC = () => {
                   key={`${item.type}-${item.id}-${idx}`}
                   onClick={() => handleSelectResult(item)}
                   onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`flex items-center gap-3 p-2.5 rounded-xl transition cursor-pointer ${
-                    isSelected
-                      ? "bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-white"
-                      : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-800 dark:text-gray-200"
-                  }`}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl transition cursor-pointer ${isSelected
+                    ? "bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-white"
+                    : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-800 dark:text-gray-200"
+                    }`}
                 >
                   {/* Avatar or Icon */}
                   {item.img ? (
