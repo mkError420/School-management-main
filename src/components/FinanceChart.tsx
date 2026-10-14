@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+﻿import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   TrendingUp,
@@ -265,7 +265,7 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
         {/* SUMMARY STATS TILES */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
           {/* Income (Fees) */}
-          <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-50/70 to-purple-50/40 dark:from-indigo-950/30 dark:to-purple-950/20 border border-indigo-100/80 dark:border-indigo-800/40 flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-50/70 to-[#707E94]/10 dark:from-indigo-950/30 dark:to-[#707E94]/10 border border-indigo-100/80 dark:border-indigo-800/40 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-indigo-600/30">
                 <Receipt size={16} />
@@ -408,19 +408,19 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
                 name="income"
                 type="monotone"
                 dataKey="income"
-                stroke="#6366f1"
+                stroke="#707E94"
                 strokeWidth={3}
-                dot={{ r: 3, fill: "#6366f1" }}
-                activeDot={{ r: 6, stroke: "#6366f1", strokeWidth: 2 }}
+                dot={{ r: 3, fill: "#707E94" }}
+                activeDot={{ r: 6, stroke: "#707E94", strokeWidth: 2 }}
               />
               <Line
                 name="expense"
                 type="monotone"
                 dataKey="expense"
-                stroke="#f43f5e"
+                stroke="#D32F45"
                 strokeWidth={3}
-                dot={{ r: 3, fill: "#f43f5e" }}
-                activeDot={{ r: 6, stroke: "#f43f5e", strokeWidth: 2 }}
+                dot={{ r: 3, fill: "#D32F45" }}
+                activeDot={{ r: 6, stroke: "#D32F45", strokeWidth: 2 }}
               />
             </LineChart>
           ) : (

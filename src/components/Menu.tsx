@@ -188,7 +188,7 @@ const Menu: React.FC = () => {
     <div className="mt-4 text-sm overflow-y-auto flex-1 pr-1 custom-scrollbar">
       {menuItems.map((section) => (
         <div className="flex flex-col gap-1.5 mb-4" key={section.title}>
-          <span className="hidden lg:block text-gray-400 font-semibold text-[11px] tracking-wider my-2 uppercase">
+          <span className="hidden lg:block text-[#707E94] dark:text-[#a4b3c7] font-bold text-[11px] tracking-wider my-2 uppercase">
             {section.title}
           </span>
           {section.items.map((item) => {
@@ -199,7 +199,7 @@ const Menu: React.FC = () => {
                 <button
                   key={item.label}
                   onClick={logout}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-600 hover:text-red-600 py-2.5 px-2 rounded-lg hover:bg-red-50 transition w-full text-left"
+                  className="flex items-center justify-center lg:justify-start gap-4 text-black dark:text-white hover:text-[#D32F45] dark:hover:text-[#f87171] py-2.5 px-2 rounded-lg hover:bg-[#D32F45]/10 dark:hover:bg-[#D32F45]/20 transition w-full text-left font-medium"
                 >
                   <Image src={item.icon} alt="" width={18} height={18} />
                   <span className="hidden lg:block font-medium">{item.label}</span>
@@ -218,8 +218,8 @@ const Menu: React.FC = () => {
                 key={item.label}
                 className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-2 rounded-lg transition font-medium ${
                   isActive
-                    ? "bg-purple-100 text-purple-800 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    ? "bg-[#707E94] text-white shadow-sm font-semibold"
+                    : "text-black dark:text-white hover:bg-[#707E94]/10 hover:text-[#707E94] dark:hover:bg-[#707E94]/20 dark:hover:text-white"
                 }`}
               >
                 <Image src={item.icon} alt="" width={18} height={18} />

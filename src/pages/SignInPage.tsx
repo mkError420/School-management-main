@@ -52,19 +52,19 @@ const SignInPage: React.FC = () => {
         <main className="w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
           <header className="mb-7">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-sky-800">
-                <img src="/images/logo.png" alt={siteName} className="h-7 w-7 object-contain" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#707E94] shadow-sm">
+                <img src="/images/logo.png" alt={siteName} className="h-7 w-7 object-contain brightness-0 invert" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{siteName}</h1>
-                <p className="text-xs text-gray-500">School Management System</p>
+                <h1 className="text-xl font-bold text-black">{siteName}</h1>
+                <p className="text-xs text-gray-700">School Management System</p>
               </div>
             </div>
-            <p className="mt-6 text-sm font-medium text-gray-600">Sign in to continue to your account.</p>
+            <p className="mt-6 text-sm font-medium text-black">Sign in to continue to your account.</p>
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <label className="block text-sm font-semibold text-gray-700">
+            <label className="block text-sm font-semibold text-black">
               Username or Email
               <input
                 type="text"
@@ -73,11 +73,11 @@ const SignInPage: React.FC = () => {
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Enter your username or email"
                 required
-                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-black outline-none transition placeholder:text-gray-500 focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
               />
             </label>
 
-            <label className="block text-sm font-semibold text-gray-700">
+            <label className="block text-sm font-semibold text-black">
               Password
               <input
                 type="password"
@@ -86,23 +86,23 @@ const SignInPage: React.FC = () => {
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="Enter your password"
                 required
-                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-sky-600 focus:ring-2 focus:ring-sky-100"
+                className="mt-1.5 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-black outline-none transition placeholder:text-gray-500 focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
               />
             </label>
 
-            {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">{error}</p>}
+            {error && <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-[#D32F45] font-medium">{error}</p>}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-md bg-sky-800 py-3 text-sm font-bold text-white transition hover:bg-sky-900 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-md bg-[#707E94] py-3 text-sm font-bold text-white transition hover:bg-[#5a6679] shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? "Signing in..." : "Login"}
             </button>
           </form>
 
           <section className="mt-6 border-t border-gray-200 pt-4" aria-labelledby="demo-accounts-title">
-            <h2 id="demo-accounts-title" className="text-sm font-semibold text-gray-800">Demo accounts</h2>
+            <h2 id="demo-accounts-title" className="text-sm font-bold text-black">Demo accounts</h2>
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {demoAccounts.map((account) => {
                 const Icon = account.icon;
@@ -112,16 +112,16 @@ const SignInPage: React.FC = () => {
                     type="button"
                     disabled={isLoading}
                     onClick={() => void handleDemoSignIn(account)}
-                    className="group/demo flex min-w-0 items-center gap-2.5 rounded-md border border-gray-200 bg-white px-2.5 py-2.5 text-left transition hover:border-sky-500 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="group/demo flex min-w-0 items-center gap-2.5 rounded-md border border-gray-200 bg-white px-2.5 py-2.5 text-left transition hover:border-[#707E94] hover:bg-[#707E94]/10 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600 group-hover/demo:text-sky-700">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-700 group-hover/demo:text-[#707E94]">
                       <Icon size={16} aria-hidden="true" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-xs font-semibold text-gray-800">{account.label}</span>
-                      <span className="mt-0.5 block truncate font-mono text-[10px] text-gray-500">{account.username} / {account.password}</span>
+                      <span className="block text-xs font-semibold text-black">{account.label}</span>
+                      <span className="mt-0.5 block truncate font-mono text-[10px] text-gray-600">{account.username} / {account.password}</span>
                     </span>
-                    <ArrowRight size={14} className="shrink-0 text-gray-400 group-hover/demo:text-sky-700" aria-hidden="true" />
+                    <ArrowRight size={14} className="shrink-0 text-gray-400 group-hover/demo:text-[#707E94]" aria-hidden="true" />
                   </button>
                 );
               })}

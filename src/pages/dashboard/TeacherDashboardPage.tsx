@@ -110,7 +110,7 @@ const TeacherDashboardPage: React.FC = () => {
           className={`${cardBg} border rounded-2xl shadow-sm overflow-hidden`}
         >
           {/* Top gradient strip */}
-          <div className="h-2 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500" />
+          <div className="h-2 bg-gradient-to-r from-[#707E94] via-[#5a6679] to-[#485262]" />
 
           <div className="p-5 md:p-6 flex flex-col sm:flex-row sm:items-start gap-5">
             {/* Avatar */}

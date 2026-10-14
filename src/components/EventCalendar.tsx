@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -88,7 +88,7 @@ const getEventBadge = (startStr?: string) => {
 
   if (diffDays === 0) return { label: "Today", bg: "bg-emerald-500 text-white animate-pulse" };
   if (diffDays === 1) return { label: "Tomorrow", bg: "bg-indigo-600 text-white" };
-  if (diffDays > 1 && diffDays <= 7) return { label: `In ${diffDays} days`, bg: "bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 font-semibold" };
+  if (diffDays > 1 && diffDays <= 7) return { label: `In ${diffDays} days`, bg: "bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] font-semibold" };
   if (diffDays > 7) return { label: formatDateOnly(date), bg: "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300" };
   return { label: "Completed", bg: "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" };
 };
@@ -109,12 +109,12 @@ const isEventOnDate = (event: EventItem, targetDate: Date): boolean => {
 };
 
 const borderAccents = [
-  "border-l-indigo-500",
-  "border-l-purple-500",
-  "border-l-sky-500",
-  "border-l-emerald-500",
-  "border-l-amber-500",
-  "border-l-rose-500",
+  "border-l-[#707E94]",
+  "border-l-[#D32F45]",
+  "border-l-[#556275]",
+  "border-l-[#be2035]",
+  "border-l-[#485262]",
+  "border-l-[#9c1828]",
 ];
 
 const EventCalendar: React.FC = () => {
@@ -217,7 +217,7 @@ const EventCalendar: React.FC = () => {
   return (
     <div className="bg-white dark:bg-gray-800 p-4 md:p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700/80 flex flex-col gap-3.5">
       {/* ─── Top Breaking News / Live Events Ticker Bar ──────────────── */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 text-white p-2.5 shadow-sm">
+      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[#707E94] to-[#D32F45] text-white p-2.5 shadow-sm">
         <div className="flex items-center gap-2.5">
           <div className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/90 text-[10px] font-black tracking-wider uppercase shadow-xs">
             <Radio size={11} className="animate-pulse text-white" />
@@ -227,7 +227,7 @@ const EventCalendar: React.FC = () => {
           {/* Horizontal Scrolling Marquee */}
           <div className="flex-1 overflow-hidden relative text-xs">
             {events.length === 0 ? (
-              <span className="text-purple-100 text-xs italic">
+              <span className="text-white/90 text-xs italic">
                 {loading ? "Fetching school events feed…" : "No active events announced"}
               </span>
             ) : (
@@ -240,11 +240,11 @@ const EventCalendar: React.FC = () => {
                     key={`${ev.id}-${i}`}
                     type="button"
                     onClick={() => setSelectedEventModal(ev)}
-                    className="inline-flex items-center gap-1.5 text-purple-100 hover:text-white transition font-medium cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-white/90 hover:text-white transition font-medium cursor-pointer"
                   >
                     <span className="text-amber-300 font-bold">✦</span>
                     <span className="font-semibold text-white">{ev.title}</span>
-                    <span className="text-[11px] text-purple-200 opacity-90">
+                    <span className="text-[11px] text-white/80 opacity-90">
                       ({formatDateOnly(ev.start_time)}{ev.class_name ? ` · Class ${ev.class_name}` : ""})
                     </span>
                   </button>
@@ -258,7 +258,7 @@ const EventCalendar: React.FC = () => {
       {/* ─── Header Section with Ticker Controls ─────────────────────── */}
       <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/80 pb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-purple-50 dark:bg-purple-950/60 flex items-center justify-center text-purple-600 dark:text-purple-400">
+          <div className="w-8 h-8 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 flex items-center justify-center text-[#707E94] dark:text-[#a4b3c7]">
             <CalendarIcon size={18} />
           </div>
           <div>
@@ -266,7 +266,7 @@ const EventCalendar: React.FC = () => {
               <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
                 Events Section
               </h2>
-              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300">
+              <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]">
                 {events.length}
               </span>
             </div>
@@ -284,7 +284,7 @@ const EventCalendar: React.FC = () => {
               onClick={() => setViewMode("ticker")}
               title="Infinite Bottom-to-Top Ticker"
               className={`px-2 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 transition ${viewMode === "ticker"
-                ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-xs"
+                ? "bg-white dark:bg-gray-800 text-[#707E94] dark:text-[#a4b3c7] shadow-xs"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
                 }`}
             >
@@ -296,7 +296,7 @@ const EventCalendar: React.FC = () => {
               onClick={() => setViewMode("list")}
               title="Static List View"
               className={`px-2 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1 transition ${viewMode === "list"
-                ? "bg-white dark:bg-gray-800 text-purple-600 dark:text-purple-400 shadow-xs"
+                ? "bg-white dark:bg-gray-800 text-[#707E94] dark:text-[#a4b3c7] shadow-xs"
                 : "text-gray-600 dark:text-gray-400 hover:text-gray-900"
                 }`}
             >
@@ -322,7 +322,7 @@ const EventCalendar: React.FC = () => {
 
           <Link
             to="/list/events"
-            className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline flex items-center gap-0.5 ml-1"
+            className="text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7] hover:text-[#556275] dark:hover:text-white hover:underline flex items-center gap-0.5 ml-1"
           >
             All
             <ChevronRight size={13} />
@@ -333,7 +333,7 @@ const EventCalendar: React.FC = () => {
       {/* ─── Top Calendar Picker (Collapsible) ───────────────────────── */}
       {showCalendar && (
         <div className="rounded-xl p-2 bg-slate-50/70 dark:bg-gray-700/30 border border-slate-100 dark:border-gray-700/60 transition-all">
-          <div className="[&_.react-calendar]:w-full [&_.react-calendar]:border-0 [&_.react-calendar]:font-sans [&_.react-calendar]:bg-transparent [&_.react-calendar]:text-gray-800 [&_.react-calendar]:dark:text-gray-100 [&_.react-calendar__navigation]:mb-2 [&_.react-calendar__navigation_button]:rounded-lg [&_.react-calendar__navigation_button]:min-w-[34px] [&_.react-calendar__navigation_button]:h-8 [&_.react-calendar__navigation_button]:hover:bg-purple-100/60 [&_.react-calendar__navigation_button]:dark:hover:bg-gray-600 [&_.react-calendar__navigation_button]:font-semibold [&_.react-calendar__navigation_button]:text-sm [&_.react-calendar__tile]:rounded-lg [&_.react-calendar__tile]:py-2 [&_.react-calendar__tile]:text-xs [&_.react-calendar__tile]:transition-all [&_.react-calendar__tile--now]:bg-purple-50 [&_.react-calendar__tile--now]:text-purple-700 [&_.react-calendar__tile--now]:font-bold [&_.react-calendar__tile--now]:dark:bg-purple-950/50 [&_.react-calendar__tile--now]:dark:text-purple-300 [&_.react-calendar__tile--active]:!bg-purple-600 [&_.react-calendar__tile--active]:!text-white [&_.react-calendar__tile--active]:shadow-sm [&_.react-calendar__tile:hover]:bg-purple-100/40 [&_.react-calendar__tile:hover]:dark:bg-gray-600 [&_.react-calendar__month-view__weekdays]:font-semibold [&_.react-calendar__month-view__weekdays]:text-[11px] [&_.react-calendar__month-view__weekdays__weekday]:text-gray-500 [&_.react-calendar__month-view__weekdays__weekday]:dark:text-gray-400 [&_.react-calendar__month-view__weekdays__weekday_abbr]:no-underline">
+          <div className="[&_.react-calendar]:w-full [&_.react-calendar]:border-0 [&_.react-calendar]:font-sans [&_.react-calendar]:bg-transparent [&_.react-calendar]:text-gray-800 [&_.react-calendar]:dark:text-gray-100 [&_.react-calendar__navigation]:mb-2 [&_.react-calendar__navigation_button]:rounded-lg [&_.react-calendar__navigation_button]:min-w-[34px] [&_.react-calendar__navigation_button]:h-8 [&_.react-calendar__navigation_button\]:hover:bg-primary-100/60 [&_.react-calendar__navigation_button]:dark:hover:bg-gray-600 [&_.react-calendar__navigation_button]:font-semibold [&_.react-calendar__navigation_button]:text-sm [&_.react-calendar__tile]:rounded-lg [&_.react-calendar__tile]:py-2 [&_.react-calendar__tile]:text-xs [&_.react-calendar__tile]:transition-all [&_.react-calendar__tile--now\]:bg-primary-50 [&_.react-calendar__tile--now\]:text-[#707E94] [&_.react-calendar__tile--now]:font-bold [&_.react-calendar__tile--now\]:dark:bg-[#1a2332] [&_.react-calendar__tile--now\]:dark:text-[#a4b3c7] [&_.react-calendar__tile--active\]:!bg-[#707E94] [&_.react-calendar__tile--active]:!text-white [&_.react-calendar__tile--active]:shadow-sm [&_.react-calendar__tile:hover\]:bg-primary-100/40 [&_.react-calendar__tile:hover]:dark:bg-gray-600 [&_.react-calendar__month-view__weekdays]:font-semibold [&_.react-calendar__month-view__weekdays]:text-[11px] [&_.react-calendar__month-view__weekdays__weekday]:text-gray-500 [&_.react-calendar__month-view__weekdays__weekday]:dark:text-gray-400 [&_.react-calendar__month-view__weekdays__weekday_abbr]:no-underline">
             <Calendar
               onChange={handleDateChange}
               value={calendarValue}
@@ -343,7 +343,7 @@ const EventCalendar: React.FC = () => {
                   if (hasEvents) {
                     return (
                       <div className="flex justify-center items-center mt-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-purple-600 dark:bg-purple-400" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#D32F45] dark:bg-[#D32F45]" />
                       </div>
                     );
                   }
@@ -357,14 +357,14 @@ const EventCalendar: React.FC = () => {
 
       {/* ─── Filter Banner (if date filtered) ───────────────────────── */}
       {selectedDate && (
-        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900/40 text-xs">
-          <span className="text-purple-800 dark:text-purple-200 font-medium">
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-primary-50 dark:bg-[#1a2332] border border-primary-100 dark:border-[#253147] text-xs">
+          <span className="text-[#707E94] dark:text-[#a4b3c7] font-medium">
             Events on <span className="font-bold">{formatDateOnly(selectedDate)}</span> ({displayedEvents.length})
           </span>
           <button
             type="button"
             onClick={() => setSelectedDate(null)}
-            className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200 font-semibold flex items-center gap-1"
+            className="text-[#707E94] dark:text-[#a4b3c7] hover:text-[#556275] dark:hover:text-white font-semibold flex items-center gap-1"
           >
             <X size={13} />
             Show All
@@ -380,7 +380,7 @@ const EventCalendar: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsPaused((prev) => !prev)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-purple-700 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-950/50 hover:bg-purple-200 transition"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-[#707E94] dark:text-[#a4b3c7] bg-[#707E94]/15/70 dark:bg-[#707E94]/20 hover:bg-[#707E94]/25 transition"
               title={isPaused ? "Resume Ticker" : "Pause Ticker"}
             >
               {isPaused ? <Play size={10} className="fill-current" /> : <Pause size={10} className="fill-current" />}
@@ -412,7 +412,7 @@ const EventCalendar: React.FC = () => {
                 type="button"
                 onClick={() => setSpeed(s)}
                 className={`px-1.5 py-0.5 rounded text-[10px] font-semibold transition ${speed === s
-                  ? "bg-purple-600 text-white"
+                  ? "bg-[#D32F45] text-white"
                   : "text-gray-500 dark:text-gray-400 hover:text-gray-800"
                   }`}
               >
@@ -468,7 +468,7 @@ const EventCalendar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedDate(null)}
-                className="text-purple-600 dark:text-purple-400 underline font-medium hover:text-purple-700"
+                className="text-[#707E94] dark:text-[#a4b3c7] underline font-medium hover:text-[#556275]"
               >
                 Clear filter & show all events
               </button>
@@ -513,7 +513,7 @@ const EventCalendar: React.FC = () => {
                   <div className="flex items-start justify-between gap-2 mb-1.5">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-sm text-gray-800 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition leading-snug">
+                        <span className="font-bold text-sm text-gray-800 dark:text-gray-100 group-hover:text-[#556275] dark:group-hover:text-white transition leading-snug">
                           {event.title}
                         </span>
                         {badge && (
@@ -532,7 +532,7 @@ const EventCalendar: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedEventModal(event)}
-                        className="p-1 rounded-md text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                        className="p-1 rounded-md text-gray-400 hover:text-[#556275] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-600 transition"
                         title="View Details"
                       >
                         <Eye size={13} />
@@ -562,7 +562,7 @@ const EventCalendar: React.FC = () => {
                   {/* Metadata: Date, Time & Class */}
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
                     <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300">
-                      <CalendarIcon size={12} className="text-purple-500" />
+                      <CalendarIcon size={12} className="text-[#707E94]" />
                       {eventDate}
                     </span>
                     {timeRange && (
@@ -586,7 +586,7 @@ const EventCalendar: React.FC = () => {
                   {/* Card footer */}
                   <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between text-[10px] text-gray-400">
                     <span>ID #{event.id}</span>
-                    <span className="text-purple-600 dark:text-purple-400 font-semibold group-hover:underline flex items-center gap-0.5">
+                    <span className="text-[#707E94] dark:text-[#a4b3c7] font-semibold group-hover:underline flex items-center gap-0.5">
                       Quick View →
                     </span>
                   </div>
@@ -617,7 +617,7 @@ const EventCalendar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setSelectedEventModal(event)}
-                      className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition text-left"
+                      className="font-semibold text-sm text-gray-800 dark:text-gray-100 group-hover:text-[#556275] dark:group-hover:text-white transition text-left"
                     >
                       {event.title}
                     </button>
@@ -652,7 +652,7 @@ const EventCalendar: React.FC = () => {
 
                 <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
                   <span className="flex items-center gap-1 font-medium text-gray-700 dark:text-gray-300">
-                    <CalendarIcon size={12} className="text-purple-500" />
+                    <CalendarIcon size={12} className="text-[#707E94]" />
                     {eventDate}
                   </span>
                   {timeRange && (
@@ -677,7 +677,7 @@ const EventCalendar: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSelectedEventModal(event)}
-                    className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline flex items-center gap-1"
+                    className="text-[11px] font-semibold text-[#707E94] dark:text-[#a4b3c7] hover:text-[#556275] dark:hover:text-white hover:underline flex items-center gap-1"
                   >
                     View Details →
                   </button>
@@ -691,7 +691,7 @@ const EventCalendar: React.FC = () => {
       {/* ─── Footer: View All in Events Directory ───────────────────── */}
       <Link
         to="/list/events"
-        className="w-full py-2.5 px-3 rounded-xl border border-dashed border-purple-200 dark:border-purple-800/60 hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 text-purple-600 dark:text-purple-400 font-semibold text-xs flex items-center justify-center gap-1.5 transition mt-1"
+        className="w-full py-2.5 px-3 rounded-xl border border-dashed border-[#707E94]/30 dark:border-[#707E94]/30 hover:border-[#707E94]/40 hover:bg-[#707E94]/10 dark:hover:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] font-semibold text-xs flex items-center justify-center gap-1.5 transition mt-1"
       >
         <span>View Full Events Directory ({events.length})</span>
         <ChevronRight size={14} />
@@ -701,11 +701,11 @@ const EventCalendar: React.FC = () => {
       {selectedEventModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-500" />
+            <div className="h-2 bg-gradient-to-r from-[#707E94] to-[#D32F45]" />
             <div className="p-5 md:p-6 flex flex-col gap-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]">
                     Event Details
                   </span>
                   <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mt-1">
@@ -726,14 +726,14 @@ const EventCalendar: React.FC = () => {
                 <div>
                   <span className="text-gray-400 block text-[10px]">Date</span>
                   <span className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1 mt-0.5">
-                    <CalendarIcon size={13} className="text-purple-500" />
+                    <CalendarIcon size={13} className="text-[#707E94]" />
                     {formatDateOnly(selectedEventModal.start_time)}
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-400 block text-[10px]">Time</span>
                   <span className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1 mt-0.5">
-                    <Clock size={13} className="text-purple-500" />
+                    <Clock size={13} className="text-[#707E94]" />
                     {formatTimeRange(selectedEventModal.start_time, selectedEventModal.end_time) || "All Day"}
                   </span>
                 </div>
@@ -759,7 +759,7 @@ const EventCalendar: React.FC = () => {
               <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
                 <Link
                   to={`/list/events?search=${encodeURIComponent(selectedEventModal.title)}`}
-                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+                  className="text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7] hover:underline flex items-center gap-1"
                 >
                   <ExternalLink size={13} />
                   Open in All Events

@@ -75,8 +75,8 @@ const AvatarBubble: React.FC<{ name: string; img?: string | null; size?: number;
 
   // Stable colour from name hash
   const colours = [
-    "bg-sky-500", "bg-indigo-500", "bg-emerald-500", "bg-rose-500",
-    "bg-amber-500", "bg-purple-500", "bg-teal-500", "bg-pink-500",
+    "bg-[#707E94]", "bg-[#D32F45]", "bg-[#556275]", "bg-[#be2035]",
+    "bg-[#485262]", "bg-[#9c1828]", "bg-[#374151]", "bg-[#7f1320]",
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffffffff;
@@ -90,7 +90,7 @@ const AvatarBubble: React.FC<{ name: string; img?: string | null; size?: number;
         src={img.startsWith("http") ? img : `/uploads/${img}`}
         alt={name}
         style={style}
-        className={`rounded-full object-cover ring-2 ring-white shrink-0 ${className}`}
+        className={`rounded-full object-cover ring-2 ring-white dark:ring-gray-800 shrink-0 ${className}`}
         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
       />
     );
@@ -98,14 +98,14 @@ const AvatarBubble: React.FC<{ name: string; img?: string | null; size?: number;
   return (
     <span
       style={style}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${colour} ring-2 ring-white ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${colour} ring-2 ring-white dark:ring-gray-800 ${className}`}
     >
       {initials || "?"}
     </span>
   );
 };
 
-/** Stacked avatar row for broadcast messages â€“ shows up to 4 overlapping bubbles + overflow badge */
+/** Stacked avatar row for broadcast messages – shows up to 4 overlapping bubbles + overflow badge */
 const AvatarStack: React.FC<{ recipients: BroadcastRecipient[]; total: number }> = ({ recipients, total }) => {
   const shown = recipients.slice(0, 4);
   const overflow = total - shown.length;
@@ -119,7 +119,7 @@ const AvatarStack: React.FC<{ recipients: BroadcastRecipient[]; total: number }>
       {overflow > 0 && (
         <span
           style={{ width: 28, height: 28, marginLeft: -8, fontSize: 10 }}
-          className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-gray-300 font-bold text-gray-700 ring-2 ring-white"
+          className="relative inline-flex shrink-0 items-center justify-center rounded-full bg-gray-300 dark:bg-gray-700 font-bold text-gray-700 dark:text-gray-200 ring-2 ring-white dark:ring-gray-800"
         >
           +{overflow}
         </span>
@@ -513,48 +513,48 @@ const MessagesPage: React.FC = () => {
 
   return (
     <div className="m-4 mt-0 flex-1 space-y-4 pb-8">
-      {/* â”€â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* ─── Header ────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-3 py-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Communication</p>
-          <h1 className="mt-1 text-2xl font-semibold text-gray-900">Messages</h1>
-          <p className="mt-1 text-sm text-gray-500">Realtime messaging system between students, teachers, parents, and administrators.</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#707E94] dark:text-[#a4b3c7]">Communication</p>
+          <h1 className="mt-1 text-2xl font-semibold text-black dark:text-white">Messages</h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Realtime messaging system between students, teachers, parents, and administrators.</p>
         </div>
 
         {/* Compose Button - Available for EVERYONE */}
         <button
           onClick={() => openFolder("compose")}
-          className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 transition shadow-xs"
+          className="inline-flex items-center gap-2 rounded-md bg-[#D32F45] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#be2035] transition shadow-xs"
         >
           <Plus size={16} /> Compose Message
         </button>
       </header>
 
       {notice && (
-        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 flex items-center justify-between" role="status">
+        <div className="rounded-md border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/40 px-4 py-3 text-sm text-green-800 dark:text-green-300 flex items-center justify-between" role="status">
           <span>{notice}</span>
           <button onClick={() => setNotice(null)} className="text-green-700 hover:text-green-900"><X size={14} /></button>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-[#D32F45]/30 bg-[#D32F45]/10 px-4 py-3 text-sm text-[#D32F45]" role="alert">
           <span>{error}</span>
           <button onClick={() => setRefreshKey((value) => value + 1)} className="shrink-0 font-semibold underline">Retry</button>
         </div>
       )}
 
-      {/* â”€â”€â”€ Main Content Box â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="grid min-h-[620px] overflow-hidden rounded-md border border-gray-200 bg-white shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
-        {/* â”€â”€â”€ Left Sidebar Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <aside className="border-b border-gray-200 bg-gray-50 p-3 lg:border-b-0 lg:border-r">
+      {/* ─── Main Content Box ─────────────────────────────── */}
+      <div className="grid min-h-[620px] overflow-hidden rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* ─── Left Sidebar Navigation ───────────────────────── */}
+        <aside className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-3 lg:border-b-0 lg:border-r">
           <div className="relative mb-3">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search messages..."
-              className="w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-800 outline-none focus:border-sky-500"
+              className="w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-2 pl-9 pr-3 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]"
             />
           </div>
 
@@ -562,18 +562,18 @@ const MessagesPage: React.FC = () => {
             <button
               onClick={() => openFolder("inbox")}
               className={`flex flex-1 items-center justify-between rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
-                folder === "inbox" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+                folder === "inbox" ? "bg-[#707E94]/15 text-[#707E94] dark:text-white dark:bg-[#707E94]/25 font-bold" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
               <span className="flex items-center gap-2"><Inbox size={16} /> Inbox</span>
-              {unreadCount > 0 && <span className="rounded-full bg-sky-700 px-2 py-0.5 text-[11px] font-semibold text-white">{unreadCount}</span>}
+              {unreadCount > 0 && <span className="rounded-full bg-[#D32F45] px-2 py-0.5 text-[11px] font-semibold text-white">{unreadCount}</span>}
             </button>
 
             {/* Sent Folder - Available for EVERYONE */}
             <button
               onClick={() => openFolder("sent")}
               className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
-                folder === "sent" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+                folder === "sent" ? "bg-[#707E94]/15 text-[#707E94] dark:text-white dark:bg-[#707E94]/25 font-bold" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
               <Send size={16} /> Sent
@@ -583,7 +583,7 @@ const MessagesPage: React.FC = () => {
             <button
               onClick={() => openFolder("compose")}
               className={`flex flex-1 items-center gap-2 rounded-md px-3 py-2.5 text-left text-sm font-medium transition lg:flex-none ${
-                folder === "compose" ? "bg-sky-100 text-sky-900" : "text-gray-600 hover:bg-gray-100"
+                folder === "compose" ? "bg-[#707E94]/15 text-[#707E94] dark:text-white dark:bg-[#707E94]/25 font-bold" : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
               }`}
             >
               <Plus size={16} /> Compose
@@ -593,35 +593,35 @@ const MessagesPage: React.FC = () => {
           {folder === "inbox" && unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="mt-3 hidden w-full items-center justify-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 lg:flex"
+              className="mt-3 hidden w-full items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-750 lg:flex"
             >
               <MailCheck size={14} /> Mark all read
             </button>
           )}
         </aside>
 
-        {/* â”€â”€â”€ Center / Right Pane â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+        {/* ─── Center / Right Pane ─────────────────────────── */}
         {folder === "compose" ? (
-          /* â”€â”€â”€ Compose View: Available to EVERYONE â”€â”€â”€â”€â”€â”€â”€â”€ */
+          /* ─── Compose View: Available to EVERYONE ──────── */
           <section className="min-w-0 p-5 md:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+              <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <Send size={19} />
               </span>
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Compose message</h2>
-                <p className="text-sm text-gray-500">Send an instant message to any teacher, student, parent, or administration.</p>
+                <h2 className="text-lg font-semibold text-black dark:text-white">Compose message</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Send an instant message to any teacher, student, parent, or administration.</p>
               </div>
             </div>
 
             <form onSubmit={sendMessage} className="max-w-3xl space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
                   Recipient Role
                   <select
                     value={audience}
                     onChange={(event) => setAudience(event.target.value as Audience)}
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                    className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]"
                   >
                     <option value="admin">Administrators / School Office</option>
                     <option value="teacher">Teachers</option>
@@ -630,13 +630,13 @@ const MessagesPage: React.FC = () => {
                   </select>
                 </label>
 
-                <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+                <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
                   Recipient Name
                   <select
                     value={recipientId}
                     onChange={(event) => setRecipientId(event.target.value)}
                     disabled={loadingRecipients}
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500 disabled:bg-gray-100"
+                    className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94] disabled:bg-gray-100 dark:disabled:bg-gray-700"
                   >
                     {isAdmin ? (
                       <option value="">All {audience}s (Broadcast)</option>
@@ -651,7 +651,7 @@ const MessagesPage: React.FC = () => {
                         <option key={recipient.id} value={recipient.id}>
                           {displayName}
                           {recipient.class_name ? ` (${recipient.class_name})` : ""}
-                          {recipient.email ? ` Â· ${recipient.email}` : ""}
+                          {recipient.email ? ` · ${recipient.email}` : ""}
                         </option>
                       );
                     })}
@@ -659,7 +659,7 @@ const MessagesPage: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex items-center gap-2 rounded-md bg-sky-50 px-3 py-2 text-xs text-sky-800">
+              <div className="flex items-center gap-2 rounded-md bg-[#707E94]/10 border border-[#707E94]/20 px-3 py-2 text-xs text-[#707E94] dark:text-[#a4b3c7]">
                 <Users size={14} />
                 {recipientId
                   ? "Delivering privately to the selected recipient."
@@ -668,7 +668,7 @@ const MessagesPage: React.FC = () => {
                   : `Delivering to all ${recipients.length} ${audience}${recipients.length === 1 ? "" : "s"}.`}
               </div>
 
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
                 Subject
                 <input
                   required
@@ -676,11 +676,11 @@ const MessagesPage: React.FC = () => {
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
                   placeholder="Message subject"
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                  className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]"
                 />
               </label>
 
-              <label className="flex flex-col gap-1.5 text-sm font-medium text-gray-700">
+              <label className="flex flex-col gap-1.5 text-sm font-medium text-black dark:text-white">
                 Message Body
                 <textarea
                   required
@@ -688,7 +688,7 @@ const MessagesPage: React.FC = () => {
                   value={body}
                   onChange={(event) => setBody(event.target.value)}
                   placeholder="Write your message..."
-                  className="resize-y rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-sky-500"
+                  className="resize-y rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]"
                 />
               </label>
 
@@ -698,14 +698,14 @@ const MessagesPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => openFolder("inbox")}
-                  className="rounded-md border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={sending || loadingRecipients || (!recipientId && !isAdmin && audience !== "admin")}
-                  className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#707E94] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send size={15} />
                   {sending ? "Sending..." : "Send message"}
@@ -714,16 +714,16 @@ const MessagesPage: React.FC = () => {
             </form>
           </section>
         ) : (
-          /* â”€â”€â”€ Messages List & Active Thread View â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+          /* ─── Messages List & Active Thread View ───────── */
           <section className="grid min-w-0 md:grid-cols-[minmax(240px,0.85fr)_minmax(0,1.4fr)]">
-            {/* â”€â”€â”€ List of Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-            <div className="min-w-0 border-b border-gray-200 md:border-b-0 md:border-r">
-              <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
-                <h2 className="text-sm font-semibold text-gray-800">
+            {/* ─── List of Messages ───────────────────────────────── */}
+            <div className="min-w-0 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:border-r">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 px-4 py-3">
+                <h2 className="text-sm font-semibold text-black dark:text-white">
                   {folder === "sent" ? "Sent messages" : "Inbox"}
                 </h2>
                 {folder === "inbox" && unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs font-medium text-sky-700 hover:underline">
+                  <button onClick={markAllRead} className="text-xs font-medium text-[#707E94] dark:text-[#a4b3c7] hover:underline">
                     Mark all read
                   </button>
                 )}
@@ -733,11 +733,11 @@ const MessagesPage: React.FC = () => {
                 <p className="p-5 text-sm text-gray-500">Loading messages...</p>
               ) : messages.length === 0 ? (
                 <div className="flex min-h-52 flex-col items-center justify-center px-5 text-center">
-                  <Mail size={26} className="text-gray-300" />
-                  <p className="mt-3 text-sm font-medium text-gray-700">
+                  <Mail size={26} className="text-gray-300 dark:text-gray-600" />
+                  <p className="mt-3 text-sm font-medium text-black dark:text-white">
                     {error ? "Messages could not be loaded" : folder === "sent" ? "No sent messages yet" : "Your inbox is clear"}
                   </p>
-                  <p className="mt-1 text-xs text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {error
                       ? "Use Retry above to try again."
                       : folder === "inbox"
@@ -758,8 +758,8 @@ const MessagesPage: React.FC = () => {
                     return (
                       <div
                         key={message.id}
-                        className={`border-b border-gray-100 transition group ${
-                          active ? "bg-sky-50" : isUnread ? "bg-sky-50/40 hover:bg-gray-50" : "hover:bg-gray-50"
+                        className={`border-b border-gray-100 dark:border-gray-700/60 transition group ${
+                          active ? "bg-[#707E94]/15 dark:bg-[#707E94]/25" : isUnread ? "bg-[#707E94]/5 dark:bg-[#707E94]/10 hover:bg-gray-50 dark:hover:bg-gray-750" : "hover:bg-gray-50 dark:hover:bg-gray-750"
                         }`}
                       >
                         <button
@@ -784,7 +784,7 @@ const MessagesPage: React.FC = () => {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-2">
                                 <span className={`truncate text-sm ${
-                                  isUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"
+                                  isUnread ? "font-bold text-black dark:text-white" : "font-medium text-gray-800 dark:text-gray-200"
                                 }`}>
                                   {isBroadcast
                                     ? `${otherRole ? otherRole.charAt(0).toUpperCase() + otherRole.slice(1) : ""} Broadcast (${message.recipient_count ?? "All"})`
@@ -795,11 +795,11 @@ const MessagesPage: React.FC = () => {
                                 </span>
                               </div>
                               <p className={`mt-0.5 truncate text-sm ${
-                                isUnread ? "font-bold text-gray-800" : "text-gray-600"
+                                isUnread ? "font-bold text-black dark:text-white" : "text-gray-600 dark:text-gray-300"
                               }`}>
                                 {message.subject}
                               </p>
-                              <p className="mt-0.5 truncate text-xs text-gray-500">
+                              <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
                                 {message.body}
                               </p>
                             </div>
@@ -807,7 +807,7 @@ const MessagesPage: React.FC = () => {
                         </button>
 
                         <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                          <span className="inline-block rounded bg-gray-100 px-1.5 py-0.5 text-[10px] capitalize text-gray-500">
+                          <span className="inline-block rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-[10px] capitalize text-gray-600 dark:text-gray-300">
                             {isBroadcast ? `${message.recipient_count ?? ""} recipients` : otherRole}
                           </span>
 
@@ -818,7 +818,7 @@ const MessagesPage: React.FC = () => {
                             disabled={deletingConversationId === message.conversation_id}
                             aria-label={`Remove conversation with ${otherName}`}
                             title="Remove conversation from your view"
-                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-400 transition hover:bg-red-50 hover:text-red-700 opacity-80 group-hover:opacity-100 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-400 hover:bg-[#D32F45]/10 hover:text-[#D32F45] transition opacity-80 group-hover:opacity-100 disabled:opacity-50"
                           >
                             <Trash2 size={13} />
                             <span className="hidden sm:inline">Delete</span>
@@ -831,13 +831,13 @@ const MessagesPage: React.FC = () => {
               )}
             </div>
 
-            {/* â”€â”€â”€ Active Conversation Thread â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* ─── Active Conversation Thread ──────────────── */}
             <article className="min-w-0 p-5 md:p-7 flex flex-col justify-between">
               {selected ? (
                 <>
                   <div>
                     {/* Conversation Header with DELETE CONVERSATION for EVERYONE */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 dark:border-gray-700 pb-4">
                       <div className="flex items-center gap-3 min-w-0">
                         {(() => {
                           const isOwn = String(selected.sender_id) === String(user?.id);
@@ -855,10 +855,10 @@ const MessagesPage: React.FC = () => {
                           return <AvatarBubble name={name || "?"} img={img} size={40} />;
                         })()}
                         <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Conversation Thread</p>
-                          <h2 className="mt-0.5 break-words text-lg font-semibold text-gray-900">{selected.subject}</h2>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-[#707E94] dark:text-[#a4b3c7]">Conversation Thread</p>
+                          <h2 className="mt-0.5 break-words text-lg font-semibold text-black dark:text-white">{selected.subject}</h2>
                           {selected.is_broadcast && (
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                               <Users size={11} className="inline mr-1" />
                               Broadcast to {selected.recipient_count ?? "all"} {selected.recipient_role}s
                             </p>
@@ -866,14 +866,14 @@ const MessagesPage: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-xs text-gray-500">{conversationMessages.length} messages</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{conversationMessages.length} messages</span>
                         {/* Delete Conversation Button - EVERYONE CAN DELETE */}
                         <button
                           type="button"
                           onClick={() => void deleteConversation(selected.conversation_id)}
                           disabled={deletingConversationId === selected.conversation_id}
                           title="Remove conversation from your view"
-                          className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 rounded-md border border-[#D32F45]/30 bg-[#D32F45]/10 px-2.5 py-1.5 text-xs font-semibold text-[#D32F45] hover:bg-[#D32F45]/20 transition cursor-pointer disabled:opacity-50"
                         >
                           <Trash2 size={13} />
                           <span>Delete Conversation</span>
@@ -884,7 +884,7 @@ const MessagesPage: React.FC = () => {
                     {/* Messages Scroll Area */}
                     <div className="max-h-[460px] space-y-4 overflow-y-auto py-5">
                       {threadLoading && conversationMessages.length === 0 ? (
-                        <p className="text-sm text-gray-500">Loading conversation...</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Loading conversation...</p>
                       ) : (
                         conversationMessages.map((message) => {
                           const ownMessage = (String(message.sender_id) === String(user?.id));
@@ -899,12 +899,12 @@ const MessagesPage: React.FC = () => {
                               </div>
 
                               <div className={`max-w-[85%] rounded-lg p-3.5 sm:max-w-[72%] ${
-                                ownMessage ? "bg-sky-100 text-sky-950" : "bg-gray-100 text-gray-800"
+                                ownMessage ? "bg-[#707E94] text-white" : "bg-gray-100 dark:bg-gray-700 text-black dark:text-white"
                               }`}>
                                 <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs">
                                   <span className="font-semibold">
                                     {ownMessage ? "You" : message.sender_name}{" "}
-                                    <span className="font-normal capitalize opacity-70">Â· {message.sender_role}</span>
+                                    <span className="font-normal capitalize opacity-70">· {message.sender_role}</span>
                                   </span>
                                   <time className="opacity-60">{formatDateTime(message.created_at)}</time>
                                 </div>
@@ -916,13 +916,13 @@ const MessagesPage: React.FC = () => {
                                 <p className="whitespace-pre-wrap break-words text-sm leading-6">{message.body}</p>
 
                                 {!!message.attachments?.length && (
-                                  <ul className="mt-3 space-y-1.5 border-t border-black/10 pt-2">
+                                  <ul className="mt-3 space-y-1.5 border-t border-black/10 dark:border-white/10 pt-2">
                                     {message.attachments.map((attachment) => (
                                       <li key={attachment.id}>
                                         <button
                                           type="button"
                                           onClick={() => void downloadAttachment(attachment)}
-                                          className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-white/50"
+                                          className="inline-flex max-w-full items-center gap-2 rounded px-2 py-1 text-xs font-medium underline decoration-current/40 hover:bg-black/5 dark:hover:bg-white/10"
                                         >
                                           <Download size={13} />
                                           <span className="truncate">{attachment.original_name}</span>
@@ -937,13 +937,13 @@ const MessagesPage: React.FC = () => {
 
                                 {/* Individual message delete button - only for messages you sent */}
                                 {ownMessage && (
-                                  <div className="mt-3 flex justify-end border-t border-black/10 pt-2">
+                                  <div className="mt-3 flex justify-end border-t border-white/20 pt-2">
                                     <button
                                       type="button"
                                       onClick={(e) => void deleteMessage(message, e)}
                                       disabled={deletingId === message.id}
                                       title="Delete this message"
-                                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-gray-500 transition hover:bg-white/60 hover:text-red-700 disabled:opacity-50"
+                                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium text-white/80 transition hover:bg-white/20 hover:text-white disabled:opacity-50"
                                     >
                                       <Trash2 size={12} />
                                       <span>{deletingId === message.id ? "Deleting..." : "Delete message"}</span>
@@ -959,9 +959,9 @@ const MessagesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* â”€â”€â”€ Realtime Reply Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+                  {/* ─── Realtime Reply Form ──────────────────────── */}
                   {selected.conversation_id ? (
-                    <form onSubmit={sendReply} className="border-t border-gray-100 pt-4">
+                    <form onSubmit={sendReply} className="border-t border-gray-100 dark:border-gray-700 pt-4">
                       <label className="sr-only" htmlFor="reply-body">Reply</label>
                       <textarea
                         id="reply-body"
@@ -970,14 +970,14 @@ const MessagesPage: React.FC = () => {
                         value={replyBody}
                         onChange={(event) => setReplyBody(event.target.value)}
                         placeholder="Write a reply..."
-                        className="w-full resize-y rounded-md border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-sky-500"
+                        className="w-full resize-y rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]"
                       />
                       <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
                         {attachmentPicker(replyFiles, setReplyFiles, "reply-attachments")}
                         <button
                           type="submit"
                           disabled={sendingReply || !replyBody.trim()}
-                          className="inline-flex shrink-0 items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex shrink-0 items-center gap-2 rounded-md bg-[#707E94] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Send size={14} />
                           {sendingReply ? "Sending..." : "Send reply"}
@@ -985,16 +985,16 @@ const MessagesPage: React.FC = () => {
                       </div>
                     </form>
                   ) : (
-                    <p className="border-t border-gray-100 pt-3 text-xs text-gray-500">
+                    <p className="border-t border-gray-100 dark:border-gray-700 pt-3 text-xs text-gray-500">
                       This older message has no reply thread available.
                     </p>
                   )}
                 </>
               ) : (
                 <div className="flex min-h-64 flex-col items-center justify-center text-center m-auto">
-                  <Mail size={30} className="text-gray-300" />
-                  <p className="mt-3 text-sm font-medium text-gray-700">Select a message or compose a new one</p>
-                  <p className="mt-1 text-xs text-gray-500">Conversation messages and attached files will appear here.</p>
+                  <Mail size={30} className="text-gray-300 dark:text-gray-600" />
+                  <p className="mt-3 text-sm font-medium text-black dark:text-white">Select a message or compose a new one</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Conversation messages and attached files will appear here.</p>
                 </div>
               )}
             </article>

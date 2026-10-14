@@ -4,94 +4,202 @@
 
 :root {
   --app-height: 100dvh;
+  --color-primary: #707E94;
+  --color-primary-hover: #5a6679;
+  --color-primary-light: #f4f6f9;
+  --color-primary-dark: #3e4552;
+  --color-secondary: #D32F45;
+  --color-secondary-hover: #be2035;
+  --color-secondary-light: #fef2f3;
+  --color-secondary-dark: #841726;
 }
 
+/* ==========================================================================
+   Base & High-Contrast Typography: Black text on light backgrounds
+   ========================================================================== */
 body, html {
   height: 100%;
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
-  background-color: #f3f4f6;
+  background-color: #f4f6f9;
+  color: #000000;
 }
 
+/* Standard text classes in light mode: deep crisp black/dark */
+.text-gray-900,
+.text-gray-800,
+.text-slate-900,
+.text-slate-800 {
+  color: #000000 !important;
+}
+
+.text-gray-700,
+.text-slate-700 {
+  color: #1a2232 !important;
+}
+
+.text-gray-600,
+.text-slate-600 {
+  color: #2d3748 !important;
+}
+
+.text-gray-500,
+.text-slate-500 {
+  color: #4a5568 !important;
+}
+
+/* ==========================================================================
+   Dark / Night Mode System: Crisp White text on dark backgrounds
+   ========================================================================== */
 html.dark {
   color-scheme: dark;
   background: #0b1220;
 }
 
 html.dark body {
-  color: #e5e7eb;
-  background-color: #0b1220;
+  color: #ffffff !important;
+  background-color: #0b1220 !important;
 }
 
+/* Dark Mode Backgrounds */
 html.dark .bg-white { background-color: #111827 !important; }
 html.dark .bg-gray-50 { background-color: #111827 !important; }
 html.dark .bg-gray-100 { background-color: #172033 !important; }
 html.dark .bg-gray-200 { background-color: #253147 !important; }
 html.dark .bg-slate-50 { background-color: #151e2e !important; }
 html.dark .bg-slate-100 { background-color: #1b2738 !important; }
-html.dark .bg-purple-50 { background-color: #211d35 !important; }
-html.dark .bg-purple-100 { background-color: #342b50 !important; }
+html.dark .bg-slate-800 { background-color: #172033 !important; }
+html.dark .bg-slate-900 { background-color: #0f172a !important; }
+
+/* Primary (#707E94) and Secondary (#D32F45) Tints in Dark Mode */
+html.dark .bg-primary-50,
+html.dark .bg-lamaSkyLight { background-color: #1a2332 !important; }
+html.dark .bg-primary-100 { background-color: #243044 !important; }
+html.dark .bg-secondary-50,
+html.dark .bg-lamaPurpleLight { background-color: #2d1319 !important; }
+html.dark .bg-secondary-100 { background-color: #401821 !important; }
+
+html.dark .bg-purple-50 { background-color: #261620 !important; }
+html.dark .bg-purple-100 { background-color: #381a28 !important; }
 html.dark .bg-sky-50,
-html.dark .bg-blue-50 { background-color: #142b3a !important; }
+html.dark .bg-blue-50 { background-color: #152233 !important; }
 html.dark .bg-sky-100,
-html.dark .bg-blue-100 { background-color: #1b3b50 !important; }
-html.dark .bg-sky-200 { background-color: #173747 !important; }
-html.dark .bg-violet-100,
-html.dark .bg-rose-100,
-html.dark .bg-amber-100,
-html.dark .bg-pink-100 { background-color: #28243a !important; }
+html.dark .bg-blue-100 { background-color: #1d2d42 !important; }
 html.dark .bg-green-50 { background-color: #123128 !important; }
 html.dark .bg-green-100 { background-color: #194333 !important; }
-html.dark .bg-red-50 { background-color: #3a1d27 !important; }
-html.dark .bg-red-100 { background-color: #4a2631 !important; }
-html.dark .bg-yellow-50 { background-color: #393018 !important; }
-html.dark .bg-amber-100 { background-color: #40331c !important; }
+html.dark .bg-red-50 { background-color: #30131b !important; }
+html.dark .bg-red-100 { background-color: #441824 !important; }
 
-html.dark .text-gray-900 { color: #f9fafb !important; }
-html.dark .text-gray-800 { color: #e5e7eb !important; }
-html.dark .text-gray-700 { color: #d1d5db !important; }
-html.dark .text-gray-600 { color: #bac4d2 !important; }
-html.dark .text-gray-500 { color: #9ca3af !important; }
-html.dark .text-gray-400 { color: #8995a5 !important; }
+/* Dark Mode Typography: Pure crisp WHITE on dark backgrounds */
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-black,
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #ffffff !important;
+}
+
+html.dark .text-gray-600,
+html.dark .text-slate-600 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-500,
+html.dark .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-gray-400,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Primary & Secondary colored text */
+.text-primary,
+.text-\[\#707E94\] {
+  color: #707E94 !important;
+}
+html.dark .text-primary,
+html.dark .text-\[\#707E94\] {
+  color: #a4b3c7 !important;
+}
+
+.text-secondary,
+.text-\[\#D32F45\] {
+  color: #D32F45 !important;
+}
+html.dark .text-secondary,
+html.dark .text-\[\#D32F45\] {
+  color: #f87171 !important;
+}
+
+/* Dark mode semantic color accents */
 html.dark .text-sky-800,
 html.dark .text-blue-700,
-html.dark .text-blue-800 { color: #93c5fd !important; }
+html.dark .text-blue-800 { color: #a4b3c7 !important; }
 html.dark .text-green-700 { color: #86efac !important; }
 html.dark .text-red-700,
 html.dark .text-red-600 { color: #fca5a5 !important; }
 html.dark .text-purple-700,
-html.dark .text-purple-900 { color: #d8b4fe !important; }
-html.dark .text-amber-700,
-html.dark .text-amber-800 { color: #fcd34d !important; }
-html.dark .text-sky-900,
-html.dark .text-rose-900,
-html.dark .text-violet-900,
-html.dark .text-amber-900,
-html.dark .text-pink-900 { color: #e2e8f0 !important; }
-html.dark .text-slate-700,
-html.dark .text-slate-800 { color: #dbe4ee !important; }
-html.dark .text-sky-900\/70 { color: #bae6fd !important; }
+html.dark .text-purple-900 { color: #fca5a5 !important; }
 
+/* Dark Mode Borders & Rings */
 html.dark .border-gray-50,
 html.dark .border-gray-100 { border-color: #253147 !important; }
 html.dark .border-gray-200,
 html.dark .border-gray-300 { border-color: #354258 !important; }
-html.dark .border-slate-100 { border-color: #253147 !important; }
+html.dark .border-slate-100,
+html.dark .border-slate-200 { border-color: #253147 !important; }
+html.dark .border-slate-700,
+html.dark .border-slate-800 { border-color: #334155 !important; }
 html.dark .ring-gray-200 { --tw-ring-color: #354258 !important; }
 
+/* Dark Mode Form Inputs */
+input, select, textarea {
+  color: #000000;
+}
 html.dark input,
 html.dark select,
 html.dark textarea {
-  color: #e5e7eb;
+  color: #ffffff !important;
+  background-color: #172033 !important;
+  border-color: #354258 !important;
 }
 
 html.dark input::placeholder,
-html.dark textarea::placeholder { color: #8995a5; }
+html.dark textarea::placeholder {
+  color: #8995a5 !important;
+}
+
+/* Primary Solid (#707E94) and Secondary Solid (#D32F45) elements: ALWAYS PURE WHITE TEXT */
+.bg-primary,
+.bg-primary-500,
+.bg-primary-600,
+.bg-primary-700,
+.bg-\[\#707E94\],
+.bg-secondary,
+.bg-secondary-500,
+.bg-secondary-600,
+.bg-secondary-700,
+.bg-\[\#D32F45\] {
+  color: #ffffff !important;
+}
 
 html.dark .shadow-sm,
-html.dark .shadow-2xl { box-shadow: 0 8px 24px rgb(0 0 0 / 24%) !important; }
+html.dark .shadow-2xl {
+  box-shadow: 0 8px 24px rgb(0 0 0 / 28%) !important;
+}
 
+/* Big Calendar in Dark Mode */
 html.dark .rbc-time-view,
 html.dark .rbc-time-header,
 html.dark .rbc-time-content,
@@ -114,6 +222,20 @@ html.dark .rbc-off-range-bg { background-color: #0d1523 !important; }
   border: none !important;
   font-family: 'Inter', sans-serif !important;
   text-decoration: none !important;
+  color: #000000 !important;
+}
+
+html.dark .react-calendar {
+  background: transparent !important;
+  color: #ffffff !important;
+}
+
+html.dark .react-calendar__navigation button {
+  color: #ffffff !important;
+}
+
+html.dark .react-calendar__month-view__weekdays {
+  color: #94a3b8 !important;
 }
 
 .react-calendar__navigation__label__labelText {
@@ -121,12 +243,35 @@ html.dark .rbc-off-range-bg { background-color: #0d1523 !important; }
   font-weight: 600;
 }
 
-.react-calendar__title--active {
-  background-color: #c3ebfa !important;
-  color: black !important;
+.react-calendar__tile--active,
+.react-calendar__tile--hasActive {
+  background-color: #707E94 !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
 }
 
-/* React Big Calendar custom refinements */
+.react-calendar__tile--now {
+  background-color: #ebedf1 !important;
+  color: #D32F45 !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+}
+
+html.dark .react-calendar__tile--now {
+  background-color: #253147 !important;
+  color: #f87171 !important;
+}
+
+.react-calendar__tile:hover {
+  background-color: #e2e6ec !important;
+  border-radius: 8px !important;
+}
+
+html.dark .react-calendar__tile:hover {
+  background-color: #1e293b !important;
+}
+
+/* React Big Calendar refinements */
 .rbc-toolbar {
   padding: 8px 12px !important;
   margin-bottom: 12px !important;
@@ -139,17 +284,17 @@ html.dark .rbc-off-range-bg { background-color: #0d1523 !important; }
 .rbc-toolbar-label {
   font-size: 15px !important;
   font-weight: 700 !important;
-  color: #1e293b !important;
+  color: #000000 !important;
 }
 
 html.dark .rbc-toolbar-label {
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
 }
 
 .rbc-btn-group button {
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid #d1d5db !important;
   background-color: #ffffff !important;
-  color: #475569 !important;
+  color: #1e293b !important;
   font-size: 12px !important;
   font-weight: 600 !important;
   padding: 6px 12px !important;
@@ -165,8 +310,8 @@ html.dark .rbc-btn-group button {
 }
 
 .rbc-btn-group button:hover {
-  background-color: #f8fafc !important;
-  color: #0f172a !important;
+  background-color: #f1f3f6 !important;
+  color: #000000 !important;
 }
 
 html.dark .rbc-btn-group button:hover {
@@ -175,10 +320,15 @@ html.dark .rbc-btn-group button:hover {
 }
 
 .rbc-toolbar button.rbc-active {
-  background-color: #0284c7 !important;
-  border-color: #0284c7 !important;
+  background-color: #707E94 !important;
+  border-color: #707E94 !important;
   color: #ffffff !important;
-  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3) !important;
+  box-shadow: 0 1px 3px rgba(112, 126, 148, 0.4) !important;
+}
+
+.rbc-event {
+  background-color: #707E94 !important;
+  color: #ffffff !important;
 }
 
 .rbc-time-view {

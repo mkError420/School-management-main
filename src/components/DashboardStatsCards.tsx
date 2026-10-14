@@ -257,7 +257,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <GraduationCap size={20} className="text-white" />,
       value: counts?.students ?? 0,
       href: "/list/students",
-      gradient: "bg-gradient-to-br from-violet-500 to-purple-600",
+      gradient: "bg-gradient-to-br from-[#707E94] to-[#485262]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -269,7 +269,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <UserCheck size={20} className="text-white" />,
       value: counts?.teachers ?? 0,
       href: "/list/teachers",
-      gradient: "bg-gradient-to-br from-sky-400 to-blue-600",
+      gradient: "bg-gradient-to-br from-[#5a6679] to-[#3e4552]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -281,7 +281,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <Users size={20} className="text-white" />,
       value: counts?.parents ?? 0,
       href: "/list/parents",
-      gradient: "bg-gradient-to-br from-amber-400 to-orange-500",
+      gradient: "bg-gradient-to-br from-[#D32F45] to-[#9f182a]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -293,7 +293,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <Briefcase size={20} className="text-white" />,
       value: counts?.staff ?? 0,
       href: "/list/staff",
-      gradient: "bg-gradient-to-br from-rose-400 to-pink-600",
+      gradient: "bg-gradient-to-br from-[#be2035] to-[#841726]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -305,7 +305,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <Building2 size={20} className="text-white" />,
       value: counts?.classes ?? 0,
       href: "/list/classes",
-      gradient: "bg-gradient-to-br from-teal-400 to-emerald-600",
+      gradient: "bg-gradient-to-br from-[#929eb0] to-[#707E94]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -317,7 +317,7 @@ const DashboardStatsCards: React.FC = () => {
       icon: <BookOpen size={20} className="text-white" />,
       value: counts?.lessons ?? 0,
       href: "/list/lessons",
-      gradient: "bg-gradient-to-br from-indigo-400 to-blue-700",
+      gradient: "bg-gradient-to-br from-[#485262] to-[#363c46]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
@@ -330,7 +330,7 @@ const DashboardStatsCards: React.FC = () => {
       {/* ── Section Header ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-1 h-6 bg-gradient-to-b from-violet-500 to-blue-600 rounded-full" />
+          <div className="w-1 h-6 bg-gradient-to-b from-[#707E94] to-[#D32F45] rounded-full" />
           <h2 className="text-base font-bold text-gray-800 dark:text-gray-100 tracking-tight">
             Dashboard Overview
           </h2>
@@ -347,9 +347,9 @@ const DashboardStatsCards: React.FC = () => {
           onClick={() => void load()}
           disabled={loading}
           title="Refresh dashboard stats"
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-[#707E94] dark:hover:text-[#a4b3c7] transition disabled:opacity-50"
         >
-          <RefreshCw size={13} className={loading ? "animate-spin text-violet-500" : ""} />
+          <RefreshCw size={13} className={loading ? "animate-spin text-[#707E94]" : ""} />
           <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
@@ -398,7 +398,7 @@ const DashboardStatsCards: React.FC = () => {
                   label="Fees Collected (Income)"
                   value={formatCurrency(finance.total_income)}
                   icon={<Receipt size={20} className="text-white" />}
-                  gradient="bg-gradient-to-br from-indigo-500 to-violet-600"
+                  gradient="bg-gradient-to-br from-[#707E94] to-[#485262]"
                   iconBg="bg-white/20"
                   textColor="text-white"
                   badgeText="Income"
@@ -410,7 +410,7 @@ const DashboardStatsCards: React.FC = () => {
                   label="Total Expenses"
                   value={formatCurrency(finance.total_expense)}
                   icon={<Wallet size={20} className="text-white" />}
-                  gradient="bg-gradient-to-br from-rose-500 to-pink-600"
+                  gradient="bg-gradient-to-br from-[#D32F45] to-[#841726]"
                   iconBg="bg-white/20"
                   textColor="text-white"
                   badgeText="Expense"
@@ -424,8 +424,8 @@ const DashboardStatsCards: React.FC = () => {
                   icon={<Scale size={20} className="text-white" />}
                   gradient={
                     isSurplus
-                      ? "bg-gradient-to-br from-emerald-500 to-teal-600"
-                      : "bg-gradient-to-br from-amber-500 to-orange-600"
+                      ? "bg-gradient-to-br from-[#5a6679] to-[#3e4552]"
+                      : "bg-gradient-to-br from-[#be2035] to-[#6f1824]"
                   }
                   iconBg="bg-white/20"
                   textColor="text-white"

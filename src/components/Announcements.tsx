@@ -14,7 +14,7 @@ interface Announcement {
   attachment_mime_type?: string | null;
 }
 
-const bgColors = ["bg-lamaPurpleLight", "bg-lamaYellowLight", "bg-lamaSkyLight"];
+const bgColors = ["bg-[#707E94]/10", "bg-[#D32F45]/10", "bg-[#707E94]/15"];
 
 const Announcements: React.FC = () => {
   const [items, setItems] = useState<Announcement[]>([]);
@@ -40,16 +40,16 @@ const Announcements: React.FC = () => {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-base font-semibold text-gray-800 dark:text-gray-100">Announcements</h1>
-        <Link to="/list/announcements" className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium">
+        <h1 className="text-base font-semibold text-black dark:text-white">Announcements</h1>
+        <Link to="/list/announcements" className="text-xs text-[#707E94] dark:text-[#a4b3c7] hover:underline font-medium">
           View All
         </Link>
       </div>
 
       <div className="flex flex-col gap-3">
-        {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[#D32F45]">{error}</p>}
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <div key={i} className="rounded-xl p-3 bg-gray-50 dark:bg-gray-700/50 animate-pulse">
@@ -63,10 +63,10 @@ const Announcements: React.FC = () => {
               <Link
                 to="/list/announcements"
                 key={item.id}
-                className={`${bgColors[i % bgColors.length]} dark:bg-opacity-20 rounded-xl p-3 block hover:opacity-95 transition`}
+                className={`${bgColors[i % bgColors.length]} rounded-xl p-3 block hover:opacity-95 transition border border-[#707E94]/15`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100 leading-tight truncate">
+                  <h2 className="text-sm font-semibold text-black dark:text-white leading-tight truncate">
                     {item.title}
                   </h2>
                   <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-gray-700 rounded-md px-1.5 py-0.5 whitespace-nowrap ml-2">
@@ -75,8 +75,8 @@ const Announcements: React.FC = () => {
                 </div>
                 <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{item.description}</p>
                 {(item.document_attachment || item.attachment_url) && (
-                  <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-purple-700 dark:text-purple-300">
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-600"></span>
+                  <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-[#707E94] dark:text-[#a4b3c7]">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#D32F45]"></span>
                     <span>Attached Document / Image</span>
                   </div>
                 )}

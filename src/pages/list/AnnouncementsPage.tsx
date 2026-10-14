@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAccessRole } from "@/context/AuthContext";
@@ -362,7 +362,7 @@ const AnnouncementsPage: React.FC = () => {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-500/20">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D32F45] text-white shadow-md shadow-purple-500/20">
               <Bell className="h-5 w-5" />
             </div>
             <div>
@@ -384,7 +384,7 @@ const AnnouncementsPage: React.FC = () => {
             title="Refresh announcements list"
             className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-200 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700/60 active:scale-95 transition cursor-pointer"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-purple-600" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin text-[#707E94]" : ""}`} />
             <span>Refresh</span>
           </button>
 
@@ -394,9 +394,9 @@ const AnnouncementsPage: React.FC = () => {
               onClick={handleMarkAllAsRead}
               disabled={markingAllRead}
               title="Mark all announcements as read"
-              className="flex items-center gap-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3.5 py-2.5 text-xs font-semibold text-purple-700 dark:text-purple-300 shadow-xs hover:bg-purple-100 dark:hover:bg-purple-900/50 active:scale-95 transition cursor-pointer"
+              className="flex items-center gap-1.5 rounded-xl border border-[#707E94]/30 dark:border-[#707E94]/40 bg-[#707E94]/10 dark:bg-[#707E94]/20 px-3.5 py-2.5 text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7] shadow-xs hover:bg-[#707E94]/15 dark:hover:bg-[#707E94]/20 active:scale-95 transition cursor-pointer"
             >
-              <CheckCircle className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+              <CheckCircle className="h-3.5 w-3.5 text-[#707E94] dark:text-[#a4b3c7]" />
               <span>{markingAllRead ? "Marking..." : `Mark all as read (${unreadCount})`}</span>
             </button>
           )}
@@ -416,12 +416,12 @@ const AnnouncementsPage: React.FC = () => {
       {/* ─── Statistics Cards ────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {/* Total Announcements */}
-        <div className="rounded-2xl border border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-800 p-4 sm:p-5 shadow-xs transition hover:shadow-md">
+        <div className="rounded-2xl border border-[#707E94]/20 dark:border-[#707E94]/20 bg-white dark:bg-gray-800 p-4 sm:p-5 shadow-xs transition hover:shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#707E94] dark:text-[#a4b3c7]">
               Total Notices
             </span>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]">
               <Layers className="h-4 w-4" />
             </div>
           </div>
@@ -499,7 +499,7 @@ const AnnouncementsPage: React.FC = () => {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search announcements by title or content..."
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-gray-800 dark:text-gray-200 outline-none transition focus:border-purple-500 focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-purple-500/20"
+              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 pl-10 pr-4 py-2.5 text-xs sm:text-sm text-gray-800 dark:text-gray-200 outline-none transition focus:border-[#707E94] focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-[#707E94]/20"
             />
             {search && (
               <button
@@ -517,7 +517,7 @@ const AnnouncementsPage: React.FC = () => {
             {/* Target Class Filter */}
             <div className="flex items-center gap-1.5">
               <label htmlFor="announcement-target-class" className="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                <Filter className="h-3.5 w-3.5 text-purple-600" />
+                <Filter className="h-3.5 w-3.5 text-[#707E94]" />
                 <span className="hidden sm:inline">Audience:</span>
               </label>
               <select
@@ -525,7 +525,7 @@ const AnnouncementsPage: React.FC = () => {
                 aria-label="Target class audience"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
-                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]/30"
               >
                 <option value="all">All Audiences</option>
                 <option value="school_wide">School-Wide Only</option>
@@ -542,7 +542,7 @@ const AnnouncementsPage: React.FC = () => {
               aria-label="Filter by attachment type"
               value={attachmentFilter}
               onChange={(e) => setAttachmentFilter(e.target.value)}
-              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]/30"
             >
               <option value="all">All Notices</option>
               <option value="with_attachment">With File Attached</option>
@@ -557,7 +557,7 @@ const AnnouncementsPage: React.FC = () => {
               title={`Sorting: ${sortBy === "newest" ? "Newest first" : "Oldest first"}`}
               className="flex items-center gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
             >
-              <ArrowUpDown className="h-3.5 w-3.5 text-purple-600" />
+              <ArrowUpDown className="h-3.5 w-3.5 text-[#707E94]" />
               <span className="capitalize">{sortBy}</span>
             </button>
 
@@ -568,7 +568,7 @@ const AnnouncementsPage: React.FC = () => {
                 onClick={() => setViewMode("table")}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
                   viewMode === "table"
-                    ? "bg-white dark:bg-gray-800 text-purple-600 shadow-xs"
+                    ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-xs"
                     : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
                 title="Table View"
@@ -580,7 +580,7 @@ const AnnouncementsPage: React.FC = () => {
                 onClick={() => setViewMode("grid")}
                 className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${
                   viewMode === "grid"
-                    ? "bg-white dark:bg-gray-800 text-purple-600 shadow-xs"
+                    ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-xs"
                     : "text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
                 title="Notice Board Grid View"
@@ -622,7 +622,7 @@ const AnnouncementsPage: React.FC = () => {
       ) : announcements.length === 0 ? (
         /* Empty State */
         <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-12 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 mb-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] mb-4">
             <Bell className="h-7 w-7" />
           </div>
           <h3 className="text-base font-bold text-gray-900 dark:text-white">No announcements found</h3>
@@ -665,19 +665,19 @@ const AnnouncementsPage: React.FC = () => {
                     <tr
                       key={item.id}
                       onClick={() => openAnnouncementDetails(item)}
-                      className="group cursor-pointer transition hover:bg-purple-50/50 dark:hover:bg-purple-950/20"
+                      className="group cursor-pointer transition hover:bg-primary-50/60 dark:hover:bg-[#1a2332]"
                     >
                       {/* Title & Description */}
                       <td className="py-4 px-4 sm:px-6 max-w-xs md:max-w-md">
                         <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 font-bold text-xs">
+                          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] font-bold text-xs">
                             <Bell className="h-4 w-4" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 transition truncate flex items-center gap-2">
+                            <h4 className="font-semibold text-gray-900 dark:text-white group-hover:text-[#556275] transition truncate flex items-center gap-2">
                               <span className="truncate">{item.title}</span>
                               {!item.is_read && (
-                                <span className="shrink-0 rounded-full bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                                <span className="shrink-0 rounded-full bg-[#D32F45] px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                                   New
                                 </span>
                               )}
@@ -723,7 +723,7 @@ const AnnouncementsPage: React.FC = () => {
                               title={`Download or Open: ${item.attachment_original_name || "Attachment"}`}
                               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition active:scale-95 shadow-xs ${
                                 isImg
-                                  ? "bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-950/60 dark:text-purple-300"
+                                  ? "bg-primary-100 text-primary-800 hover:bg-primary-200 dark:bg-[#243044] dark:text-[#a4b3c7]"
                                   : isPdf
                                   ? "bg-rose-100 text-rose-800 hover:bg-rose-200 dark:bg-rose-950/60 dark:text-rose-300"
                                   : "bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-950/60 dark:text-blue-300"
@@ -757,7 +757,7 @@ const AnnouncementsPage: React.FC = () => {
                                   setImagePreviewUrl(getAttachmentUrl(item));
                                 }}
                                 title="Enlarge image"
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-purple-100 hover:text-purple-700 transition"
+                                className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-[#707E94]/15 hover:text-[#556275] transition"
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
@@ -776,7 +776,7 @@ const AnnouncementsPage: React.FC = () => {
                             type="button"
                             onClick={() => openAnnouncementDetails(item)}
                             title="View full notice details"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-purple-100 hover:text-purple-700 dark:hover:bg-purple-900/50 transition cursor-pointer"
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/60 text-gray-600 dark:text-gray-300 hover:bg-primary-50 hover:text-[#707E94] dark:hover:bg-[#1a2332] transition cursor-pointer"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
@@ -847,7 +847,7 @@ const AnnouncementsPage: React.FC = () => {
                   {/* Top Color Accent */}
                   <div
                     className={`absolute inset-x-0 top-0 h-1.5 ${
-                      item.class_name ? "bg-amber-500" : "bg-purple-600"
+                      item.class_name ? "bg-amber-500" : "bg-[#D32F45]"
                     }`}
                   />
 
@@ -871,10 +871,10 @@ const AnnouncementsPage: React.FC = () => {
                     </div>
 
                     {/* Notice Title */}
-                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-purple-600 transition line-clamp-2 flex items-center gap-2">
+                    <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-[#556275] transition line-clamp-2 flex items-center gap-2">
                       <span className="line-clamp-2 flex-1">{item.title}</span>
                       {!item.is_read && (
-                        <span className="shrink-0 rounded-full bg-purple-600 px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
+                        <span className="shrink-0 rounded-full bg-[#D32F45] px-1.5 py-0.5 text-[9px] font-bold text-white uppercase tracking-wider">
                           New
                         </span>
                       )}
@@ -932,7 +932,7 @@ const AnnouncementsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => openAnnouncementDetails(item)}
-                      className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1"
+                      className="text-xs font-bold text-[#707E94] hover:text-[#556275] dark:text-[#a4b3c7] dark:hover:text-white flex items-center gap-1"
                     >
                       <span>Read More</span>
                       <ExternalLink className="h-3 w-3" />
@@ -944,7 +944,7 @@ const AnnouncementsPage: React.FC = () => {
                           type="button"
                           onClick={(e) => handleDownloadAttachment(item, e)}
                           title="Download attachment"
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 transition"
+                          className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#556275] transition"
                         >
                           <Download className="h-3.5 w-3.5" />
                         </button>
@@ -1039,7 +1039,7 @@ const AnnouncementsPage: React.FC = () => {
 
             <div className="mt-2 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 pb-4 border-b border-gray-100 dark:border-gray-700/60">
               <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-purple-600" />
+                <Calendar className="h-4 w-4 text-[#707E94]" />
                 Date: <strong>{selectedAnnouncement.date}</strong>
               </span>
               {selectedAnnouncement.created_at && (
@@ -1059,7 +1059,7 @@ const AnnouncementsPage: React.FC = () => {
               <div className="mt-6 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 p-4">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <FileDown className="h-4 w-4 text-purple-600" />
+                    <FileDown className="h-4 w-4 text-[#707E94]" />
                     Attached Notice Document or Image
                   </h4>
                   {selectedAnnouncement.attachment_size ? (
@@ -1095,7 +1095,7 @@ const AnnouncementsPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleDownloadAttachment(selectedAnnouncement)}
-                          className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-purple-700 transition flex items-center gap-1"
+                          className="rounded-lg bg-[#D32F45] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#be2035] transition flex items-center gap-1"
                         >
                           <Download className="h-3.5 w-3.5" />
                           Download Image
@@ -1135,7 +1135,7 @@ const AnnouncementsPage: React.FC = () => {
                       type="button"
                       onClick={() => handleDownloadAttachment(selectedAnnouncement)}
                       disabled={downloadingId === selectedAnnouncement.id}
-                      className="flex items-center justify-center gap-1.5 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-purple-700 active:scale-95 transition cursor-pointer"
+                      className="flex items-center justify-center gap-1.5 rounded-xl bg-[#D32F45] px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-[#be2035] active:scale-95 transition cursor-pointer"
                     >
                       {downloadingId === selectedAnnouncement.id ? (
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />

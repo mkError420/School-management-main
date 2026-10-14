@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Briefcase,
@@ -608,7 +608,7 @@ const StaffSection: React.FC = () => {
   const getTypeBadge = (type: StaffType) => {
     if (type === "TEACHING") {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#707E94]/10 text-[#707E94] border border-[#707E94]/30 dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94]/40">
           <GraduationCap size={11} /> Teacher
         </span>
       );
@@ -654,7 +654,7 @@ const StaffSection: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5 md:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-500/20">
+            <div className="p-2.5 rounded-xl bg-gradient-to-tr from-[#707E94] to-indigo-600 text-white shadow-md shadow-purple-500/20">
               <Users size={24} />
             </div>
             <div>
@@ -691,7 +691,7 @@ const StaffSection: React.FC = () => {
                 setFormData(emptyStaffForm);
                 setCreateModalOpen(true);
               }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition shadow-sm shadow-purple-600/20"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold transition shadow-sm shadow-purple-600/20"
             >
               <UserPlus size={15} />
               <span>Add Staff / Teacher</span>
@@ -708,7 +708,7 @@ const StaffSection: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
               Total Staff
             </span>
-            <div className="p-2 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+            <div className="p-2 rounded-xl bg-[#707E94]/10 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
               <Users size={16} />
             </div>
           </div>
@@ -723,14 +723,14 @@ const StaffSection: React.FC = () => {
         {/* Teaching Faculty (Teachers) */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#707E94] dark:text-[#a4b3c7]">
               Teachers (Faculty)
             </span>
-            <div className="p-2 rounded-xl bg-purple-50 text-purple-600 dark:bg-purple-950/50 dark:text-purple-300">
+            <div className="p-2 rounded-xl bg-[#707E94]/10 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
               <GraduationCap size={16} />
             </div>
           </div>
-          <div className="text-2xl font-black text-purple-700 dark:text-purple-300 mt-2">
+          <div className="text-2xl font-black text-[#707E94] dark:text-[#a4b3c7] mt-2">
             {loading ? "..." : stats.teaching_count}
           </div>
           <div className="text-[11px] text-gray-400 mt-1">
@@ -804,7 +804,7 @@ const StaffSection: React.FC = () => {
             }}
             className={`px-3 py-1.5 rounded-xl transition ${
               typeFilter === "ALL"
-                ? "bg-purple-600 text-white shadow-sm"
+                ? "bg-[#D32F45] text-white shadow-sm"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
@@ -818,7 +818,7 @@ const StaffSection: React.FC = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               typeFilter === "TEACHING"
-                ? "bg-purple-600 text-white shadow-sm"
+                ? "bg-[#D32F45] text-white shadow-sm"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
@@ -833,7 +833,7 @@ const StaffSection: React.FC = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               typeFilter === "ADMINISTRATIVE"
-                ? "bg-purple-600 text-white shadow-sm"
+                ? "bg-[#D32F45] text-white shadow-sm"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
@@ -848,7 +848,7 @@ const StaffSection: React.FC = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               typeFilter === "NON_TEACHING"
-                ? "bg-purple-600 text-white shadow-sm"
+                ? "bg-[#D32F45] text-white shadow-sm"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
@@ -863,7 +863,7 @@ const StaffSection: React.FC = () => {
             }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               typeFilter === "SUPPORT"
-                ? "bg-purple-600 text-white shadow-sm"
+                ? "bg-[#D32F45] text-white shadow-sm"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
             }`}
           >
@@ -884,7 +884,7 @@ const StaffSection: React.FC = () => {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
             />
           </div>
 
@@ -932,7 +932,7 @@ const StaffSection: React.FC = () => {
               <button
                 onClick={() => setViewMode("table")}
                 className={`p-1.5 rounded-lg transition ${
-                  viewMode === "table" ? "bg-white dark:bg-gray-800 text-purple-600 shadow-sm" : "text-gray-400"
+                  viewMode === "table" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
                 }`}
                 title="Table view"
               >
@@ -941,7 +941,7 @@ const StaffSection: React.FC = () => {
               <button
                 onClick={() => setViewMode("cards")}
                 className={`p-1.5 rounded-lg transition ${
-                  viewMode === "cards" ? "bg-white dark:bg-gray-800 text-purple-600 shadow-sm" : "text-gray-400"
+                  viewMode === "cards" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
                 }`}
                 title="Card grid view"
               >
@@ -990,14 +990,14 @@ const StaffSection: React.FC = () => {
                               )}&background=8b5cf6&color=fff`
                             }
                             alt=""
-                            className="w-9 h-9 rounded-full object-cover border border-purple-200 dark:border-purple-800"
+                            className="w-9 h-9 rounded-full object-cover border border-[#707E94]/30 dark:border-[#707E94]/40"
                           />
                           <div>
                             <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
                               <span>{item.name} {item.surname}</span>
                               {item.type === "TEACHING" && (
                                 <span title="Teaching Faculty">
-                                  <GraduationCap size={13} className="text-purple-600 dark:text-purple-400" />
+                                  <GraduationCap size={13} className="text-[#707E94] dark:text-[#a4b3c7]" />
                                 </span>
                               )}
                             </div>
@@ -1063,7 +1063,7 @@ const StaffSection: React.FC = () => {
                           {/* Edit */}
                           <button
                             onClick={() => setEditItem(item)}
-                            className="p-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-600 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 dark:text-purple-300 transition"
+                            className="p-1.5 rounded-lg bg-[#707E94]/10 hover:bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:hover:bg-[#707E94]/60 dark:text-[#a4b3c7] transition"
                             title="Edit Staff Member"
                           >
                             <Pencil size={14} />
@@ -1131,7 +1131,7 @@ const StaffSection: React.FC = () => {
                       )}&background=8b5cf6&color=fff`
                     }
                     alt=""
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-purple-200 dark:border-purple-800 shadow-sm"
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-[#707E94]/30 dark:border-[#707E94]/40 shadow-sm"
                   />
                   <div>{getStatusBadge(item.status)}</div>
                 </div>
@@ -1140,7 +1140,7 @@ const StaffSection: React.FC = () => {
                   <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">
                     {item.name} {item.surname}
                   </h3>
-                  <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                  <p className="text-xs text-[#707E94] dark:text-[#a4b3c7] font-medium">
                     {item.designation}
                   </p>
                   <p className="text-[11px] text-gray-400 font-mono mt-0.5">
@@ -1177,7 +1177,7 @@ const StaffSection: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setEditItem(item)}
-                    className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition"
+                    className="p-1.5 rounded-lg bg-[#707E94]/10 text-[#707E94] hover:bg-[#707E94]/15 transition"
                   >
                     <Pencil size={13} />
                   </button>
@@ -1200,7 +1200,7 @@ const StaffSection: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300">
+                <div className="p-2 rounded-xl bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]">
                   <UserPlus size={18} />
                 </div>
                 <div>
@@ -1248,7 +1248,7 @@ const StaffSection: React.FC = () => {
                         }}
                         className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
                           formData.type === opt.value
-                            ? "bg-purple-50 border-purple-500 text-purple-800 dark:bg-purple-950/60 dark:text-purple-200 dark:border-purple-600 shadow-sm font-bold"
+                            ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
                             : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
                         }`}
                       >
@@ -1259,7 +1259,7 @@ const StaffSection: React.FC = () => {
                   })}
                 </div>
                 {formData.type === "TEACHING" && (
-                  <div className="mt-2 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-purple-800 dark:text-purple-300 text-[11px] flex items-center gap-2">
+                  <div className="mt-2 p-2.5 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 border border-[#707E94]/30 dark:border-[#707E94]/40 text-[#707E94] dark:text-[#a4b3c7] text-[11px] flex items-center gap-2">
                     <Sparkles size={14} className="shrink-0" />
                     <span>
                       Adding as a <strong>Teacher</strong> will automatically create their teaching profile, enable subject assignments, and add them to the Teachers section.
@@ -1280,7 +1280,7 @@ const StaffSection: React.FC = () => {
                     placeholder="e.g. Robert"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
@@ -1293,7 +1293,7 @@ const StaffSection: React.FC = () => {
                     placeholder="e.g. Miller"
                     value={formData.surname}
                     onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
               </div>
@@ -1309,7 +1309,7 @@ const StaffSection: React.FC = () => {
                     placeholder="name@school.edu"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
@@ -1321,7 +1321,7 @@ const StaffSection: React.FC = () => {
                     placeholder="+1 555-0123"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
               </div>
@@ -1338,7 +1338,7 @@ const StaffSection: React.FC = () => {
                     placeholder="e.g. Senior Math Teacher, Bursar, Nurse"
                     value={formData.designation}
                     onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
@@ -1348,7 +1348,7 @@ const StaffSection: React.FC = () => {
                   <select
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30 cursor-pointer"
                   >
                     <option value="Academic Faculty">Academic Faculty</option>
                     <option value="Administration">Administration</option>
@@ -1365,8 +1365,8 @@ const StaffSection: React.FC = () => {
 
               {/* Teacher-Specific Fields (Subjects & Credentials) */}
               {formData.type === "TEACHING" && (
-                <div className="p-3.5 rounded-xl bg-purple-50/50 dark:bg-purple-950/30 border border-purple-100 dark:border-purple-800 space-y-3">
-                  <h4 className="font-bold text-purple-900 dark:text-purple-300 text-xs flex items-center gap-1.5">
+                <div className="p-3.5 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 border border-[#707E94]/20 dark:border-[#707E94]/40 space-y-3">
+                  <h4 className="font-bold text-[#707E94] dark:text-[#a4b3c7] text-xs flex items-center gap-1.5">
                     <GraduationCap size={15} /> Teacher Academic Details
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1416,7 +1416,7 @@ const StaffSection: React.FC = () => {
                             }}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
                               isSelected
-                                ? "bg-purple-600 text-white border-purple-600"
+                                ? "bg-[#D32F45] text-white border-[#707E94]"
                                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
                             }`}
                           >
@@ -1447,7 +1447,7 @@ const StaffSection: React.FC = () => {
                             }}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
                               isSelected
-                                ? "bg-purple-600 text-white border-purple-600"
+                                ? "bg-[#D32F45] text-white border-[#707E94]"
                                 : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
                             }`}
                           >
@@ -1471,7 +1471,7 @@ const StaffSection: React.FC = () => {
                     step="0.01"
                     value={formData.salary}
                     onChange={(e) => setFormData({ ...formData, salary: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
@@ -1482,7 +1482,7 @@ const StaffSection: React.FC = () => {
                     type="date"
                     value={formData.joining_date}
                     onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
@@ -1492,7 +1492,7 @@ const StaffSection: React.FC = () => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as StaffStatus })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30 cursor-pointer"
                   >
                     <option value="ACTIVE">Active Duty</option>
                     <option value="ON_LEAVE">On Leave</option>
@@ -1556,7 +1556,7 @@ const StaffSection: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
                 >
                   {submitting ? <RefreshCw size={14} className="animate-spin" /> : <UserPlus size={14} />}
                   <span>{formData.type === "TEACHING" ? "Save & Create Teacher" : "Save Staff Member"}</span>
@@ -1684,7 +1684,7 @@ const StaffSection: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition"
+                  className="px-5 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition"
                 >
                   Save Changes
                 </button>
@@ -1717,7 +1717,7 @@ const StaffSection: React.FC = () => {
                   )}&background=8b5cf6&color=fff`
                 }
                 alt=""
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-200 dark:border-purple-800"
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-[#707E94]/30 dark:border-[#707E94]/40"
               />
               <div>
                 <div className="flex items-center gap-2">
@@ -1726,7 +1726,7 @@ const StaffSection: React.FC = () => {
                   </h3>
                   {getStatusBadge(detailsItem.status)}
                 </div>
-                <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+                <p className="text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7]">
                   {detailsItem.designation}
                 </p>
                 <p className="text-[11px] text-gray-400 font-mono">
@@ -1765,7 +1765,7 @@ const StaffSection: React.FC = () => {
                   <span className="text-gray-500">Teacher Profile:</span>
                   <Link
                     to={detailsItem.teacher_id ? `/list/teachers/${detailsItem.teacher_id}` : "/list/teachers"}
-                    className="text-purple-600 dark:text-purple-400 hover:underline font-bold"
+                    className="text-[#707E94] dark:text-[#a4b3c7] hover:underline font-bold"
                   >
                     Open Teacher Page &rarr;
                   </Link>
@@ -1782,7 +1782,7 @@ const StaffSection: React.FC = () => {
               </button>
               <button
                 onClick={() => window.print()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm transition"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition"
               >
                 <Printer size={14} />
                 <span>Print Profile</span>

@@ -119,7 +119,7 @@ const ParentDashboardPage: React.FC = () => {
         <div className="flex flex-col gap-5">
           {/* Parent Welcome Bar */}
           <div className={`${cardBg} border rounded-2xl shadow-sm overflow-hidden`}>
-            <div className="h-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500" />
+            <div className="h-1.5 bg-gradient-to-r from-[#707E94] via-[#5a6679] to-[#D32F45]" />
             <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold text-lg shadow-sm">
@@ -201,7 +201,7 @@ const ParentDashboardPage: React.FC = () => {
                     className={`${cardBg} border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden`}
                   >
                     {/* Top subtle accent bar */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-teal-500" />
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#707E94] to-[#5a6679]" />
 
                     <div className="flex items-start gap-4">
                       {/* Avatar */}
@@ -213,7 +213,7 @@ const ParentDashboardPage: React.FC = () => {
                             className="w-16 h-16 rounded-xl object-cover border-2 border-white dark:border-gray-700 shadow-sm"
                           />
                         ) : (
-                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-indigo-500 to-teal-500 text-white flex items-center justify-center text-xl font-bold shadow-sm">
+                          <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[#707E94] to-[#5a6679] text-white flex items-center justify-center text-xl font-bold shadow-sm">
                             {child.name ? child.name[0].toUpperCase() : "S"}
                           </div>
                         )}

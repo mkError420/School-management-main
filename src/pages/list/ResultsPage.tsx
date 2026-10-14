@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
@@ -146,7 +146,7 @@ export const ResultsPage: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 rounded-xl">
+            <div className="p-2 bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] rounded-xl">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -170,7 +170,7 @@ export const ResultsPage: React.FC = () => {
             title="View Bangladesh Grading System scale"
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
           >
-            <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-[#707E94] dark:text-[#a4b3c7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="hidden sm:inline">BD Grading System</span>
@@ -180,7 +180,7 @@ export const ResultsPage: React.FC = () => {
           <button
             onClick={() => handleOpenResultSheet()}
             title="Generate Student Result Sheet / Marksheet"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#D32F45] hover:bg-[#be2035] text-white shadow-xs transition active:scale-95 cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -225,11 +225,11 @@ export const ResultsPage: React.FC = () => {
 
       {/* Bangladesh Quick Analytics Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div className="p-3.5 rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40">
-          <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300 uppercase tracking-wider block">
+        <div className="p-3.5 rounded-xl bg-primary-50/60 dark:bg-[#1a2332] border border-primary-200/60 dark:border-[#253147]">
+          <span className="text-[11px] font-bold text-[#707E94] dark:text-[#a4b3c7] uppercase tracking-wider block">
             Total Results
           </span>
-          <div className="text-xl sm:text-2xl font-black text-purple-950 dark:text-purple-100 mt-0.5">
+          <div className="text-xl sm:text-2xl font-black text-[#707E94] dark:text-white mt-0.5">
             {stats?.total ?? pagination.total}
           </div>
           <span className="text-[10px] text-gray-500 dark:text-gray-400">Total subjects assessed</span>
@@ -283,7 +283,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
           >
             <option value="all">All Classes</option>
             {classesList.map((c) => (
@@ -297,7 +297,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedExam}
             onChange={(e) => setSelectedExam(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
           >
             <option value="all">All Exams</option>
             {examsList.map((ex) => (
@@ -311,7 +311,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedGrade}
             onChange={(e) => setSelectedGrade(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
           >
             <option value="all">All Grades</option>
             <option value="A+">Grade A+ (80-100%)</option>
@@ -327,7 +327,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
           >
             <option value="all">All Status</option>
             <option value="Passed">Passed</option>
@@ -358,7 +358,7 @@ export const ResultsPage: React.FC = () => {
               <tr>
                 <td colSpan={10} className="py-12 text-center text-gray-400">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="w-7 h-7 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-7 h-7 border-3 border-[#707E94] border-t-transparent rounded-full animate-spin"></div>
                     <span>Loading Bangladesh results...</span>
                   </div>
                 </td>
@@ -367,7 +367,7 @@ export const ResultsPage: React.FC = () => {
               <tr>
                 <td colSpan={10} className="py-8 text-center text-rose-500">
                   <p>{error}</p>
-                  <button onClick={fetchResults} className="mt-2 text-xs text-purple-600 underline">
+                  <button onClick={fetchResults} className="mt-2 text-xs text-[#707E94] underline">
                     Try reloading
                   </button>
                 </td>
@@ -382,12 +382,12 @@ export const ResultsPage: React.FC = () => {
               results.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-purple-50/40 dark:hover:bg-purple-900/10 transition even:bg-slate-50/40 dark:even:bg-gray-800/40"
+                  className="hover:bg-primary-50/40 dark:hover:bg-[#1a2332] transition even:bg-slate-50/40 dark:even:bg-gray-800/40"
                 >
                   {/* Student Name & Roll */}
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-xs font-bold text-purple-700 dark:text-purple-300 overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-[#707E94]/15 dark:bg-[#707E94]/20 flex items-center justify-center text-xs font-bold text-[#707E94] dark:text-[#a4b3c7] overflow-hidden flex-shrink-0">
                         {item.student_img ? (
                           <img src={item.student_img} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -467,9 +467,9 @@ export const ResultsPage: React.FC = () => {
                     <button
                       onClick={() => handleOpenResultSheet(item.student_id, item.exam_id)}
                       title="View Official Bangladesh Result Sheet (Marksheet)"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 dark:bg-purple-900/50 dark:hover:bg-purple-900/80 dark:text-purple-300 transition cursor-pointer active:scale-95 shadow-2xs"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-primary-100 hover:bg-primary-200 text-[#707E94] dark:bg-[#243044] dark:hover:bg-[#1a2332] dark:text-[#a4b3c7] transition cursor-pointer active:scale-95 shadow-2xs"
                     >
-                      <svg className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5 text-[#707E94] dark:text-[#a4b3c7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <span>Sheet</span>

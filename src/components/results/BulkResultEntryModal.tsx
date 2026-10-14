@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
 interface BulkResultEntryModalProps {
@@ -172,7 +172,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/80">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+            <span className="p-2 rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
@@ -199,7 +199,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
           {/* Filter / Settings Row */}
-          <div className="p-4 bg-purple-50/50 dark:bg-purple-950/20 border-b border-purple-100 dark:border-purple-900/40 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-4 bg-[#707E94]/10 dark:bg-[#707E94]/15 border-b border-[#707E94]/20 dark:border-[#707E94]/40 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Select Class *
@@ -207,7 +207,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
-                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
               >
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -224,7 +224,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
               <select
                 value={selectedExamId}
                 onChange={(e) => setSelectedExamId(e.target.value)}
-                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
               >
                 {exams.map((ex) => (
                   <option key={ex.id} value={ex.id}>
@@ -244,7 +244,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
                 max={500}
                 value={totalMarks}
                 onChange={(e) => setTotalMarks(Math.max(1, Number(e.target.value)))}
-                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
               />
             </div>
           </div>
@@ -272,7 +272,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
           <div className="flex-1 overflow-y-auto p-4">
             {loadingStudents ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500 gap-2">
-                <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-3 border-[#707E94] border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-xs">Loading class students...</p>
               </div>
             ) : students.length === 0 ? (
@@ -297,7 +297,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
                       const bd = calculateBdGrade(scoreVal, totalMarks);
 
                       return (
-                        <tr key={st.id} className="hover:bg-purple-50/30 dark:hover:bg-purple-900/10">
+                        <tr key={st.id} className="hover:bg-[#707E94]/10 dark:hover:bg-[#707E94]/10">
                           <td className="py-2 px-3 text-center font-bold text-gray-600 dark:text-gray-400">
                             {st.username || st.id}
                           </td>
@@ -314,7 +314,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
                               placeholder="0"
                               value={scoreVal}
                               onChange={(e) => handleScoreChange(st.id, e.target.value)}
-                              className="w-24 text-center text-sm font-bold border border-gray-300 dark:border-gray-600 rounded-lg p-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                              className="w-24 text-center text-sm font-bold border border-gray-300 dark:border-gray-600 rounded-lg p-1.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
                             />
                           </td>
                           <td className="py-2 px-3 text-center">
@@ -350,7 +350,7 @@ export const BulkResultEntryModal: React.FC<BulkResultEntryModalProps> = ({
               <button
                 type="submit"
                 disabled={saving || loadingStudents || students.length === 0}
-                className="inline-flex items-center gap-1.5 px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#D32F45] hover:bg-[#be2035] text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 {saving ? (
                   <>

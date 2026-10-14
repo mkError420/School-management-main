@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -1163,13 +1163,13 @@ const FeesSection: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shadow-inner">
+            <div className="w-10 h-10 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center shadow-inner">
               <Wallet size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Fee Management</h1>
-                <span className="bg-purple-50 text-purple-700 text-xs px-2.5 py-0.5 rounded-full font-semibold border border-purple-200">
+                <span className="bg-[#707E94]/10 text-[#707E94] text-xs px-2.5 py-0.5 rounded-full font-semibold border border-[#707E94]/30">
                   {stats.total_invoices} Invoices
                 </span>
               </div>
@@ -1188,10 +1188,10 @@ const FeesSection: React.FC = () => {
               void loadInitialData();
             }}
             disabled={refreshing}
-            className="p-2.5 text-gray-600 hover:text-purple-700 bg-gray-50 hover:bg-purple-50 border border-gray-200 rounded-xl transition shadow-sm"
+            className="p-2.5 text-gray-600 hover:text-[#556275] bg-gray-50 hover:bg-[#707E94]/10 border border-gray-200 rounded-xl transition shadow-sm"
             title="Refresh Data"
           >
-            <RefreshCw size={17} className={refreshing ? "animate-spin text-purple-600" : ""} />
+            <RefreshCw size={17} className={refreshing ? "animate-spin text-[#707E94]" : ""} />
           </button>
 
           <button
@@ -1204,7 +1204,7 @@ const FeesSection: React.FC = () => {
 
           <button
             onClick={() => setBulkGenerateModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-xl transition shadow-sm"
+            className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-[#707E94] bg-[#707E94]/10 hover:bg-[#707E94]/15 border border-[#707E94]/30 rounded-xl transition shadow-sm"
           >
             <Layers size={15} />
             Bulk Generate
@@ -1229,7 +1229,7 @@ const FeesSection: React.FC = () => {
               });
               setCreateInvoiceModal(true);
             }}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition shadow-md shadow-purple-200"
+            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
           >
             <Plus size={16} />
             Create Invoice
@@ -1243,19 +1243,19 @@ const FeesSection: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Invoiced</span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#707E94]/10 text-[#707E94] flex items-center justify-center">
               <Receipt size={18} />
             </div>
           </div>
           <div className="mt-3">
             <div className="text-2xl font-bold text-gray-900">{fmt(stats.total_billed)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <span className="font-medium text-purple-600">{stats.total_invoices} invoices total</span>
+              <span className="font-medium text-[#707E94]">{stats.total_invoices} invoices total</span>
               <span>across all terms</span>
             </div>
           </div>
-          <div className="w-full bg-purple-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-purple-600 h-full rounded-full w-full" />
+          <div className="w-full bg-[#707E94]/15 h-1.5 rounded-full mt-3 overflow-hidden">
+            <div className="bg-[#D32F45] h-full rounded-full w-full" />
           </div>
         </div>
 
@@ -1341,7 +1341,7 @@ const FeesSection: React.FC = () => {
         <button
           onClick={() => setActiveTab("invoices")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "invoices"
-            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
             : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
@@ -1355,7 +1355,7 @@ const FeesSection: React.FC = () => {
         <button
           onClick={() => setActiveTab("payments")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "payments"
-            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
             : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
@@ -1369,7 +1369,7 @@ const FeesSection: React.FC = () => {
         <button
           onClick={() => setActiveTab("categories")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "categories"
-            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
             : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
@@ -1383,7 +1383,7 @@ const FeesSection: React.FC = () => {
         <button
           onClick={() => setActiveTab("class_summary")}
           className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "class_summary"
-            ? "border-purple-600 text-purple-700 bg-purple-50/50 rounded-t-xl"
+            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
             : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
         >
@@ -1408,7 +1408,7 @@ const FeesSection: React.FC = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
+                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#707E94]/20 focus:border-[#707E94]"
               />
               {search && (
                 <button
@@ -1432,7 +1432,7 @@ const FeesSection: React.FC = () => {
                       setCurrentPage(1);
                     }}
                     className={`px-3 py-1.5 rounded-lg transition ${statusFilter === st
-                      ? "bg-purple-600 text-white font-semibold shadow-xs"
+                      ? "bg-[#D32F45] text-white font-semibold shadow-xs"
                       : "text-gray-600 hover:text-gray-900"
                       }`}
                   >
@@ -1448,7 +1448,7 @@ const FeesSection: React.FC = () => {
                   setCategoryFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-purple-600"
+                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-[#707E94]"
               >
                 <option value="ALL">All Fee Types</option>
                 {categories.map((c) => (
@@ -1465,7 +1465,7 @@ const FeesSection: React.FC = () => {
                   setClassFilter(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-purple-600"
+                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-[#707E94]"
               >
                 <option value="ALL">All Classes</option>
                 {classes.map((cls) => (
@@ -1513,8 +1513,8 @@ const FeesSection: React.FC = () => {
                     const isOverdue = inv.status === "OVERDUE" || (due > 0 && inv.due_date < new Date().toISOString().split("T")[0]);
 
                     return (
-                      <tr key={inv.id} className="hover:bg-purple-50/30 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-semibold text-purple-700">
+                      <tr key={inv.id} className="hover:bg-[#707E94]/10 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-semibold text-[#707E94]">
                           {inv.invoice_no}
                         </td>
                         <td className="py-3.5 px-4">
@@ -1576,7 +1576,7 @@ const FeesSection: React.FC = () => {
 
                             <button
                               onClick={() => handleOpenReceipt(inv)}
-                              className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-100 transition"
+                              className="p-1.5 rounded-lg text-[#707E94] hover:bg-[#707E94]/15 transition"
                               title="View and print receipt slip"
                             >
                               <Printer size={15} />
@@ -1622,7 +1622,7 @@ const FeesSection: React.FC = () => {
                 }, 0);
                 return (
                   <tfoot>
-                    <tr className="border-t-2 border-purple-200 bg-purple-50/60 text-xs font-bold">
+                    <tr className="border-t-2 border-[#707E94]/30 bg-[#707E94]/10 text-xs font-bold">
                       <td colSpan={4} className="py-3 px-4 text-gray-500 text-[11px] uppercase tracking-wide">
                         <span className="inline-flex items-center gap-1.5">
                           <span className="text-gray-400">&#x3A3;</span>
@@ -1674,7 +1674,7 @@ const FeesSection: React.FC = () => {
                     key={idx}
                     onClick={() => setCurrentPage(idx + 1)}
                     className={`w-8 h-8 rounded-lg font-semibold transition ${currentPage === idx + 1
-                      ? "bg-purple-600 text-white"
+                      ? "bg-[#D32F45] text-white"
                       : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
                       }`}
                   >
@@ -1705,7 +1705,7 @@ const FeesSection: React.FC = () => {
                 placeholder="Search receipt #, invoice #, student name, reference..."
                 value={paymentSearch}
                 onChange={(e) => setPaymentSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-600"
+                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#707E94]/20 focus:border-[#707E94]"
               />
             </div>
 
@@ -1758,7 +1758,7 @@ const FeesSection: React.FC = () => {
                         </div>
                         <div className="text-[11px] text-gray-400">Class: {p.class_name || "General"}</div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-purple-700">
+                      <td className="py-3.5 px-4 font-mono text-[#707E94]">
                         {p.invoice_no || `INV-#${p.invoice_id}`}
                       </td>
                       <td className="py-3.5 px-4">
@@ -1795,7 +1795,7 @@ const FeesSection: React.FC = () => {
                               site_name: siteName,
                             });
                           }}
-                          className="px-2.5 py-1.5 bg-purple-50 text-purple-700 hover:bg-purple-100 rounded-lg font-medium inline-flex items-center gap-1 transition"
+                          className="px-2.5 py-1.5 bg-[#707E94]/10 text-[#707E94] hover:bg-[#707E94]/15 rounded-lg font-medium inline-flex items-center gap-1 transition"
                         >
                           <Printer size={13} />
                           Print
@@ -1830,7 +1830,7 @@ const FeesSection: React.FC = () => {
                 });
                 setCategoryModal({ open: true, mode: "create", data: null });
               }}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition shadow-sm"
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-sm"
             >
               <Plus size={15} />
               Add Fee Category
@@ -1846,7 +1846,7 @@ const FeesSection: React.FC = () => {
                 <div key={cat.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition">
                   <div>
                     <div className="flex items-start justify-between">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-100 text-purple-700">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[#707E94]/15 text-[#707E94]">
                         {cat.code}
                       </span>
                       <span
@@ -1873,7 +1873,7 @@ const FeesSection: React.FC = () => {
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Invoices Issued:</span>
-                        <span className="font-medium text-purple-700">{catInvoices.length} invoices</span>
+                        <span className="font-medium text-[#707E94]">{catInvoices.length} invoices</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500">Total Collected:</span>
@@ -1943,9 +1943,9 @@ const FeesSection: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-gray-50 text-xs">
                 {classBreakdown.map((row) => (
-                  <tr key={row.className} className="hover:bg-purple-50/20 transition">
+                  <tr key={row.className} className="hover:bg-[#707E94]/10 transition">
                     <td className="py-3.5 px-4 font-bold text-gray-900 flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs">
+                      <div className="w-7 h-7 rounded-lg bg-[#707E94]/15 text-[#707E94] flex items-center justify-center font-bold text-xs">
                         {row.className}
                       </div>
                       <span>Class {row.className}</span>
@@ -1987,9 +1987,9 @@ const FeesSection: React.FC = () => {
       {createInvoiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-purple-50/50">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#707E94]/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center">
                   <Receipt size={18} />
                 </div>
                 <div>
@@ -2015,7 +2015,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={invoiceForm.student_id}
                   onChange={(e) => setInvoiceForm({ ...invoiceForm, student_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 >
                   <option value="">-- Choose student --</option>
                   {students.map((st) => (
@@ -2044,7 +2044,7 @@ const FeesSection: React.FC = () => {
                         title: sel ? `${sel.name} - ${new Date().toLocaleString("default", { month: "short" })}` : invoiceForm.title,
                       });
                     }}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -2062,7 +2062,7 @@ const FeesSection: React.FC = () => {
                     type="text"
                     value={invoiceForm.academic_year}
                     onChange={(e) => setInvoiceForm({ ...invoiceForm, academic_year: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
               </div>
@@ -2077,7 +2077,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={invoiceForm.title}
                   onChange={(e) => setInvoiceForm({ ...invoiceForm, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   placeholder="e.g. Monthly Tuition Fee - October 2026"
                 />
               </div>
@@ -2095,7 +2095,7 @@ const FeesSection: React.FC = () => {
                     required
                     value={invoiceForm.amount}
                     onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
 
@@ -2109,7 +2109,7 @@ const FeesSection: React.FC = () => {
                     min="0"
                     value={invoiceForm.discount}
                     onChange={(e) => setInvoiceForm({ ...invoiceForm, discount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
 
@@ -2121,7 +2121,7 @@ const FeesSection: React.FC = () => {
                     type="text"
                     disabled
                     value={fmt(Math.max(0, invoiceForm.amount - invoiceForm.discount))}
-                    className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl font-bold text-purple-700"
+                    className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#707E94]"
                   />
                 </div>
               </div>
@@ -2136,7 +2136,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={invoiceForm.due_date}
                   onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2150,13 +2150,13 @@ const FeesSection: React.FC = () => {
                   value={invoiceForm.notes}
                   onChange={(e) => setInvoiceForm({ ...invoiceForm, notes: e.target.value })}
                   placeholder="Optional memo or bank wire instructions"
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
               {/* Collect payment immediately toggle */}
-              <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/50 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-purple-900">
+              <div className="p-3.5 rounded-xl border border-[#707E94]/30 bg-[#707E94]/10 space-y-3">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#707E94]">
                   <input
                     type="checkbox"
                     checked={invoiceForm.collect_now}
@@ -2167,7 +2167,7 @@ const FeesSection: React.FC = () => {
                         paid_now: Math.max(0, invoiceForm.amount - invoiceForm.discount),
                       })
                     }
-                    className="rounded text-purple-600 focus:ring-purple-500 w-4 h-4"
+                    className="rounded text-[#707E94] focus:ring-[#707E94]/30 w-4 h-4"
                   />
                   Collect payment right now
                 </label>
@@ -2232,7 +2232,7 @@ const FeesSection: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition shadow-md shadow-purple-200"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
                 >
                   Create Invoice
                 </button>
@@ -2246,9 +2246,9 @@ const FeesSection: React.FC = () => {
       {bulkGenerateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-purple-50/50">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#707E94]/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center">
                   <Layers size={18} />
                 </div>
                 <div>
@@ -2273,7 +2273,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={bulkForm.class_id}
                   onChange={(e) => setBulkForm({ ...bulkForm, class_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 >
                   <option value="">-- Choose Class --</option>
                   {classes.map((c) => (
@@ -2299,7 +2299,7 @@ const FeesSection: React.FC = () => {
                       title: sel ? `${sel.name} - ${new Date().toLocaleString("default", { month: "long" })} 2026` : bulkForm.title,
                     });
                   }}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -2318,7 +2318,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={bulkForm.title}
                   onChange={(e) => setBulkForm({ ...bulkForm, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2334,7 +2334,7 @@ const FeesSection: React.FC = () => {
                     required
                     value={bulkForm.amount}
                     onChange={(e) => setBulkForm({ ...bulkForm, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
 
@@ -2347,7 +2347,7 @@ const FeesSection: React.FC = () => {
                     required
                     value={bulkForm.due_date}
                     onChange={(e) => setBulkForm({ ...bulkForm, due_date: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
               </div>
@@ -2369,7 +2369,7 @@ const FeesSection: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition shadow-md shadow-purple-200"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
                 >
                   Run Batch Generation
                 </button>
@@ -2440,7 +2440,7 @@ const FeesSection: React.FC = () => {
                           Number(paymentModalInvoice.paid_amount || 0);
                         setPayForm({ ...payForm, amount: Math.max(0, rem) });
                       }}
-                      className="px-2 py-0.5 text-[10px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded transition"
+                      className="px-2 py-0.5 text-[10px] font-bold text-[#707E94] bg-[#707E94]/10 hover:bg-[#707E94]/15 rounded transition"
                     >
                       Full Due
                     </button>
@@ -2557,13 +2557,13 @@ const FeesSection: React.FC = () => {
             {/* Top Toolbar (Non-printable) */}
             <div className="p-4 bg-gray-900 text-white flex items-center justify-between print:hidden">
               <div className="flex items-center gap-2">
-                <Receipt size={18} className="text-purple-400" />
+                <Receipt size={18} className="text-[#a4b3c7]" />
                 <span className="font-bold text-sm">Official Fee Receipt Voucher</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition shadow-sm"
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-lg transition shadow-sm"
                 >
                   <Printer size={14} />
                   Print Receipt
@@ -2580,12 +2580,12 @@ const FeesSection: React.FC = () => {
             {/* Printable Receipt Body */}
             <div id="printable-receipt" className="p-8 text-gray-800 bg-white">
               {/* Receipt Header */}
-              <div className="border-b-2 border-purple-600 pb-5 mb-5 flex items-start justify-between">
+              <div className="border-b-2 border-[#707E94] pb-5 mb-5 flex items-start justify-between">
                 <div>
                   <div className="text-2xl font-black tracking-tight text-gray-900 uppercase">
                     {siteName || "ACADEMIA"}
                   </div>
-                  <div className="text-xs font-semibold text-purple-700 tracking-wider uppercase mt-0.5">
+                  <div className="text-xs font-semibold text-[#707E94] tracking-wider uppercase mt-0.5">
                     Official Fee Payment Receipt
                   </div>
                   <div className="text-[11px] text-gray-500 mt-1">
@@ -2594,9 +2594,9 @@ const FeesSection: React.FC = () => {
                 </div>
 
                 <div className="text-right">
-                  <div className="inline-block bg-purple-50 border border-purple-200 rounded-lg px-3 py-1 text-right">
+                  <div className="inline-block bg-[#707E94]/10 border border-[#707E94]/30 rounded-lg px-3 py-1 text-right">
                     <div className="text-[10px] text-gray-500 font-semibold uppercase">Receipt No</div>
-                    <div className="font-mono font-bold text-purple-700 text-sm">{receiptData.receipt_no}</div>
+                    <div className="font-mono font-bold text-[#707E94] text-sm">{receiptData.receipt_no}</div>
                   </div>
                   <div className="text-[11px] text-gray-500 mt-2">
                     <span className="font-semibold">Date:</span> {receiptData.payment_date}
@@ -2749,7 +2749,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={editInvoiceModal.title}
                   onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2763,7 +2763,7 @@ const FeesSection: React.FC = () => {
                     required
                     value={editInvoiceModal.amount}
                     onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
                 <div>
@@ -2774,7 +2774,7 @@ const FeesSection: React.FC = () => {
                     min="0"
                     value={editInvoiceModal.discount}
                     onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, discount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
               </div>
@@ -2786,7 +2786,7 @@ const FeesSection: React.FC = () => {
                   required
                   value={editInvoiceModal.due_date}
                   onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, due_date: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2796,7 +2796,7 @@ const FeesSection: React.FC = () => {
                   rows={2}
                   value={editInvoiceModal.notes || ""}
                   onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2810,7 +2810,7 @@ const FeesSection: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition"
                 >
                   Save Changes
                 </button>
@@ -2850,7 +2850,7 @@ const FeesSection: React.FC = () => {
                   placeholder="e.g. Science Laboratory Fee"
                   value={categoryForm.name}
                   onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2863,7 +2863,7 @@ const FeesSection: React.FC = () => {
                     maxLength={8}
                     value={categoryForm.code}
                     onChange={(e) => setCategoryForm({ ...categoryForm, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600 font-mono uppercase"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94] font-mono uppercase"
                   />
                 </div>
                 <div>
@@ -2875,7 +2875,7 @@ const FeesSection: React.FC = () => {
                     required
                     value={categoryForm.default_amount}
                     onChange={(e) => setCategoryForm({ ...categoryForm, default_amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   />
                 </div>
               </div>
@@ -2886,7 +2886,7 @@ const FeesSection: React.FC = () => {
                   <select
                     value={categoryForm.frequency}
                     onChange={(e) => setCategoryForm({ ...categoryForm, frequency: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   >
                     <option value="MONTHLY">Monthly</option>
                     <option value="TERMLY">Termly</option>
@@ -2899,7 +2899,7 @@ const FeesSection: React.FC = () => {
                   <select
                     value={categoryForm.status}
                     onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
@@ -2914,7 +2914,7 @@ const FeesSection: React.FC = () => {
                   value={categoryForm.description}
                   onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
                   placeholder="Optional details regarding this fee"
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-purple-600"
+                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
                 />
               </div>
 
@@ -2928,7 +2928,7 @@ const FeesSection: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition"
+                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition"
                 >
                   Save Category
                 </button>

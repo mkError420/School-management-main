@@ -81,7 +81,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
         {/* Header Controls (Hidden on Print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/80 rounded-t-2xl print:hidden">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            <span className="p-2 rounded-xl bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -101,7 +101,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(e.target.value)}
-              className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+              className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]"
             >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -114,7 +114,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
             <select
               value={selectedExamId}
               onChange={(e) => setSelectedExamId(e.target.value)}
-              className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+              className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]"
             >
               <option value="">All Exams / Latest</option>
               {exams.map((ex) => (
@@ -128,7 +128,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
             <button
               onClick={handlePrint}
               disabled={loading || !data}
-              className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 bg-[#707E94] hover:bg-[#5a6679] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs cursor-pointer disabled:opacity-50"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -152,7 +152,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
         <div className="overflow-y-auto p-4 sm:p-6 flex-1 print:p-2 print:overflow-visible">
           {loading ? (
             <div className="flex flex-col items-center justify-center min-h-[300px] gap-3 text-gray-500">
-              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#707E94] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-sm font-medium">Preparing class broad-sheet...</p>
             </div>
           ) : error ? (
@@ -161,7 +161,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
               <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">{error}</p>
               <button
                 onClick={fetchTabulation}
-                className="mt-4 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium cursor-pointer"
+                className="mt-4 px-4 py-1.5 bg-[#707E94] text-white rounded-lg text-xs font-medium cursor-pointer"
               >
                 Retry
               </button>
@@ -192,21 +192,21 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
 
               {/* Statistics Overview Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-4 text-center text-xs print:mb-2">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                <div className="bg-primary-50 border border-[#707E94]/30 rounded-lg p-2">
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">Appeared</span>
-                  <p className="text-lg font-bold text-blue-900">{data.stats.total_appeared}</p>
+                  <p className="text-lg font-bold text-[#707E94]">{data.stats.total_appeared}</p>
                 </div>
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">Passed</span>
                   <p className="text-lg font-bold text-emerald-700">{data.stats.passed}</p>
                 </div>
-                <div className="bg-rose-50 border border-rose-200 rounded-lg p-2">
+                <div className="bg-[#D32F45]/10 border border-[#D32F45]/30 rounded-lg p-2">
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">Failed</span>
-                  <p className="text-lg font-bold text-rose-700">{data.stats.failed}</p>
+                  <p className="text-lg font-bold text-[#D32F45]">{data.stats.failed}</p>
                 </div>
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-2">
+                <div className="bg-[#707E94]/10 border border-[#707E94]/30 rounded-lg p-2">
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">Pass Rate</span>
-                  <p className="text-lg font-bold text-purple-900">{data.stats.pass_rate}%</p>
+                  <p className="text-lg font-bold text-[#707E94]">{data.stats.pass_rate}%</p>
                 </div>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
                   <span className="text-[10px] text-gray-500 uppercase font-semibold">A+ (GPA 5.0)</span>
@@ -276,7 +276,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
                           <td className="py-1.5 px-2 text-center font-bold text-gray-900 border-r border-gray-200">
                             {student.total_obtained}
                           </td>
-                          <td className={`py-1.5 px-2 text-center font-black border-r border-gray-200 ${student.has_fail ? "text-rose-600" : "text-purple-900"}`}>
+                          <td className={`py-1.5 px-2 text-center font-black border-r border-gray-200 ${student.has_fail ? "text-rose-600" : "text-[#707E94]"}`}>
                             {student.gpa}
                           </td>
                           <td className="py-1.5 px-2 text-center border-r border-gray-200">
@@ -313,7 +313,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
                 </div>
                 <div>
                   <div className="border-b border-gray-400 w-3/4 mx-auto mb-1"></div>
-                  <p className="font-bold text-purple-950">Headmaster / Principal</p>
+                  <p className="font-bold text-[#707E94]">Headmaster / Principal</p>
                 </div>
               </div>
             </div>

@@ -438,10 +438,10 @@ const ExpenseSection: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <Wallet size={20} className="text-purple-600 dark:text-purple-400" />
+              <Wallet size={20} className="text-[#707E94] dark:text-[#a4b3c7]" />
               Expense Management
             </h2>
-            <span className="text-[10px] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full text-purple-800 font-semibold">
+            <span className="text-[10px] bg-[#707E94]/10 border border-[#707E94]/30 px-2 py-0.5 rounded-full text-[#707E94] font-semibold">
               2026/27 Session
             </span>
           </div>
@@ -457,7 +457,7 @@ const ExpenseSection: React.FC = () => {
             title="Refresh list"
             className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 transition shadow-sm"
           >
-            <RefreshCw size={15} className={loading ? "animate-spin text-purple-600" : ""} />
+            <RefreshCw size={15} className={loading ? "animate-spin text-[#707E94]" : ""} />
           </button>
 
           <button
@@ -473,7 +473,7 @@ const ExpenseSection: React.FC = () => {
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 text-xs font-semibold shadow-sm shadow-purple-500/20 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white px-3.5 py-2 text-xs font-semibold shadow-sm shadow-purple-500/20 transition"
           >
             <Plus size={15} />
             <span>New Expense</span>
@@ -487,13 +487,13 @@ const ExpenseSection: React.FC = () => {
         <div
           onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
           className={`cursor-pointer rounded-xl p-3 border transition ${statusFilter === "all"
-            ? "bg-purple-50 dark:bg-purple-950/40 border-purple-400 ring-2 ring-purple-400/20"
+            ? "bg-[#707E94]/10 dark:bg-[#707E94]/20 border-[#707E94]/40 ring-2 ring-[#707E94]/30/20"
             : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 hover:border-gray-300"
           }`}
         >
           <div className="flex justify-between items-center text-xs font-medium text-gray-500">
             <span>Total Expenses</span>
-            <Wallet size={14} className="text-purple-600" />
+            <Wallet size={14} className="text-[#707E94]" />
           </div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mt-1 truncate">{fmt(globalStats.total_expenses)}</h3>
           <p className="text-[11px] text-gray-500 mt-0.5">{globalStats.total_count} transactions</p>
@@ -557,7 +557,7 @@ const ExpenseSection: React.FC = () => {
             placeholder="Search by title, expense no, vendor..."
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 pl-9 pr-8 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:bg-white transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 pl-9 pr-8 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:bg-white transition"
           />
           {searchInput && (
             <button
@@ -623,7 +623,7 @@ const ExpenseSection: React.FC = () => {
               <tr>
                 <td colSpan={8} className="text-center py-12 text-gray-400">
                   <div className="flex items-center justify-center gap-2">
-                    <RefreshCw size={16} className="animate-spin text-purple-600" />
+                    <RefreshCw size={16} className="animate-spin text-[#707E94]" />
                     <span>Loading expense records...</span>
                   </div>
                 </td>
@@ -646,7 +646,7 @@ const ExpenseSection: React.FC = () => {
                 >
                   {/* Expense No */}
                   <td className="py-3 px-3.5 whitespace-nowrap">
-                    <span className="font-mono text-[11px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-purple-700 dark:text-purple-300">
+                    <span className="font-mono text-[11px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[#707E94] dark:text-[#a4b3c7]">
                       {item.expense_no || "N/A"}
                     </span>
                   </td>
@@ -693,7 +693,7 @@ const ExpenseSection: React.FC = () => {
                         type="button"
                         onClick={() => setDetailsItem(item)}
                         title="View Details"
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-800 transition"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#556275] hover:bg-[#707E94]/10 dark:hover:bg-gray-800 transition"
                       >
                         <Eye size={13} />
                       </button>
@@ -750,7 +750,7 @@ const ExpenseSection: React.FC = () => {
                   key={page}
                   onClick={() => setCurrentPage(page)}
                   className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page === currentPage
-                    ? "bg-purple-600 text-white"
+                    ? "bg-[#D32F45] text-white"
                     : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   }`}
                 >
@@ -777,9 +777,9 @@ const ExpenseSection: React.FC = () => {
         >
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-5 py-4 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/50 dark:from-purple-950/30 dark:via-gray-900 dark:to-purple-950/20 shrink-0">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-5 py-4 bg-gradient-to-r from-[#707E94]/15 via-white to-[#707E94]/10 dark:from-[#707E94]/20 dark:via-gray-900 dark:to-[#707E94]/10 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] flex items-center justify-center">
                   <Wallet size={17} />
                 </div>
                 <div>
@@ -812,7 +812,7 @@ const ExpenseSection: React.FC = () => {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter expense title"
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition"
                 />
               </div>
 
@@ -824,7 +824,7 @@ const ExpenseSection: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Enter expense description"
                   rows={2}
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition resize-none"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition resize-none"
                 />
               </div>
 
@@ -835,7 +835,7 @@ const ExpenseSection: React.FC = () => {
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as ExpenseCategory })}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] transition"
                   >
                     {defaultCategories.map((cat) => (
                       <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
@@ -853,7 +853,7 @@ const ExpenseSection: React.FC = () => {
                     placeholder="0.00"
                     min="0"
                     step="0.01"
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition"
                   />
                 </div>
 
@@ -863,7 +863,7 @@ const ExpenseSection: React.FC = () => {
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as ExpenseStatus })}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] transition"
                   >
                     <option value="PENDING">Pending</option>
                     <option value="APPROVED">Approved</option>
@@ -878,7 +878,7 @@ const ExpenseSection: React.FC = () => {
                   <select
                     value={formData.payment_method}
                     onChange={(e) => setFormData({ ...formData, payment_method: e.target.value as PaymentMethod })}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] transition"
                   >
                     <option value="CASH">Cash</option>
                     <option value="BANK_TRANSFER">Bank Transfer</option>
@@ -898,7 +898,7 @@ const ExpenseSection: React.FC = () => {
                   value={formData.vendor}
                   onChange={(e) => setFormData({ ...formData, vendor: e.target.value })}
                   placeholder="Enter vendor name"
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition"
                 />
               </div>
 
@@ -910,7 +910,7 @@ const ExpenseSection: React.FC = () => {
                     type="date"
                     value={formData.expense_date}
                     onChange={(e) => setFormData({ ...formData, expense_date: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] transition"
                   />
                 </div>
 
@@ -921,7 +921,7 @@ const ExpenseSection: React.FC = () => {
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 transition"
+                    className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] transition"
                   />
                 </div>
               </div>
@@ -934,7 +934,7 @@ const ExpenseSection: React.FC = () => {
                   value={formData.transaction_ref}
                   onChange={(e) => setFormData({ ...formData, transaction_ref: e.target.value })}
                   placeholder="Enter transaction reference"
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition"
                 />
               </div>
 
@@ -946,7 +946,7 @@ const ExpenseSection: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Enter additional notes"
                   rows={2}
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 transition resize-none"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 transition resize-none"
                 />
               </div>
 
@@ -963,7 +963,7 @@ const ExpenseSection: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-sm shadow-purple-500/20 transition disabled:opacity-50"
+                  className="px-5 py-2 rounded-lg bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm shadow-purple-500/20 transition disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : editItem ? "Update Expense" : "Create Expense"}
                 </button>
@@ -981,9 +981,9 @@ const ExpenseSection: React.FC = () => {
         >
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             {/* Header */}
-            <div className="flex items-start justify-between gap-3 p-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/50 dark:from-purple-950/30 dark:via-gray-900 dark:to-purple-950/20">
+            <div className="flex items-start justify-between gap-3 p-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-[#707E94]/15 via-white to-[#707E94]/10 dark:from-[#707E94]/20 dark:via-gray-900 dark:to-[#707E94]/10">
               <div>
-                <span className="font-mono text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded">
+                <span className="font-mono text-[11px] font-bold text-[#707E94] dark:text-[#a4b3c7] bg-[#707E94]/15 dark:bg-[#707E94]/20 px-2 py-0.5 rounded">
                   {detailsItem.expense_no || "N/A"}
                 </span>
                 <h3 className="text-base font-bold text-gray-900 dark:text-white mt-1.5">{detailsItem.title}</h3>
@@ -1028,8 +1028,8 @@ const ExpenseSection: React.FC = () => {
               )}
 
               {detailsItem.notes && (
-                <div className="rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 p-3">
-                  <p className="font-bold text-purple-900 dark:text-purple-300 mb-1">Notes</p>
+                <div className="rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/15 border border-[#707E94]/30 dark:border-[#707E94]/30 p-3">
+                  <p className="font-bold text-[#707E94] dark:text-[#a4b3c7] mb-1">Notes</p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{detailsItem.notes}</p>
                 </div>
               )}

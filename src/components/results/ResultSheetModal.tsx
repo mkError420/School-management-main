@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+﻿import React, { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
 
 export interface ResultSheetData {
@@ -168,7 +168,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
         {/* Top Control Bar (Hidden on print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/80 rounded-t-2xl print:hidden">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+            <span className="p-2 rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -189,7 +189,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               <select
                 value={selectedStudentId || ""}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
               >
                 {availableStudents.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -204,7 +204,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               <select
                 value={selectedExamId || ""}
                 onChange={(e) => setSelectedExamId(e.target.value)}
-                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-purple-500"
+                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
               >
                 <option value="">All Exams / Latest</option>
                 {availableExams.map((ex) => (
@@ -219,7 +219,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
             <button
               onClick={handlePrint}
               disabled={loading || !data}
-              className="inline-flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -244,7 +244,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
         <div className="overflow-y-auto p-4 sm:p-6 flex-1 print:p-0 print:overflow-visible">
           {loading ? (
             <div className="flex flex-col items-center justify-center min-h-[350px] gap-3 text-gray-500">
-              <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-10 h-10 border-4 border-[#707E94] border-t-transparent rounded-full animate-spin"></div>
               <p className="text-sm font-medium">Generating official Bangladesh result sheet...</p>
             </div>
           ) : error ? (
@@ -267,20 +267,20 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
             <div
               ref={sheetRef}
               id="printable-result-sheet"
-              className="bg-white text-gray-900 p-6 sm:p-8 rounded-xl border-4 border-double border-purple-900/40 shadow-sm relative mx-auto max-w-3xl print:border-4 print:border-double print:border-black print:shadow-none print:p-4 print:max-w-none print:w-full print:m-0"
+              className="bg-white text-gray-900 p-6 sm:p-8 rounded-xl border-4 border-double border-[#707E94]/40 shadow-sm relative mx-auto max-w-3xl print:border-4 print:border-double print:border-black print:shadow-none print:p-4 print:max-w-none print:w-full print:m-0"
             >
               {/* Decorative Corner Ornaments (Bangladesh Certificate Aesthetic) */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-purple-800 pointer-events-none"></div>
-              <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-purple-800 pointer-events-none"></div>
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-purple-800 pointer-events-none"></div>
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-purple-800 pointer-events-none"></div>
+              <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-[#707E94]/40 pointer-events-none"></div>
+              <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-[#707E94]/40 pointer-events-none"></div>
+              <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-[#707E94]/40 pointer-events-none"></div>
+              <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-[#707E94]/40 pointer-events-none"></div>
 
               {/* Institution Header */}
-              <div className="text-center border-b-2 border-purple-900/30 pb-4 mb-4">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-purple-50 border-2 border-purple-700 text-purple-900 font-black text-xl mb-2 shadow-xs">
+              <div className="text-center border-b-2 border-[#707E94]/20 pb-4 mb-4">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#707E94]/10 border-2 border-[#707E94]/40 text-[#707E94] font-black text-xl mb-2 shadow-xs">
                   BD
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-purple-950 font-serif">
+                <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-[#707E94] font-serif">
                   {data.institute.name}
                 </h1>
                 <p className="text-xs text-gray-600 font-medium">
@@ -292,7 +292,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
 
                 {/* Badge Banner */}
                 <div className="mt-3 inline-block">
-                  <span className="bg-purple-900 text-white font-bold tracking-widest text-xs uppercase px-5 py-1 rounded-full shadow-xs">
+                  <span className="bg-[#707E94] text-white font-bold tracking-widest text-xs uppercase px-5 py-1 rounded-full shadow-xs">
                     Academic Transcript / Marksheet
                   </span>
                 </div>
@@ -304,10 +304,10 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               {/* Student Details & Official BD Grading Scale side by side */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 text-xs">
                 {/* Student Info Box (2 cols) */}
-                <div className="md:col-span-2 bg-purple-50/50 rounded-lg p-3 border border-purple-200">
-                  <h3 className="font-bold text-purple-950 uppercase text-[11px] border-b border-purple-200 pb-1 mb-2 tracking-wider flex items-center justify-between">
+                <div className="md:col-span-2 bg-[#707E94]/10 rounded-lg p-3 border border-[#707E94]/30">
+                  <h3 className="font-bold text-[#707E94] uppercase text-[11px] border-b border-[#707E94]/30 pb-1 mb-2 tracking-wider flex items-center justify-between">
                     <span>Student Particulars</span>
-                    <span className="text-[10px] text-purple-700 font-semibold">ID: {data.student.id}</span>
+                    <span className="text-[10px] text-[#707E94] font-semibold">ID: {data.student.id}</span>
                   </h3>
                   <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-gray-800">
                     <div>
@@ -316,7 +316,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                     </div>
                     <div>
                       <span className="text-gray-500 text-[11px] block">Roll Number</span>
-                      <strong className="text-sm font-bold text-purple-900">{data.student.roll}</strong>
+                      <strong className="text-sm font-bold text-[#707E94]">{data.student.roll}</strong>
                     </div>
                     <div>
                       <span className="text-gray-500 text-[11px] block">Class & Section</span>
@@ -367,7 +367,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               <div className="mb-5 overflow-hidden rounded-lg border border-gray-300">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-purple-900 text-white text-[11px] uppercase tracking-wider font-semibold">
+                    <tr className="bg-[#707E94] text-white text-[11px] uppercase tracking-wider font-semibold">
                       <th className="py-2 px-3 text-center w-10">Sl</th>
                       <th className="py-2 px-3">Subject Name</th>
                       <th className="py-2 px-2 text-center w-20">Full Marks</th>
@@ -387,7 +387,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                       </tr>
                     ) : (
                       data.subjects.map((sub, idx) => (
-                        <tr key={sub.id || idx} className="hover:bg-purple-50/40 transition">
+                        <tr key={sub.id || idx} className="hover:bg-[#707E94]/10/40 transition">
                           <td className="py-2 px-3 text-center font-medium text-gray-500">{idx + 1}</td>
                           <td className="py-2 px-3 font-semibold text-gray-900">{sub.subject_name}</td>
                           <td className="py-2 px-2 text-center text-gray-600">{sub.total_marks}</td>
@@ -422,7 +422,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                         Total Marks:
                       </td>
                       <td className="py-2 px-2 text-center">{data.summary.total_full_marks}</td>
-                      <td className="py-2 px-2 text-center font-black text-purple-950 text-sm">
+                      <td className="py-2 px-2 text-center font-black text-[#707E94] text-sm">
                         {data.summary.total_obtained}
                       </td>
                       <td colSpan={4} className="py-2 px-3 text-right text-[11px] text-gray-600">
@@ -434,10 +434,10 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               </div>
 
               {/* Bangladesh Overall Result Evaluation Banner */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-purple-50 border-2 border-purple-300 mb-6 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-[#707E94]/10 border-2 border-[#707E94]/30 mb-6 text-center">
                 <div className="p-2 rounded-lg bg-white shadow-2xs">
                   <span className="text-[10px] font-bold text-gray-500 uppercase block tracking-wider">GPA (5.00 Scale)</span>
-                  <div className={`text-2xl font-black mt-0.5 ${data.summary.has_fail ? "text-rose-600" : "text-purple-900"}`}>
+                  <div className={`text-2xl font-black mt-0.5 ${data.summary.has_fail ? "text-rose-600" : "text-[#707E94]"}`}>
                     {data.summary.gpa}
                   </div>
                   <span className="text-[10px] text-gray-400 font-medium">Grade Point Average</span>
@@ -500,7 +500,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
 
                 <div>
                   <div className="border-b border-gray-400 w-3/4 mx-auto mb-1"></div>
-                  <p className="font-bold text-purple-950 font-serif">Headmaster / Principal</p>
+                  <p className="font-bold text-[#707E94] font-serif">Headmaster / Principal</p>
                   <p className="text-[10px] text-gray-400">Academic Authority</p>
                 </div>
               </div>

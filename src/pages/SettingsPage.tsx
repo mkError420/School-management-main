@@ -76,17 +76,17 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const inputClass = "w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-100";
+  const inputClass = "w-full rounded-md border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2.5 text-sm text-black dark:text-white outline-none transition focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20";
 
   return (
     <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
-      <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-slate-800 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-sky-700">Workspace / Preferences</p>
-          <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-          <p className="mt-1 text-sm text-gray-500">Account, security, and appearance.</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#707E94] dark:text-[#a4b3c7]">Workspace / Preferences</p>
+          <h1 className="text-2xl font-bold text-black dark:text-white">Settings</h1>
+          <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">Account, security, and appearance.</p>
         </div>
-        <div className="flex items-center gap-2 text-xs font-medium text-emerald-700">
+        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
           <span className="h-2 w-2 rounded-full bg-emerald-500" />
           Signed in as {role}
         </div>
@@ -94,22 +94,22 @@ const SettingsPage: React.FC = () => {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-5">
-          {role === "super_admin" && <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="site-name-title">
+          {role === "super_admin" && <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 md:p-6" aria-labelledby="site-name-title">
             <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <Building2 size={18} aria-hidden="true" />
               </div>
               <div>
-                <h2 id="site-name-title" className="font-semibold text-gray-900">Site name</h2>
-                <p className="mt-1 text-sm text-gray-500">Shown on the login page and at the top of the dashboard sidebar.</p>
+                <h2 id="site-name-title" className="font-bold text-black dark:text-white">Site name</h2>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">Shown on the login page and at the top of the dashboard sidebar.</p>
               </div>
             </div>
             <form onSubmit={handleSiteNameSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <label className="flex-1 text-sm font-medium text-gray-700">
+              <label className="flex-1 text-sm font-semibold text-black dark:text-white">
                 Display name
                 <input type="text" required maxLength={80} value={siteNameDraft} onChange={(event) => setSiteNameDraft(event.target.value)} className={`${inputClass} mt-1.5`} />
               </label>
-              <button type="submit" disabled={savingSiteName || !siteNameDraft.trim() || siteNameDraft.trim() === siteName} className="inline-flex items-center justify-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="submit" disabled={savingSiteName || !siteNameDraft.trim() || siteNameDraft.trim() === siteName} className="inline-flex items-center justify-center gap-2 rounded-md bg-[#707E94] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50">
                 <Check size={16} aria-hidden="true" />
                 {savingSiteName ? "Saving..." : "Save name"}
               </button>
@@ -118,14 +118,14 @@ const SettingsPage: React.FC = () => {
           </section>}
 
           {/* Currency Symbol – super_admin only */}
-          {role === "super_admin" && <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="currency-title">
+          {role === "super_admin" && <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 md:p-6" aria-labelledby="currency-title">
             <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <DollarSign size={18} aria-hidden="true" />
               </div>
               <div>
-                <h2 id="currency-title" className="font-semibold text-gray-900">Currency Symbol</h2>
-                <p className="mt-1 text-sm text-gray-500">Choose the currency symbol displayed across the Fees section.</p>
+                <h2 id="currency-title" className="font-bold text-black dark:text-white">Currency Symbol</h2>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">Choose the currency symbol displayed across the Fees section.</p>
               </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -142,32 +142,32 @@ const SettingsPage: React.FC = () => {
                     }}
                     className={`flex items-center gap-2 rounded-md border px-3 py-2.5 text-left text-sm transition ${
                       isActive
-                        ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600 font-semibold text-emerald-800"
-                        : "border-gray-200 text-gray-700 hover:border-gray-400"
+                        ? "border-[#707E94] bg-[#707E94]/10 dark:bg-[#707E94]/20 ring-1 ring-[#707E94] font-bold text-[#707E94] dark:text-white"
+                        : "border-gray-200 dark:border-slate-700 text-black dark:text-white hover:border-gray-400"
                     }`}
                   >
                     <span className="text-base w-6 text-center">{symbol}</span>
                     <span className="truncate text-xs">{label.replace(` (${symbol})`, "")}</span>
-                    {isActive && <Check size={14} className="ml-auto text-emerald-600 shrink-0" />}
+                    {isActive && <Check size={14} className="ml-auto text-[#707E94] dark:text-white shrink-0" />}
                   </button>
                 );
               })}
             </div>
             {currencyFeedback && (
-              <p role="status" className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <p role="status" className="mt-3 rounded-md border border-[#707E94]/30 bg-primary-50 dark:bg-[#707E94]/20 px-3 py-2 text-sm text-[#707E94] dark:text-white">
                 ✓ {currencyFeedback}
               </p>
             )}
           </section>}
 
-          <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="appearance-title">
+          <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 md:p-6" aria-labelledby="appearance-title">
             <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sky-50 text-sky-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <Sun size={18} aria-hidden="true" />
               </div>
               <div>
-                <h2 id="appearance-title" className="font-semibold text-gray-900">Appearance</h2>
-                <p className="mt-1 text-sm text-gray-500">Choose the display theme for this browser.</p>
+                <h2 id="appearance-title" className="font-bold text-black dark:text-white">Appearance</h2>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">Choose the display theme for this browser.</p>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="Color theme">
@@ -180,34 +180,34 @@ const SettingsPage: React.FC = () => {
                   type="button"
                   onClick={() => setTheme(value)}
                   aria-pressed={theme === value}
-                  className={`flex items-center justify-between rounded-md border p-4 text-left transition ${theme === value ? "border-sky-700 bg-sky-50 ring-1 ring-sky-700" : "border-gray-200 hover:border-gray-400"}`}
+                  className={`flex items-center justify-between rounded-md border p-4 text-left transition ${theme === value ? "border-[#707E94] bg-[#707E94]/10 dark:bg-[#707E94]/20 ring-1 ring-[#707E94]" : "border-gray-200 dark:border-slate-700 hover:border-gray-400"}`}
                 >
                   <span className="flex items-center gap-3">
-                    <Icon size={19} className={theme === value ? "text-sky-700" : "text-gray-500"} aria-hidden="true" />
+                    <Icon size={19} className={theme === value ? "text-[#707E94] dark:text-[#a4b3c7]" : "text-gray-500"} aria-hidden="true" />
                     <span>
-                      <span className="block text-sm font-semibold text-gray-800">{label}</span>
-                      <span className="mt-0.5 block text-xs text-gray-500">{description}</span>
+                      <span className="block text-sm font-bold text-black dark:text-white">{label}</span>
+                      <span className="mt-0.5 block text-xs text-gray-700 dark:text-gray-300">{description}</span>
                     </span>
                   </span>
-                  {theme === value && <Check size={17} className="text-sky-700" aria-hidden="true" />}
+                  {theme === value && <Check size={17} className="text-[#707E94] dark:text-[#a4b3c7]" aria-hidden="true" />}
                 </button>
               ))}
             </div>
           </section>
 
-          <section className="rounded-md border border-gray-200 bg-white p-5 md:p-6" aria-labelledby="security-title">
+          <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 md:p-6" aria-labelledby="security-title">
             <div className="mb-5 flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-50 text-amber-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <ShieldCheck size={18} aria-hidden="true" />
               </div>
               <div>
-                <h2 id="security-title" className="font-semibold text-gray-900">Password</h2>
-                <p className="mt-1 text-sm text-gray-500">Update the password for your {role} account.</p>
+                <h2 id="security-title" className="font-bold text-black dark:text-white">Password</h2>
+                <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">Update the password for your {role} account.</p>
               </div>
             </div>
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-semibold text-black dark:text-white">
                 Current password
                 <input
                   type="password"
@@ -219,7 +219,7 @@ const SettingsPage: React.FC = () => {
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-semibold text-black dark:text-white">
                   New password
                   <input
                     type="password"
@@ -231,7 +231,7 @@ const SettingsPage: React.FC = () => {
                     className={`${inputClass} mt-1.5`}
                   />
                 </label>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-semibold text-black dark:text-white">
                   Confirm new password
                   <input
                     type="password"
@@ -245,15 +245,15 @@ const SettingsPage: React.FC = () => {
                 </label>
               </div>
               {passwordFeedback && (
-                <p role="status" className={`rounded-md border px-3 py-2 text-sm ${passwordFeedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}>
+                <p role="status" className={`rounded-md border px-3 py-2 text-sm ${passwordFeedback.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-[#D32F45]/30 bg-[#D32F45]/10 text-[#D32F45]"}`}>
                   {passwordFeedback.message}
                 </p>
               )}
-              <div className="flex justify-end border-t border-gray-100 pt-4">
+              <div className="flex justify-end border-t border-gray-100 dark:border-slate-800 pt-4">
                 <button
                   type="submit"
                   disabled={savingPassword || !currentPassword || !newPassword || !confirmPassword}
-                  className="inline-flex items-center gap-2 rounded-md bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-md bg-[#707E94] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <KeyRound size={16} aria-hidden="true" />
                   {savingPassword ? "Updating..." : "Update password"}
@@ -264,42 +264,42 @@ const SettingsPage: React.FC = () => {
         </div>
 
         <aside className="space-y-5">
-          <section className="rounded-md border border-gray-200 bg-white p-5" aria-labelledby="account-title">
+          <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5" aria-labelledby="account-title">
             <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#707E94]/10 text-[#707E94] dark:text-[#a4b3c7]">
                 <UserRound size={19} aria-hidden="true" />
               </div>
               <div className="min-w-0">
-                <h2 id="account-title" className="font-semibold text-gray-900">Account</h2>
-                <p className="truncate text-xs text-gray-500">{user?.name || user?.username}</p>
+                <h2 id="account-title" className="font-semibold text-black dark:text-white">Account</h2>
+                <p className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.name || user?.username}</p>
               </div>
             </div>
-            <dl className="divide-y divide-gray-100 text-sm">
+            <dl className="divide-y divide-gray-100 dark:divide-slate-800 text-sm">
               <div className="flex justify-between gap-3 py-3">
-                <dt className="text-gray-500">Username</dt>
-                <dd className="truncate font-medium text-gray-800">{user?.username || "—"}</dd>
+                <dt className="text-gray-500 dark:text-gray-400">Username</dt>
+                <dd className="truncate font-medium text-black dark:text-white">{user?.username || "—"}</dd>
               </div>
               <div className="flex justify-between gap-3 py-3">
-                <dt className="text-gray-500">Email</dt>
-                <dd className="truncate font-medium text-gray-800">{user?.email || "Not set"}</dd>
+                <dt className="text-gray-500 dark:text-gray-400">Email</dt>
+                <dd className="truncate font-medium text-black dark:text-white">{user?.email || "Not set"}</dd>
               </div>
               <div className="flex justify-between gap-3 py-3">
-                <dt className="text-gray-500">Role</dt>
-                <dd className="font-medium capitalize text-gray-800">{role}</dd>
+                <dt className="text-gray-500 dark:text-gray-400">Role</dt>
+                <dd className="font-medium capitalize text-black dark:text-white">{role}</dd>
               </div>
             </dl>
           </section>
 
-          <section className="rounded-md border border-gray-200 bg-white p-5" aria-labelledby="session-title">
+          <section className="rounded-md border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5" aria-labelledby="session-title">
             <div className="mb-3 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <h2 id="session-title" className="font-semibold text-gray-900">Current session</h2>
+              <span className="h-2 w-2 rounded-full bg-[#707E94]" />
+              <h2 id="session-title" className="font-semibold text-black dark:text-white">Current session</h2>
             </div>
-            <p className="text-sm text-gray-500">Your account session is active in this browser.</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Your account session is active in this browser.</p>
             <button
               type="button"
               onClick={logout}
-              className="mt-4 inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+              className="mt-4 inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm font-semibold text-black dark:text-white transition hover:border-[#D32F45] hover:bg-[#D32F45]/10 hover:text-[#D32F45]"
             >
               <LogOut size={16} aria-hidden="true" />
               Sign out

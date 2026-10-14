@@ -114,7 +114,7 @@ const StatusBadge: React.FC<{ status: AdmissionItem["status"]; size?: "sm" | "xs
   if (status === "PENDING")
     return <span className={`${base} bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300`}><Clock size={11} /> Pending</span>;
   if (status === "WAITLISTED")
-    return <span className={`${base} bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300`}><Sparkles size={11} /> Waitlisted</span>;
+    return <span className={`${base} bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]`}><Sparkles size={11} /> Waitlisted</span>;
   return <span className={`${base} bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300`}><XCircle size={11} /> Rejected</span>;
 };
 
@@ -549,14 +549,14 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
-              <UserPlus size={20} className="text-purple-600 dark:text-purple-400" />
+              <UserPlus size={20} className="text-[#707E94] dark:text-[#a4b3c7]" />
               Student Admissions &amp; Enrollment
             </h2>
             <span className="text-[10px] bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full text-amber-800 font-semibold">
               2026/27 Session
             </span>
             {maxItems ? (
-              <span className="text-[10px] bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full text-purple-700 font-semibold dark:bg-purple-950/50 dark:text-purple-300 dark:border-purple-800">
+              <span className="text-[10px] bg-[#707E94]/10 border border-[#707E94]/30 px-2 py-0.5 rounded-full text-[#707E94] font-semibold dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94]/40">
                 Latest {maxItems} Entries
               </span>
             ) : null}
@@ -571,7 +571,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           {maxItems || showViewAllLink ? (
             <Link
               to="/admissions"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 shadow-sm transition"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[#707E94]/30 dark:border-[#707E94]/40 bg-[#707E94]/10 dark:bg-[#707E94]/20 px-3 py-2 text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7] hover:bg-[#707E94]/15 dark:hover:bg-[#707E94]/20 shadow-sm transition"
             >
               <span>View All Applications</span>
               <ArrowRight size={14} />
@@ -584,7 +584,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             title="Refresh list"
             className="p-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 transition shadow-sm"
           >
-            <RefreshCw size={15} className={loading ? "animate-spin text-purple-600" : ""} />
+            <RefreshCw size={15} className={loading ? "animate-spin text-[#707E94]" : ""} />
           </button>
 
           <button
@@ -600,7 +600,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           <button
             type="button"
             onClick={openCreateModal}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-3.5 py-2 text-xs font-semibold shadow-sm shadow-purple-500/20 transition"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white px-3.5 py-2 text-xs font-semibold shadow-sm shadow-purple-500/20 transition"
           >
             <Plus size={15} />
             <span>New Admission</span>
@@ -614,13 +614,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         <div
           onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
           className={`cursor-pointer rounded-xl p-3 border transition ${statusFilter === "all"
-            ? "bg-purple-50 dark:bg-purple-950/40 border-purple-400 ring-2 ring-purple-400/20"
+            ? "bg-[#707E94]/10 dark:bg-[#707E94]/20 border-[#707E94]/40 ring-2 ring-[#707E94]/30/20"
             : "bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 hover:border-gray-300"
             }`}
         >
           <div className="flex justify-between items-center text-xs font-medium text-gray-500">
             <span>Total Applied</span>
-            <Users size={14} className="text-purple-600" />
+            <Users size={14} className="text-[#707E94]" />
           </div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mt-1">{counts.total}</h3>
           <p className="text-[11px] text-gray-500 mt-0.5">All applications</p>
@@ -700,7 +700,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             placeholder="Search student name, app no, parent..."
             value={searchInput}
             onChange={(e) => handleSearchInput(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 pl-9 pr-8 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-purple-500 focus:bg-white transition"
+            className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/70 pl-9 pr-8 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-[#707E94] focus:bg-white transition"
           />
           {searchInput && (
             <button
@@ -773,7 +773,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
               <tr>
                 <td colSpan={8} className="text-center py-12 text-gray-400">
                   <div className="flex items-center justify-center gap-2">
-                    <RefreshCw size={16} className="animate-spin text-purple-600" />
+                    <RefreshCw size={16} className="animate-spin text-[#707E94]" />
                     <span>Loading admission records...</span>
                   </div>
                 </td>
@@ -796,7 +796,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 >
                   {/* Application # */}
                   <td className="py-3 px-3.5 font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                    <span className="font-mono text-[11px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-purple-700 dark:text-purple-300">
+                    <span className="font-mono text-[11px] bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md text-[#707E94] dark:text-[#a4b3c7]">
                       {item.application_no}
                     </span>
                   </td>
@@ -804,7 +804,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   {/* Roll # */}
                   <td className="py-3 px-3.5 text-center whitespace-nowrap">
                     {item.roll ? (
-                      <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/70 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                      <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-md bg-[#707E94]/10 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/40 shadow-2xs">
                         {item.roll}
                       </span>
                     ) : (
@@ -818,7 +818,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       {item.img ? (
                         <img src={item.img} alt="" className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700 shrink-0" />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-xs shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] font-bold flex items-center justify-center text-xs shrink-0">
                           {item.first_name[0]}{item.last_name[0]}
                         </div>
                       )}
@@ -831,7 +831,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                             {item.gender} · {item.blood_type || "—"}
                           </span>
                           {item.enrolled_student_id && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#707E94]/10 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/40">
                               Enrolled
                             </span>
                           )}
@@ -886,7 +886,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         <Link
                           to={`/list/students/${item.enrolled_student_id}`}
                           title="View in All Students"
-                          className="p-1.5 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-gray-800 transition"
+                          className="p-1.5 rounded-lg text-[#707E94] hover:text-[#5a6679] hover:bg-primary-50 dark:hover:bg-gray-800 transition"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <GraduationCap size={15} />
@@ -897,7 +897,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         type="button"
                         onClick={() => setDetailsItem(item)}
                         title="View Details"
-                        className="p-1.5 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-gray-800 transition"
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-[#556275] hover:bg-primary-50 dark:hover:bg-[#172033] transition"
                       >
                         <Eye size={14} />
                       </button>
@@ -952,7 +952,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           {maxItems ? (
             <Link
               to="/admissions"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#707E94]/10 text-[#707E94] hover:bg-[#707E94]/15 dark:bg-[#707E94]/20 dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/40 transition"
             >
               <span>Full Admissions List ({filteredAdmissions.length})</span>
               <ArrowRight size={13} />
@@ -978,7 +978,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${page === currentPage
-                        ? "bg-purple-600 text-white"
+                        ? "bg-[#D32F45] text-white"
                         : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                         }`}
                     >
@@ -999,7 +999,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
           <Link
             to="/list/students"
-            className="inline-flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 font-semibold transition ml-1"
+            className="inline-flex items-center gap-1 text-xs text-[#707E94] hover:text-[#556275] dark:text-[#a4b3c7] font-semibold transition ml-1"
           >
             <span>All Students</span>
             <ArrowRight size={13} />
@@ -1021,9 +1021,9 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             className="w-full max-w-2xl rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/50 dark:from-purple-950/30 dark:via-gray-900 dark:to-purple-950/20">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-6 py-4 bg-gradient-to-r from-[#707E94]/15 via-white to-[#707E94]/10 dark:from-[#707E94]/20 dark:via-gray-900 dark:to-[#707E94]/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] flex items-center justify-center">
                   <UserPlus size={18} />
                 </div>
                 <div>
@@ -1068,7 +1068,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     disabled={Boolean(editItem && editItem.enrolled_student_id)}
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </label>
 
@@ -1082,14 +1082,14 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required={!editItem}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
                 {/* Roll */}
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                   <span className="flex items-center justify-between">
-                    <span className="font-semibold text-purple-700 dark:text-purple-300">Roll *</span>
+                    <span className="font-semibold text-[#707E94] dark:text-[#a4b3c7]">Roll *</span>
                     <span className="text-[10px] text-gray-400 font-normal">Student Roll Number</span>
                   </span>
                   <input
@@ -1098,7 +1098,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     placeholder="e.g. 1, 01, 101"
                     value={formData.roll}
                     onChange={(e) => setFormData({ ...formData, roll: e.target.value })}
-                    className="w-full rounded-lg border border-purple-300 dark:border-purple-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-purple-50/20 dark:bg-purple-950/20 text-gray-900 dark:text-white font-medium transition"
+                    className="w-full rounded-lg border border-[#707E94]/30 dark:border-[#707E94]/40 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-[#707E94]/10 dark:bg-[#707E94]/15 text-gray-900 dark:text-white font-medium transition"
                   />
                 </label>
 
@@ -1119,7 +1119,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           : prev.username
                       }));
                     }}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1140,7 +1140,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           : prev.username
                       }));
                     }}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1151,7 +1151,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     type="date"
                     value={formData.date_of_birth}
                     onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1162,7 +1162,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required
                     value={formData.sex}
                     onChange={(e) => setFormData({ ...formData, sex: e.target.value as "MALE" | "FEMALE" })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     <option value="FEMALE">Female</option>
                     <option value="MALE">Male</option>
@@ -1176,7 +1176,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1187,7 +1187,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     type="text"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1198,7 +1198,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required
                     value={formData.blood_type}
                     onChange={(e) => setFormData({ ...formData, blood_type: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(bt => (
                       <option key={bt} value={bt}>{bt}</option>
@@ -1214,7 +1214,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       required
                       value={formData.status}
                       onChange={(e) => setFormData({ ...formData, status: e.target.value as AdmissionItem["status"] })}
-                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                     >
                       <option value="PENDING">Pending</option>
                       <option value="APPROVED">Approved</option>
@@ -1232,7 +1232,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     rows={2}
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition resize-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition resize-none"
                   />
                 </label>
 
@@ -1244,7 +1244,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     value={formData.previous_school}
                     onChange={(e) => setFormData({ ...formData, previous_school: e.target.value })}
                     placeholder="Name of previous school (if any)"
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   />
                 </label>
 
@@ -1256,7 +1256,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     placeholder="Internal notes or evaluation remarks..."
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition resize-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition resize-none"
                   />
                 </label>
 
@@ -1317,14 +1317,14 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       <button
                         type="button"
                         onClick={() => setParentMode("existing")}
-                        className={`px-3 py-1.5 transition ${parentMode === "existing" ? "bg-purple-600 text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                        className={`px-3 py-1.5 transition ${parentMode === "existing" ? "bg-[#D32F45] text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
                       >
                         Select existing
                       </button>
                       <button
                         type="button"
                         onClick={() => setParentMode("new")}
-                        className={`px-3 py-1.5 flex items-center gap-1.5 transition ${parentMode === "new" ? "bg-purple-600 text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                        className={`px-3 py-1.5 flex items-center gap-1.5 transition ${parentMode === "new" ? "bg-[#D32F45] text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
                       >
                         <UserPlus2 size={12} /> Create new
                       </button>
@@ -1337,7 +1337,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required={parentMode === "existing" || Boolean(editItem)}
                     value={formData.parent_id}
                     onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     <option value="">Select parent</option>
                     {parents.map((p) => (
@@ -1347,8 +1347,8 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 )}
 
                 {parentMode === "new" && !editItem && (
-                  <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/60 dark:bg-purple-950/20 p-4 space-y-3">
-                    <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1.5">
+                  <div className="rounded-xl border border-[#707E94]/30 dark:border-[#707E94]/40 bg-[#707E94]/10 dark:bg-[#707E94]/15 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7] flex items-center gap-1.5">
                       <UserPlus2 size={13} /> New Parent Details — will be added to All Parents
                     </p>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1386,7 +1386,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                                 setParentForm({ ...parentForm, [field]: val });
                               }
                             }}
-                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                            className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                           />
                         </label>
                       ))}
@@ -1397,20 +1397,20 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           rows={2}
                           value={parentForm.address}
                           onChange={(e) => setParentForm({ ...parentForm, address: e.target.value })}
-                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
                         />
                       </label>
                       {/* Parent Photo */}
                       <div className="flex flex-col gap-1.5 text-xs text-gray-700 dark:text-gray-300 sm:col-span-2">
                         <span>Photo <span className="font-normal text-gray-400">(optional)</span></span>
-                        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800/50 p-2.5">
+                        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-[#707E94]/30 dark:border-[#707E94]/40 bg-white dark:bg-gray-800/50 p-2.5">
                           {parentImagePreview ? (
                             <img src={parentImagePreview} alt="" className="h-14 w-14 rounded-lg border border-gray-200 dark:border-gray-600 object-cover" />
                           ) : (
                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 text-[10px] text-gray-400">No photo</div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <label className="flex cursor-pointer items-center gap-1.5 w-fit rounded-md border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/30 px-2.5 py-1.5 text-[11px] font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition">
+                            <label className="flex cursor-pointer items-center gap-1.5 w-fit rounded-md border border-[#707E94]/30 dark:border-[#707E94]/40 bg-[#707E94]/10 dark:bg-[#707E94]/20 px-2.5 py-1.5 text-[11px] font-semibold text-[#707E94] dark:text-[#a4b3c7] hover:bg-[#707E94]/15 transition">
                               <Upload size={11} /> <span>Choose photo</span>
                               <input
                                 type="file"
@@ -1451,7 +1451,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required
                     value={formData.class_id}
                     onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     <option value="">Select class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -1464,7 +1464,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     required
                     value={formData.grade_id}
                     onChange={(e) => setFormData({ ...formData, grade_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-purple-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     <option value="">Select grade</option>
                     {grades.map((g) => <option key={g.id} value={g.id}>Grade {g.level}</option>)}
@@ -1485,7 +1485,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-lg bg-purple-600 hover:bg-purple-700 px-6 py-2 text-sm font-semibold text-white shadow-sm shadow-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 transition"
+                  className="rounded-lg bg-[#D32F45] hover:bg-[#be2035] px-6 py-2 text-sm font-semibold text-white shadow-sm shadow-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 transition"
                 >
                   {submitting ? "Saving..." : editItem ? "Save Changes" : "Submit Application"}
                 </button>
@@ -1505,13 +1505,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         >
           <div role="dialog" aria-modal="true" className="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden">
             {/* Header */}
-            <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-purple-50/80 via-white to-purple-50/50 dark:from-purple-950/30 dark:via-gray-900 dark:to-purple-950/20">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-[#707E94]/15 via-white to-[#707E94]/10 dark:from-[#707E94]/20 dark:via-gray-900 dark:to-[#707E94]/10">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {detailsItem.img ? (
                     <img src={detailsItem.img} alt="" className="w-14 h-14 rounded-xl object-cover border border-gray-200 dark:border-gray-700 shrink-0" />
                   ) : (
-                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold flex items-center justify-center text-lg shrink-0">
+                    <div className="w-14 h-14 rounded-xl bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] font-bold flex items-center justify-center text-lg shrink-0">
                       {detailsItem.first_name[0]}{detailsItem.last_name[0]}
                     </div>
                   )}
@@ -1520,7 +1520,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       {detailsItem.first_name} {detailsItem.last_name}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <span className="font-mono text-[11px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-950 px-2 py-0.5 rounded">
+                      <span className="font-mono text-[11px] font-bold text-[#707E94] dark:text-[#a4b3c7] bg-[#707E94]/15 dark:bg-[#707E94]/20 px-2 py-0.5 rounded">
                         {detailsItem.application_no}
                       </span>
                       {detailsItem.roll && (
@@ -1547,9 +1547,9 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             <div className="p-5 space-y-4 max-h-[55vh] overflow-y-auto text-xs">
               {/* Roll & Username */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/30 px-3 py-2">
+                <div className="flex items-center gap-2 rounded-lg border border-[#707E94]/30 dark:border-[#707E94]/40 bg-[#707E94]/10 dark:bg-[#707E94]/20 px-3 py-2">
                   <span className="text-gray-500 font-medium">Roll No:</span>
-                  <span className="font-bold text-purple-700 dark:text-purple-300">{detailsItem.roll || "Not assigned"}</span>
+                  <span className="font-bold text-[#707E94] dark:text-[#a4b3c7]">{detailsItem.roll || "Not assigned"}</span>
                 </div>
                 {detailsItem.username ? (
                   <div className="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-3 py-2">
@@ -1612,8 +1612,8 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
               {/* Notes */}
               {detailsItem.notes && (
-                <div className="rounded-xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900/50 p-3">
-                  <span className="font-bold text-purple-900 dark:text-purple-300">Notes:</span>
+                <div className="rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/15 border border-[#707E94]/30 dark:border-[#707E94]/30 p-3">
+                  <span className="font-bold text-[#707E94] dark:text-[#a4b3c7]">Notes:</span>
                   <p className="text-gray-700 dark:text-gray-300 mt-1 leading-relaxed">{detailsItem.notes}</p>
                 </div>
               )}

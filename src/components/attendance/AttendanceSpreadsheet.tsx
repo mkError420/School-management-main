@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   ChevronLeft,
@@ -606,13 +606,13 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+          <div className="w-10 h-10 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] flex items-center justify-center font-bold">
             <TrendingUp size={18} />
           </div>
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400">Class Monthly Rate</span>
             <div className="flex items-baseline gap-1.5">
-              <p className="text-lg font-extrabold text-purple-700 dark:text-purple-300">
+              <p className="text-lg font-extrabold text-[#707E94] dark:text-[#a4b3c7]">
                 {overallSummary.rate}%
               </p>
               <span className="text-[10px] font-semibold text-slate-400">
@@ -774,7 +774,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
                       {/* Sticky Col 2: Student Avatar & Name */}
                       <td className="sticky left-14 z-10 bg-white dark:bg-gray-800 group-hover:bg-indigo-50/50 dark:group-hover:bg-gray-750 py-2 px-4 border-r-2 border-slate-300 dark:border-gray-650 shadow-xs">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-[10px] font-bold text-purple-700 dark:text-purple-300 overflow-hidden flex-shrink-0">
+                          <div className="w-6 h-6 rounded-full bg-[#707E94]/15 dark:bg-[#707E94]/20 flex items-center justify-center text-[10px] font-bold text-[#707E94] dark:text-[#a4b3c7] overflow-hidden flex-shrink-0">
                             {st.img ? (
                               <img src={st.img} alt="" className="w-full h-full object-cover" />
                             ) : (

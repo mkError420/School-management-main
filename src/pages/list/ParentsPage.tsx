@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -23,13 +23,13 @@ const ParentsPage: React.FC = () => {
   useEffect(() => { setPage(1); }, [search]);
 
   const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-primary-50 dark:hover:bg-[#1a2332] transition dark:text-gray-200">
       <td className="flex items-center gap-3 py-4">
         <img
           src={
             item.img
               ? item.img
-              : `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=CFCEFF&color=333`
+              : `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=D32F45&color=fff`
           }
           alt=""
           width={40}
@@ -50,7 +50,7 @@ const ParentsPage: React.FC = () => {
               return (
                 <span
                   key={s.id || idx}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200/70 dark:border-purple-700/50"
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/30"
                 >
                   {fullName || "Student"}
                 </span>

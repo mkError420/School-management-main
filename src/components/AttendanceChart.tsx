@@ -137,7 +137,7 @@ const AttendanceChart: React.FC = () => {
             <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
               Weekly Attendance
             </h2>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary-50 dark:bg-[#707E94]/20 text-[#707E94] dark:text-white border border-[#707E94]/20">
               <CheckCircle2 size={11} />
               {stats.avgRate}% Avg Rate
             </span>
@@ -159,7 +159,7 @@ const AttendanceChart: React.FC = () => {
               title="Show as Percentage Rate"
               className={`px-2 py-1 rounded-lg font-medium transition flex items-center gap-1 ${
                 viewMode === "percentage"
-                  ? "bg-white dark:bg-gray-750 text-indigo-600 dark:text-indigo-400 font-semibold shadow-xs"
+                  ? "bg-white dark:bg-gray-800 text-[#707E94] dark:text-white font-semibold shadow-xs"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
@@ -172,7 +172,7 @@ const AttendanceChart: React.FC = () => {
               title="Show as Student Count"
               className={`px-2 py-1 rounded-lg font-medium transition flex items-center gap-1 ${
                 viewMode === "count"
-                  ? "bg-white dark:bg-gray-750 text-indigo-600 dark:text-indigo-400 font-semibold shadow-xs"
+                  ? "bg-white dark:bg-gray-800 text-[#707E94] dark:text-white font-semibold shadow-xs"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               }`}
             >
@@ -187,15 +187,15 @@ const AttendanceChart: React.FC = () => {
             onClick={loadAttendance}
             disabled={loading}
             title="Refresh Attendance Data"
-            className="p-1.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-750 transition disabled:opacity-50"
+            className="p-1.5 rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-gray-800 transition disabled:opacity-50"
           >
-            <RefreshCw size={13} className={loading ? "animate-spin text-indigo-600" : ""} />
+            <RefreshCw size={13} className={loading ? "animate-spin text-[#707E94]" : ""} />
           </button>
 
           {/* Link to Attendance Records */}
           <Link
             to="/list/attendance"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1.5 rounded-xl border border-indigo-100 dark:border-indigo-900/50 transition"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[#707E94] dark:text-white hover:text-black dark:hover:text-white bg-primary-50 dark:bg-[#707E94]/20 px-2.5 py-1.5 rounded-xl border border-[#707E94]/30 transition"
             title="Open Attendance Records & Roll Call"
           >
             <span>Records</span>
@@ -263,7 +263,7 @@ const AttendanceChart: React.FC = () => {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <div className="flex items-center justify-between gap-4 text-[#707E94] dark:text-[#a4b3c7] font-semibold">
                       <span>Present:</span>
                       <span>
                         {presDisplay}
@@ -274,7 +274,7 @@ const AttendanceChart: React.FC = () => {
                         )}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-4 text-rose-600 dark:text-rose-400 font-semibold">
+                    <div className="flex items-center justify-between gap-4 text-[#D32F45] dark:text-[#ff8090] font-semibold">
                       <span>Absent:</span>
                       <span>
                         {absDisplay}
@@ -305,13 +305,13 @@ const AttendanceChart: React.FC = () => {
             />
             <Bar
               dataKey="presentValue"
-              fill="#10b981"
+              fill="#707E94"
               legendType="circle"
               radius={[6, 6, 0, 0]}
             />
             <Bar
               dataKey="absentValue"
-              fill="#f43f5e"
+              fill="#D32F45"
               legendType="circle"
               radius={[6, 6, 0, 0]}
             />

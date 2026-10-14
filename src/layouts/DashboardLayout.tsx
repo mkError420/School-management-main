@@ -10,12 +10,12 @@ const DashboardLayout: React.FC = () => {
   const { siteName } = useSiteSettings();
 
   return (
-    <div className="h-screen flex bg-gray-100 overflow-hidden">
+    <div className="h-screen flex bg-gray-100 dark:bg-[#0b1220] overflow-hidden">
       {/* Sidebar */}
-      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-3 flex flex-col h-full bg-white border-r border-gray-100 shadow-sm">
+      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] p-3 flex flex-col h-full bg-white dark:bg-[#111827] border-r border-gray-200 dark:border-slate-800 shadow-sm transition-colors">
         <Link to="/" className="flex items-center justify-center lg:justify-start gap-2 py-2 mb-2">
           <Image src="/logo.png" alt={siteName} width={32} height={32} className="rounded-lg" />
-          <span className="hidden truncate lg:block font-bold text-gray-800 text-sm" title={siteName}>{siteName}</span>
+          <span className="hidden truncate lg:block font-bold text-black dark:text-white text-sm" title={siteName}>{siteName}</span>
         </Link>
         <Menu />
       </div>
@@ -23,7 +23,7 @@ const DashboardLayout: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar />
-        <main className="flex-1 overflow-auto bg-gray-50">
+        <main className="flex-1 overflow-auto bg-gray-50 dark:bg-[#0b1220] transition-colors">
           <Outlet />
         </main>
       </div>

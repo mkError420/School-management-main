@@ -121,7 +121,7 @@ const StudentDashboardPage: React.FC = () => {
       ) : (
         <div className={`${cardBg} border rounded-2xl shadow-sm overflow-hidden`}>
           {/* Top gradient strip */}
-          <div className="h-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+          <div className="h-2 bg-gradient-to-r from-[#707E94] via-[#5a6679] to-[#D32F45]" />
 
           <div className="p-5 md:p-6 flex flex-col sm:flex-row sm:items-start gap-5">
             {/* Avatar */}
@@ -133,7 +133,7 @@ const StudentDashboardPage: React.FC = () => {
                   className="w-20 h-20 md:w-24 md:h-24 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-md"
                 />
               ) : (
-                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center text-3xl font-bold shadow-md border-4 border-white dark:border-gray-700">
+                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gradient-to-br from-[#707E94] to-[#485262] text-white flex items-center justify-center text-3xl font-bold shadow-md border-4 border-white dark:border-gray-700">
                   {data.student.name ? data.student.name[0].toUpperCase() : "S"}
                 </div>
               )}

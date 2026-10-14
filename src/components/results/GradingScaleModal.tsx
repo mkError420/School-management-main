@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 interface GradingScaleModalProps {
   isOpen: boolean;
@@ -24,7 +24,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/80">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+            <span className="p-2 rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -48,7 +48,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-purple-900 text-white font-semibold">
+                <tr className="bg-[#707E94] text-white font-semibold">
                   <th className="py-2.5 px-3">Numerical Score</th>
                   <th className="py-2.5 px-3 text-center">Letter Grade</th>
                   <th className="py-2.5 px-3 text-center">Grade Point</th>
@@ -72,8 +72,8 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
             </table>
           </div>
 
-          <div className="bg-purple-50 dark:bg-purple-950/30 p-3.5 rounded-xl border border-purple-200 dark:border-purple-800 space-y-2 text-gray-700 dark:text-gray-300">
-            <h4 className="font-bold text-purple-950 dark:text-purple-300 text-xs uppercase tracking-wider">
+          <div className="bg-[#707E94]/10 dark:bg-[#707E94]/20 p-3.5 rounded-xl border border-[#707E94]/30 dark:border-[#707E94]/40 space-y-2 text-gray-700 dark:text-gray-300">
+            <h4 className="font-bold text-[#707E94] dark:text-[#a4b3c7] text-xs uppercase tracking-wider">
               Key Evaluation Rules:
             </h4>
             <ul className="list-disc list-inside space-y-1 text-[11px]">
@@ -94,7 +94,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
         <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+            className="px-4 py-1.5 bg-[#D32F45] hover:bg-[#be2035] text-white rounded-lg text-xs font-semibold cursor-pointer"
           >
             Understood
           </button>

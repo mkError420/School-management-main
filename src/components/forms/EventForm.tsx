@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
@@ -118,7 +118,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Annual Sports Meet 2026"
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-purple-500"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-[#707E94]"
         />
       </div>
 
@@ -132,7 +132,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Event details, schedule, or guidelines..."
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-purple-500"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-[#707E94]"
         />
       </div>
 
@@ -147,7 +147,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
             required
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-purple-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-[#707E94]"
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -159,7 +159,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
             required
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-purple-500"
+            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-[#707E94]"
           />
         </div>
       </div>
@@ -172,7 +172,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
         <select
           value={classId}
           onChange={(e) => setClassId(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-purple-500"
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm bg-white dark:bg-gray-700 outline-none focus:border-[#707E94]"
         >
           <option value="">All Classes &amp; Students</option>
           {classes.map((c) => (
@@ -199,8 +199,8 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
           onClick={() => fileInputRef.current?.click()}
           className={`relative cursor-pointer rounded-xl border-2 border-dashed p-4 transition text-center ${
             dragOver
-              ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
-              : "border-gray-300 bg-gray-50 hover:border-purple-400 hover:bg-purple-50/50 dark:bg-gray-700/40 dark:border-gray-600"
+              ? "border-[#707E94] bg-[#707E94]/10 dark:bg-[#707E94]/20"
+              : "border-gray-300 bg-gray-50 hover:border-[#707E94]/40 hover:bg-[#707E94]/10 dark:bg-gray-700/40 dark:border-gray-600"
           }`}
         >
           <input
@@ -223,7 +223,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
               ) : filePreview ? (
                 <img src={filePreview} alt="Preview" className="w-12 h-12 rounded-lg object-cover border flex-shrink-0" />
               ) : (
-                <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-purple-600 font-bold text-xs flex-shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-[#707E94]/15 dark:bg-[#707E94]/20 flex items-center justify-center text-[#707E94] font-bold text-xs flex-shrink-0">
                   IMG
                 </div>
               )}
@@ -250,7 +250,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
             </div>
           ) : (
             <div className="py-2">
-              <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">
+              <p className="text-xs font-semibold text-[#707E94] dark:text-[#a4b3c7]">
                 Click or drag &amp; drop document to upload
               </p>
               <p className="text-[11px] text-gray-400 mt-0.5">
@@ -265,7 +265,7 @@ const EventForm: React.FC<EventFormProps> = ({ type, data, onSuccess }) => {
         <button
           type="submit"
           disabled={saving}
-          className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition disabled:opacity-50"
+          className="px-5 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white font-semibold text-xs transition disabled:opacity-50"
         >
           {saving ? "Saving..." : type === "create" ? "Create Event" : "Update Event"}
         </button>

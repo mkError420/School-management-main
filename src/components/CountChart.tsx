@@ -10,19 +10,19 @@ interface CountChartProps {
 const CountChart: React.FC<CountChartProps> = ({ boys = 0, girls = 0 }) => {
   const total = boys + girls;
   const data = [
-    { name: 'Total', count: total, fill: '#818cf8' },
-    { name: 'Girls', count: girls, fill: '#FAE27C' },
-    { name: 'Boys', count: boys, fill: '#C3EBFA' },
+    { name: 'Total', count: total, fill: '#485262' },
+    { name: 'Girls', count: girls, fill: '#D32F45' },
+    { name: 'Boys', count: boys, fill: '#707E94' },
   ];
   const boysPercentage = total > 0 ? Math.round((boys / total) * 100) : 0;
   const girlsPercentage = total > 0 ? Math.round((girls / total) * 100) : 0;
 
   return (
-    <div className='bg-white dark:bg-gray-800 w-full h-full p-4 rounded-md shadow-sm'>
+    <div className='bg-white dark:bg-gray-800 w-full h-full p-4 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-sm'>
       {/* TITLE */}
       <div className='flex justify-between items-center'>
-        <h1 className='text-lg font-semibold text-gray-800 dark:text-gray-100'>Students</h1>
-        <Image src="/moreDark.png" alt='' width={20} height={20}/>
+        <h1 className='text-lg font-bold text-black dark:text-white'>Students</h1>
+        <Image src="/moreDark.png" alt='' width={20} height={20} className="dark:brightness-0 dark:invert" />
       </div>
       {/* CHART */}
       <div className='relative w-full h-[75%]'>
@@ -35,15 +35,15 @@ const CountChart: React.FC<CountChartProps> = ({ boys = 0, girls = 0 }) => {
       </div>
       {/* BOTTOM */}
       <div className='flex justify-center gap-16'>
-        <div className='flex flex-col gap-1'>
-          <div className='w-5 h-5 bg-lamaSky rounded-full'/>
-          <h1 className='font-bold text-gray-800 dark:text-gray-100'>{boys}</h1>
-          <h2 className='text-xs text-gray-600 dark:text-gray-400'>Boys ({boysPercentage}%)</h2>
+        <div className='flex flex-col items-center gap-1'>
+          <div className='w-4 h-4 bg-[#707E94] rounded-full shadow-xs'/>
+          <h1 className='font-bold text-black dark:text-white text-base'>{boys}</h1>
+          <h2 className='text-xs font-semibold text-gray-700 dark:text-gray-300'>Boys ({boysPercentage}%)</h2>
         </div>
-        <div className='flex flex-col gap-1'>
-          <div className='w-5 h-5 bg-lamaYellow rounded-full'/>
-          <h1 className='font-bold text-gray-800 dark:text-gray-100'>{girls}</h1>
-          <h2 className='text-xs text-gray-600 dark:text-gray-400'>Girls ({girlsPercentage}%)</h2>
+        <div className='flex flex-col items-center gap-1'>
+          <div className='w-4 h-4 bg-[#D32F45] rounded-full shadow-xs'/>
+          <h1 className='font-bold text-black dark:text-white text-base'>{girls}</h1>
+          <h2 className='text-xs font-semibold text-gray-700 dark:text-gray-300'>Girls ({girlsPercentage}%)</h2>
         </div>
       </div>
     </div>

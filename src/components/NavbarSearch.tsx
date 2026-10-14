@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+﻿import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import {
@@ -177,7 +177,7 @@ export const NavbarSearch: React.FC = () => {
         return <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
       case "course":
       case "subject":
-        return <BookOpen className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
+        return <BookOpen className="h-4 w-4 text-[#707E94] dark:text-[#a4b3c7]" />;
       case "class":
         return <Layers className="h-4 w-4 text-amber-600 dark:text-amber-400" />;
       case "announcement":
@@ -195,9 +195,9 @@ export const NavbarSearch: React.FC = () => {
   return (
     <div ref={containerRef} className="relative">
       {/* Desktop Search Bar */}
-      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 dark:ring-slate-600 px-3 py-1.5 focus-within:ring-purple-500 bg-gray-50 dark:bg-slate-800 transition-all w-[240px] lg:w-[280px]">
+      <div className="hidden md:flex items-center gap-2 text-xs rounded-full ring-[1.5px] ring-gray-300 dark:ring-slate-600 px-3 py-1.5 focus-within:ring-[#707E94]/30 bg-gray-50 dark:bg-slate-800 transition-all w-[240px] lg:w-[280px]">
         {loading ? (
-          <Loader2 className="h-3.5 w-3.5 text-purple-600 animate-spin shrink-0" />
+          <Loader2 className="h-3.5 w-3.5 text-[#707E94] animate-spin shrink-0" />
         ) : (
           <Search className="h-3.5 w-3.5 text-gray-500 dark:text-gray-400 shrink-0" />
         )}
@@ -247,7 +247,7 @@ export const NavbarSearch: React.FC = () => {
         <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex flex-col p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-2xl border border-gray-200 dark:border-slate-800 flex flex-col max-h-[85vh]">
             <div className="flex items-center gap-2 border-b border-gray-100 dark:border-slate-800 pb-3">
-              <Search className="h-4 w-4 text-purple-600 shrink-0" />
+              <Search className="h-4 w-4 text-[#707E94] shrink-0" />
               <input
                 ref={mobileInputRef}
                 type="text"
@@ -257,7 +257,7 @@ export const NavbarSearch: React.FC = () => {
                 placeholder="Search courses, students, teachers..."
                 className="w-full bg-transparent outline-none text-sm text-gray-800 dark:text-gray-100 placeholder-gray-400"
               />
-              {loading && <Loader2 className="h-4 w-4 animate-spin text-purple-600" />}
+              {loading && <Loader2 className="h-4 w-4 animate-spin text-[#707E94]" />}
               {query && (
                 <button
                   type="button"
@@ -270,7 +270,7 @@ export const NavbarSearch: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMobileOpen(false)}
-                className="ml-1 text-xs font-semibold text-purple-600 px-2 py-1"
+                className="ml-1 text-xs font-semibold text-[#707E94] px-2 py-1"
               >
                 Done
               </button>
@@ -319,7 +319,7 @@ export const NavbarSearch: React.FC = () => {
                   }}
                   className={`text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition cursor-pointer ${
                     active
-                      ? "bg-purple-600 text-white shadow-xs"
+                      ? "bg-[#D32F45] text-white shadow-xs"
                       : "bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700"
                   }`}
                 >
@@ -334,12 +334,12 @@ export const NavbarSearch: React.FC = () => {
         <div className="overflow-y-auto p-2 space-y-1 flex-1">
           {loading && displayedResults.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center text-gray-400">
-              <Loader2 className="h-6 w-6 animate-spin text-purple-600 mb-2" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#707E94] mb-2" />
               <p className="text-xs">Searching database...</p>
             </div>
           ) : !hasQuery ? (
             <div className="p-4 text-center">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-950/50 text-purple-600 mb-2">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] mb-2">
                 <Sparkles className="h-5 w-5" />
               </div>
               <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
@@ -368,7 +368,7 @@ export const NavbarSearch: React.FC = () => {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center gap-3 p-2.5 rounded-xl transition cursor-pointer ${
                     isSelected
-                      ? "bg-purple-50 dark:bg-purple-950/50 text-purple-900 dark:text-purple-100"
+                      ? "bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-white"
                       : "hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-800 dark:text-gray-200"
                   }`}
                 >
@@ -423,7 +423,7 @@ export const NavbarSearch: React.FC = () => {
                 const encoded = encodeURIComponent(query.trim());
                 navigate(`/list/students?search=${encoded}`);
               }}
-              className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
+              className="text-[#707E94] dark:text-[#a4b3c7] font-semibold hover:underline"
             >
               See all results &rarr;
             </button>

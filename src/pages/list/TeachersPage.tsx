@@ -56,7 +56,7 @@ const TeachersPage: React.FC = () => {
   }, [page, pagination.pages]);
 
   const renderRow = (item: Teacher) => (
-    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-purple-50 dark:hover:bg-purple-900/20 transition dark:text-gray-200">
+    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-primary-50 dark:hover:bg-[#1a2332] transition dark:text-gray-200">
       <td className="flex items-center gap-3 py-4">
         <img
           src={item.img || `https://ui-avatars.com/api/?name=${item.name}+${item.surname}&background=C3EBFA&color=333`}

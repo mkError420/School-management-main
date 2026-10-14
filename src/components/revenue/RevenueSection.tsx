@@ -1032,7 +1032,7 @@ const RevenueSection: React.FC = () => {
                       type="monotone"
                       dataKey="income"
                       name="Fee Revenue"
-                      stroke="#10b981"
+                      stroke="#707E94"
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#colorRevIncome)"
@@ -1041,7 +1041,7 @@ const RevenueSection: React.FC = () => {
                       type="monotone"
                       dataKey="expense"
                       name="Expenditures"
-                      stroke="#f43f5e"
+                      stroke="#D32F45"
                       strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#colorRevExpense)"
@@ -1063,9 +1063,9 @@ const RevenueSection: React.FC = () => {
                       type="monotone"
                       dataKey="net"
                       name="Net Balance (Surplus/Deficit)"
-                      stroke="#6366f1"
+                      stroke="#707E94"
                       strokeWidth={3}
-                      dot={{ r: 4, fill: "#6366f1" }}
+                      dot={{ r: 4, fill: "#707E94" }}
                       activeDot={{ r: 7 }}
                     />
                   </LineChart>
