@@ -32,7 +32,28 @@ interface SiteSettingsContextValue {
   saveCurrencySymbol: (symbol: string) => void;
   saveSiteLogo: (fileOrUrl: File | string) => Promise<{ success: boolean; message?: string; logoUrl?: string }>;
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
+  refreshSettings: () => Promise<void>;
 }
+
+export const resolveLogoUrl = (logo?: string | null): string => {
+  if (!logo || !logo.trim()) return DEFAULT_SITE_LOGO;
+  const trimmed = logo.trim();
+  if (
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:") ||
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://")
+  ) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/images/")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("/")) {
+    return `/images${trimmed}`;
+  }
+  return `/images/${trimmed}`;
+};
 
 const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   siteName: "ACADEMIA",
@@ -44,6 +65,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   saveCurrencySymbol: () => {},
   saveSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
+  refreshSettings: async () => {},
 });
 
 const fileToDataUrl = (file: File): Promise<string> => {
@@ -59,7 +81,8 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [siteName, setSiteName] = useState("ACADEMIA");
   const [siteLogo, setSiteLogo] = useState<string>(() => {
     try {
-      return localStorage.getItem(LOGO_STORAGE_KEY) || DEFAULT_SITE_LOGO;
+      const cached = localStorage.getItem(LOGO_STORAGE_KEY);
+      return cached ? resolveLogoUrl(cached) : DEFAULT_SITE_LOGO;
     } catch {
       return DEFAULT_SITE_LOGO;
     }
@@ -73,6 +96,26 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   });
 
+  const refreshSettings = async () => {
+    try {
+      const response = await api.getSiteSettings();
+      if (response.success && response.data) {
+        if (response.data.site_name) {
+          setSiteName(response.data.site_name);
+        }
+        if (response.data.site_logo) {
+          const resolved = resolveLogoUrl(response.data.site_logo);
+          setSiteLogo(resolved);
+          try {
+            localStorage.setItem(LOGO_STORAGE_KEY, resolved);
+          } catch {}
+        }
+      }
+    } catch {
+      // transient network error
+    }
+  };
+
   useEffect(() => {
     let active = true;
     api.getSiteSettings().then((response) => {
@@ -81,9 +124,10 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setSiteName(response.data.site_name);
       }
       if (response.data.site_logo) {
-        setSiteLogo(response.data.site_logo);
+        const resolved = resolveLogoUrl(response.data.site_logo);
+        setSiteLogo(resolved);
         try {
-          localStorage.setItem(LOGO_STORAGE_KEY, response.data.site_logo);
+          localStorage.setItem(LOGO_STORAGE_KEY, resolved);
         } catch {
           // ignore storage errors
         }
@@ -91,10 +135,31 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }).finally(() => {
       if (active) setIsLoading(false);
     });
+
+    const handleSync = () => {
+      try {
+        const cachedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
+        if (cachedLogo) {
+          setSiteLogo(resolveLogoUrl(cachedLogo));
+        }
+      } catch {}
+    };
+
+    window.addEventListener("school-site-settings-updated", handleSync);
+    window.addEventListener("storage", handleSync);
+
     return () => {
       active = false;
+      window.removeEventListener("school-site-settings-updated", handleSync);
+      window.removeEventListener("storage", handleSync);
     };
   }, []);
+
+  const broadcastUpdate = (logoUrl?: string) => {
+    try {
+      window.dispatchEvent(new CustomEvent("school-site-settings-updated", { detail: { siteLogo: logoUrl } }));
+    } catch {}
+  };
 
   const saveSiteName = async (nextName: string) => {
     const response = await api.updateSiteName(nextName.trim());
@@ -102,6 +167,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return { success: false, message: response.message || "Unable to update the site name." };
     }
     setSiteName(response.data.site_name);
+    broadcastUpdate();
     return { success: true };
   };
 
@@ -111,11 +177,12 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         // Try uploading to backend
         const response = await api.uploadSiteLogo(fileOrUrl);
         if (response.success && response.data?.site_logo) {
-          const newLogo = response.data.site_logo;
+          const newLogo = resolveLogoUrl(response.data.site_logo);
           setSiteLogo(newLogo);
           try {
             localStorage.setItem(LOGO_STORAGE_KEY, newLogo);
           } catch {}
+          broadcastUpdate(newLogo);
           return { success: true, logoUrl: newLogo };
         }
 
@@ -127,21 +194,24 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } catch {}
         // Also try saving base64 to settings API
         api.updateSiteLogo(dataUrl).catch(() => {});
+        broadcastUpdate(dataUrl);
         return {
           success: true,
           logoUrl: dataUrl,
           message: response.message ? `Logo saved locally (${response.message})` : undefined,
         };
       } else {
-        const logoStr = fileOrUrl.trim() || DEFAULT_SITE_LOGO;
+        const logoStr = resolveLogoUrl(fileOrUrl.trim() || DEFAULT_SITE_LOGO);
         setSiteLogo(logoStr);
         try {
           localStorage.setItem(LOGO_STORAGE_KEY, logoStr);
         } catch {}
         const response = await api.updateSiteLogo(logoStr);
         if (response.success && response.data?.site_logo) {
-          setSiteLogo(response.data.site_logo);
+          const resolved = resolveLogoUrl(response.data.site_logo);
+          setSiteLogo(resolved);
         }
+        broadcastUpdate(logoStr);
         return { success: true, logoUrl: logoStr };
       }
     } catch (err: any) {
@@ -153,6 +223,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           try {
             localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
           } catch {}
+          broadcastUpdate(dataUrl);
           return { success: true, logoUrl: dataUrl };
         } catch {}
       }
@@ -168,6 +239,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       await api.updateSiteLogo(DEFAULT_SITE_LOGO);
     } catch {}
+    broadcastUpdate(DEFAULT_SITE_LOGO);
     return { success: true };
   };
 
@@ -192,6 +264,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         saveCurrencySymbol,
         saveSiteLogo,
         resetSiteLogo,
+        refreshSettings,
       }}
     >
       {children}
@@ -200,4 +273,5 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 };
 
 export const useSiteSettings = () => useContext(SiteSettingsContext);
+
 

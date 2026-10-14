@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { resolveLogoUrl, useSiteSettings } from "@/context/SiteSettingsContext";
 
 const demoAccounts = [
   { label: "Admin", username: "admin", password: "admin123", icon: ShieldCheck },
@@ -13,10 +13,16 @@ const demoAccounts = [
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
-  const { siteName, siteLogo } = useSiteSettings();
+  const { siteName, siteLogo, refreshSettings } = useSiteSettings();
   const navigate = useNavigate();
 
   const isDefaultLogo = !siteLogo || siteLogo === "/images/logo.png" || siteLogo === "/logo.png";
+  const logoUrl = resolveLogoUrl(siteLogo);
+
+  useEffect(() => {
+    // Refresh settings from server when viewing login page
+    void refreshSettings();
+  }, [refreshSettings]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -53,11 +59,25 @@ const SignInPage: React.FC = () => {
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 sm:px-6">
         <main className="login-card w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
           <header className="mb-7">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#707E94] shadow-sm overflow-hidden p-1.5">
+            <div className="flex items-center gap-3.5">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden p-1.5 transition-all shadow-xs ${
+                  isDefaultLogo
+                    ? "bg-[#707E94] shadow-sm"
+                    : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm"
+                }`}
+              >
                 <img
-                  src={siteLogo || "/images/logo.png"}
+                  src={logoUrl}
                   alt={siteName}
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.fallback) {
+                      target.dataset.fallback = "true";
+                      target.src = "/images/logo.png";
+                      target.classList.add("brightness-0", "invert");
+                    }
+                  }}
                   className={`h-full w-full object-contain ${isDefaultLogo ? "brightness-0 invert" : ""}`}
                 />
               </div>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Building2, Check, DollarSign, Image as ImageIcon, KeyRound, LogOut, Moon, RotateCcw, ShieldCheck, Sun, Upload, UserRound, X } from "lucide-react";
+import { Building2, Check, DollarSign, Image as ImageIcon, KeyRound, Link as LinkIcon, LogOut, Moon, RotateCcw, ShieldCheck, Sun, Upload, UserRound, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { CURRENCY_OPTIONS, useSiteSettings } from "@/context/SiteSettingsContext";
@@ -14,7 +14,9 @@ const SettingsPage: React.FC = () => {
   const [siteNameFeedback, setSiteNameFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Logo management
+  const [logoMode, setLogoMode] = useState<"file" | "url">("file");
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null);
+  const [logoUrlInput, setLogoUrlInput] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [savingLogo, setSavingLogo] = useState(false);
   const [resettingLogo, setResettingLogo] = useState(false);
@@ -106,6 +108,32 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleLogoUrlSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const trimmed = logoUrlInput.trim();
+    if (!trimmed) return;
+
+    setSavingLogo(true);
+    setLogoFeedback(null);
+    try {
+      const response = await saveSiteLogo(trimmed);
+      if (response.success) {
+        setLogoUrlInput("");
+        setLogoPreview(null);
+        setLogoFeedback({
+          type: "success",
+          message: "Site logo updated across the login page and dashboard.",
+        });
+      } else {
+        setLogoFeedback({ type: "error", message: response.message || "Unable to update site logo." });
+      }
+    } catch {
+      setLogoFeedback({ type: "error", message: "Unable to reach the server. Try again." });
+    } finally {
+      setSavingLogo(false);
+    }
+  };
+
   const handleResetLogo = async () => {
     setResettingLogo(true);
     setLogoFeedback(null);
@@ -114,6 +142,7 @@ const SettingsPage: React.FC = () => {
       if (response.success) {
         setSelectedLogoFile(null);
         setLogoPreview(null);
+        setLogoUrlInput("");
         if (fileInputRef.current) fileInputRef.current.value = "";
         setLogoFeedback({ type: "success", message: "Site logo reset to default." });
       } else {
@@ -213,83 +242,187 @@ const SettingsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              {/* Tab Selector: Upload vs URL */}
+              <div className="mb-4 flex items-center gap-2 border-b border-gray-150 dark:border-slate-800 pb-3">
+                <button
+                  type="button"
+                  onClick={() => setLogoMode("file")}
+                  className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                    logoMode === "file"
+                      ? "bg-[#707E94] text-white"
+                      : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
+                  }`}
+                >
+                  <Upload size={14} />
+                  Upload Image File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLogoMode("url")}
+                  className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                    logoMode === "url"
+                      ? "bg-[#707E94] text-white"
+                      : "bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200"
+                  }`}
+                >
+                  <LinkIcon size={14} />
+                  Image URL
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                 {/* Logo Preview */}
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-2 shrink-0">
                   <div className="relative flex h-24 w-24 items-center justify-center rounded-xl border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/80 p-2 shadow-xs overflow-hidden">
                     <img
-                      src={logoPreview || siteLogo}
+                      src={logoPreview || (logoMode === "url" && logoUrlInput.trim() ? logoUrlInput.trim() : siteLogo)}
                       alt="Site logo preview"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/logo.png";
+                      }}
                       className="max-h-full max-w-full object-contain"
                     />
                   </div>
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                    {logoPreview ? "New preview" : "Current logo"}
+                    {logoPreview || (logoMode === "url" && logoUrlInput.trim()) ? "New preview" : "Current logo"}
                   </span>
                 </div>
 
                 {/* Upload & Action Area */}
-                <div className="flex-1 space-y-3">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                    id="site-logo-upload-input"
-                  />
+                <div className="flex-1 space-y-3 min-w-0">
+                  {logoMode === "file" ? (
+                    <>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        onChange={handleLogoChange}
+                        className="hidden"
+                        id="site-logo-upload-input"
+                      />
 
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 dark:border-slate-700 p-4 text-center transition hover:border-[#707E94] hover:bg-gray-50 dark:hover:bg-slate-800/50"
-                  >
-                    <Upload size={18} className="text-[#707E94] dark:text-[#a4b3c7] transition group-hover:scale-110" />
-                    <div className="text-left text-xs">
-                      <p className="font-semibold text-black dark:text-white">
-                        {selectedLogoFile ? selectedLogoFile.name : "Click to select a new logo image"}
-                      </p>
-                      <p className="text-gray-500 dark:text-gray-400">
-                        PNG, JPG, WebP, or SVG (max 5 MB)
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={savingLogo || !selectedLogoFile}
-                      onClick={handleLogoUpload}
-                      className="inline-flex items-center gap-2 rounded-md bg-[#707E94] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <Check size={16} aria-hidden="true" />
-                      {savingLogo ? "Uploading..." : "Save logo"}
-                    </button>
-
-                    {selectedLogoFile && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedLogoFile(null);
-                          setLogoPreview(null);
-                          if (fileInputRef.current) fileInputRef.current.value = "";
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 dark:border-slate-700 p-4 text-center transition hover:border-[#707E94] hover:bg-gray-50 dark:hover:bg-slate-800/50"
                       >
-                        <X size={15} />
-                        Cancel
-                      </button>
-                    )}
+                        <Upload size={18} className="text-[#707E94] dark:text-[#a4b3c7] transition group-hover:scale-110" />
+                        <div className="text-left text-xs">
+                          <p className="font-semibold text-black dark:text-white">
+                            {selectedLogoFile ? selectedLogoFile.name : "Click to select a new logo image"}
+                          </p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            PNG, JPG, WebP, or SVG (max 5 MB)
+                          </p>
+                        </div>
+                      </div>
 
-                    <button
-                      type="button"
-                      disabled={resettingLogo || savingLogo}
-                      onClick={handleResetLogo}
-                      className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-400 transition hover:border-gray-400 hover:text-black dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-                      title="Reset site logo to default"
-                    >
-                      <RotateCcw size={13} aria-hidden="true" />
-                      {resettingLogo ? "Resetting..." : "Reset to default"}
-                    </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={savingLogo || !selectedLogoFile}
+                          onClick={handleLogoUpload}
+                          className="inline-flex items-center gap-2 rounded-md bg-[#707E94] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Check size={16} aria-hidden="true" />
+                          {savingLogo ? "Uploading..." : "Save logo"}
+                        </button>
+
+                        {selectedLogoFile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLogoFile(null);
+                              setLogoPreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800"
+                          >
+                            <X size={15} />
+                            Cancel
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          disabled={resettingLogo || savingLogo}
+                          onClick={handleResetLogo}
+                          className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-400 transition hover:border-gray-400 hover:text-black dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          title="Reset site logo to default"
+                        >
+                          <RotateCcw size={13} aria-hidden="true" />
+                          {resettingLogo ? "Resetting..." : "Reset to default"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <form onSubmit={handleLogoUrlSubmit} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-black dark:text-white mb-1">
+                          Image URL or Path
+                        </label>
+                        <input
+                          type="text"
+                          value={logoUrlInput}
+                          onChange={(e) => setLogoUrlInput(e.target.value)}
+                          placeholder="https://example.com/logo.png or /images/logo.png"
+                          className={`${inputClass} text-xs`}
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={savingLogo || !logoUrlInput.trim()}
+                          className="inline-flex items-center gap-2 rounded-md bg-[#707E94] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#5a6679] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Check size={16} aria-hidden="true" />
+                          {savingLogo ? "Saving..." : "Save logo URL"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={resettingLogo || savingLogo}
+                          onClick={handleResetLogo}
+                          className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-400 transition hover:border-gray-400 hover:text-black dark:hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          title="Reset site logo to default"
+                        >
+                          <RotateCcw size={13} aria-hidden="true" />
+                          {resettingLogo ? "Resetting..." : "Reset to default"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Preview on Login Screen */}
+              <div className="mt-5 rounded-lg border border-gray-200 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-950/40 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2.5">
+                  Live Preview on Login Page
+                </p>
+                <div className="inline-flex items-center gap-3.5 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 shadow-sm">
+                  <div
+                    className={`flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden p-1.5 transition-all shadow-xs ${
+                      (!selectedLogoFile && (!logoUrlInput.trim() || logoMode === "file") && (siteLogo === "/images/logo.png" || siteLogo === "/logo.png"))
+                        ? "bg-[#707E94] shadow-sm"
+                        : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm"
+                    }`}
+                  >
+                    <img
+                      src={logoPreview || (logoMode === "url" && logoUrlInput.trim() ? logoUrlInput.trim() : siteLogo)}
+                      alt="Login preview"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/logo.png";
+                      }}
+                      className={`h-full w-full object-contain ${
+                        (!selectedLogoFile && (!logoUrlInput.trim() || logoMode === "file") && (siteLogo === "/images/logo.png" || siteLogo === "/logo.png"))
+                          ? "brightness-0 invert"
+                          : ""
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-black dark:text-white">{siteNameDraft || siteName}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">School Management System</p>
                   </div>
                 </div>
               </div>
