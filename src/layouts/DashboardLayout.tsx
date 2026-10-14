@@ -9,7 +9,7 @@ import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { X, ChevronLeft, ChevronRight, LogOut, Shield } from "lucide-react";
 
 const DashboardLayoutContent: React.FC = () => {
-  const { siteName } = useSiteSettings();
+  const { siteName, siteLogo } = useSiteSettings();
   const { user, role, logout } = useAuth();
   const { isMobileOpen, setMobileOpen, isCollapsed, toggleCollapse } = useSidebar();
 
@@ -42,11 +42,11 @@ const DashboardLayoutContent: React.FC = () => {
             className="flex items-center gap-2.5 min-w-0"
           >
             <Image
-              src="/logo.png"
+              src={siteLogo || "/logo.png"}
               alt={siteName}
               width={34}
               height={34}
-              className="rounded-xl shadow-xs shrink-0"
+              className="rounded-xl shadow-xs shrink-0 object-contain"
             />
             <span
               className="font-bold text-gray-900 dark:text-white text-sm truncate"
@@ -127,11 +127,11 @@ const DashboardLayoutContent: React.FC = () => {
             } py-1`}
           >
             <Image
-              src="/logo.png"
+              src={siteLogo || "/logo.png"}
               alt={siteName}
               width={32}
               height={32}
-              className="rounded-xl shadow-xs shrink-0"
+              className="rounded-xl shadow-xs shrink-0 object-contain"
             />
             {!isCollapsed && (
               <span

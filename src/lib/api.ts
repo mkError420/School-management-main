@@ -93,13 +93,29 @@ class ApiService {
   }
 
   async getSiteSettings() {
-    return this.request<{ site_name: string }>('settings', { method: 'GET' });
+    return this.request<{ site_name: string; site_logo?: string }>('settings', { method: 'GET' });
   }
 
   async updateSiteName(siteName: string) {
-    return this.request<{ site_name: string }>('settings', {
+    return this.request<{ site_name: string; site_logo?: string }>('settings', {
       method: 'PUT',
       body: JSON.stringify({ site_name: siteName }),
+    });
+  }
+
+  async updateSiteLogo(siteLogo: string) {
+    return this.request<{ site_name?: string; site_logo: string }>('settings', {
+      method: 'PUT',
+      body: JSON.stringify({ site_logo: siteLogo }),
+    });
+  }
+
+  async uploadSiteLogo(file: File) {
+    const formData = new FormData();
+    formData.append('logo', file);
+    return this.request<{ site_logo: string }>('settings?action=upload-logo', {
+      method: 'POST',
+      body: formData,
     });
   }
 

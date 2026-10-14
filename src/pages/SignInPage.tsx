@@ -13,8 +13,10 @@ const demoAccounts = [
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
-  const { siteName } = useSiteSettings();
+  const { siteName, siteLogo } = useSiteSettings();
   const navigate = useNavigate();
+
+  const isDefaultLogo = !siteLogo || siteLogo === "/images/logo.png" || siteLogo === "/logo.png";
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -52,8 +54,12 @@ const SignInPage: React.FC = () => {
         <main className="login-card w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
           <header className="mb-7">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#707E94] shadow-sm">
-                <img src="/images/logo.png" alt={siteName} className="h-7 w-7 object-contain brightness-0 invert" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-[#707E94] shadow-sm overflow-hidden p-1.5">
+                <img
+                  src={siteLogo || "/images/logo.png"}
+                  alt={siteName}
+                  className={`h-full w-full object-contain ${isDefaultLogo ? "brightness-0 invert" : ""}`}
+                />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-black">{siteName}</h1>
