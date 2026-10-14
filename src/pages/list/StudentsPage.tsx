@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
 import { Link, useSearchParams } from "react-router-dom";
 import FormModal from "@/components/FormModal";
@@ -93,19 +93,19 @@ const StudentsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm space-y-4">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm space-y-4">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <GraduationCap size={20} className="text-[#707E94]" />
-          <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Students</h1>
+          <GraduationCap size={20} className="text-[#707E94] shrink-0" />
+          <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Students</h1>
           {!loading && pagination.total > 0 && (
-            <span className="hidden md:inline-flex items-center bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] text-[11px] font-semibold px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full">
               {pagination.total} enrolled
             </span>
           )}
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+        <div className="w-full sm:w-auto">
           <TableSearch value={search} onChange={setSearch} placeholder="Search students..." />
         </div>
       </div>

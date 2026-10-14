@@ -19,8 +19,8 @@ interface TableProps {
 const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyMessage, error, onRetry }) => {
   if (loading) {
     return (
-      <div className="w-full mt-4">
-        <table className="w-full">
+      <div className="w-full overflow-x-auto mt-4 custom-scrollbar">
+        <table className="w-full min-w-[500px]">
           <thead>
             <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
               {columns.map((col) => (
@@ -48,7 +48,7 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
 
   if (error) {
     return (
-      <div className="w-full mt-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400" role="alert">
+      <div className="w-full mt-4 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-700 dark:text-red-400" role="alert">
         <p>{error}</p>
         {onRetry && (
           <button onClick={onRetry} className="mt-3 rounded-md bg-white dark:bg-gray-800 px-3 py-1.5 font-medium text-red-700 dark:text-red-400 ring-1 ring-red-200 dark:ring-red-800 hover:bg-red-100 dark:hover:bg-red-900/40">
@@ -61,8 +61,8 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
 
   if (!data || data.length === 0) {
     return (
-      <div className="w-full mt-4">
-        <table className="w-full">
+      <div className="w-full overflow-x-auto mt-4 custom-scrollbar">
+        <table className="w-full min-w-[500px]">
           <thead>
             <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
               {columns.map((col) => (
@@ -84,18 +84,20 @@ const Table: React.FC<TableProps> = ({ columns, renderRow, data, loading, emptyM
   }
 
   return (
-    <table className="w-full mt-4">
-      <thead>
-        <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
-          {columns.map((col) => (
-            <th key={col.accessor} className={`pb-3 pr-4 ${col.className || ""}`}>
-              {col.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>{data.map((item) => renderRow(item))}</tbody>
-    </table>
+    <div className="w-full overflow-x-auto mt-4 custom-scrollbar">
+      <table className="w-full min-w-[500px]">
+        <thead>
+          <tr className="text-left text-gray-500 dark:text-gray-400 text-xs font-semibold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
+            {columns.map((col) => (
+              <th key={col.accessor} className={`pb-3 pr-4 ${col.className || ""}`}>
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{data.map((item) => renderRow(item))}</tbody>
+      </table>
+    </div>
   );
 };
 

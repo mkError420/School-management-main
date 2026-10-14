@@ -180,55 +180,81 @@ const menuItems = [
   },
 ];
 
-const Menu: React.FC = () => {
+interface MenuProps {
+  isCollapsed?: boolean;
+  onItemClick?: () => void;
+}
+
+const Menu: React.FC<MenuProps> = ({ isCollapsed = false, onItemClick }) => {
   const { role, logout } = useAuth();
   const location = useLocation();
 
   return (
-    <div className="mt-4 text-sm overflow-y-auto flex-1 pr-1 custom-scrollbar">
-      {menuItems.map((section) => (
-        <div className="flex flex-col gap-1.5 mb-4" key={section.title}>
-          <span className="hidden lg:block text-[#707E94] dark:text-[#a4b3c7] font-bold text-[11px] tracking-wider my-2 uppercase">
-            {section.title}
-          </span>
-          {section.items.map((item) => {
-            if (!item.visible.includes(role) && !(hasAdminAccess(role) && item.visible.includes("admin"))) return null;
+    <div className="mt-2 text-sm overflow-y-auto flex-1 pr-1 custom-scrollbar">
+      {menuItems.map((section) => {
+        // Check if at least one item in section is visible
+        const visibleItems = section.items.filter(
+          (item) => item.visible.includes(role) || (hasAdminAccess(role) && item.visible.includes("admin"))
+        );
+        if (visibleItems.length === 0) return null;
 
-            if (item.href === "/logout") {
+        return (
+          <div className="flex flex-col gap-1 mb-3" key={section.title}>
+            {isCollapsed ? (
+              <div className="my-1.5 border-t border-gray-200 dark:border-slate-800" title={section.title} />
+            ) : (
+              <span className="text-[#707E94] dark:text-[#a4b3c7] font-bold text-[11px] tracking-wider my-1.5 px-2 uppercase select-none">
+                {section.title}
+              </span>
+            )}
+
+            {visibleItems.map((item) => {
+              if (item.href === "/logout") {
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      logout();
+                      onItemClick?.();
+                    }}
+                    title={isCollapsed ? item.label : undefined}
+                    className={`flex items-center ${
+                      isCollapsed ? "justify-center px-2" : "justify-start gap-3.5 px-2.5"
+                    } text-black dark:text-white hover:text-[#D32F45] dark:hover:text-[#f87171] py-2.5 rounded-xl hover:bg-[#D32F45]/10 dark:hover:bg-[#D32F45]/20 transition w-full text-left font-medium group`}
+                  >
+                    <Image src={item.icon} alt="" width={18} height={18} className="shrink-0" />
+                    {!isCollapsed && <span className="font-medium text-xs truncate">{item.label}</span>}
+                  </button>
+                );
+              }
+
+              const isActive =
+                item.href === "/"
+                  ? location.pathname === "/" || location.pathname === `/${role}`
+                  : location.pathname.startsWith(item.href);
+
               return (
-                <button
+                <Link
+                  to={item.href}
                   key={item.label}
-                  onClick={logout}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-black dark:text-white hover:text-[#D32F45] dark:hover:text-[#f87171] py-2.5 px-2 rounded-lg hover:bg-[#D32F45]/10 dark:hover:bg-[#D32F45]/20 transition w-full text-left font-medium"
+                  onClick={() => onItemClick?.()}
+                  title={isCollapsed ? item.label : undefined}
+                  className={`flex items-center ${
+                    isCollapsed ? "justify-center px-2" : "justify-start gap-3.5 px-2.5"
+                  } py-2.5 rounded-xl transition font-medium text-xs ${
+                    isActive
+                      ? "bg-[#707E94] text-white shadow-xs font-semibold"
+                      : "text-black dark:text-white hover:bg-[#707E94]/10 hover:text-[#707E94] dark:hover:bg-[#707E94]/20 dark:hover:text-white"
+                  }`}
                 >
-                  <Image src={item.icon} alt="" width={18} height={18} />
-                  <span className="hidden lg:block font-medium">{item.label}</span>
-                </button>
+                  <Image src={item.icon} alt="" width={18} height={18} className="shrink-0" />
+                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                </Link>
               );
-            }
-
-            const isActive =
-              item.href === "/"
-                ? location.pathname === "/" || location.pathname === `/${role}`
-                : location.pathname.startsWith(item.href);
-
-            return (
-              <Link
-                to={item.href}
-                key={item.label}
-                className={`flex items-center justify-center lg:justify-start gap-4 py-2.5 px-2 rounded-lg transition font-medium ${
-                  isActive
-                    ? "bg-[#707E94] text-white shadow-sm font-semibold"
-                    : "text-black dark:text-white hover:bg-[#707E94]/10 hover:text-[#707E94] dark:hover:bg-[#707E94]/20 dark:hover:text-white"
-                }`}
-              >
-                <Image src={item.icon} alt="" width={18} height={18} />
-                <span className="hidden lg:block">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 };

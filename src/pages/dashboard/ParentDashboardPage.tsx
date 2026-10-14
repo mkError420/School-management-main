@@ -94,7 +94,7 @@ const ParentDashboardPage: React.FC = () => {
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
 
   return (
-    <div className="p-4 md:p-6 flex flex-col gap-6">
+    <div className="p-3 sm:p-6 flex flex-col gap-5 sm:gap-6">
       {/* ─── Parent & Children Section ─────────────────────────────────── */}
       {loading ? (
         <div

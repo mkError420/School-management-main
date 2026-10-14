@@ -31,21 +31,21 @@ const Pagination: React.FC<PaginationProps> = ({ page, totalPages, onPageChange,
   const end = total && limit ? Math.min(page * limit, total) : undefined;
 
   return (
-    <div className="p-4 flex items-center justify-between text-gray-500">
+    <div className="p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-gray-500 border-t border-gray-100 dark:border-gray-800">
       {total !== undefined && limit !== undefined ? (
-        <p className="text-xs">
-          Showing <span className="font-semibold text-gray-800">{start}–{end}</span> of{" "}
-          <span className="font-semibold text-gray-800">{total}</span> results
+        <p className="text-xs text-center sm:text-left text-gray-600 dark:text-gray-400">
+          Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{start}–{end}</span> of{" "}
+          <span className="font-semibold text-gray-800 dark:text-gray-200">{total}</span> results
         </p>
       ) : (
         <div />
       )}
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-wrap justify-center">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          className="py-1.5 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="py-1.5 px-2.5 sm:px-3 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition text-gray-700 dark:text-gray-200"
         >
           Prev
         </button>
@@ -60,10 +60,10 @@ const Pagination: React.FC<PaginationProps> = ({ page, totalPages, onPageChange,
               <button
                 key={p}
                 onClick={() => onPageChange(p as number)}
-                className={`w-8 h-8 rounded-lg text-xs font-semibold transition ${
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg text-xs font-semibold transition ${
                   page === p
-                    ? "bg-lamaSky text-gray-800 shadow-sm"
-                    : "hover:bg-gray-100 text-gray-600"
+                    ? "bg-[#707E94] text-white shadow-xs"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
                 }`}
               >
                 {p}
@@ -75,7 +75,7 @@ const Pagination: React.FC<PaginationProps> = ({ page, totalPages, onPageChange,
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
-          className="py-1.5 px-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
+          className="py-1.5 px-2.5 sm:px-3 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition text-gray-700 dark:text-gray-200"
         >
           Next
         </button>

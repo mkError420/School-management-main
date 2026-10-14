@@ -84,7 +84,7 @@ const TeacherDashboardPage: React.FC = () => {
   const textMuted = isDark ? "text-slate-400" : "text-slate-500";
 
   return (
-    <div className="p-4 md:p-6 flex flex-col gap-6">
+    <div className="p-3 sm:p-6 flex flex-col gap-5 sm:gap-6">
       {/* ─── Profile Header Card ──────────────────────────────────────── */}
       {loading ? (
         <div
@@ -178,7 +178,7 @@ const TeacherDashboardPage: React.FC = () => {
           </div>
 
           {/* Stats Bar */}
-          <div className="border-t border-slate-100 dark:border-gray-700 grid grid-cols-4 divide-x divide-slate-100 dark:divide-gray-700">
+          <div className="border-t border-slate-100 dark:border-gray-700 grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 dark:divide-gray-700">
             {[
               { label: "Subjects", value: data.subjects.length, icon: <BookOpen size={15} className="text-indigo-500" /> },
               { label: "Classes", value: data.classes.length, icon: <Layers3 size={15} className="text-violet-500" /> },

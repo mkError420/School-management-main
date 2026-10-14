@@ -142,7 +142,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   ];
 
   return (
-    <div className="m-4 mt-0 flex-1 space-y-3 pb-8">
+    <div className="m-2 sm:m-4 mt-0 flex-1 space-y-3 pb-8">
       <div className="flex items-center justify-between gap-3 py-2">
         <Link to="/list/students" className="text-sm font-medium text-gray-600 hover:text-gray-900">← All students</Link>
         {role === "admin" && <div className="flex items-center gap-2"><FormModal table="student" type="update" data={student} onSuccess={onReload} /><FormModal table="student" type="delete" id={student.id} onSuccess={() => navigate("/list/students", { replace: true })} /></div>}

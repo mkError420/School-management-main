@@ -512,7 +512,7 @@ const MessagesPage: React.FC = () => {
   };
 
   return (
-    <div className="m-4 mt-0 flex-1 space-y-4 pb-8">
+    <div className="m-2 sm:m-4 mt-0 flex-1 space-y-4 pb-8">
       {/* ─── Header ────────────────────────────────────────── */}
       <header className="flex flex-wrap items-end justify-between gap-3 py-3">
         <div>

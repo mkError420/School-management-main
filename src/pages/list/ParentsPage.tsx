@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -76,10 +76,10 @@ const ParentsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Parents</h1>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Parents</h1>
+        <div className="w-full sm:w-auto">
           <TableSearch value={search} onChange={setSearch} placeholder="Search parents..." />
         </div>
       </div>

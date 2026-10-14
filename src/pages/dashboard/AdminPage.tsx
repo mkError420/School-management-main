@@ -21,9 +21,9 @@ const AdminPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="p-4 flex gap-4 flex-col md:flex-row">
+    <div className="p-3 sm:p-5 flex gap-5 flex-col lg:flex-row">
       {/* LEFT */}
-      <div className="w-full lg:w-2/3 flex flex-col gap-6">
+      <div className="w-full lg:w-2/3 flex flex-col gap-5 sm:gap-6 min-w-0">
         {/* Dynamic Top Stats Cards (People + Finance KPIs) */}
         <DashboardStatsCards />
 
@@ -32,22 +32,22 @@ const AdminPage: React.FC = () => {
 
         {/* Charts Row */}
         <div className="flex gap-4 flex-col lg:flex-row">
-          <div className="w-full lg:w-1/3 h-[450px]">
+          <div className="w-full lg:w-1/3 min-h-[380px] sm:h-[450px]">
             <CountChart boys={gender.boys} girls={gender.girls} />
           </div>
-          <div className="w-full lg:w-2/3 h-[450px]">
+          <div className="w-full lg:w-2/3 min-h-[380px] sm:h-[450px]">
             <AttendanceChart />
           </div>
         </div>
 
         {/* Dynamic Full Function Finance Chart */}
-        <div className="w-full min-h-[520px]">
+        <div className="w-full min-h-[460px] sm:min-h-[520px]">
           <FinanceChart />
         </div>
       </div>
 
       {/* RIGHT */}
-      <div className="w-full lg:w-1/3 flex flex-col gap-6">
+      <div className="w-full lg:w-1/3 flex flex-col gap-5 sm:gap-6 shrink-0 min-w-0">
         <EventCalendar />
         <Announcements />
       </div>

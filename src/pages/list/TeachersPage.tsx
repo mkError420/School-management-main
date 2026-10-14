@@ -98,17 +98,17 @@ const TeachersPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
       {/* Top */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">{role === "teacher" ? "My Teacher Profile" : "All Teachers"}</h1>
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">{role === "teacher" ? "My Teacher Profile" : "All Teachers"}</h1>
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search teachers..." />
-          <div className="flex items-center gap-2 self-end">
-            {role === "admin" && (
+          {role === "admin" && (
+            <div className="shrink-0">
               <FormModal table="teacher" type="create" onSuccess={fetchTeachers} />
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

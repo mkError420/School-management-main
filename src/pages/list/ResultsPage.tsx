@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
@@ -140,7 +140,7 @@ export const ResultsPage: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-2xl flex-1 m-4 mt-0 shadow-sm border border-gray-100 dark:border-gray-700/60">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm border border-gray-100 dark:border-gray-700/60">
       
       {/* Page Title & Main Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-5">

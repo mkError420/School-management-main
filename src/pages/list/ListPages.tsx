@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
@@ -48,10 +48,10 @@ export const SubjectsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Subjects</h1>
-        <div className="flex gap-3 items-center">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Subjects</h1>
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search subjects..." />
           {role === "admin" && <FormModal table="subject" type="create" onSuccess={fetchData} />}
         </div>
@@ -103,10 +103,10 @@ export const ClassesPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Classes</h1>
-        <div className="flex gap-3 items-center">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Classes</h1>
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search classes..." />
           {role === "admin" && <FormModal table="class" type="create" onSuccess={fetchData} />}
         </div>
@@ -160,10 +160,10 @@ export const LessonsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Lessons</h1>
-        <div className="flex gap-3 items-center">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Lessons</h1>
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search lessons..." />
           {(role === "admin" || role === "teacher") && <FormModal table="lesson" type="create" onSuccess={fetchData} />}
         </div>
@@ -318,17 +318,17 @@ export const ExamsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Exams</h1>
-          <p className="hidden md:block text-xs text-gray-400 mt-0.5">
+          <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Exams</h1>
+          <p className="text-xs text-gray-400 mt-0.5">
             {role === 'admin' ? 'Manage exams and upload exam routines (PDF/image)' :
              role === 'teacher' ? 'Your class exams and routine documents' :
              'Upcoming exams and downloadable routine schedules'}
           </p>
         </div>
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search exams..." />
           {role === "admin" && <FormModal table="exam" type="create" onSuccess={fetchData} />}
         </div>
@@ -497,10 +497,10 @@ export const AssignmentsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Assignments</h1>
-        <div className="flex gap-3 items-center">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Assignments</h1>
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search assignments..." />
           {(role === "admin" || role === "teacher") && <FormModal table="assignment" type="create" onSuccess={fetchData} />}
         </div>
@@ -600,10 +600,10 @@ export const EventsPage: React.FC = () => {
   );
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex-1 m-4 mt-0 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="hidden md:block text-lg font-semibold text-gray-800 dark:text-gray-100">All Events</h1>
-        <div className="flex gap-3 items-center">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+        <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">All Events</h1>
+        <div className="flex gap-2.5 items-center w-full sm:w-auto justify-between sm:justify-end">
           <TableSearch value={search} onChange={setSearch} placeholder="Search events..." />
           {(role === "admin" || role === "teacher") && <FormModal table="event" type="create" onSuccess={fetchData} />}
         </div>
