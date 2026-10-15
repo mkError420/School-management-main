@@ -392,7 +392,7 @@ const WebsiteContentPage: React.FC = () => {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-6xl p-4 md:p-6 font-['Hind_Siliguri','Inter',sans-serif]">
+    <div className="mx-auto w-full max-w-6xl p-4 md:p-6 font-sans">
       {/* Top Header */}
       <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
         <div>

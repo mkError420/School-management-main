@@ -8,6 +8,51 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          '"Hind Siliguri"',
+          '"Noto Sans Bengali"',
+          '"Inter"',
+          '"Tiro Bangla"',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          '"Helvetica Neue"',
+          'Arial',
+          '"SolaimanLipi"',
+          '"Kalpurush"',
+          'sans-serif',
+        ],
+        serif: [
+          '"Tiro Bangla"',
+          '"Hind Siliguri"',
+          '"Noto Sans Bengali"',
+          'Georgia',
+          'Cambria',
+          '"Times New Roman"',
+          'Times',
+          'serif',
+        ],
+        bengali: [
+          '"Hind Siliguri"',
+          '"Noto Sans Bengali"',
+          '"Tiro Bangla"',
+          '"SolaimanLipi"',
+          '"Kalpurush"',
+          'sans-serif',
+        ],
+        bangla: [
+          '"Hind Siliguri"',
+          '"Noto Sans Bengali"',
+          '"Tiro Bangla"',
+          '"SolaimanLipi"',
+          '"Kalpurush"',
+          'sans-serif',
+        ],
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":

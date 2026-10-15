@@ -85,42 +85,107 @@ const fileToDataUrl = (file: File): Promise<string> => {
 
 const CONTENT_STORAGE_KEY = "school_website_content";
 
+export const isCorruptedText = (val: unknown): boolean => {
+  if (typeof val !== "string") return false;
+  const str = val.trim();
+  if (!str) return false;
+  const qMatches = str.match(/\?/g);
+  if (!qMatches) return false;
+  const qCount = qMatches.length;
+  if (qCount < 2) return false;
+  const letters = str.replace(/[\s\d.,\-·–/\\:;!@#$%^&*()_+={}\[\]|`~'"]/g, "");
+  if (letters.length === 0) return true;
+  return qCount / letters.length >= 0.35;
+};
+
+const cleanStr = (incomingVal: any, defaultVal: string): string => {
+  if (typeof incomingVal !== "string") return defaultVal;
+  if (!incomingVal.trim() || isCorruptedText(incomingVal)) {
+    return defaultVal;
+  }
+  return incomingVal;
+};
+
+export const hasAnyCorruption = (incoming?: Partial<SchoolWebsiteContent> | null): boolean => {
+  if (!incoming) return false;
+  for (const val of Object.values(incoming)) {
+    if (typeof val === "string" && isCorruptedText(val)) return true;
+  }
+  return false;
+};
+
 const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): SchoolWebsiteContent => {
   if (!incoming) return DEFAULT_WEBSITE_CONTENT;
   const anyInc = incoming as any;
+
+  // Sanitize every scalar string field from DEFAULT_WEBSITE_CONTENT
+  const sanitizedStrings: Record<string, string> = {};
+  for (const key of Object.keys(DEFAULT_WEBSITE_CONTENT) as (keyof SchoolWebsiteContent)[]) {
+    const defVal = DEFAULT_WEBSITE_CONTENT[key];
+    const incVal = incoming[key];
+    if (typeof defVal === "string") {
+      sanitizedStrings[key] = cleanStr(incVal, defVal);
+    }
+  }
+
+  // Handle legacy studyCorner / mujibCorner migrations
+  const studyCornerTitle = cleanStr(
+    incoming.studyCornerTitle || anyInc.mujibCornerTitle,
+    DEFAULT_WEBSITE_CONTENT.studyCornerTitle
+  );
+  const studyCornerQuote = cleanStr(
+    incoming.studyCornerQuote || anyInc.mujibCornerQuote,
+    DEFAULT_WEBSITE_CONTENT.studyCornerQuote
+  );
+  const studyCornerText = cleanStr(
+    incoming.studyCornerText || anyInc.mujibCornerText,
+    DEFAULT_WEBSITE_CONTENT.studyCornerText
+  );
+  const studyCornerImage = cleanStr(
+    incoming.studyCornerImage || anyInc.mujibCornerImage,
+    DEFAULT_WEBSITE_CONTENT.studyCornerImage
+  );
+
+  const cleanList = <T,>(
+    list: T[] | undefined,
+    defaultList: T[],
+    checkFns: ((item: T) => string)[]
+  ): T[] => {
+    if (!Array.isArray(list) || list.length === 0) return defaultList;
+    const isCorrupted = list.some((item) =>
+      checkFns.some((fn) => isCorruptedText(fn(item)))
+    );
+    if (isCorrupted) return defaultList;
+    return list;
+  };
+
   return {
     ...DEFAULT_WEBSITE_CONTENT,
     ...incoming,
-    studyCornerTitle: incoming.studyCornerTitle || anyInc.mujibCornerTitle || DEFAULT_WEBSITE_CONTENT.studyCornerTitle,
-    studyCornerSubtitle: incoming.studyCornerSubtitle || DEFAULT_WEBSITE_CONTENT.studyCornerSubtitle,
-    studyCornerQuote: incoming.studyCornerQuote || anyInc.mujibCornerQuote || DEFAULT_WEBSITE_CONTENT.studyCornerQuote,
-    studyCornerQuoteAuthor: incoming.studyCornerQuoteAuthor || DEFAULT_WEBSITE_CONTENT.studyCornerQuoteAuthor,
-    studyCornerText: incoming.studyCornerText || anyInc.mujibCornerText || DEFAULT_WEBSITE_CONTENT.studyCornerText,
-    studyCornerImage: incoming.studyCornerImage || anyInc.mujibCornerImage || DEFAULT_WEBSITE_CONTENT.studyCornerImage,
-    studyCornerDays: incoming.studyCornerDays || DEFAULT_WEBSITE_CONTENT.studyCornerDays,
-    studyCornerHours: incoming.studyCornerHours || DEFAULT_WEBSITE_CONTENT.studyCornerHours,
-    studyCornerFee: incoming.studyCornerFee || DEFAULT_WEBSITE_CONTENT.studyCornerFee,
-    studyCornerStats: Array.isArray(incoming.studyCornerStats) && incoming.studyCornerStats.length > 0
-      ? incoming.studyCornerStats
-      : DEFAULT_WEBSITE_CONTENT.studyCornerStats,
-    studyCornerBooks: Array.isArray(incoming.studyCornerBooks) && incoming.studyCornerBooks.length > 0
-      ? incoming.studyCornerBooks
-      : DEFAULT_WEBSITE_CONTENT.studyCornerBooks,
-    studyCornerResources: Array.isArray(incoming.studyCornerResources) && incoming.studyCornerResources.length > 0
-      ? incoming.studyCornerResources
-      : DEFAULT_WEBSITE_CONTENT.studyCornerResources,
-    studyCornerLinks: Array.isArray(incoming.studyCornerLinks) && incoming.studyCornerLinks.length > 0
-      ? incoming.studyCornerLinks
-      : DEFAULT_WEBSITE_CONTENT.studyCornerLinks,
-    studyCornerTips: Array.isArray(incoming.studyCornerTips) && incoming.studyCornerTips.length > 0
-      ? incoming.studyCornerTips
-      : DEFAULT_WEBSITE_CONTENT.studyCornerTips,
-    notices: Array.isArray(incoming.notices) && incoming.notices.length > 0 ? incoming.notices : DEFAULT_WEBSITE_CONTENT.notices,
-    quickLinks: Array.isArray(incoming.quickLinks) && incoming.quickLinks.length > 0 ? incoming.quickLinks : DEFAULT_WEBSITE_CONTENT.quickLinks,
-    downloads: Array.isArray(incoming.downloads) && incoming.downloads.length > 0 ? incoming.downloads : DEFAULT_WEBSITE_CONTENT.downloads,
-    gallery: Array.isArray(incoming.gallery) && incoming.gallery.length > 0 ? incoming.gallery : DEFAULT_WEBSITE_CONTENT.gallery,
-    coCurricular: Array.isArray(incoming.coCurricular) && incoming.coCurricular.length > 0 ? incoming.coCurricular : DEFAULT_WEBSITE_CONTENT.coCurricular,
-    teachers: Array.isArray(incoming.teachers) && incoming.teachers.length > 0 ? incoming.teachers : DEFAULT_WEBSITE_CONTENT.teachers,
+    ...(sanitizedStrings as any),
+    studyCornerTitle,
+    studyCornerQuote,
+    studyCornerText,
+    studyCornerImage,
+    studyCornerDays: cleanStr(incoming.studyCornerDays, DEFAULT_WEBSITE_CONTENT.studyCornerDays || "সোমবার - শনিবার"),
+    studyCornerHours: cleanStr(incoming.studyCornerHours, DEFAULT_WEBSITE_CONTENT.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"),
+    studyCornerFee: cleanStr(incoming.studyCornerFee, DEFAULT_WEBSITE_CONTENT.studyCornerFee || "বিনামূল্যে প্রবেশ"),
+    notices: cleanList(incoming.notices, DEFAULT_WEBSITE_CONTENT.notices, [(n) => n.title, (n) => n.content]),
+    quickLinks: cleanList(incoming.quickLinks, DEFAULT_WEBSITE_CONTENT.quickLinks, [(l) => l.label]),
+    downloads: cleanList(incoming.downloads, DEFAULT_WEBSITE_CONTENT.downloads, [(d) => d.title]),
+    gallery: cleanList(incoming.gallery, DEFAULT_WEBSITE_CONTENT.gallery, [(g) => g.title]),
+    coCurricular: cleanList(incoming.coCurricular, DEFAULT_WEBSITE_CONTENT.coCurricular, [(c) => c.title]),
+    teachers: cleanList(incoming.teachers, DEFAULT_WEBSITE_CONTENT.teachers, [(t) => t.name, (t) => t.designation]),
+    studyCornerBooks: cleanList(incoming.studyCornerBooks, DEFAULT_WEBSITE_CONTENT.studyCornerBooks, [(b) => b.title, (b) => b.author]),
+    studyCornerResources: cleanList(incoming.studyCornerResources, DEFAULT_WEBSITE_CONTENT.studyCornerResources, [(r) => r.title, (r) => r.description]),
+    studyCornerLinks: cleanList(incoming.studyCornerLinks, DEFAULT_WEBSITE_CONTENT.studyCornerLinks || [], [(l) => l.name, (l) => l.desc]),
+    studyCornerTips: cleanList(incoming.studyCornerTips, DEFAULT_WEBSITE_CONTENT.studyCornerTips || [], [(t) => t.tip]),
+    studyCornerStats:
+      Array.isArray(incoming.studyCornerStats) &&
+      incoming.studyCornerStats.length > 0 &&
+      !incoming.studyCornerStats.some((s) => isCorruptedText(s.label) || isCorruptedText(s.value))
+        ? incoming.studyCornerStats
+        : DEFAULT_WEBSITE_CONTENT.studyCornerStats || [],
   };
 };
 
@@ -130,7 +195,14 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       const cached = localStorage.getItem(CONTENT_STORAGE_KEY);
       if (cached) {
-        return normalizeContent(JSON.parse(cached));
+        const parsed = JSON.parse(cached);
+        const merged = normalizeContent(parsed);
+        if (hasAnyCorruption(parsed)) {
+          try {
+            localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
+          } catch {}
+        }
+        return merged;
       }
     } catch {}
     return DEFAULT_WEBSITE_CONTENT;
@@ -167,11 +239,15 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           } catch {}
         }
         if (response.data.website_content) {
+          const wasCorrupted = hasAnyCorruption(response.data.website_content);
           const merged = normalizeContent(response.data.website_content);
           setWebsiteContent(merged);
           try {
             localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
           } catch {}
+          if (wasCorrupted) {
+            api.updateWebsiteContent(merged).catch(() => {});
+          }
         }
       }
     } catch {
@@ -196,11 +272,15 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       }
       if (response.data.website_content) {
+        const wasCorrupted = hasAnyCorruption(response.data.website_content);
         const merged = normalizeContent(response.data.website_content);
         setWebsiteContent(merged);
         try {
           localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
         } catch {}
+        if (wasCorrupted) {
+          api.updateWebsiteContent(merged).catch(() => {});
+        }
       }
     }).finally(() => {
       if (active) setIsLoading(false);

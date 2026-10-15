@@ -156,7 +156,7 @@ export const PublicSchoolWebsite: React.FC = () => {
   const activeMotto = lang === "bn" ? content.mottoBn || content.motto : content.motto || content.mottoBn;
 
   return (
-    <div className="min-h-screen bg-[#f3f6f4] font-['Hind_Siliguri','Inter',sans-serif] text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white">
+    <div className="min-h-screen bg-[#f3f6f4] font-sans text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white">
       {/* ──────────────────────────────────────────────────────────────────────────
           1. TOP GOVERNMENT STRIP (বাংলাদেশ জাতীয় তথ্য বাতায়ন কাঠামো)
           ────────────────────────────────────────────────────────────────────────── */}

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Bengali:wght@300;400;500;600;700;800&family=Tiro+Bangla:ital@0;1&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,15 +17,21 @@
 }
 
 /* ==========================================================================
-   Base & High-Contrast Typography: Black text on light backgrounds
+   Base & High-Contrast Typography: Bangla-first font stack
    ========================================================================== */
 body, html {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', 'Tiro Bangla', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'SolaimanLipi', 'Kalpurush', sans-serif;
   background-color: #f4f6f9;
   color: #000000;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
 }
 
 /* Standard text classes in light mode: deep crisp black/dark */
@@ -257,8 +265,14 @@ html.dark .react-calendar__month-view__weekdays {
   border-radius: 8px !important;
 }
 
-.font-bengali {
-  font-family: "Noto Sans Bengali", "Nirmala UI", "Vrinda", sans-serif;
+.font-bengali,
+.font-bangla,
+.font-sans {
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', 'Tiro Bangla', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'SolaimanLipi', 'Kalpurush', sans-serif !important;
+}
+
+.font-serif {
+  font-family: 'Tiro Bangla', 'Hind Siliguri', 'Noto Sans Bengali', Georgia, Cambria, 'Times New Roman', serif !important;
 }
 
 html.dark .react-calendar__tile--now {
@@ -481,6 +495,7 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     display: none !important;
   }
   body, html {
+    font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', sans-serif !important;
     background-color: #ffffff !important;
     color: #000000 !important;
   }

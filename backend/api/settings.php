@@ -22,16 +22,35 @@ switch ($method) {
         Response::methodNotAllowed();
 }
 
+function isCorruptedSettingsValue($val) {
+    if (is_string($val)) {
+        $trimmed = trim($val);
+        $qMarks = substr_count($trimmed, '?');
+        if ($qMarks >= 2) {
+            $cleaned = preg_replace('/[\s\d.,\-·–\/\\:;!@#$%^&*()_+={}\[\]|`~\'"]/u', '', $trimmed);
+            if (strlen($cleaned) === 0 || ($qMarks / (strlen($cleaned) ?: 1)) >= 0.4) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function ensureSiteSettingsTable($db) {
+    try {
+        $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+    } catch (Exception $e) {}
+
     $db->query(
         "CREATE TABLE IF NOT EXISTS site_settings (
             setting_key VARCHAR(100) PRIMARY KEY,
-            setting_value LONGTEXT NOT NULL,
+            setting_value LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        )"
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
     );
     try {
-        $db->query("ALTER TABLE site_settings MODIFY setting_value LONGTEXT NOT NULL");
+        $db->query("ALTER TABLE site_settings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        $db->query("ALTER TABLE site_settings MODIFY setting_value LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL");
     } catch (Exception $e) {
         // Table already modified or syntax variation
     }
@@ -62,7 +81,18 @@ function getSiteSettings($db) {
                 if ($row['setting_key'] === 'website_content') {
                     $decoded = json_decode($row['setting_value'], true);
                     if (is_array($decoded)) {
-                        $settings['website_content'] = $decoded;
+                        // Check if data was corrupted by legacy latin1 encoding
+                        $schoolNameBn = $decoded['schoolNameBn'] ?? '';
+                        $heroTitle = $decoded['heroTitle'] ?? '';
+                        if (isCorruptedSettingsValue($schoolNameBn) || isCorruptedSettingsValue($heroTitle)) {
+                            // Reset corrupted content so default Bengali template loads cleanly
+                            $settings['website_content'] = null;
+                            try {
+                                $db->query("DELETE FROM site_settings WHERE setting_key = 'website_content'");
+                            } catch (Exception $e) {}
+                        } else {
+                            $settings['website_content'] = $decoded;
+                        }
                     }
                 } else {
                     $settings[$row['setting_key']] = $row['setting_value'];
@@ -145,6 +175,10 @@ function updateSiteSettings($db) {
         if ($encodedContent === false || strlen($encodedContent) > 1000000) {
             Response::error('Website content must be valid JSON smaller than 1 MB');
         }
+
+        try {
+            $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+        } catch (Exception $e) {}
 
         $db->query(
             "INSERT INTO site_settings (setting_key, setting_value)

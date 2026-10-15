@@ -1,7 +1,7 @@
 <?php
 
 // Set headers
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 
 // Load configuration
 require_once __DIR__ . '/config/config.php';
