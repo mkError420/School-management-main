@@ -121,11 +121,13 @@ export interface SchoolWebsiteContent {
   coCurricular: SchoolCoCurricularItem[];
   teachers: SchoolTeacherMember[];
 
-  // 8. Mujib Corner
-  mujibCornerTitle: string;
-  mujibCornerQuote: string;
-  mujibCornerText: string;
-  mujibCornerImage: string;
+  // 8. Study Corner
+  studyCornerTitle: string;
+  studyCornerQuote: string;
+  studyCornerText: string;
+  studyCornerImage: string;
+  studyCornerBooks: { title: string; author: string; category: string }[];
+  studyCornerResources: { title: string; description: string; icon: string }[];
 }
 
 export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
@@ -407,8 +409,24 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
     },
   ],
 
-  mujibCornerTitle: "মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা",
-  mujibCornerQuote: "“সোনার বাংলা গড়তে হলে সোনার মানুষ চাই” — জাতির পিতা বঙ্গবন্ধু শেখ মুজিবুর রহমান",
-  mujibCornerText: "জাতির পিতা বঙ্গবন্ধু শেখ মুজিবুর রহমানের জীবনাদর্শ, মুক্তিসংগ্রাম ও মুক্তিযুদ্ধের চেতনা শিক্ষার্থীদের মাঝে ছড়িয়ে দিতে বিদ্যালয়ে স্থাপন করা হয়েছে সমৃদ্ধ 'মুজিব কর্নার'। এখানে রয়েছে মুক্তিযুদ্ধভিত্তিক দুর্লভ গ্রন্থ, আলোকচিত্র ও প্রামাণ্য দলিল।",
-  mujibCornerImage: "https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&q=80&w=600",
+  studyCornerTitle: "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র",
+  studyCornerQuote: "“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।” — জ্ঞানান্বেষী শিক্ষার্থীর প্রেরণা",
+  studyCornerText: "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।",
+  studyCornerImage: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600",
+  studyCornerBooks: [
+    { title: "Algebra & Higher Mathematics", author: "S.L. Loney", category: "গণিত" },
+    { title: "General Science Encyclopedia", author: "Various Authors", category: "বিজ্ঞান" },
+    { title: "বাংলা সাহিত্য সমগ্র", author: "রবীন্দ্রনাথ ঠাকুর", category: "সাহিত্য" },
+    { title: "English Grammar & Composition", author: "Wren & Martin", category: "ইংরেজি" },
+    { title: "বাংলাদেশের ইতিহাস ও সংস্কৃতি", author: "ড. মুহম্মদ কুদরাত-এ-খুদা", category: "ইতিহাস" },
+    { title: "Physics for Class 9-10", author: "NCTB", category: "পদার্থবিজ্ঞান" },
+    { title: "Chemistry Practical Guide", author: "Prof. Md. Abdur Rahim", category: "রসায়ন" },
+    { title: "Computer Science & ICT", author: "Digital Bangladesh Series", category: "তথ্যপ্রযুক্তি" },
+  ],
+  studyCornerResources: [
+    { title: "ডিজিটাল লাইব্রেরি অ্যাক্সেস", description: "মুক্তপাঠ ও শিক্ষা বাতায়নের ই-বুক ও ভিডিও লেকচার", icon: "BookOpen" },
+    { title: "শান্ত পাঠ কক্ষ", description: "শিক্ষার্থীদের নিরিবিলি স্ব-অধ্যয়নের জন্য বিশেষ কক্ষ", icon: "BookMarked" },
+    { title: "গ্রুপ স্টাডি জোন", description: "দলগত আলোচনা ও প্রজেক্ট ওয়ার্কের জন্য উন্মুক্ত এলাকা", icon: "Users" },
+    { title: "কম্পিউটার রিসার্চ ডেস্ক", description: "ইন্টারনেটসহ কম্পিউটার ব্যবহারের সুবিধা", icon: "Monitor" },
+  ],
 };

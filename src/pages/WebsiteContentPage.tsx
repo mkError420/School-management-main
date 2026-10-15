@@ -48,7 +48,7 @@ type ContentTab =
   | "downloads"
   | "admission"
   | "gallery"
-  | "mujib_co"
+  | "study_co"
   | "links";
 
 const WebsiteContentPage: React.FC = () => {
@@ -251,7 +251,7 @@ const WebsiteContentPage: React.FC = () => {
     { id: "downloads", label: "৭. ডাউনলোড ও রুটিন", icon: Download },
     { id: "admission", label: "৮. ভর্তি তথ্য", icon: BookOpen },
     { id: "gallery", label: "৯. ফটো গ্যালারি", icon: ImageIcon },
-    { id: "mujib_co", label: "১০. মুজিব কর্নার", icon: Sparkles },
+    { id: "study_co", label: "১০. স্টাডি কর্নার", icon: BookOpen },
     { id: "links", label: "১১. সরকারি লিঙ্ক", icon: LinkIcon },
   ];
 
@@ -1320,32 +1320,32 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 10: MUJIB CORNER */}
-        {activeTab === "mujib_co" && (
+        {/* TAB 10: STUDY CORNER */}
+        {activeTab === "study_co" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-600" />
-              <span>১০. মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা</span>
+              <BookOpen size={16} className="text-[#006a4e]" />
+              <span>১০. Study Corner — পাঠ ও গবেষণা কেন্দ্র</span>
             </h2>
 
-            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/40 p-4">
+            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50/40 p-4">
               <div className="space-y-3">
                 <label className="block text-xs font-semibold text-gray-700">
-                  মুজিব কর্নার শিরোনাম
+                  Study Corner শিরোনাম
                   <input
                     type="text"
-                    value={draft.mujibCornerTitle}
-                    onChange={(e) => updateField("mujibCornerTitle", e.target.value)}
+                    value={draft.studyCornerTitle}
+                    onChange={(e) => updateField("studyCornerTitle", e.target.value)}
                     className={inputClass}
                   />
                 </label>
 
                 <label className="block text-xs font-semibold text-gray-700">
-                  বাণী বা উক্তি (Quote)
+                  অনুপ্রেরণামূলক উক্তি (Quote)
                   <input
                     type="text"
-                    value={draft.mujibCornerQuote}
-                    onChange={(e) => updateField("mujibCornerQuote", e.target.value)}
+                    value={draft.studyCornerQuote}
+                    onChange={(e) => updateField("studyCornerQuote", e.target.value)}
                     className={inputClass}
                   />
                 </label>
@@ -1354,8 +1354,8 @@ const WebsiteContentPage: React.FC = () => {
                   ছবির লিঙ্ক (Image URL)
                   <input
                     type="text"
-                    value={draft.mujibCornerImage}
-                    onChange={(e) => updateField("mujibCornerImage", e.target.value)}
+                    value={draft.studyCornerImage}
+                    onChange={(e) => updateField("studyCornerImage", e.target.value)}
                     className={inputClass}
                   />
                 </label>
@@ -1364,8 +1364,8 @@ const WebsiteContentPage: React.FC = () => {
                   বিস্তারিত বিবরণ
                   <textarea
                     rows={3}
-                    value={draft.mujibCornerText}
-                    onChange={(e) => updateField("mujibCornerText", e.target.value)}
+                    value={draft.studyCornerText}
+                    onChange={(e) => updateField("studyCornerText", e.target.value)}
                     className={textareaClass}
                   />
                 </label>

@@ -50,7 +50,7 @@ import TeachersListPage from "@/pages/public/TeachersListPage";
 import NoticesPage from "@/pages/public/NoticesPage";
 import AcademicsPage from "@/pages/public/AcademicsPage";
 import AdmissionPage from "@/pages/public/AdmissionPage";
-import MujibCornerPage from "@/pages/public/MujibCornerPage";
+import StudyCornerPage from "@/pages/public/StudyCornerPage";
 import GalleryPage from "@/pages/public/GalleryPage";
 import CoCurricularPage from "@/pages/public/CoCurricularPage";
 import ContactPage from "@/pages/public/ContactPage";
@@ -95,7 +95,7 @@ const App: React.FC = () => {
           <Route path="/notices" element={<NoticesPage />} />
           <Route path="/academics" element={<AcademicsPage />} />
           <Route path="/admission" element={<AdmissionPage />} />
-          <Route path="/mujib-corner" element={<MujibCornerPage />} />
+          <Route path="/study-corner" element={<StudyCornerPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/co-curricular" element={<CoCurricularPage />} />
           <Route path="/contact" element={<ContactPage />} />

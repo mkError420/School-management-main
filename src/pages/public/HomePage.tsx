@@ -399,38 +399,38 @@ export const HomePage: React.FC = () => {
             </div>
           </section>
 
-          {/* MUJIB CORNER PREVIEW */}
-          <section className="relative overflow-hidden rounded-lg border-2 border-amber-600/40 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-sm sm:p-7">
-            <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+          {/* STUDY CORNER PREVIEW */}
+          <section className="relative overflow-hidden rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-sm sm:p-7">
+            <div className="flex items-center justify-between border-b border-[#006a4e]/20 pb-3">
               <div>
-                <span className="rounded bg-amber-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
-                  স্মৃতির মিনার
+                <span className="rounded bg-[#006a4e] px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
+                  পাঠ ও গবেষণা কেন্দ্র
                 </span>
-                <h3 className="mt-2 text-xl font-bold text-amber-950">
-                  {content.mujibCornerTitle || "মুজিব কর্নার ও মুক্তিযুদ্ধ কর্নার"}
+                <h3 className="mt-2 text-xl font-bold text-blue-950">
+                  {content.studyCornerTitle || "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র"}
                 </h3>
               </div>
-              <Link to="/mujib-corner" className="text-xs font-bold text-amber-900 hover:underline flex items-center gap-1">
+              <Link to="/study-corner" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
                 <span>সম্পূর্ণ কর্নার দেখুন</span>
                 <ArrowRight size={13} />
               </Link>
             </div>
 
             <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="relative mx-auto h-36 w-32 shrink-0 overflow-hidden rounded-md border-2 border-amber-600 bg-white shadow-md sm:mx-0">
+              <div className="relative mx-auto h-36 w-32 shrink-0 overflow-hidden rounded-md border-2 border-[#006a4e] bg-white shadow-md sm:mx-0">
                 <img
-                  src={content.mujibCornerImage || "https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&q=80&w=600"}
-                  alt="Mujib Corner"
+                  src={content.studyCornerImage || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600"}
+                  alt="Study Corner"
                   className="h-full w-full object-cover"
                 />
               </div>
 
               <div className="flex-1 space-y-2">
-                <p className="font-serif text-sm font-semibold italic text-amber-900">
-                  {content.mujibCornerQuote}
+                <p className="font-serif text-sm font-semibold italic text-blue-900">
+                  {content.studyCornerQuote}
                 </p>
                 <p className="text-xs leading-5 text-gray-700 line-clamp-3">
-                  {content.mujibCornerText}
+                  {content.studyCornerText}
                 </p>
               </div>
             </div>

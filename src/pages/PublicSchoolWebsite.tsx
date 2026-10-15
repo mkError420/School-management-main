@@ -145,7 +145,7 @@ export const PublicSchoolWebsite: React.FC = () => {
     { label: "নোটিশ বোর্ড", enLabel: "Notices", href: "#notices" },
     { label: "ডাউনলোড ও রুটিন", enLabel: "Downloads", href: "#downloads" },
     { label: "ভর্তি তথ্য", enLabel: "Admission", href: "#admission" },
-    { label: "মুজিব কর্নার", enLabel: "Mujib Corner", href: "#mujib-corner" },
+    { label: "স্টাডি কর্নার", enLabel: "Study Corner", href: "#study-corner" },
     { label: "ফটো গ্যালারি", enLabel: "Gallery", href: "#gallery" },
     { label: "সহশিক্ষা", enLabel: "Co-curricular", href: "#co-curricular" },
     { label: "যোগাযোগ", enLabel: "Contact", href: "#contact" },
@@ -772,40 +772,61 @@ export const PublicSchoolWebsite: React.FC = () => {
               </div>
             </section>
 
-            {/* 5. MUJIB CORNER (মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা) */}
+            {/* 5. STUDY CORNER (স্টাডি কর্নার — জ্ঞান অন্বেষণের কেন্দ্র) */}
             <section
-              id="mujib-corner"
-              className="relative overflow-hidden rounded-lg border-2 border-amber-600/40 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-sm sm:p-7"
+              id="study-corner"
+              className="relative overflow-hidden rounded-lg border-2 border-blue-500/30 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-sm sm:p-7"
             >
-              <div className="border-b border-amber-200 pb-3">
-                <span className="rounded bg-amber-600 px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
-                  স্মৃতির মিনার
+              <div className="border-b border-blue-200 pb-3">
+                <span className="rounded bg-[#006a4e] px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
+                  পাঠ ও গবেষণা কেন্দ্র
                 </span>
-                <h3 className="mt-2 text-xl font-bold text-amber-950">
-                  {content.mujibCornerTitle || "মুজিব কর্নার ও মুক্তিযুদ্ধ কর্নার"}
+                <h3 className="mt-2 text-xl font-bold text-blue-950">
+                  {content.studyCornerTitle || "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র"}
                 </h3>
               </div>
 
               <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-                <div className="relative mx-auto h-40 w-36 shrink-0 overflow-hidden rounded-md border-2 border-amber-600 bg-white shadow-md sm:mx-0">
+                <div className="relative mx-auto h-40 w-36 shrink-0 overflow-hidden rounded-md border-2 border-[#006a4e] bg-white shadow-md sm:mx-0">
                   <img
-                    src={content.mujibCornerImage || "https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&q=80&w=600"}
-                    alt="Mujib Corner"
+                    src={content.studyCornerImage || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600"}
+                    alt="Study Corner"
                     className="h-full w-full object-cover"
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-amber-900/80 py-1 text-center text-[10px] font-bold text-white">
-                    জাতির পিতা
+                  <div className="absolute inset-x-0 bottom-0 bg-[#004d38]/90 py-1 text-center text-[10px] font-bold text-white">
+                    জ্ঞানের আলোয় আলোকিত
                   </div>
                 </div>
 
                 <div className="flex-1 space-y-2">
-                  <p className="font-serif text-sm font-semibold italic text-amber-900">
-                    {content.mujibCornerQuote || "“সোনার বাংলা গড়তে হলে সোনার মানুষ চাই” — জাতির পিতা বঙ্গবন্ধু শেখ মুজিবুর রহমান"}
+                  <p className="font-serif text-sm font-semibold italic text-blue-900">
+                    {content.studyCornerQuote || "“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”"}
                   </p>
                   <p className="text-xs leading-5 text-gray-700">
-                    {content.mujibCornerText ||
-                      "জাতির পিতা বঙ্গবন্ধু শেখ মুজিবুর রহমানের জীবনাদর্শ, মুক্তিসংগ্রাম ও মুক্তিযুদ্ধের চেতনা শিক্ষার্থীদের মাঝে ছড়িয়ে দিতে বিদ্যালয়ে স্থাপন করা হয়েছে সমৃদ্ধ 'মুজিব কর্নার'। এখানে রয়েছে মুক্তিযুদ্ধভিত্তিক দুর্লভ গ্রন্থ, আলোকচিত্র ও প্রামাণ্য দলিল।"}
+                    {content.studyCornerText ||
+                      "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ।"}
                   </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {[
+                      { label: "রেফারেন্স বই", value: "৫০০+", color: "text-blue-700 bg-blue-50" },
+                      { label: "ডিজিটাল সংস্থান", value: "১০০+", color: "text-indigo-700 bg-indigo-50" },
+                      { label: "ডেইলি পাঠক", value: "৮০+", color: "text-emerald-700 bg-emerald-50" },
+                      { label: "আসন সংখ্যা", value: "৪০টি", color: "text-purple-700 bg-purple-50" },
+                    ].map((stat, i) => (
+                      <div key={i} className={`rounded-md border border-gray-100 p-2 text-center ${stat.color}`}>
+                        <p className="text-base font-bold">{stat.value}</p>
+                        <p className="text-[10px] font-medium">{stat.label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <a
+                    href="#study-corner"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                  >
+                    <BookOpen size={13} />
+                    <span>বিস্তারিত জানতে স্টাডি কর্নার পেজ দেখুন</span>
+                    <ArrowRight size={12} />
+                  </a>
                 </div>
               </div>
             </section>

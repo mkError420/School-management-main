@@ -107,7 +107,7 @@ export const PublicWebsiteLayout: React.FC = () => {
     { label: "নোটিশ বোর্ড", enLabel: "Notices", path: "/notices" },
     { label: "একাডেমিক ও রুটিন", enLabel: "Academics", path: "/academics" },
     { label: "ভর্তি তথ্য", enLabel: "Admission", path: "/admission" },
-    { label: "মুজিব কর্নার", enLabel: "Mujib Corner", path: "/mujib-corner" },
+    { label: "স্টাডি কর্নার", enLabel: "Study Corner", path: "/study-corner" },
     { label: "ফটো গ্যালারি", enLabel: "Gallery", path: "/gallery" },
     { label: "সহশিক্ষা", enLabel: "Co-curricular", path: "/co-curricular" },
     { label: "যোগাযোগ", enLabel: "Contact", path: "/contact" },
