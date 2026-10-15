@@ -3,9 +3,11 @@ import { Link } from "react-router-dom";
 import {
   Award,
   Bell,
+  BookMarked,
   BookOpen,
   Calendar,
   Check,
+  Clock,
   Download,
   ExternalLink,
   GraduationCap,
@@ -14,16 +16,20 @@ import {
   Info,
   Layers,
   LayoutDashboard,
+  Lightbulb,
   Link as LinkIcon,
+  Monitor,
   Plus,
   RotateCcw,
   Save,
   School,
   Shield,
   Sparkles,
+  Star,
   Trash2,
   UserCheck,
   Users,
+  Wifi,
   type LucideIcon,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
@@ -36,6 +42,11 @@ import type {
   SchoolCoCurricularItem,
   SchoolQuickLink,
   SchoolTeacherMember,
+  StudyCornerBook,
+  StudyCornerResource,
+  StudyCornerStat,
+  StudyCornerLink,
+  StudyCornerTip,
 } from "@/types/site";
 
 type ContentTab =
@@ -196,6 +207,131 @@ const WebsiteContentPage: React.FC = () => {
     setDraft((prev) => ({
       ...prev,
       quickLinks: prev.quickLinks.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    }));
+  };
+
+  // Study Corner Handlers
+  const addStudyCornerBook = () => {
+    const newBook: StudyCornerBook = { title: "", author: "", category: "গণিত" };
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerBooks: [...(prev.studyCornerBooks || []), newBook],
+    }));
+  };
+
+  const removeStudyCornerBook = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerBooks: (prev.studyCornerBooks || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateStudyCornerBook = (index: number, field: keyof StudyCornerBook, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerBooks: (prev.studyCornerBooks || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addStudyCornerResource = () => {
+    const newRes: StudyCornerResource = {
+      title: "",
+      description: "",
+      icon: "BookOpen",
+    };
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerResources: [...(prev.studyCornerResources || []), newRes],
+    }));
+  };
+
+  const removeStudyCornerResource = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerResources: (prev.studyCornerResources || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateStudyCornerResource = (index: number, field: keyof StudyCornerResource, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerResources: (prev.studyCornerResources || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addStudyCornerStat = () => {
+    const newStat: StudyCornerStat = { label: "", value: "" };
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerStats: [...(prev.studyCornerStats || []), newStat],
+    }));
+  };
+
+  const removeStudyCornerStat = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerStats: (prev.studyCornerStats || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateStudyCornerStat = (index: number, field: keyof StudyCornerStat, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerStats: (prev.studyCornerStats || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addStudyCornerLink = () => {
+    const newLink: StudyCornerLink = { name: "", url: "https://", desc: "" };
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerLinks: [...(prev.studyCornerLinks || []), newLink],
+    }));
+  };
+
+  const removeStudyCornerLink = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerLinks: (prev.studyCornerLinks || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateStudyCornerLink = (index: number, field: keyof StudyCornerLink, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerLinks: (prev.studyCornerLinks || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addStudyCornerTip = () => {
+    const newTip: StudyCornerTip = { tip: "" };
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerTips: [...(prev.studyCornerTips || []), newTip],
+    }));
+  };
+
+  const removeStudyCornerTip = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerTips: (prev.studyCornerTips || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateStudyCornerTip = (index: number, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      studyCornerTips: (prev.studyCornerTips || []).map((item, i) =>
+        i === index ? { ...item, tip: value } : item
+      ),
     }));
   };
 
@@ -1322,56 +1458,503 @@ const WebsiteContentPage: React.FC = () => {
 
         {/* TAB 10: STUDY CORNER */}
         {activeTab === "study_co" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <BookOpen size={16} className="text-[#006a4e]" />
-              <span>১০. Study Corner — পাঠ ও গবেষণা কেন্দ্র</span>
-            </h2>
+          <div className="space-y-6">
+            {/* 1. Basic Info & Banner */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="border-b pb-3">
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <BookOpen size={16} className="text-[#006a4e]" />
+                  <span>১০.১ Study Corner — মূল তথ্য, ব্যানার ও উক্তি</span>
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  Study Corner পেজের শীর্ষ ব্যানার, পরিচিতি, অনুপ্রেরণামূলক উক্তি ও সময়সূচি পরিচালনা করুন।
+                </p>
+              </div>
 
-            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50/40 p-4">
-              <div className="space-y-3">
-                <label className="block text-xs font-semibold text-gray-700">
-                  Study Corner শিরোনাম
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  Study Corner শিরোনাম (Title)
                   <input
                     type="text"
-                    value={draft.studyCornerTitle}
+                    value={draft.studyCornerTitle || ""}
                     onChange={(e) => updateField("studyCornerTitle", e.target.value)}
+                    placeholder="Study Corner — জ্ঞান অন্বেষণের কেন্দ্র"
                     className={inputClass}
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700">
-                  অনুপ্রেরণামূলক উক্তি (Quote)
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  সাব-টাইটেল / স্লোগান (Subtitle)
                   <input
                     type="text"
-                    value={draft.studyCornerQuote}
-                    onChange={(e) => updateField("studyCornerQuote", e.target.value)}
+                    value={draft.studyCornerSubtitle || ""}
+                    onChange={(e) => updateField("studyCornerSubtitle", e.target.value)}
+                    placeholder="শিক্ষার্থীদের সমৃদ্ধ মানসিক বিকাশ ও জ্ঞান আহরণের জন্য বিদ্যালয়ের বিশেষ পাঠ ও গবেষণা কেন্দ্র"
                     className={inputClass}
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700">
-                  ছবির লিঙ্ক (Image URL)
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  কভার ছবির লিঙ্ক (Image URL)
                   <input
                     type="text"
-                    value={draft.studyCornerImage}
+                    value={draft.studyCornerImage || ""}
                     onChange={(e) => updateField("studyCornerImage", e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
                     className={inputClass}
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700">
-                  বিস্তারিত বিবরণ
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  বিস্তারিত বিবরণ (Detailed Overview)
                   <textarea
                     rows={3}
-                    value={draft.studyCornerText}
+                    value={draft.studyCornerText || ""}
                     onChange={(e) => updateField("studyCornerText", e.target.value)}
+                    placeholder="বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র..."
                     className={textareaClass}
                   />
                 </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  অনুপ্রেরণামূলক উক্তি (Quote)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuote || ""}
+                    onChange={(e) => updateField("studyCornerQuote", e.target.value)}
+                    placeholder="“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  উক্তির বক্তা / উৎস (Quote Author / Attribution)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuoteAuthor || ""}
+                    onChange={(e) => updateField("studyCornerQuoteAuthor", e.target.value)}
+                    placeholder="Study Corner, বিদ্যালয় পাঠ কেন্দ্র"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  খোলা থাকার দিনসমূহ (Days)
+                  <input
+                    type="text"
+                    value={draft.studyCornerDays || ""}
+                    onChange={(e) => updateField("studyCornerDays", e.target.value)}
+                    placeholder="সোমবার - শনিবার"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  সময়সূচি (Visiting Hours)
+                  <input
+                    type="text"
+                    value={draft.studyCornerHours || ""}
+                    onChange={(e) => updateField("studyCornerHours", e.target.value)}
+                    placeholder="সকাল ৮:০০ - বিকাল ৪:০০"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  প্রবেশ নীতি / শর্ত (Fee / Policy)
+                  <input
+                    type="text"
+                    value={draft.studyCornerFee || ""}
+                    onChange={(e) => updateField("studyCornerFee", e.target.value)}
+                    placeholder="বিনামূল্যে প্রবেশ"
+                    className={inputClass}
+                  />
+                </label>
               </div>
-            </div>
-          </section>
+            </section>
+
+            {/* 2. Quick Highlights / Stats */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Award size={16} className="text-[#006a4e]" />
+                    <span>১০.২ ব্যানার পরিসংখ্যান (Quick Stats)</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    ব্যানারে প্রদর্শিত ৪টি হাইলাইট পরিসংখ্যান (বই সংখ্যা, ই-রিসোর্স, পাঠক, আসন)।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addStudyCornerStat}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন পরিসংখ্যান যোগ করুন</span>
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {(draft.studyCornerStats || []).map((stat, idx) => (
+                  <div
+                    key={idx}
+                    className="flex flex-col justify-between rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="text-xs font-bold text-[#006a4e]">পরিসংখ্যান #{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeStudyCornerStat(idx)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-2.5 space-y-2">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        লেবেল (Label)
+                        <input
+                          type="text"
+                          value={stat.label}
+                          onChange={(e) => updateStudyCornerStat(idx, "label", e.target.value)}
+                          placeholder="রেফারেন্স বই"
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        মান (Value)
+                        <input
+                          type="text"
+                          value={stat.value}
+                          onChange={(e) => updateStudyCornerStat(idx, "value", e.target.value)}
+                          placeholder="৫০০+"
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 3. Facilities / Resource Cards */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <BookMarked size={16} className="text-[#006a4e]" />
+                    <span>১০.৩ সুযোগ-সুবিধাসমূহ (Facilities & Learning Zones)</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    Study Corner-এর সুবিধা ও বিশেষ জোনের কার্ডসমূহ (ডিজিটাল লাইব্রেরি, শান্ত পাঠ কক্ষ ইত্যাদি)।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addStudyCornerResource}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন সুবিধা যোগ করুন</span>
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {(draft.studyCornerResources || []).map((res, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <span className="text-xs font-bold text-[#006a4e]">সুবিধা #{idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeStudyCornerResource(idx)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                        সুবিধার শিরোনাম (Title)
+                        <input
+                          type="text"
+                          value={res.title}
+                          onChange={(e) => updateStudyCornerResource(idx, "title", e.target.value)}
+                          placeholder="ডিজিটাল লাইব্রেরি অ্যাক্সেস"
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        আইকন (Icon)
+                        <select
+                          value={res.icon || "BookOpen"}
+                          onChange={(e) => updateStudyCornerResource(idx, "icon", e.target.value)}
+                          className={inputClass}
+                        >
+                          <option value="BookOpen">BookOpen (বই)</option>
+                          <option value="BookMarked">BookMarked (বুকমার্ক)</option>
+                          <option value="Users">Users (গ্রুপ)</option>
+                          <option value="Monitor">Monitor (কম্পিউটার)</option>
+                          <option value="Award">Award (পুরস্কার)</option>
+                          <option value="Lightbulb">Lightbulb (আইডিয়া)</option>
+                          <option value="Clock">Clock (সময়)</option>
+                          <option value="Wifi">Wifi (ইন্টারনেট)</option>
+                          <option value="Star">Star (তারা)</option>
+                        </select>
+                      </label>
+
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
+                        বিবরণ (Description)
+                        <input
+                          type="text"
+                          value={res.description}
+                          onChange={(e) => updateStudyCornerResource(idx, "description", e.target.value)}
+                          placeholder="মুক্তপাঠ ও শিক্ষা বাতায়নের ই-বুক ও ভিডিও লেকচার"
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 4. Book Catalogue Management */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <BookOpen size={16} className="text-[#006a4e]" />
+                      <span>১০.৪ পাঠাগারের বই ক্যাটালগ (Book Catalogue)</span>
+                    </h2>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      মোট {(draft.studyCornerBooks || []).length} টি বই
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    শিক্ষার্থীদের জন্য পাঠাগারে রক্ষিত বইয়ের তালিকা, লেখক ও বিষয়ভিত্তিক ক্যাটাগরি পরিচালনা করুন।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addStudyCornerBook}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন বই যোগ করুন</span>
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(draft.studyCornerBooks || []).map((book, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 gap-2.5 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 sm:grid-cols-[2fr_1.5fr_1.2fr_auto] sm:items-center dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বইয়ের নাম (Book Title)
+                      <input
+                        type="text"
+                        value={book.title}
+                        onChange={(e) => updateStudyCornerBook(idx, "title", e.target.value)}
+                        placeholder="বইয়ের নাম লিখুন..."
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      লেখক / সংকলক (Author)
+                      <input
+                        type="text"
+                        value={book.author}
+                        onChange={(e) => updateStudyCornerBook(idx, "author", e.target.value)}
+                        placeholder="লেখকের নাম..."
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ক্যাটাগরি (Category)
+                      <input
+                        type="text"
+                        list="study-book-categories"
+                        value={book.category}
+                        onChange={(e) => updateStudyCornerBook(idx, "category", e.target.value)}
+                        placeholder="যেমন: গণিত, বিজ্ঞান..."
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => removeStudyCornerBook(idx)}
+                      title="বই মুছুন"
+                      aria-label="বই মুছুন"
+                      className="mt-4 sm:mt-5 flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+
+                <datalist id="study-book-categories">
+                  <option value="গণিত" />
+                  <option value="বিজ্ঞান" />
+                  <option value="সাহিত্য" />
+                  <option value="ইংরেজি" />
+                  <option value="ইতিহাস" />
+                  <option value="পদার্থবিজ্ঞান" />
+                  <option value="রসায়ন" />
+                  <option value="তথ্যপ্রযুক্তি" />
+                  <option value="সাধারণ জ্ঞান" />
+                  <option value="জীববিজ্ঞান" />
+                  <option value="বাংলাদেশ স্টাডিজ" />
+                </datalist>
+              </div>
+            </section>
+
+            {/* 5. Digital Resources Links */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Monitor size={16} className="text-[#006a4e]" />
+                    <span>১০.৫ ডিজিটাল শিক্ষা রিসোর্স ও পোর্টাল লিঙ্ক</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    মুক্তপাঠ, শিক্ষা বাতায়ন, এনসিটিবি বা খান একাডেমির মত ই-লার্নিং পোর্টাল লিঙ্ক।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addStudyCornerLink}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন রিসোর্স লিঙ্ক যোগ করুন</span>
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(draft.studyCornerLinks || []).map((link, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-1 gap-2.5 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 sm:grid-cols-[1.5fr_1.5fr_2fr_auto] sm:items-center dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      পোর্টাল / রিসোর্স নাম
+                      <input
+                        type="text"
+                        value={link.name}
+                        onChange={(e) => updateStudyCornerLink(idx, "name", e.target.value)}
+                        placeholder="মুক্তপাঠ (ই-লার্নিং)"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ওয়েবসাইট লিঙ্ক (URL)
+                      <input
+                        type="text"
+                        value={link.url}
+                        onChange={(e) => updateStudyCornerLink(idx, "url", e.target.value)}
+                        placeholder="https://..."
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      সংক্ষিপ্ত বিবরণ
+                      <input
+                        type="text"
+                        value={link.desc}
+                        onChange={(e) => updateStudyCornerLink(idx, "desc", e.target.value)}
+                        placeholder="সরকারি ই-বুক ও ভিডিও কোর্স"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => removeStudyCornerLink(idx)}
+                      title="লিঙ্ক মুছুন"
+                      aria-label="লিঙ্ক মুছুন"
+                      className="mt-4 sm:mt-5 flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 6. Study Tips */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Lightbulb size={16} className="text-[#006a4e]" />
+                    <span>১০.৬ কার্যকর অধ্যয়নের টিপস ও কৌশল (Study Tips)</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    শিক্ষার্থীদের জন্য অনুপ্রেরণামূলক ও কার্যকর অধ্যয়নের কৌশল পরিচালনা করুন।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addStudyCornerTip}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন টিপস যোগ করুন</span>
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(draft.studyCornerTips || []).map((tipItem, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#006a4e]/10 text-xs font-bold text-[#006a4e]">
+                      {idx + 1}
+                    </span>
+                    <input
+                      type="text"
+                      value={tipItem.tip}
+                      onChange={(e) => updateStudyCornerTip(idx, e.target.value)}
+                      placeholder="যেমন: প্রতিদিন কমপক্ষে ৩০ মিনিট বই পড়ার অভ্যাস গড়ে তোলো..."
+                      className={inputClass + " mt-0 flex-1"}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeStudyCornerTip(idx)}
+                      title="টিপস মুছুন"
+                      aria-label="টিপস মুছুন"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
         )}
 
         {/* TAB 11: LINKS */}

@@ -87,9 +87,34 @@ const CONTENT_STORAGE_KEY = "school_website_content";
 
 const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): SchoolWebsiteContent => {
   if (!incoming) return DEFAULT_WEBSITE_CONTENT;
+  const anyInc = incoming as any;
   return {
     ...DEFAULT_WEBSITE_CONTENT,
     ...incoming,
+    studyCornerTitle: incoming.studyCornerTitle || anyInc.mujibCornerTitle || DEFAULT_WEBSITE_CONTENT.studyCornerTitle,
+    studyCornerSubtitle: incoming.studyCornerSubtitle || DEFAULT_WEBSITE_CONTENT.studyCornerSubtitle,
+    studyCornerQuote: incoming.studyCornerQuote || anyInc.mujibCornerQuote || DEFAULT_WEBSITE_CONTENT.studyCornerQuote,
+    studyCornerQuoteAuthor: incoming.studyCornerQuoteAuthor || DEFAULT_WEBSITE_CONTENT.studyCornerQuoteAuthor,
+    studyCornerText: incoming.studyCornerText || anyInc.mujibCornerText || DEFAULT_WEBSITE_CONTENT.studyCornerText,
+    studyCornerImage: incoming.studyCornerImage || anyInc.mujibCornerImage || DEFAULT_WEBSITE_CONTENT.studyCornerImage,
+    studyCornerDays: incoming.studyCornerDays || DEFAULT_WEBSITE_CONTENT.studyCornerDays,
+    studyCornerHours: incoming.studyCornerHours || DEFAULT_WEBSITE_CONTENT.studyCornerHours,
+    studyCornerFee: incoming.studyCornerFee || DEFAULT_WEBSITE_CONTENT.studyCornerFee,
+    studyCornerStats: Array.isArray(incoming.studyCornerStats) && incoming.studyCornerStats.length > 0
+      ? incoming.studyCornerStats
+      : DEFAULT_WEBSITE_CONTENT.studyCornerStats,
+    studyCornerBooks: Array.isArray(incoming.studyCornerBooks) && incoming.studyCornerBooks.length > 0
+      ? incoming.studyCornerBooks
+      : DEFAULT_WEBSITE_CONTENT.studyCornerBooks,
+    studyCornerResources: Array.isArray(incoming.studyCornerResources) && incoming.studyCornerResources.length > 0
+      ? incoming.studyCornerResources
+      : DEFAULT_WEBSITE_CONTENT.studyCornerResources,
+    studyCornerLinks: Array.isArray(incoming.studyCornerLinks) && incoming.studyCornerLinks.length > 0
+      ? incoming.studyCornerLinks
+      : DEFAULT_WEBSITE_CONTENT.studyCornerLinks,
+    studyCornerTips: Array.isArray(incoming.studyCornerTips) && incoming.studyCornerTips.length > 0
+      ? incoming.studyCornerTips
+      : DEFAULT_WEBSITE_CONTENT.studyCornerTips,
     notices: Array.isArray(incoming.notices) && incoming.notices.length > 0 ? incoming.notices : DEFAULT_WEBSITE_CONTENT.notices,
     quickLinks: Array.isArray(incoming.quickLinks) && incoming.quickLinks.length > 0 ? incoming.quickLinks : DEFAULT_WEBSITE_CONTENT.quickLinks,
     downloads: Array.isArray(incoming.downloads) && incoming.downloads.length > 0 ? incoming.downloads : DEFAULT_WEBSITE_CONTENT.downloads,

@@ -429,9 +429,25 @@ export const HomePage: React.FC = () => {
                 <p className="font-serif text-sm font-semibold italic text-blue-900">
                   {content.studyCornerQuote}
                 </p>
+                {content.studyCornerQuoteAuthor && (
+                  <p className="text-[11px] font-semibold text-[#006a4e]">
+                    — {content.studyCornerQuoteAuthor}
+                  </p>
+                )}
                 <p className="text-xs leading-5 text-gray-700 line-clamp-3">
                   {content.studyCornerText}
                 </p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                    {content.studyCornerDays || "সোমবার - শনিবার"}
+                  </span>
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                    {content.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"}
+                  </span>
+                  <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                    {content.studyCornerFee || "বিনামূল্যে প্রবেশ"}
+                  </span>
+                </div>
               </div>
             </div>
           </section>

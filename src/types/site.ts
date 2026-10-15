@@ -123,11 +123,46 @@ export interface SchoolWebsiteContent {
 
   // 8. Study Corner
   studyCornerTitle: string;
+  studyCornerSubtitle?: string;
   studyCornerQuote: string;
+  studyCornerQuoteAuthor?: string;
   studyCornerText: string;
   studyCornerImage: string;
-  studyCornerBooks: { title: string; author: string; category: string }[];
-  studyCornerResources: { title: string; description: string; icon: string }[];
+  studyCornerDays?: string;
+  studyCornerHours?: string;
+  studyCornerFee?: string;
+  studyCornerStats?: StudyCornerStat[];
+  studyCornerBooks: StudyCornerBook[];
+  studyCornerResources: StudyCornerResource[];
+  studyCornerLinks?: StudyCornerLink[];
+  studyCornerTips?: StudyCornerTip[];
+}
+
+export interface StudyCornerBook {
+  title: string;
+  author: string;
+  category: string;
+}
+
+export interface StudyCornerResource {
+  title: string;
+  description: string;
+  icon: string;
+}
+
+export interface StudyCornerStat {
+  label: string;
+  value: string;
+}
+
+export interface StudyCornerLink {
+  name: string;
+  url: string;
+  desc: string;
+}
+
+export interface StudyCornerTip {
+  tip: string;
 }
 
 export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
@@ -410,9 +445,20 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   ],
 
   studyCornerTitle: "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র",
-  studyCornerQuote: "“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।” — জ্ঞানান্বেষী শিক্ষার্থীর প্রেরণা",
+  studyCornerSubtitle: "শিক্ষার্থীদের সমৃদ্ধ মানসিক বিকাশ ও জ্ঞান আহরণের জন্য বিদ্যালয়ের বিশেষ পাঠ ও গবেষণা কেন্দ্র",
+  studyCornerQuote: "“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”",
+  studyCornerQuoteAuthor: "Study Corner, বিদ্যালয় পাঠ কেন্দ্র",
   studyCornerText: "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।",
   studyCornerImage: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600",
+  studyCornerDays: "সোমবার - শনিবার",
+  studyCornerHours: "সকাল ৮:০০ - বিকাল ৪:০০",
+  studyCornerFee: "বিনামূল্যে প্রবেশ",
+  studyCornerStats: [
+    { label: "রেফারেন্স বই", value: "৫০০+" },
+    { label: "ই-রিসোর্স", value: "১০০+" },
+    { label: "দৈনিক পাঠক", value: "৮০+" },
+    { label: "আসন", value: "৪০" },
+  ],
   studyCornerBooks: [
     { title: "Algebra & Higher Mathematics", author: "S.L. Loney", category: "গণিত" },
     { title: "General Science Encyclopedia", author: "Various Authors", category: "বিজ্ঞান" },
@@ -428,5 +474,17 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
     { title: "শান্ত পাঠ কক্ষ", description: "শিক্ষার্থীদের নিরিবিলি স্ব-অধ্যয়নের জন্য বিশেষ কক্ষ", icon: "BookMarked" },
     { title: "গ্রুপ স্টাডি জোন", description: "দলগত আলোচনা ও প্রজেক্ট ওয়ার্কের জন্য উন্মুক্ত এলাকা", icon: "Users" },
     { title: "কম্পিউটার রিসার্চ ডেস্ক", description: "ইন্টারনেটসহ কম্পিউটার ব্যবহারের সুবিধা", icon: "Monitor" },
+  ],
+  studyCornerLinks: [
+    { name: "মুক্তপাঠ (ই-লার্নিং প্লাটফর্ম)", url: "https://muktopaath.gov.bd", desc: "সরকারি ই-বুক ও ভিডিও কোর্স" },
+    { name: "শিক্ষা বাতায়ন (Teachers Portal)", url: "https://teachers.gov.bd", desc: "শিক্ষক ও শিক্ষার্থীদের জন্য ডিজিটাল কন্টেন্ট" },
+    { name: "NCTB ডিজিটাল পাঠ্যপুস্তক", url: "https://nctb.gov.bd", desc: "জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড" },
+    { name: "Khan Academy (বাংলা)", url: "https://bn.khanacademy.org", desc: "বিনামূল্যে গণিত ও বিজ্ঞান শিক্ষা" },
+  ],
+  studyCornerTips: [
+    { tip: "প্রতিদিন কমপক্ষে ৩০ মিনিট বই পড়ার অভ্যাস গড়ে তোলো।" },
+    { tip: "কঠিন বিষয়গুলো নোট করে রাখো এবং বারবার রিভিশন দাও।" },
+    { tip: "গ্রুপ স্টাডিতে অংশ নাও — অন্যকে শেখালে নিজেও শেখা যায়।" },
+    { tip: "ডিজিটাল রিসোর্স ব্যবহার করো — মুক্তপাঠ ও শিক্ষা বাতায়ন অন্বেষণ করো।" },
   ],
 };
