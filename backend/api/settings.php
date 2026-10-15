@@ -47,18 +47,26 @@ function ensureSiteSettingsTable($db) {
 function getSiteSettings($db) {
     ensureSiteSettingsTable($db);
     $rows = $db->fetchAll(
-        "SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('site_name', 'site_logo')"
+        "SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('site_name', 'site_logo', 'website_content')"
     );
 
     $settings = [
         'site_name' => 'ACADEMIA',
         'site_logo' => '/images/logo.png',
+        'website_content' => null,
     ];
 
     if (is_array($rows)) {
         foreach ($rows as $row) {
             if (isset($row['setting_key']) && isset($row['setting_value'])) {
-                $settings[$row['setting_key']] = $row['setting_value'];
+                if ($row['setting_key'] === 'website_content') {
+                    $decoded = json_decode($row['setting_value'], true);
+                    if (is_array($decoded)) {
+                        $settings['website_content'] = $decoded;
+                    }
+                } else {
+                    $settings[$row['setting_key']] = $row['setting_value'];
+                }
             }
         }
     }
@@ -106,6 +114,45 @@ function updateSiteSettings($db) {
             [$siteLogo]
         );
         $responsePayload['site_logo'] = $siteLogo;
+    }
+
+    if (isset($input['website_content'])) {
+        $websiteContent = $input['website_content'];
+        if (!is_array($websiteContent)) {
+            Response::error('Website content must be an object');
+        }
+        $notices = $websiteContent['notices'] ?? [];
+        $quickLinks = $websiteContent['quickLinks'] ?? [];
+        if (!is_array($notices) || !is_array($quickLinks)) {
+            Response::error('Notices and quick links must be lists');
+        }
+        if (count($notices) > 100 || count($quickLinks) > 50) {
+            Response::error('Website content has too many notices or quick links');
+        }
+        foreach ($quickLinks as $link) {
+            if (!is_array($link)) {
+                Response::error('Each quick link must include a label and URL');
+            }
+            $url = trim((string)($link['url'] ?? ''));
+            $isLocal = substr($url, 0, 1) === '/' && substr($url, 0, 2) !== '//';
+            $isAnchor = substr($url, 0, 1) === '#';
+            $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
+            if (!$url || (!$isLocal && !$isAnchor && !in_array($scheme, ['http', 'https', 'mailto'], true))) {
+                Response::error('Quick links must use a safe website URL');
+            }
+        }
+        $encodedContent = json_encode($websiteContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($encodedContent === false || strlen($encodedContent) > 1000000) {
+            Response::error('Website content must be valid JSON smaller than 1 MB');
+        }
+
+        $db->query(
+            "INSERT INTO site_settings (setting_key, setting_value)
+             VALUES ('website_content', ?)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+            [$encodedContent]
+        );
+        $responsePayload['website_content'] = $websiteContent;
     }
 
     if (empty($responsePayload)) {
@@ -206,4 +253,3 @@ function uploadSiteLogo($db) {
         'site_logo' => $logoUrl,
     ]);
 }
-

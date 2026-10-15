@@ -240,7 +240,7 @@ CREATE TABLE IF NOT EXISTS message_attachments (
 
 CREATE TABLE IF NOT EXISTS site_settings (
     setting_key VARCHAR(100) PRIMARY KEY,
-    setting_value VARCHAR(255) NOT NULL,
+    setting_value LONGTEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -276,9 +276,9 @@ CREATE TABLE IF NOT EXISTS admissions (
 INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('site_name', 'ACADEMIA');
 
 -- Insert default admin user (password: admin123 - should be changed in production)
-INSERT INTO admins (id, username, password) VALUES 
-('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG')
-ON DUPLICATE KEY UPDATE username=username;
+INSERT INTO admins (id, username, password, role) VALUES 
+('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG', 'super_admin')
+ON DUPLICATE KEY UPDATE role='super_admin';
 
 INSERT INTO admins (id, username, email, password, role) VALUES
 ('super-admin-001', 'mk.rabbani.cse', 'mk.rabbani.cse@gmail.com', '$2y$12$f/6vmqM/Gay2PVwQnYJX0.a3ykAHLVtToQ3jpLs4Y9pkpnOmwq5Pm', 'super_admin')

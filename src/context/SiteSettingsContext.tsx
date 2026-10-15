@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
+import type { SchoolWebsiteContent } from "@/types/site";
 
 export const CURRENCY_OPTIONS = [
   { symbol: "৳", label: "Bangladeshi Taka (৳)" },
@@ -26,9 +28,11 @@ interface SiteSettingsContextValue {
   siteName: string;
   siteLogo: string;
   siteLogoUrl: string;
+  websiteContent: SchoolWebsiteContent;
   currencySymbol: string;
   isLoading: boolean;
   saveSiteName: (siteName: string) => Promise<{ success: boolean; message?: string }>;
+  saveWebsiteContent: (content: SchoolWebsiteContent) => Promise<{ success: boolean; message?: string }>;
   saveCurrencySymbol: (symbol: string) => void;
   saveSiteLogo: (fileOrUrl: File | string) => Promise<{ success: boolean; message?: string; logoUrl?: string }>;
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
@@ -59,9 +63,11 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   siteName: "ACADEMIA",
   siteLogo: DEFAULT_SITE_LOGO,
   siteLogoUrl: DEFAULT_SITE_LOGO,
+  websiteContent: DEFAULT_WEBSITE_CONTENT,
   currencySymbol: "৳",
   isLoading: false,
   saveSiteName: async () => ({ success: false, message: "Site settings are unavailable." }),
+  saveWebsiteContent: async () => ({ success: false, message: "Site settings are unavailable." }),
   saveCurrencySymbol: () => {},
   saveSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
@@ -77,8 +83,32 @@ const fileToDataUrl = (file: File): Promise<string> => {
   });
 };
 
+const CONTENT_STORAGE_KEY = "school_website_content";
+
+const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): SchoolWebsiteContent => {
+  if (!incoming) return DEFAULT_WEBSITE_CONTENT;
+  return {
+    ...DEFAULT_WEBSITE_CONTENT,
+    ...incoming,
+    notices: Array.isArray(incoming.notices) && incoming.notices.length > 0 ? incoming.notices : DEFAULT_WEBSITE_CONTENT.notices,
+    quickLinks: Array.isArray(incoming.quickLinks) && incoming.quickLinks.length > 0 ? incoming.quickLinks : DEFAULT_WEBSITE_CONTENT.quickLinks,
+    downloads: Array.isArray(incoming.downloads) && incoming.downloads.length > 0 ? incoming.downloads : DEFAULT_WEBSITE_CONTENT.downloads,
+    gallery: Array.isArray(incoming.gallery) && incoming.gallery.length > 0 ? incoming.gallery : DEFAULT_WEBSITE_CONTENT.gallery,
+    coCurricular: Array.isArray(incoming.coCurricular) && incoming.coCurricular.length > 0 ? incoming.coCurricular : DEFAULT_WEBSITE_CONTENT.coCurricular,
+  };
+};
+
 export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [siteName, setSiteName] = useState("ACADEMIA");
+  const [websiteContent, setWebsiteContent] = useState<SchoolWebsiteContent>(() => {
+    try {
+      const cached = localStorage.getItem(CONTENT_STORAGE_KEY);
+      if (cached) {
+        return normalizeContent(JSON.parse(cached));
+      }
+    } catch {}
+    return DEFAULT_WEBSITE_CONTENT;
+  });
   const [siteLogo, setSiteLogo] = useState<string>(() => {
     try {
       const cached = localStorage.getItem(LOGO_STORAGE_KEY);
@@ -110,6 +140,13 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             localStorage.setItem(LOGO_STORAGE_KEY, resolved);
           } catch {}
         }
+        if (response.data.website_content) {
+          const merged = normalizeContent(response.data.website_content);
+          setWebsiteContent(merged);
+          try {
+            localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
+          } catch {}
+        }
       }
     } catch {
       // transient network error
@@ -131,6 +168,13 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         } catch {
           // ignore storage errors
         }
+      }
+      if (response.data.website_content) {
+        const merged = normalizeContent(response.data.website_content);
+        setWebsiteContent(merged);
+        try {
+          localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
+        } catch {}
       }
     }).finally(() => {
       if (active) setIsLoading(false);
@@ -168,6 +212,32 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     setSiteName(response.data.site_name);
     broadcastUpdate();
+    return { success: true };
+  };
+
+  const saveWebsiteContent = async (content: SchoolWebsiteContent) => {
+    try {
+      localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(content));
+    } catch {}
+    setWebsiteContent(content);
+    broadcastUpdate();
+
+    try {
+      const response = await api.updateWebsiteContent(content);
+      if (response.success && response.data?.website_content) {
+        const normalized = normalizeContent(response.data.website_content);
+        setWebsiteContent(normalized);
+        try {
+          localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(normalized));
+        } catch {}
+        return { success: true };
+      } else if (!response.success) {
+        return { success: false, message: response.message || "Failed to update on server." };
+      }
+    } catch (err: any) {
+      // Saved locally
+      return { success: true, message: "Website updated and saved locally." };
+    }
     return { success: true };
   };
 
@@ -258,9 +328,11 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         siteName,
         siteLogo,
         siteLogoUrl: siteLogo,
+        websiteContent,
         currencySymbol,
         isLoading,
         saveSiteName,
+        saveWebsiteContent,
         saveCurrencySymbol,
         saveSiteLogo,
         resetSiteLogo,
@@ -273,5 +345,3 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 };
 
 export const useSiteSettings = () => useContext(SiteSettingsContext);
-
-

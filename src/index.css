@@ -257,6 +257,10 @@ html.dark .react-calendar__month-view__weekdays {
   border-radius: 8px !important;
 }
 
+.font-bengali {
+  font-family: "Noto Sans Bengali", "Nirmala UI", "Vrinda", sans-serif;
+}
+
 html.dark .react-calendar__tile--now {
   background-color: #253147 !important;
   color: #f87171 !important;
@@ -541,3 +545,22 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
 .animate-ticker-horizontal:hover {
   animation-play-state: paused !important;
 }
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-marquee {
+  display: inline-block;
+  animation: marquee-scroll 32s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+

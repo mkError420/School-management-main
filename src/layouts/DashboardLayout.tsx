@@ -37,7 +37,7 @@ const DashboardLayoutContent: React.FC = () => {
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111827]">
           <Link
-            to="/"
+            to="/dashboard"
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2.5 min-w-0"
           >
@@ -121,7 +121,7 @@ const DashboardLayoutContent: React.FC = () => {
         {/* Sidebar Header */}
         <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-slate-800">
           <Link
-            to="/"
+            to="/dashboard"
             className={`flex items-center gap-2.5 ${
               isCollapsed ? "justify-center w-full" : "justify-start"
             } py-1`}

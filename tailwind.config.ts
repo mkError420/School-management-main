@@ -48,7 +48,16 @@ const config: Config = {
         lamaPurpleLight: "#fef2f3",
         lamaYellow: "#5a6679",
         lamaYellowLight: "#ebedf1",
-      }
+      },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 28s linear infinite",
+      },
     },
   },
   plugins: [],

@@ -6,10 +6,10 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- 1. Ensure Admin exists
 -- Password is 'admin123'
-INSERT INTO admins (id, username, password) VALUES 
-('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG')
-ON DUPLICATE KEY UPDATE username=username;
-UPDATE admins SET password = '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG' WHERE username = 'admin';
+INSERT INTO admins (id, username, password, role) VALUES 
+('admin001', 'admin', '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG', 'super_admin')
+ON DUPLICATE KEY UPDATE role='super_admin';
+UPDATE admins SET role = 'super_admin', password = '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG' WHERE username = 'admin';
 
 -- 2. Grades
 INSERT INTO grades (id, level) VALUES 

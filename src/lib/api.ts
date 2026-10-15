@@ -1,4 +1,5 @@
 // API Client for PHP Backend & MySQL Database
+import type { SchoolWebsiteContent } from "@/types/site";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/backend/api';
 
@@ -93,13 +94,20 @@ class ApiService {
   }
 
   async getSiteSettings() {
-    return this.request<{ site_name: string; site_logo?: string }>('settings', { method: 'GET' });
+    return this.request<{ site_name: string; site_logo?: string; website_content?: SchoolWebsiteContent | null }>('settings', { method: 'GET' });
   }
 
   async updateSiteName(siteName: string) {
-    return this.request<{ site_name: string; site_logo?: string }>('settings', {
+    return this.request<{ site_name: string; site_logo?: string; website_content?: SchoolWebsiteContent | null }>('settings', {
       method: 'PUT',
       body: JSON.stringify({ site_name: siteName }),
+    });
+  }
+
+  async updateWebsiteContent(websiteContent: SchoolWebsiteContent) {
+    return this.request<{ website_content: SchoolWebsiteContent }>('settings', {
+      method: 'PUT',
+      body: JSON.stringify({ website_content: websiteContent }),
     });
   }
 

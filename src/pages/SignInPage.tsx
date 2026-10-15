@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { resolveLogoUrl, useSiteSettings } from "@/context/SiteSettingsContext";
 
 const demoAccounts = [
-  { label: "Admin", username: "admin", password: "admin123", icon: ShieldCheck },
+  { label: "Super Admin", username: "admin", password: "admin123", icon: ShieldCheck },
   { label: "Teacher", username: "johndoe", password: "teacher123", icon: GraduationCap },
   { label: "Student", username: "johnconnor", password: "student123", icon: GraduationCap },
   { label: "Parent", username: "sarahconnor", password: "parent123", icon: UsersRound },
@@ -34,7 +34,7 @@ const SignInPage: React.FC = () => {
     setError(null);
     const result = await login({ username, password });
     if (result.success) {
-      navigate("/");
+      navigate("/dashboard");
     } else {
       setError(result.message || "Invalid credentials. Please try again.");
     }
@@ -47,7 +47,7 @@ const SignInPage: React.FC = () => {
     setError(null);
     const result = await login({ username: account.username, password: account.password });
     if (result.success) {
-      navigate("/");
+      navigate("/dashboard");
     } else {
       setError(result.message || `Unable to sign in as the demo ${account.label.toLowerCase()}.`);
     }

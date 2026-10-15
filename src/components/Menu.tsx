@@ -10,7 +10,7 @@ const menuItems = [
       {
         icon: "/home.png",
         label: "Home",
-        href: "/",
+        href: "/dashboard",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
@@ -159,6 +159,12 @@ const menuItems = [
         visible: ["super_admin"],
       },
       {
+        icon: "/setting.png",
+        label: "Website content",
+        href: "/website-content",
+        visible: ["super_admin"],
+      },
+      {
         icon: "/profile.png",
         label: "Profile",
         href: "/profile",
@@ -229,8 +235,8 @@ const Menu: React.FC<MenuProps> = ({ isCollapsed = false, onItemClick }) => {
               }
 
               const isActive =
-                item.href === "/"
-                  ? location.pathname === "/" || location.pathname === `/${role}`
+                item.href === "/dashboard"
+                  ? location.pathname === "/dashboard" || location.pathname === `/${role}`
                   : location.pathname.startsWith(item.href);
 
               return (

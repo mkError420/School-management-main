@@ -39,6 +39,8 @@ import FeesPage from "@/pages/FeesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import RevenuePage from "@/pages/RevenuePage";
 import StaffPage from "@/pages/StaffPage";
+import PublicSchoolWebsite from "@/pages/PublicSchoolWebsite";
+import WebsiteContentPage from "@/pages/WebsiteContentPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -59,31 +61,33 @@ const RoleDashboard: React.FC = () => {
 
 const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { role } = useAuth();
-  return role === "super_admin" ? <>{children}</> : <Navigate to="/" replace />;
+  return role === "super_admin" ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
 
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { role } = useAuth();
-  return hasAdminAccess(role) ? <>{children}</> : <Navigate to="/" replace />;
+  return hasAdminAccess(role) ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
+        {/* Public school website */}
+        <Route path="/" element={<PublicSchoolWebsite />} />
+
         {/* Auth */}
         <Route path="/sign-in" element={<SignInPage />} />
 
         {/* Protected Dashboard */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
               <DashboardLayout />
             </ProtectedRoute>
           }
         >
-          <Route index element={<RoleDashboard />} />
+          <Route path="dashboard" element={<RoleDashboard />} />
           <Route path="admin" element={<AdminPage />} />
           <Route path="teacher" element={<TeacherDashboardPage />} />
           <Route path="student" element={<StudentDashboardPage />} />
@@ -111,6 +115,7 @@ const App: React.FC = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin-users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
+          <Route path="website-content" element={<SuperAdminRoute><WebsiteContentPage /></SuperAdminRoute>} />
           <Route path="class-schedule" element={<ClassSchedulePage />} />
           <Route path="admissions" element={<AdmissionsPage />} />
           <Route path="fees" element={<AdminRoute><FeesPage /></AdminRoute>} />
@@ -119,7 +124,7 @@ const App: React.FC = () => {
           <Route path="staff" element={<AdminRoute><StaffPage /></AdminRoute>} />
 
           {/* Catch-all redirect */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </Router>
