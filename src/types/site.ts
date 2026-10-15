@@ -33,6 +33,18 @@ export interface SchoolCoCurricularItem {
   badge: string;
 }
 
+export interface SchoolTeacherMember {
+  id: string;
+  name: string;
+  designation: string;
+  subject: string;
+  qualification: string;
+  phone?: string;
+  email?: string;
+  photo?: string;
+  category: "শিক্ষক" | "কর্মচারী" | "প্রশাসন";
+}
+
 export interface SchoolWebsiteContent {
   // 1. Basic Identification & Government Details
   schoolName: string;
@@ -65,8 +77,9 @@ export interface SchoolWebsiteContent {
   historyText: string;
   missionText: string;
   visionText: string;
+  campusOverview: string;
 
-  // 4. Principal & Assistant Principal
+  // 4. Principal, Assistant Principal & Managing Committee
   principalName: string;
   principalTitle: string;
   principalQualification: string;
@@ -80,6 +93,12 @@ export interface SchoolWebsiteContent {
   asstPrincipalPhoto: string;
   asstPrincipalMessage: string;
 
+  smcPresidentName: string;
+  smcPresidentTitle: string;
+  smcPresidentPhoto: string;
+  smcPresidentMessage: string;
+  smcMembersCount: string;
+
   // 5. School Statistics
   studentCount: string;
   teacherCount: string;
@@ -89,14 +108,20 @@ export interface SchoolWebsiteContent {
   gpa5Count: string;
   labCount: string;
 
-  // 6. Dynamic Lists
+  // 6. Admission Specifics
+  admissionGuidelines: string;
+  admissionSeats: string;
+  admissionFormUrl: string;
+
+  // 7. Dynamic Lists
   notices: SchoolNotice[];
   quickLinks: SchoolQuickLink[];
   downloads: SchoolDownloadItem[];
   gallery: SchoolGalleryItem[];
   coCurricular: SchoolCoCurricularItem[];
+  teachers: SchoolTeacherMember[];
 
-  // 7. Mujib Corner
+  // 8. Mujib Corner
   mujibCornerTitle: string;
   mujibCornerQuote: string;
   mujibCornerText: string;
@@ -125,13 +150,14 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   heroDescription: "সুশৃঙ্খল শিক্ষাদান, আদর্শ নৈতিক চরিত্র গঠন এবং যুগোপযোগী ডিজিটাল শিক্ষার সমন্বয়ে শিক্ষার্থীদের ভবিষ্যৎ বিনির্মাণে আমরা অঙ্গীকারাবদ্ধ।",
   heroImage: "/images/bgimage.jpg",
   admissionBtnText: "অনলাইন ভর্তি তথ্য",
-  admissionBtnUrl: "#admission",
+  admissionBtnUrl: "/admission",
 
   aboutTitle: "জ্ঞানচর্চা ও শ্রেষ্ঠত্বের গৌরবময় ঐতিহ্য",
   aboutText: "এম. কে. সরকারি মডেল উচ্চ বিদ্যালয় বাংলাদেশের অন্যতম সুপরিচিত সরকারি শিক্ষাপ্রতিষ্ঠান। ১৯৮৫ সালে প্রতিষ্ঠিত এই বিদ্যাপীঠ নিরবচ্ছিন্নভাবে উন্নত মানবিক মূল্যবোধ, আধুনিক বিজ্ঞান ও তথ্যপ্রযুক্তিভিত্তিক শিক্ষা নিশ্চিত করে আসছে। বিদ্যালয়ের মনোরম ক্যাম্পাস, অভিজ্ঞ শিক্ষকমণ্ডলী এবং সুশৃঙ্খল পরিবেশ শিক্ষার্থীদের মেধা বিকাশে অনন্য ভূমিকা পালন করে।",
-  historyText: "বিদ্যালয়টি একদল শিক্ষানুরাগী ব্যক্তিত্ব ও সরকারের পৃষ্ঠপোষকতায় যাত্রা শুরু করে আজ জাতীয় পর্যায়ে কৃতিত্বের স্বাক্ষর রেখে চলেছে।",
+  historyText: "বিদ্যালয়টি একদল শিক্ষানুরাগী ব্যক্তিত্ব ও সরকারের পৃষ্ঠপোষকতায় ১৯৮৫ সালে যাত্রা শুরু করে। কালের পরিক্রমায় বিদ্যালয়টি আজ ঢাকা বিভাগের অন্যতম শীর্ষস্থানীয় আদর্শ প্রতিষ্ঠানে রূপ লাভ করেছে। এখান থেকে পাস করা অসংখ্য শিক্ষার্থী আজ দেশ-বিদেশে সুনামের সাথে গুরুত্বপূর্ণ দায়িত্ব পালন করছেন।",
   missionText: "দক্ষ, নীতিবান, বিজ্ঞানমনস্ক এবং মানবিক গুণসম্পন্ন আগামী প্রজন্মের সুনাগরিক গড়ে তোলা।",
   visionText: "স্মার্ট বাংলাদেশ ও বিশ্বমানের শিক্ষাব্যবস্থার উপযোগী শ্রেষ্ঠ আদর্শ শিক্ষাপ্রতিষ্ঠানে রূপান্তর।",
+  campusOverview: "আমাদের বিদ্যালয়ে রয়েছে প্রশস্ত খেলার মাঠ, আধুনিক বহুতল একাডেমিক ভবন, ৫০০০+ বইয়ের সমৃদ্ধ পাঠাগার, শীতাতপ নিয়ন্ত্রিত ডিজিটাল কম্পিউটার ল্যাব এবং সুসজ্জিত বিজ্ঞান গবেষণাগার।",
 
   principalName: "মোঃ আবদুর রহমান",
   principalTitle: "প্রধান শিক্ষক",
@@ -146,6 +172,12 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   asstPrincipalPhoto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
   asstPrincipalMessage: "বিদ্যালয়ের শিক্ষা ও সার্বিক নিয়মানুবর্তিতা রক্ষায় আমরা নিরলস কাজ করছি। ডিজিটাল প্রযুক্তির সঠিক ব্যবহারের মাধ্যমে আমাদের শিক্ষার্থীরা প্রতিনিয়ত এগিয়ে চলেছে।",
 
+  smcPresidentName: "প্রফেসর ড. মুহাম্মদ আশরাফুল আলম",
+  smcPresidentTitle: "সভাপতি, ম্যানেজিং কমিটি",
+  smcPresidentPhoto: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400",
+  smcPresidentMessage: "সরকারের ডিজিটাল শিক্ষা রূপকল্প বাস্তবায়নে এম. কে. সরকারি মডেল উচ্চ বিদ্যালয় সর্বদা অগ্রণী ভূমিকা পালন করে আসছে। অভিভাবক ও শিক্ষকবৃন্দের সম্মিলিত প্রচেষ্টায় এই বিদ্যাপীঠ তার শ্রেষ্ঠত্ব ধরে রেখেছে।",
+  smcMembersCount: "১১ জন",
+
   studentCount: "১,৫০০+",
   teacherCount: "৫২",
   staffCount: "১৬",
@@ -153,6 +185,10 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   passRate: "১০০%",
   gpa5Count: "১২৫+",
   labCount: "৪টি আধুনিক ল্যাব",
+
+  admissionGuidelines: "মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তরের (মাউশি) কেন্দ্রীয় ডিজিটাল লটারির মাধ্যমে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি অনুষ্ঠিত হয়। সরকারি নির্ধারিত সময়ের মধ্যে gsa.teletalk.com.bd ওয়েবসাইটে আবেদন করতে হবে।",
+  admissionSeats: "৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন · ৮ম শ্রেণি: ২৫ আসন · ৯ম শ্রেণি: ৬০ আসন",
+  admissionFormUrl: "https://gsa.teletalk.com.bd",
 
   notices: [
     {
@@ -288,6 +324,86 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
       title: "বিতর্ক ও সাহিত্য সংসদ",
       description: "যুক্তিনির্ভর চিন্তাধারা ও বাগ্মীতা চর্চার লক্ষ্যে জাতীয় পর্যায়ের বিতর্ক প্রতিযোগিতায় আমাদের দল কৃতিত্ব প্রদর্শন করে আসছে।",
       badge: "সাহিত্য ও বিতর্ক",
+    },
+  ],
+
+  teachers: [
+    {
+      id: "t1",
+      name: "মোঃ আবদুর রহমান",
+      designation: "প্রধান শিক্ষক",
+      subject: "গণিত ও বিজ্ঞান",
+      qualification: "বি.এস.সি (অনার্স), এম.এস.সি, বি.এড",
+      phone: "+880 1712 345678",
+      email: "headmaster@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=400",
+      category: "প্রশাসন",
+    },
+    {
+      id: "t2",
+      name: "মুহাম্মদ কামরুল হাসান",
+      designation: "সহকারী প্রধান শিক্ষক",
+      subject: "পদার্থবিজ্ঞান",
+      qualification: "এম.এস.সি (পদার্থ), বি.এড",
+      phone: "+880 1812 345679",
+      email: "kamrul@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
+      category: "প্রশাসন",
+    },
+    {
+      id: "t3",
+      name: "মোসাম্মৎ আয়েশা সিদ্দিকা",
+      designation: "সিনিয়র শিক্ষক",
+      subject: "বাংলা",
+      qualification: "এম.এ (বাংলা), বি.এড",
+      phone: "+880 1912 345680",
+      email: "ayesha@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=400",
+      category: "শিক্ষক",
+    },
+    {
+      id: "t4",
+      name: "এস. এম. তানভীর আহমেদ",
+      designation: "সহকারী শিক্ষক",
+      subject: "ইংরেজি",
+      qualification: "বি.এ (অনার্স), এম.এ (ইংরেজি)",
+      phone: "+880 1612 345681",
+      email: "tanvir@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400",
+      category: "শিক্ষক",
+    },
+    {
+      id: "t5",
+      name: "নাসরিন সুলতানা",
+      designation: "সহকারী শিক্ষক",
+      subject: "তথ্য ও যোগাযোগ প্রযুক্তি (আইসিটি)",
+      qualification: "বি.এস.সি (সিএসই)",
+      phone: "+880 1512 345682",
+      email: "nasrin@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=400",
+      category: "শিক্ষক",
+    },
+    {
+      id: "t6",
+      name: "মোঃ জহিরুল ইসলাম",
+      designation: "সহকারী শিক্ষক",
+      subject: "সাধারণ বিজ্ঞান",
+      qualification: "বি.এস.সি (রসায়ন), বি.এড",
+      phone: "+880 1712 345683",
+      email: "zahir@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=400",
+      category: "শিক্ষক",
+    },
+    {
+      id: "t7",
+      name: "মোঃ রফিকুল হাসান",
+      designation: "প্রধান সহকারী ও হিসাবরক্ষক",
+      subject: "হিসাব বিভাগ",
+      qualification: "এম.কম (হিসাববিজ্ঞান)",
+      phone: "+880 1812 345684",
+      email: "accountant@mkschool.edu.bd",
+      photo: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=400",
+      category: "কর্মচারী",
     },
   ],
 

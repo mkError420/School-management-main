@@ -95,6 +95,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     downloads: Array.isArray(incoming.downloads) && incoming.downloads.length > 0 ? incoming.downloads : DEFAULT_WEBSITE_CONTENT.downloads,
     gallery: Array.isArray(incoming.gallery) && incoming.gallery.length > 0 ? incoming.gallery : DEFAULT_WEBSITE_CONTENT.gallery,
     coCurricular: Array.isArray(incoming.coCurricular) && incoming.coCurricular.length > 0 ? incoming.coCurricular : DEFAULT_WEBSITE_CONTENT.coCurricular,
+    teachers: Array.isArray(incoming.teachers) && incoming.teachers.length > 0 ? incoming.teachers : DEFAULT_WEBSITE_CONTENT.teachers,
   };
 };
 

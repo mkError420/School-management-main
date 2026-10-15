@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft,
   Award,
   Bell,
   BookOpen,
@@ -17,13 +16,13 @@ import {
   LayoutDashboard,
   Link as LinkIcon,
   Plus,
-  RefreshCw,
   RotateCcw,
   Save,
   School,
   Shield,
   Sparkles,
   Trash2,
+  UserCheck,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -36,15 +35,18 @@ import type {
   SchoolGalleryItem,
   SchoolCoCurricularItem,
   SchoolQuickLink,
+  SchoolTeacherMember,
 } from "@/types/site";
 
 type ContentTab =
   | "identity"
   | "hero_about"
   | "leadership"
+  | "teachers"
   | "statistics"
   | "notices"
   | "downloads"
+  | "admission"
   | "gallery"
   | "mujib_co"
   | "links";
@@ -147,6 +149,36 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  // Teacher handlers
+  const addTeacher = () => {
+    const newTeacher: SchoolTeacherMember = {
+      id: "t_" + Date.now(),
+      name: "",
+      designation: "সহকারী শিক্ষক",
+      subject: "সাধারণ বিষয়",
+      qualification: "স্নাতক / স্নাতকোত্তর",
+      phone: "+880 1",
+      email: "",
+      photo: "/images/avatar.png",
+      category: "শিক্ষক",
+    };
+    setDraft((prev) => ({ ...prev, teachers: [newTeacher, ...(prev.teachers || [])] }));
+  };
+
+  const removeTeacher = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      teachers: (prev.teachers || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateTeacher = (index: number, field: keyof SchoolTeacherMember, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      teachers: (prev.teachers || []).map((item, i) => (i === index ? { ...item, [field]: value } : item)),
+    }));
+  };
+
   // Quick links handlers
   const addQuickLink = () => {
     const newLink: SchoolQuickLink = { label: "", url: "#" };
@@ -167,7 +199,7 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
-  // Reset draft to defaults
+  // Reset to default
   const handleResetToDefault = () => {
     if (window.confirm("আপনি কি নিশ্চিত যে সকল তথ্য ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেটে রিসেট করতে চান?")) {
       setDraft(DEFAULT_WEBSITE_CONTENT);
@@ -191,7 +223,7 @@ const WebsiteContentPage: React.FC = () => {
       if (result.success) {
         setFeedback({
           type: "success",
-          message: "অভিনন্দন! সরকারি স্কুল ওয়েবসাইটের সকল তথ্য সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে।",
+          message: "অভিনন্দন! সরকারি স্কুল ওয়েবসাইটের সকল পেজের তথ্য সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে।",
         });
       } else {
         setFeedback({
@@ -210,15 +242,17 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   const tabs: { id: ContentTab; label: string; icon: LucideIcon }[] = [
-    { id: "identity", label: "১. বিদ্যালয় পরিচয় ও তথ্য", icon: School },
-    { id: "hero_about", label: "২. ব্যানার ও পরিচিতি", icon: LayoutDashboard },
-    { id: "leadership", label: "৩. প্রধান শিক্ষক ও নেতৃবৃন্দ", icon: GraduationCap },
-    { id: "statistics", label: "৪. পরিসংখ্যান ও সাফল্য", icon: Award },
-    { id: "notices", label: "৫. নোটিশ বোর্ড ব্যবস্থাপনা", icon: Bell },
-    { id: "downloads", label: "৬. ডাউনলোড ও রুটিন", icon: Download },
-    { id: "gallery", label: "৭. ফটো গ্যালারি", icon: ImageIcon },
-    { id: "mujib_co", label: "৮. মুজিব কর্নার ও সহশিক্ষা", icon: Sparkles },
-    { id: "links", label: "৯. লিঙ্ক ও হটলাইন", icon: LinkIcon },
+    { id: "identity", label: "১. বিদ্যালয় পরিচয়", icon: School },
+    { id: "hero_about", label: "২. ব্যানার ও ইতিহাস", icon: LayoutDashboard },
+    { id: "leadership", label: "৩. প্রশাসন ও বাণী", icon: GraduationCap },
+    { id: "teachers", label: "৪. শিক্ষক ও কর্মকর্তা", icon: UserCheck },
+    { id: "statistics", label: "৫. পরিসংখ্যান", icon: Award },
+    { id: "notices", label: "৬. নোটিশ বোর্ড", icon: Bell },
+    { id: "downloads", label: "৭. ডাউনলোড ও রুটিন", icon: Download },
+    { id: "admission", label: "৮. ভর্তি তথ্য", icon: BookOpen },
+    { id: "gallery", label: "৯. ফটো গ্যালারি", icon: ImageIcon },
+    { id: "mujib_co", label: "১০. মুজিব কর্নার", icon: Sparkles },
+    { id: "links", label: "১১. সরকারি লিঙ্ক", icon: LinkIcon },
   ];
 
   return (
@@ -231,14 +265,14 @@ const WebsiteContentPage: React.FC = () => {
               <Shield size={14} />
             </span>
             <p className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400">
-              সুপার অ্যাডমিন ড্যাশবোর্ড · সরকারি স্কুল বাতায়ন ব্যবস্থাপনা
+              সুপার অ্যাডমিন ড্যাশবোর্ড · মাল্টি-পেজ ওয়েবসাইট ব্যবস্থাপনা
             </p>
           </div>
           <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-            বিদ্যালয় ওয়েবসাইটের সকল কনটেন্ট পরিবর্তন ও নিয়ন্ত্রণ
+            সরকারি স্কুল ওয়েবসাইটের সকল পেজের কনটেন্ট পরিবর্তন
           </h1>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি সরকারি স্কুল ওয়েবসাইটের সকল নোটিশ, বার্তা, রুটিন, গ্যালারি ও তথ্য ডায়নামিকভাবে নিয়ন্ত্রণ করতে পারবেন।
+            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি হোমপেজ, আমাদের কথা, প্রশাসন, শিক্ষক তালিকা, নোটিশ বোর্ড, ক্লাস রুটিন, ভর্তি তথ্য ও গ্যালারি পেজের সকল তথ্য ডায়নামিকভাবে নিয়ন্ত্রণ করতে পারেন।
           </p>
         </div>
 
@@ -247,7 +281,6 @@ const WebsiteContentPage: React.FC = () => {
             type="button"
             onClick={handleResetToDefault}
             className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
-            title="ডিফল্ট সরকারি স্কুল টেমপ্লেটে রিসেট"
           >
             <RotateCcw size={14} />
             <span>ডিফল্ট টেমপ্লেট</span>
@@ -259,13 +292,13 @@ const WebsiteContentPage: React.FC = () => {
             rel="noreferrer"
             className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
           >
-            <span>লাইভ ওয়েবসাইট দেখুন</span>
+            <span>লাইভ ওয়েবসাইট</span>
             <ExternalLink size={14} />
           </a>
         </div>
       </header>
 
-      {/* Tabs Bar */}
+      {/* Tabs Navigation */}
       <div className="mb-6 flex overflow-x-auto rounded-lg border border-gray-200 bg-white p-1.5 shadow-xs dark:border-slate-800 dark:bg-slate-900 custom-scrollbar">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -310,9 +343,7 @@ const WebsiteContentPage: React.FC = () => {
 
       {/* Form Content */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* =========================================================================
-            TAB 1: IDENTITY & DETAILS
-            ========================================================================= */}
+        {/* TAB 1: IDENTITY */}
         {activeTab === "identity" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -412,7 +443,7 @@ const WebsiteContentPage: React.FC = () => {
               </label>
 
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                স্থাপিত সন (Established Year)
+                স্থাপিত সন
                 <input
                   type="text"
                   value={draft.establishedYear}
@@ -423,7 +454,7 @@ const WebsiteContentPage: React.FC = () => {
               </label>
 
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                যোগাযোগের ফোন নম্বর
+                ফোন নম্বর
                 <input
                   type="text"
                   value={draft.phone}
@@ -434,7 +465,7 @@ const WebsiteContentPage: React.FC = () => {
               </label>
 
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                অফিসিয়াল ইমেইল ঠিকানা
+                ইমেইল
                 <input
                   type="email"
                   value={draft.email}
@@ -456,7 +487,7 @@ const WebsiteContentPage: React.FC = () => {
               </label>
 
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                বিদ্যালয়ের সম্পূর্ণ ঠিকানা
+                সম্পূর্ণ ঠিকানা
                 <input
                   type="text"
                   value={draft.address}
@@ -467,18 +498,7 @@ const WebsiteContentPage: React.FC = () => {
               </label>
 
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                অফিসিয়াল ফেসবুক পেজ লিঙ্ক (URL)
-                <input
-                  type="text"
-                  value={draft.facebookUrl}
-                  onChange={(e) => updateField("facebookUrl", e.target.value)}
-                  placeholder="https://facebook.com/mkschool"
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                টিকার স্ক্রল নোটিশ (ব্রেকিং নিউজ স্ট্রিপ)
+                টিকার নোটিশ (জরুরি সংবাদ স্ক্রল)
                 <input
                   type="text"
                   value={draft.breakingNews}
@@ -491,9 +511,7 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 2: HERO BANNER & ABOUT
-            ========================================================================= */}
+        {/* TAB 2: HERO & ABOUT */}
         {activeTab === "hero_about" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -508,7 +526,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.heroTitle}
                   onChange={(e) => updateField("heroTitle", e.target.value)}
-                  placeholder="ঐতিহ্যবাহী এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম"
                   className={inputClass}
                   required
                 />
@@ -520,7 +537,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.heroSubtitle}
                   onChange={(e) => updateField("heroSubtitle", e.target.value)}
-                  placeholder="গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত একটি শ্রেষ্ঠ বিদ্যাপীঠ"
                   className={inputClass}
                 />
               </label>
@@ -531,89 +547,79 @@ const WebsiteContentPage: React.FC = () => {
                   rows={3}
                   value={draft.heroDescription}
                   onChange={(e) => updateField("heroDescription", e.target.value)}
-                  placeholder="সুশৃঙ্খল শিক্ষাদান, আদর্শ নৈতিক চরিত্র গঠন..."
                   className={textareaClass}
                 />
               </label>
 
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                হোম ব্যানার ছবি (Image URL বা পাথ)
+                হোম ব্যানার ছবি (Image URL or Path)
                 <input
                   type="text"
                   value={draft.heroImage}
                   onChange={(e) => updateField("heroImage", e.target.value)}
-                  placeholder="/images/bgimage.jpg বা HTTPS ছবির লিংক"
                   className={inputClass}
                 />
               </label>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  ভর্তি বোতামের লেখা (CTA Button Text)
-                  <input
-                    type="text"
-                    value={draft.admissionBtnText}
-                    onChange={(e) => updateField("admissionBtnText", e.target.value)}
-                    placeholder="অনলাইন ভর্তি তথ্য"
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  ভর্তি বোতামের গন্তব্য (Link or Anchor)
-                  <input
-                    type="text"
-                    value={draft.admissionBtnUrl}
-                    onChange={(e) => updateField("admissionBtnUrl", e.target.value)}
-                    placeholder="#admission"
-                    className={inputClass}
-                  />
-                </label>
-              </div>
-
               <div className="border-t pt-4">
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  পরিচিতি সেকশনের শিরোনাম
+                  পরিচিতি পেজের শিরোনাম
                   <input
                     type="text"
                     value={draft.aboutTitle}
                     onChange={(e) => updateField("aboutTitle", e.target.value)}
-                    placeholder="জ্ঞানচর্চা ও শ্রেষ্ঠত্বের গৌরবময় ঐতিহ্য"
                     className={inputClass}
                   />
                 </label>
               </div>
 
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                বিদ্যালয় পরিচিতি ও ইতিহাস (About Us Text)
+                বিদ্যালয় পরিচিতি বিবরণ (About Us)
                 <textarea
                   rows={4}
                   value={draft.aboutText}
                   onChange={(e) => updateField("aboutText", e.target.value)}
-                  placeholder="এম. কে. সরকারি মডেল উচ্চ বিদ্যালয় ১৯৮৫ সালে প্রতিষ্ঠিত..."
+                  className={textareaClass}
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                বিদ্যালয়ের ইতিহাস (History of the School)
+                <textarea
+                  rows={3}
+                  value={draft.historyText}
+                  onChange={(e) => updateField("historyText", e.target.value)}
+                  className={textareaClass}
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                ক্যাম্পাস পরিচিতি (Campus Overview)
+                <textarea
+                  rows={3}
+                  value={draft.campusOverview}
+                  onChange={(e) => updateField("campusOverview", e.target.value)}
                   className={textareaClass}
                 />
               </label>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  আমাদের লক্ষ্য (Mission Statement)
+                  আমাদের লক্ষ্য (Mission)
                   <textarea
                     rows={3}
                     value={draft.missionText}
                     onChange={(e) => updateField("missionText", e.target.value)}
-                    placeholder="দক্ষ, নীতিবান ও মানবিক গুণসম্পন্ন সুনাগরিক গড়ে তোলা।"
                     className={textareaClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  আমাদের দৃষ্টিভঙ্গি (Vision Statement)
+                  আমাদের দৃষ্টিভঙ্গি (Vision)
                   <textarea
                     rows={3}
                     value={draft.visionText}
                     onChange={(e) => updateField("visionText", e.target.value)}
-                    placeholder="স্মার্ট বাংলাদেশ ও বিশ্বমানের শিক্ষাব্যবস্থার উপযোগী শ্রেষ্ঠ আদর্শ শিক্ষাপ্রতিষ্ঠানে রূপান্তর।"
                     className={textareaClass}
                   />
                 </label>
@@ -622,27 +628,24 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 3: LEADERSHIP & MESSAGES
-            ========================================================================= */}
+        {/* TAB 3: LEADERSHIP */}
         {activeTab === "leadership" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <GraduationCap size={16} className="text-[#006a4e]" />
-              <span>৩. প্রধান শিক্ষক ও সহকারী প্রধান শিক্ষকের তথ্য ও বার্তা</span>
+              <span>৩. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য</span>
             </h2>
 
-            {/* Principal details */}
+            {/* Principal */}
             <div className="mt-4 rounded-md border border-emerald-100 bg-emerald-50/40 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">প্রধান শিক্ষক মহোদয়</h3>
+              <h3 className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">প্রধান শিক্ষক</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  প্রধান শিক্ষকের নাম *
+                  নাম
                   <input
                     type="text"
                     value={draft.principalName}
                     onChange={(e) => updateField("principalName", e.target.value)}
-                    placeholder="মোঃ আবদুর রহমান"
                     className={inputClass}
                   />
                 </label>
@@ -653,57 +656,52 @@ const WebsiteContentPage: React.FC = () => {
                     type="text"
                     value={draft.principalTitle}
                     onChange={(e) => updateField("principalTitle", e.target.value)}
-                    placeholder="প্রধান শিক্ষক"
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  শিক্ষাগত যোগ্যতা
+                  যোগ্যতা
                   <input
                     type="text"
                     value={draft.principalQualification}
                     onChange={(e) => updateField("principalQualification", e.target.value)}
-                    placeholder="বি.এস.সি (অনার্স), এম.এস.সি, বি.এড"
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
-                  প্রধান শিক্ষকের ছবির লিংক (Image URL)
+                  ছবির লিঙ্ক (Image URL)
                   <input
                     type="text"
                     value={draft.principalPhoto}
                     onChange={(e) => updateField("principalPhoto", e.target.value)}
-                    placeholder="https://... বা /images/avatar.png"
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
-                  প্রধান শিক্ষক মহোদয়ের শুভেচ্ছা বার্তা (Speech/Message)
+                  প্রধান শিক্ষকের শুভেচ্ছা বাণী
                   <textarea
                     rows={4}
                     value={draft.principalMessage}
                     onChange={(e) => updateField("principalMessage", e.target.value)}
-                    placeholder="বিসমিল্লাহির রাহমানির রাহিম..."
                     className={textareaClass}
                   />
                 </label>
               </div>
             </div>
 
-            {/* Assistant Principal details */}
+            {/* Assistant Principal */}
             <div className="mt-5 rounded-md border border-gray-200 bg-gray-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
               <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">সহকারী প্রধান শিক্ষক</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  সহকারী প্রধান শিক্ষকের নাম
+                  নাম
                   <input
                     type="text"
                     value={draft.asstPrincipalName}
                     onChange={(e) => updateField("asstPrincipalName", e.target.value)}
-                    placeholder="মুহাম্মদ কামরুল হাসান"
                     className={inputClass}
                   />
                 </label>
@@ -714,29 +712,72 @@ const WebsiteContentPage: React.FC = () => {
                     type="text"
                     value={draft.asstPrincipalTitle}
                     onChange={(e) => updateField("asstPrincipalTitle", e.target.value)}
-                    placeholder="সহকারী প্রধান শিক্ষক"
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  সহকারী প্রধান শিক্ষকের ছবির লিংক (Image URL)
+                  ছবির লিঙ্ক
                   <input
                     type="text"
                     value={draft.asstPrincipalPhoto}
                     onChange={(e) => updateField("asstPrincipalPhoto", e.target.value)}
-                    placeholder="https://... বা /images/avatar.png"
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  সংক্ষিপ্ত বার্তা
+                  সহকারী প্রধান শিক্ষকের বাণী
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={draft.asstPrincipalMessage}
                     onChange={(e) => updateField("asstPrincipalMessage", e.target.value)}
-                    placeholder="বিদ্যালয়ের সার্বিক নিয়মানুবর্তিতা রক্ষায়..."
+                    className={textareaClass}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* SMC President */}
+            <div className="mt-5 rounded-md border border-amber-200 bg-amber-50/40 p-4">
+              <h3 className="text-xs font-bold text-amber-900">সভাপতি, ম্যানেজিং কমিটি (SMC)</h3>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-gray-700">
+                  সভাপতির নাম
+                  <input
+                    type="text"
+                    value={draft.smcPresidentName}
+                    onChange={(e) => updateField("smcPresidentName", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700">
+                  পদবি
+                  <input
+                    type="text"
+                    value={draft.smcPresidentTitle}
+                    onChange={(e) => updateField("smcPresidentTitle", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 sm:col-span-2">
+                  সভাপতির ছবির লিঙ্ক
+                  <input
+                    type="text"
+                    value={draft.smcPresidentPhoto}
+                    onChange={(e) => updateField("smcPresidentPhoto", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 sm:col-span-2">
+                  সভাপতির বার্তা
+                  <textarea
+                    rows={3}
+                    value={draft.smcPresidentMessage}
+                    onChange={(e) => updateField("smcPresidentMessage", e.target.value)}
                     className={textareaClass}
                   />
                 </label>
@@ -745,14 +786,154 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 4: STATISTICS & ACHIEVEMENTS
-            ========================================================================= */}
+        {/* TAB 4: TEACHERS (CRUD) */}
+        {activeTab === "teachers" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <UserCheck size={16} className="text-[#006a4e]" />
+                  <span>৪. শিক্ষক ও কর্মকর্তা তালিকা ব্যবস্থাপনা ({(draft.teachers || []).length} জন)</span>
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  পাবলিক ওয়েবসাইট `/teachers-list` পেজের শিক্ষক ও কর্মকর্তা তালিকা নিয়ন্ত্রণ করুন।
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={addTeacher}
+                className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+              >
+                <Plus size={14} />
+                <span>নতুন শিক্ষক / কর্মকর্তা যোগ করুন</span>
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {(draft.teachers || []).map((teacher, index) => (
+                <div
+                  key={teacher.id || index}
+                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
+                >
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e]">
+                      শিক্ষক/কর্মকর্তা #{index + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeTeacher(index)}
+                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                    >
+                      <Trash2 size={13} />
+                      <span>মুছুন</span>
+                    </button>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      শিক্ষকের নাম *
+                      <input
+                        type="text"
+                        value={teacher.name}
+                        onChange={(e) => updateTeacher(index, "name", e.target.value)}
+                        placeholder="যেমন: এস. এম. তানভীর আহমেদ"
+                        className={inputClass}
+                        required
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      পদবি
+                      <input
+                        type="text"
+                        value={teacher.designation}
+                        onChange={(e) => updateTeacher(index, "designation", e.target.value)}
+                        placeholder="সিনিয়র শিক্ষক / সহকারী শিক্ষক"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      পাঠদানের বিষয়
+                      <input
+                        type="text"
+                        value={teacher.subject}
+                        onChange={(e) => updateTeacher(index, "subject", e.target.value)}
+                        placeholder="গণিত / বাংলা / ইংরেজি"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      শিক্ষাগত যোগ্যতা
+                      <input
+                        type="text"
+                        value={teacher.qualification}
+                        onChange={(e) => updateTeacher(index, "qualification", e.target.value)}
+                        placeholder="বি.এস.সি (অনার্স), এম.এস.সি"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ক্যাটাগরি
+                      <select
+                        value={teacher.category}
+                        onChange={(e) => updateTeacher(index, "category", e.target.value as any)}
+                        className={inputClass}
+                      >
+                        <option value="শিক্ষক">শিক্ষক</option>
+                        <option value="প্রশাসন">প্রশাসন</option>
+                        <option value="কর্মচারী">কর্মচারী</option>
+                      </select>
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ছবির লিংক (Photo URL)
+                      <input
+                        type="text"
+                        value={teacher.photo || ""}
+                        onChange={(e) => updateTeacher(index, "photo", e.target.value)}
+                        placeholder="https://... বা /images/avatar.png"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ফোন নম্বর
+                      <input
+                        type="text"
+                        value={teacher.phone || ""}
+                        onChange={(e) => updateTeacher(index, "phone", e.target.value)}
+                        placeholder="+880 1..."
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                      ইমেইল
+                      <input
+                        type="email"
+                        value={teacher.email || ""}
+                        onChange={(e) => updateTeacher(index, "email", e.target.value)}
+                        placeholder="teacher@mkschool.edu.bd"
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* TAB 5: STATISTICS */}
         {activeTab === "statistics" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Award size={16} className="text-[#006a4e]" />
-              <span>৪. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য</span>
+              <span>৫. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য</span>
             </h2>
 
             <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -762,7 +943,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.studentCount}
                   onChange={(e) => updateField("studentCount", e.target.value)}
-                  placeholder="১,৫০০+"
                   className={inputClass}
                 />
               </label>
@@ -773,7 +953,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.teacherCount}
                   onChange={(e) => updateField("teacherCount", e.target.value)}
-                  placeholder="৫২"
                   className={inputClass}
                 />
               </label>
@@ -784,7 +963,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.staffCount}
                   onChange={(e) => updateField("staffCount", e.target.value)}
-                  placeholder="১৬"
                   className={inputClass}
                 />
               </label>
@@ -795,7 +973,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.classCount}
                   onChange={(e) => updateField("classCount", e.target.value)}
-                  placeholder="২৪"
                   className={inputClass}
                 />
               </label>
@@ -806,7 +983,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.passRate}
                   onChange={(e) => updateField("passRate", e.target.value)}
-                  placeholder="১০০%"
                   className={inputClass}
                 />
               </label>
@@ -817,7 +993,6 @@ const WebsiteContentPage: React.FC = () => {
                   type="text"
                   value={draft.gpa5Count}
                   onChange={(e) => updateField("gpa5Count", e.target.value)}
-                  placeholder="১২৫+"
                   className={inputClass}
                 />
               </label>
@@ -825,19 +1000,17 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 5: NOTICES MANAGEMENT (CRUD)
-            ========================================================================= */}
+        {/* TAB 6: NOTICES */}
         {activeTab === "notices" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Bell size={16} className="text-[#da291c]" />
-                  <span>৫. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ)</span>
+                  <span>৬. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  নতুন নোটিশ যুক্ত করুন, সংশোধন করুন অথবা অপ্রয়োজনীয় নোটিশ মুছে ফেলুন।
+                  সকল প্রকার ভর্তি, পরীক্ষা, ফলাফল ও প্রাতিষ্ঠানিক আদেশ যোগ বা অপসারণ করুন।
                 </p>
               </div>
 
@@ -878,7 +1051,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={notice.title}
                         onChange={(e) => updateNotice(index, "title", e.target.value)}
-                        placeholder="যেমন: বার্ষিক পরীক্ষার সময়সূচী সংক্রান্ত বিজ্ঞপ্তি"
                         className={inputClass}
                         required
                       />
@@ -925,36 +1097,27 @@ const WebsiteContentPage: React.FC = () => {
                         rows={2}
                         value={notice.content || ""}
                         onChange={(e) => updateNotice(index, "content", e.target.value)}
-                        placeholder="বিস্তারিত তথ্য লিখুন..."
                         className={textareaClass}
                       />
                     </label>
                   </div>
                 </div>
               ))}
-
-              {draft.notices.length === 0 && (
-                <div className="py-8 text-center text-sm text-gray-500">
-                  কোনো নোটিশ যুক্ত করা হয়নি। "নতুন নোটিশ যোগ করুন" বাটনে ক্লিক করুন।
-                </div>
-              )}
             </div>
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 6: DOWNLOADS & ROUTINES (CRUD)
-            ========================================================================= */}
+        {/* TAB 7: DOWNLOADS */}
         {activeTab === "downloads" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Download size={16} className="text-[#006a4e]" />
-                  <span>৬. ডাউনলোড ও একাডেমিক রুটিন ব্যবস্থাপনা</span>
+                  <span>৭. ডাউনলোড ও একাডেমিক রুটিন ব্যবস্থাপনা</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  ক্লাস রুটিন, সিলেবাস, পরীক্ষার রুটিন ও শিক্ষাপঞ্জি ডাউনলোড আইটেম।
+                  ক্লাস রুটিন, সিলেবাস ও শিক্ষাপঞ্জি ডাউনলোড আইটেম।
                 </p>
               </div>
 
@@ -993,7 +1156,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={item.title}
                         onChange={(e) => updateDownloadItem(index, "title", e.target.value)}
-                        placeholder="যেমন: ২০২৬ শিক্ষাবর্ষের সকল শ্রেণির ক্লাস রুটিন"
                         className={inputClass}
                       />
                     </label>
@@ -1004,7 +1166,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={item.category}
                         onChange={(e) => updateDownloadItem(index, "category", e.target.value)}
-                        placeholder="ক্লাস রুটিন / সিলেবাস"
                         className={inputClass}
                       />
                     </label>
@@ -1020,12 +1181,11 @@ const WebsiteContentPage: React.FC = () => {
                     </label>
 
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                      ফাইল ডাউনলোড লিঙ্ক (PDF URL or File Path)
+                      ফাইল ডাউনলোড লিঙ্ক (PDF URL or Path)
                       <input
                         type="text"
                         value={item.fileUrl}
                         onChange={(e) => updateDownloadItem(index, "fileUrl", e.target.value)}
-                        placeholder="#"
                         className={inputClass}
                       />
                     </label>
@@ -1036,16 +1196,59 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 7: PHOTO GALLERY (CRUD)
-            ========================================================================= */}
+        {/* TAB 8: ADMISSION INFO */}
+        {activeTab === "admission" && (
+          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <BookOpen size={16} className="text-[#006a4e]" />
+              <span>৮. অনলাইন ভর্তি তথ্য ও নীতিমালা</span>
+            </h2>
+
+            <div className="mt-4 space-y-4">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                ভর্তি নির্দেশিকা ও সাধারণ নিয়মাবলি
+                <textarea
+                  rows={4}
+                  value={draft.admissionGuidelines}
+                  onChange={(e) => updateField("admissionGuidelines", e.target.value)}
+                  placeholder="মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তরের ডিজিটাল লটারির মাধ্যমে..."
+                  className={textareaClass}
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                শ্রেণিভিত্তিক আসন সংখ্যা বিবরণ
+                <input
+                  type="text"
+                  value={draft.admissionSeats}
+                  onChange={(e) => updateField("admissionSeats", e.target.value)}
+                  placeholder="৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন..."
+                  className={inputClass}
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                সরকারি অনলাইন ভর্তি পোর্টাল লিঙ্ক (GSA URL)
+                <input
+                  type="text"
+                  value={draft.admissionFormUrl}
+                  onChange={(e) => updateField("admissionFormUrl", e.target.value)}
+                  placeholder="https://gsa.teletalk.com.bd"
+                  className={inputClass}
+                />
+              </label>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 9: GALLERY */}
         {activeTab === "gallery" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <ImageIcon size={16} className="text-[#006a4e]" />
-                  <span>৭. ফটো গ্যালারি ব্যবস্থাপনা</span>
+                  <span>৯. ফটো গ্যালারি ব্যবস্থাপনা</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
                   বিদ্যালয় ক্যাম্পাস, ল্যাব, প্রাত্যহিক সমাবেশ ও জাতীয় দিবসের ছবি।
@@ -1087,7 +1290,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={photo.title}
                         onChange={(e) => updateGalleryItem(index, "title", e.target.value)}
-                        placeholder="যেমন: বিদ্যালয়ের আধুনিক কম্পিউটার ল্যাব"
                         className={inputClass}
                       />
                     </label>
@@ -1098,7 +1300,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={photo.category}
                         onChange={(e) => updateGalleryItem(index, "category", e.target.value)}
-                        placeholder="ক্যাম্পাস / ল্যাব / ক্রীড়া"
                         className={inputClass}
                       />
                     </label>
@@ -1109,7 +1310,6 @@ const WebsiteContentPage: React.FC = () => {
                         type="text"
                         value={photo.imageUrl}
                         onChange={(e) => updateGalleryItem(index, "imageUrl", e.target.value)}
-                        placeholder="/images/bgimage.jpg"
                         className={inputClass}
                       />
                     </label>
@@ -1120,27 +1320,22 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 8: MUJIB CORNER & CO-CURRICULAR
-            ========================================================================= */}
+        {/* TAB 10: MUJIB CORNER */}
         {activeTab === "mujib_co" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <Sparkles size={16} className="text-amber-600" />
-              <span>৮. মুজিব কর্নার ও সহশিক্ষা কার্যক্রম</span>
+              <span>১০. মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা</span>
             </h2>
 
-            {/* Mujib Corner */}
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50/40 p-4">
-              <h3 className="text-xs font-bold text-amber-900">মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা</h3>
-              <div className="mt-3 space-y-3">
+              <div className="space-y-3">
                 <label className="block text-xs font-semibold text-gray-700">
                   মুজিব কর্নার শিরোনাম
                   <input
                     type="text"
                     value={draft.mujibCornerTitle}
                     onChange={(e) => updateField("mujibCornerTitle", e.target.value)}
-                    placeholder="মুজিব কর্নার ও মুক্তিযুদ্ধ চেতনা"
                     className={inputClass}
                   />
                 </label>
@@ -1151,7 +1346,6 @@ const WebsiteContentPage: React.FC = () => {
                     type="text"
                     value={draft.mujibCornerQuote}
                     onChange={(e) => updateField("mujibCornerQuote", e.target.value)}
-                    placeholder="“সোনার বাংলা গড়তে হলে সোনার মানুষ চাই”"
                     className={inputClass}
                   />
                 </label>
@@ -1162,7 +1356,6 @@ const WebsiteContentPage: React.FC = () => {
                     type="text"
                     value={draft.mujibCornerImage}
                     onChange={(e) => updateField("mujibCornerImage", e.target.value)}
-                    placeholder="https://..."
                     className={inputClass}
                   />
                 </label>
@@ -1173,7 +1366,6 @@ const WebsiteContentPage: React.FC = () => {
                     rows={3}
                     value={draft.mujibCornerText}
                     onChange={(e) => updateField("mujibCornerText", e.target.value)}
-                    placeholder="জাতির পিতা বঙ্গবন্ধু শেখ মুজিবুর রহমানের জীবনাদর্শ..."
                     className={textareaClass}
                   />
                 </label>
@@ -1182,16 +1374,14 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* =========================================================================
-            TAB 9: QUICK LINKS & HOTLINES
-            ========================================================================= */}
+        {/* TAB 11: LINKS */}
         {activeTab === "links" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <LinkIcon size={16} className="text-[#006a4e]" />
-                  <span>৯. গুরুত্বপূর্ণ সরকারি ওয়েবলিংক ব্যবস্থাপনা</span>
+                  <span>১১. সরকারি ও প্রয়োজনীয় লিঙ্কসমূহ</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
                   শিক্ষা মন্ত্রণালয়, মাউশি, শিক্ষা বোর্ড ও অন্যান্য সরকারি বাতায়ন লিঙ্ক।
@@ -1220,7 +1410,6 @@ const WebsiteContentPage: React.FC = () => {
                       type="text"
                       value={link.label}
                       onChange={(e) => updateQuickLink(index, "label", e.target.value)}
-                      placeholder="মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর"
                       className={inputClass}
                     />
                   </label>
@@ -1231,7 +1420,6 @@ const WebsiteContentPage: React.FC = () => {
                       type="text"
                       value={link.url}
                       onChange={(e) => updateQuickLink(index, "url", e.target.value)}
-                      placeholder="https://dshe.gov.bd"
                       className={inputClass}
                     />
                   </label>

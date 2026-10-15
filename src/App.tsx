@@ -39,8 +39,21 @@ import FeesPage from "@/pages/FeesPage";
 import ExpensesPage from "@/pages/ExpensesPage";
 import RevenuePage from "@/pages/RevenuePage";
 import StaffPage from "@/pages/StaffPage";
-import PublicSchoolWebsite from "@/pages/PublicSchoolWebsite";
 import WebsiteContentPage from "@/pages/WebsiteContentPage";
+
+// Public school website layout & distinct pages
+import PublicWebsiteLayout from "@/layouts/PublicWebsiteLayout";
+import HomePage from "@/pages/public/HomePage";
+import AboutPage from "@/pages/public/AboutPage";
+import AdministrationPage from "@/pages/public/AdministrationPage";
+import TeachersListPage from "@/pages/public/TeachersListPage";
+import NoticesPage from "@/pages/public/NoticesPage";
+import AcademicsPage from "@/pages/public/AcademicsPage";
+import AdmissionPage from "@/pages/public/AdmissionPage";
+import MujibCornerPage from "@/pages/public/MujibCornerPage";
+import GalleryPage from "@/pages/public/GalleryPage";
+import CoCurricularPage from "@/pages/public/CoCurricularPage";
+import ContactPage from "@/pages/public/ContactPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -73,8 +86,20 @@ const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Public school website */}
-        <Route path="/" element={<PublicSchoolWebsite />} />
+        {/* Public school website multi-page routes */}
+        <Route element={<PublicWebsiteLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/administration" element={<AdministrationPage />} />
+          <Route path="/teachers-list" element={<TeachersListPage />} />
+          <Route path="/notices" element={<NoticesPage />} />
+          <Route path="/academics" element={<AcademicsPage />} />
+          <Route path="/admission" element={<AdmissionPage />} />
+          <Route path="/mujib-corner" element={<MujibCornerPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/co-curricular" element={<CoCurricularPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+        </Route>
 
         {/* Auth */}
         <Route path="/sign-in" element={<SignInPage />} />
