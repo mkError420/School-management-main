@@ -9,16 +9,20 @@ import {
   BookOpen,
   Calendar,
   Check,
+  CheckCircle2,
   Clock,
+  Compass,
   Download,
   ExternalLink,
   Eye,
   FileText,
   FileUp,
+  Globe,
   GraduationCap,
   HeartHandshake,
   Image as ImageIcon,
   Info,
+  Languages,
   Layers,
   LayoutDashboard,
   Lightbulb,
@@ -36,6 +40,7 @@ import {
   Upload,
   UserCheck,
   Users,
+  Wand2,
   Wifi,
   X,
   type LucideIcon,
@@ -57,6 +62,12 @@ import type {
   StudyCornerLink,
   StudyCornerTip,
 } from "@/types/site";
+import {
+  autoTranslateWebsiteContent,
+  translateBnToEn,
+  translateEnToBn,
+  toEnglishDigits,
+} from "@/lib/translation";
 
 type ContentTab =
   | "identity"
@@ -71,12 +82,16 @@ type ContentTab =
   | "study_co"
   | "links";
 
+type EditLangMode = "bn" | "en" | "dual";
+
 const WebsiteContentPage: React.FC = () => {
   const { websiteContent, saveWebsiteContent } = useSiteSettings();
   const [draft, setDraft] = useState<SchoolWebsiteContent>(websiteContent);
   const [activeTab, setActiveTab] = useState<ContentTab>("identity");
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
+  const [editLangMode, setEditLangMode] = useState<EditLangMode>("dual");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
 
   useEffect(() => {
     setDraft(websiteContent);
@@ -91,14 +106,75 @@ const WebsiteContentPage: React.FC = () => {
   const textareaClass =
     "mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-black outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-y";
 
+  // Single field translator helpers
+  const translateSingleFieldToEn = (sourceBnKey: keyof SchoolWebsiteContent, targetEnKey: keyof SchoolWebsiteContent) => {
+    const sourceVal = String(draft[sourceBnKey] || "");
+    if (!sourceVal.trim()) return;
+    const translated = translateBnToEn(sourceVal);
+    updateField(targetEnKey, translated as any);
+  };
+
+  const translateSingleFieldToBn = (sourceEnKey: keyof SchoolWebsiteContent, targetBnKey: keyof SchoolWebsiteContent) => {
+    const sourceVal = String(draft[sourceEnKey] || "");
+    if (!sourceVal.trim()) return;
+    const translated = translateEnToBn(sourceVal);
+    updateField(targetBnKey, translated as any);
+  };
+
+  // Full website translation
+  const handleAutoTranslateAll = async (target: "en" | "bn") => {
+    setTranslating(true);
+    setFeedback({
+      type: "info",
+      message: target === "en" ? "ওয়েবসাইটের সকল কনটেন্ট স্বয়ংক্রিয় ইংরেজি অনুবাদ করা হচ্ছে..." : "ওয়েবসাইটের সকল কনটেন্ট বাংলায় অনুবাদ করা হচ্ছে...",
+    });
+
+    try {
+      const translated = await autoTranslateWebsiteContent(draft, target);
+      setDraft(translated);
+      setFeedback({
+        type: "success",
+        message: target === "en"
+          ? "সফল! সকল পেজের কনটেন্ট, নোটিশ, শিক্ষক ও তথ্য সঠিক ইংরেজিতে অনুবাদ ও যুক্ত হয়েছে। নিচে রিভিউ করে 'সংরক্ষণ ও প্রকাশ' বাটনে ক্লিক করুন।"
+          : "সফল! সকল তথ্য বাংলায় অনুবাদ করা হয়েছে।",
+      });
+    } catch {
+      setFeedback({
+        type: "error",
+        message: "অনুবাদ সম্পন্ন করতে সমস্যা হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।",
+      });
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  // Translate active tab
+  const handleTranslateCurrentTab = async () => {
+    setTranslating(true);
+    try {
+      const translated = await autoTranslateWebsiteContent(draft, "en");
+      // Merge only current tab's fields or full draft
+      setDraft(translated);
+      setFeedback({
+        type: "success",
+        message: "বর্তমান সেকশনের সকল তথ্য সফলভাবে ইংরেজিতে অনুবাদ করা হয়েছে।",
+      });
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   // Notice handlers
   const addNotice = () => {
     const newNotice: SchoolNotice = {
       id: "n_" + Date.now(),
       title: "",
+      titleEn: "",
       date: new Date().toISOString().slice(0, 10),
       category: "সাধারণ",
+      categoryEn: "General",
       content: "",
+      contentEn: "",
       fileUrl: "#",
     };
     setDraft((prev) => ({ ...prev, notices: [newNotice, ...prev.notices] }));
@@ -118,16 +194,29 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  const translateNoticeItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      notices: prev.notices.map((n, i) => {
+        if (i !== index) return n;
+        return {
+          ...n,
+          titleEn: n.titleEn || translateBnToEn(n.title),
+          categoryEn: n.categoryEn || translateBnToEn(n.category),
+          contentEn: n.contentEn || translateBnToEn(n.content || ""),
+        };
+      }),
+    }));
+  };
+
   const [uploadingNoticeIndex, setUploadingNoticeIndex] = useState<number | null>(null);
   const [noticeUploadError, setNoticeUploadError] = useState<{ index: number; message: string } | null>(null);
 
   const handleNoticeFileUpload = async (index: number, file: File) => {
-    // 10 MB limit
     if (file.size > 10 * 1024 * 1024) {
       setNoticeUploadError({ index, message: "ফাইলের সাইজ ১০ MB এর বেশি হতে পারবে না।" });
       return;
     }
-
     const validTypes = [
       "application/pdf",
       "image/jpeg",
@@ -158,9 +247,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingNoticeIndex(null);
         return;
       }
-    } catch {
-      // Fallback to FileReader base64 DataURL
-    }
+    } catch {}
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -185,7 +272,9 @@ const WebsiteContentPage: React.FC = () => {
     const newItem: SchoolDownloadItem = {
       id: "d_" + Date.now(),
       title: "",
+      titleEn: "",
       category: "রুটিন",
+      categoryEn: "Routine",
       publishDate: new Date().toISOString().slice(0, 10),
       fileUrl: "#",
     };
@@ -206,16 +295,28 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  const translateDownloadItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      downloads: (prev.downloads || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          titleEn: item.titleEn || translateBnToEn(item.title),
+          categoryEn: item.categoryEn || translateBnToEn(item.category),
+        };
+      }),
+    }));
+  };
+
   const [uploadingDownloadIndex, setUploadingDownloadIndex] = useState<number | null>(null);
   const [downloadUploadError, setDownloadUploadError] = useState<{ index: number; message: string } | null>(null);
 
   const handleDownloadFileUpload = async (index: number, file: File) => {
-    // 10 MB limit
     if (file.size > 10 * 1024 * 1024) {
       setDownloadUploadError({ index, message: "ফাইলের সাইজ ১০ MB এর বেশি হতে পারবে না।" });
       return;
     }
-
     const validTypes = [
       "application/pdf",
       "image/jpeg",
@@ -246,9 +347,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingDownloadIndex(null);
         return;
       }
-    } catch {
-      // Fallback to FileReader base64 DataURL
-    }
+    } catch {}
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -273,7 +372,9 @@ const WebsiteContentPage: React.FC = () => {
     const newItem: SchoolGalleryItem = {
       id: "g_" + Date.now(),
       title: "",
+      titleEn: "",
       category: "ক্যাম্পাস",
+      categoryEn: "Campus",
       imageUrl: "/images/bgimage.jpg",
     };
     setDraft((prev) => ({ ...prev, gallery: [newItem, ...(prev.gallery || [])] }));
@@ -293,14 +394,32 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  const translateGalleryItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      gallery: (prev.gallery || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          titleEn: item.titleEn || translateBnToEn(item.title),
+          categoryEn: item.categoryEn || translateBnToEn(item.category),
+        };
+      }),
+    }));
+  };
+
   // Teacher handlers
   const addTeacher = () => {
     const newTeacher: SchoolTeacherMember = {
       id: "t_" + Date.now(),
       name: "",
+      nameEn: "",
       designation: "সহকারী শিক্ষক",
+      designationEn: "Assistant Teacher",
       subject: "সাধারণ বিষয়",
+      subjectEn: "General Subjects",
       qualification: "স্নাতক / স্নাতকোত্তর",
+      qualificationEn: "Graduate / Postgraduate",
       phone: "+880 1",
       email: "",
       photo: "/images/avatar.png",
@@ -323,9 +442,25 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  const translateTeacherItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      teachers: (prev.teachers || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          nameEn: item.nameEn || translateBnToEn(item.name),
+          designationEn: item.designationEn || translateBnToEn(item.designation),
+          subjectEn: item.subjectEn || translateBnToEn(item.subject),
+          qualificationEn: item.qualificationEn || translateBnToEn(item.qualification),
+        };
+      }),
+    }));
+  };
+
   // Quick links handlers
   const addQuickLink = () => {
-    const newLink: SchoolQuickLink = { label: "", url: "#" };
+    const newLink: SchoolQuickLink = { label: "", labelEn: "", url: "#" };
     setDraft((prev) => ({ ...prev, quickLinks: [...prev.quickLinks, newLink] }));
   };
 
@@ -345,7 +480,7 @@ const WebsiteContentPage: React.FC = () => {
 
   // Study Corner Handlers
   const addStudyCornerBook = () => {
-    const newBook: StudyCornerBook = { title: "", author: "", category: "গণিত" };
+    const newBook: StudyCornerBook = { title: "", titleEn: "", author: "", authorEn: "", category: "গণিত", categoryEn: "Mathematics" };
     setDraft((prev) => ({
       ...prev,
       studyCornerBooks: [...(prev.studyCornerBooks || []), newBook],
@@ -371,7 +506,9 @@ const WebsiteContentPage: React.FC = () => {
   const addStudyCornerResource = () => {
     const newRes: StudyCornerResource = {
       title: "",
+      titleEn: "",
       description: "",
+      descriptionEn: "",
       icon: "BookOpen",
     };
     setDraft((prev) => ({
@@ -397,7 +534,7 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   const addStudyCornerStat = () => {
-    const newStat: StudyCornerStat = { label: "", value: "" };
+    const newStat: StudyCornerStat = { label: "", labelEn: "", value: "", valueEn: "" };
     setDraft((prev) => ({
       ...prev,
       studyCornerStats: [...(prev.studyCornerStats || []), newStat],
@@ -421,7 +558,7 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   const addStudyCornerLink = () => {
-    const newLink: StudyCornerLink = { name: "", url: "https://", desc: "" };
+    const newLink: StudyCornerLink = { name: "", nameEn: "", url: "https://", desc: "", descEn: "" };
     setDraft((prev) => ({
       ...prev,
       studyCornerLinks: [...(prev.studyCornerLinks || []), newLink],
@@ -445,7 +582,7 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   const addStudyCornerTip = () => {
-    const newTip: StudyCornerTip = { tip: "" };
+    const newTip: StudyCornerTip = { tip: "", tipEn: "" };
     setDraft((prev) => ({
       ...prev,
       studyCornerTips: [...(prev.studyCornerTips || []), newTip],
@@ -459,11 +596,11 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
-  const updateStudyCornerTip = (index: number, value: string) => {
+  const updateStudyCornerTip = (index: number, field: "tip" | "tipEn", value: string) => {
     setDraft((prev) => ({
       ...prev,
       studyCornerTips: (prev.studyCornerTips || []).map((item, i) =>
-        i === index ? { ...item, tip: value } : item
+        i === index ? { ...item, [field]: value } : item
       ),
     }));
   };
@@ -496,9 +633,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingStudyCornerImage(false);
         return;
       }
-    } catch {
-      // Fallback to FileReader base64 DataURL
-    }
+    } catch {}
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -517,9 +652,9 @@ const WebsiteContentPage: React.FC = () => {
 
   // Reset to default
   const handleResetToDefault = () => {
-    if (window.confirm("আপনি কি নিশ্চিত যে সকল তথ্য ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেটে রিসেট করতে চান?")) {
+    if (window.confirm("আপনি কি নিশ্চিত যে সকল তথ্য ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেটে রিসেট করতে চান? এতে বাংলা ও ইংরেজি উভয় ভাষার নমুনা তথ্য লোড হবে।")) {
       setDraft(DEFAULT_WEBSITE_CONTENT);
-      setFeedback({ type: "success", message: "ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেট তথ্য লোড হয়েছে।" });
+      setFeedback({ type: "success", message: "ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেট তথ্য (বাংলা ও ইংরেজি) লোড হয়েছে।" });
     }
   };
 
@@ -539,7 +674,7 @@ const WebsiteContentPage: React.FC = () => {
       if (result.success) {
         setFeedback({
           type: "success",
-          message: "অভিনন্দন! সরকারি স্কুল ওয়েবসাইটের সকল পেজের তথ্য সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে।",
+          message: "অভিনন্দন! বাংলা ও ইংরেজি উভয় ভাষার সকল তথ্য সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে। লাইভ ওয়েবসাইটে ভিজিট করে ভাষা পরিবর্তন করে দেখতে পারেন।",
         });
       } else {
         setFeedback({
@@ -581,14 +716,14 @@ const WebsiteContentPage: React.FC = () => {
               <Shield size={14} />
             </span>
             <p className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400">
-              সুপার অ্যাডমিন ড্যাশবোর্ড · মাল্টি-পেজ ওয়েবসাইট ব্যবস্থাপনা
+              সুপার অ্যাডমিন ড্যাশবোর্ড · দ্বিভাষিক (বাংলা ও ইংরেজি) ওয়েবসাইট ব্যবস্থাপনা
             </p>
           </div>
           <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-            সরকারি স্কুল ওয়েবসাইটের সকল পেজের কনটেন্ট পরিবর্তন
+            ওয়েবসাইটের সকল পেজের কনটেন্ট ও দ্বিভাষিক অনুবাদ (Bangla & English)
           </h1>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি হোমপেজ, আমাদের কথা, প্রশাসন, শিক্ষক তালিকা, নোটিশ বোর্ড, ক্লাস রুটিন, ভর্তি তথ্য ও গ্যালারি পেজের সকল তথ্য ডায়নামিকভাবে নিয়ন্ত্রণ করতে পারেন।
+            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি বাংলা ও ইংরেজি উভয় ভাষার কনটেন্ট পরিচালনা, অটোমেটিক ট্রান্সলেশন এবং লাইভ পাবলিশ করতে পারেন।
           </p>
         </div>
 
@@ -613,6 +748,104 @@ const WebsiteContentPage: React.FC = () => {
           </a>
         </div>
       </header>
+
+      {/* ─── TRANSLATION & LANGUAGE MANAGEMENT TOOLBAR ─── */}
+      <div className="mb-6 rounded-lg border-2 border-emerald-600/30 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50 p-4 shadow-sm dark:border-emerald-800 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#006a4e] text-white">
+                <Globe size={14} />
+              </span>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400">
+                দ্বিভাষিক ট্রান্সলেশন ও প্রদর্শন মোড (Translation Control)
+              </h2>
+            </div>
+            <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-300">
+              বাংলা ও ইংরেজি ফিল্ডগুলো একসাথে বা পৃথকভাবে এডিট করুন এবং এক ক্লিকে স্বয়ংক্রিয় অনুবাদ করুন।
+            </p>
+          </div>
+
+          {/* Mode Switcher */}
+          <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1 shadow-2xs dark:border-slate-700 dark:bg-slate-800">
+            <button
+              type="button"
+              onClick={() => setEditLangMode("bn")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                editLangMode === "bn"
+                  ? "bg-[#006a4e] text-white shadow-2xs"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span>🇧🇩 বাংলা</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEditLangMode("en")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                editLangMode === "en"
+                  ? "bg-blue-700 text-white shadow-2xs"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span>🇬🇧 English</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setEditLangMode("dual")}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                editLangMode === "dual"
+                  ? "bg-purple-700 text-white shadow-2xs"
+                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+              }`}
+            >
+              <Languages size={13} />
+              <span>উভয় ভাষা (Side-by-Side)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Translation Actions */}
+        <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-emerald-200/60 pt-3 dark:border-slate-700/60">
+          <button
+            type="button"
+            disabled={translating}
+            onClick={() => handleAutoTranslateAll("en")}
+            className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] disabled:opacity-60"
+            title="বাংলা থেকে সমস্ত ফিল্ড ও নোটিশ ইংরেজিতে স্বয়ংক্রিয় অনুবাদ করুন"
+          >
+            {translating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} className="text-amber-300" />}
+            <span>সম্পূর্ণ ওয়েবসাইট স্বয়ংক্রিয় ইংরেজি অনুবাদ (Auto-Translate to English)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={translating}
+            onClick={handleTranslateCurrentTab}
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-white px-3 py-1.5 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-50 dark:bg-slate-800 dark:text-emerald-300 dark:hover:bg-slate-700"
+          >
+            <Wand2 size={13} />
+            <span>বর্তমান সেকশন অনুবাদ</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={translating}
+            onClick={() => handleAutoTranslateAll("bn")}
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+          >
+            <Languages size={13} />
+            <span>ইংরেজি থেকে বাংলায় রূপান্তর</span>
+          </button>
+
+          <div className="ml-auto flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+            <CheckCircle2 size={14} className="text-[#006a4e]" />
+            <span>দ্বিভাষিক সিঙ্ক সক্রিয়</span>
+          </div>
+        </div>
+      </div>
 
       {/* Tabs Navigation */}
       <div className="mb-6 flex overflow-x-auto rounded-lg border border-gray-200 bg-white p-1.5 shadow-xs dark:border-slate-800 dark:bg-slate-900 custom-scrollbar">
@@ -644,14 +877,16 @@ const WebsiteContentPage: React.FC = () => {
           className={`mb-5 flex items-center justify-between rounded-md border p-3.5 text-xs font-semibold ${
             feedback.type === "success"
               ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-              : "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              : feedback.type === "error"
+              ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              : "border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
           }`}
         >
           <div className="flex items-center gap-2">
-            {feedback.type === "success" ? <Check size={16} /> : <Info size={16} />}
+            {feedback.type === "success" ? <Check size={16} /> : feedback.type === "error" ? <AlertCircle size={16} /> : <Info size={16} />}
             <span>{feedback.message}</span>
           </div>
-          <button type="button" onClick={() => setFeedback(null)} className="text-gray-500 hover:text-black">
+          <button type="button" onClick={() => setFeedback(null)} className="text-gray-500 hover:text-black dark:hover:text-white">
             ✕
           </button>
         </div>
@@ -662,58 +897,118 @@ const WebsiteContentPage: React.FC = () => {
         {/* TAB 1: IDENTITY */}
         {activeTab === "identity" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <School size={16} className="text-[#006a4e]" />
-              <span>১. বিদ্যালয়ের পরিচয় ও প্রাতিষ্ঠানিক তথ্য</span>
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <School size={16} className="text-[#006a4e]" />
+                ১. বিদ্যালয়ের পরিচয় ও প্রাতিষ্ঠানিক তথ্য
+              </span>
+              <span className="text-[11px] font-normal text-gray-500">
+                {editLangMode === "dual" ? "বাংলা ও ইংরেজি উভয় ফিল্ড প্রদর্শিত হচ্ছে" : editLangMode === "bn" ? "বাংলা মোড" : "English Mode"}
+              </span>
             </h2>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                বিদ্যালয়ের নাম (বাংলায়) *
-                <input
-                  type="text"
-                  value={draft.schoolNameBn}
-                  onChange={(e) => updateField("schoolNameBn", e.target.value)}
-                  placeholder="যেমন: এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়"
-                  className={inputClass}
-                  required
-                />
-              </label>
+              {/* School Name */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বিদ্যালয়ের নাম (বাংলায়) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("schoolNameBn", "schoolName")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → Translate to English
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={draft.schoolNameBn}
+                    onChange={(e) => updateField("schoolNameBn", e.target.value)}
+                    placeholder="যেমন: এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়"
+                    className={inputClass}
+                    required
+                  />
+                </div>
+              )}
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                School Name (English) *
-                <input
-                  type="text"
-                  value={draft.schoolName}
-                  onChange={(e) => updateField("schoolName", e.target.value)}
-                  placeholder="e.g. MK Government Model High School"
-                  className={inputClass}
-                  required
-                />
-              </label>
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      School Name (English) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToBn("schoolName", "schoolNameBn")}
+                      className="text-[10px] font-bold text-blue-700 hover:underline"
+                    >
+                      → বাংলায় অনুবাদ
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={draft.schoolName}
+                    onChange={(e) => updateField("schoolName", e.target.value)}
+                    placeholder="e.g. MK Government Model High School"
+                    className={inputClass}
+                    required
+                  />
+                </div>
+              )}
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                বিদ্যালয়ের মূলমন্ত্র (বাংলায়)
-                <input
-                  type="text"
-                  value={draft.mottoBn}
-                  onChange={(e) => updateField("mottoBn", e.target.value)}
-                  placeholder="জ্ঞান, শৃঙ্খলা ও মনুষ্যত্ব"
-                  className={inputClass}
-                />
-              </label>
+              {/* Motto */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বিদ্যালয়ের মূলমন্ত্র (বাংলায়)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("mottoBn", "motto")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → Translate
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={draft.mottoBn}
+                    onChange={(e) => updateField("mottoBn", e.target.value)}
+                    placeholder="জ্ঞান, শৃঙ্খলা ও মনুষ্যত্ব"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                School Motto (English)
-                <input
-                  type="text"
-                  value={draft.motto}
-                  onChange={(e) => updateField("motto", e.target.value)}
-                  placeholder="Education, Discipline and Humanity"
-                  className={inputClass}
-                />
-              </label>
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      School Motto (English)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToBn("motto", "mottoBn")}
+                      className="text-[10px] font-bold text-blue-700 hover:underline"
+                    >
+                      → বাংলায়
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={draft.motto}
+                    onChange={(e) => updateField("motto", e.target.value)}
+                    placeholder="Education, Discipline and Humanity"
+                    className={inputClass}
+                  />
+                </div>
+              )}
 
+              {/* EIIN & Code */}
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 ইআইআইএন (EIIN) *
                 <input
@@ -736,39 +1031,84 @@ const WebsiteContentPage: React.FC = () => {
                 />
               </label>
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                সংশ্লিষ্ট শিক্ষা বোর্ড
-                <input
-                  type="text"
-                  value={draft.boardName}
-                  onChange={(e) => updateField("boardName", e.target.value)}
-                  placeholder="ঢাকা মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"
-                  className={inputClass}
-                />
-              </label>
+              {/* Board Name */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    সংশ্লিষ্ট শিক্ষা বোর্ড (বাংলা)
+                    <input
+                      type="text"
+                      value={draft.boardName}
+                      onChange={(e) => updateField("boardName", e.target.value)}
+                      placeholder="ঢাকা মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                জেলা ও বিভাগ
-                <input
-                  type="text"
-                  value={draft.district}
-                  onChange={(e) => updateField("district", e.target.value)}
-                  placeholder="ঢাকা, বাংলাদেশ"
-                  className={inputClass}
-                />
-              </label>
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Education Board (English)
+                    <input
+                      type="text"
+                      value={draft.boardNameEn || ""}
+                      onChange={(e) => updateField("boardNameEn", e.target.value)}
+                      placeholder="Board of Intermediate and Secondary Education, Dhaka"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
 
+              {/* District */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    জেলা ও বিভাগ (বাংলা)
+                    <input
+                      type="text"
+                      value={draft.district}
+                      onChange={(e) => updateField("district", e.target.value)}
+                      placeholder="ঢাকা, বাংলাদেশ"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    District & Division (English)
+                    <input
+                      type="text"
+                      value={draft.districtEn || ""}
+                      onChange={(e) => updateField("districtEn", e.target.value)}
+                      placeholder="Dhaka, Bangladesh"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* Established Year */}
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                স্থাপিত সন
+                স্থাপিত সন (Established Year)
                 <input
                   type="text"
                   value={draft.establishedYear}
-                  onChange={(e) => updateField("establishedYear", e.target.value)}
+                  onChange={(e) => {
+                    updateField("establishedYear", e.target.value);
+                    updateField("establishedYearEn", toEnglishDigits(e.target.value));
+                  }}
                   placeholder="1985"
                   className={inputClass}
                 />
               </label>
 
+              {/* Phone */}
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 ফোন নম্বর
                 <input
@@ -780,6 +1120,7 @@ const WebsiteContentPage: React.FC = () => {
                 />
               </label>
 
+              {/* Email */}
               <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                 ইমেইল
                 <input
@@ -791,159 +1132,107 @@ const WebsiteContentPage: React.FC = () => {
                 />
               </label>
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                অফিস সময়সূচী
-                <input
-                  type="text"
-                  value={draft.officeHours}
-                  onChange={(e) => updateField("officeHours", e.target.value)}
-                  placeholder="রবিবার - বৃহস্পতিবার: সকাল ৯:০০ - বিকাল ৪:০০"
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                সম্পূর্ণ ঠিকানা
-                <input
-                  type="text"
-                  value={draft.address}
-                  onChange={(e) => updateField("address", e.target.value)}
-                  placeholder="কলেজ রোড, ধানমন্ডি, ঢাকা-১২০৫, বাংলাদেশ"
-                  className={inputClass}
-                />
-              </label>
-
-              <div className="sm:col-span-2 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5 dark:border-emerald-800/60 dark:bg-emerald-950/20">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2 dark:border-emerald-800/40">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#da291c] text-white">
-                      <Bell size={13} className="animate-bounce" />
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">
-                        টিকার নোটিশ (জরুরি সংবাদ স্ক্রল — সর্বশেষ ৫টি নোটিশ)
-                      </h4>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                        ওয়েবসাইটের শীর্ষে নোটিশ বোর্ডের সর্বশেষ ৫টি নোটিশ স্বয়ংক্রিয়ভাবে ডায়নামিক স্ক্রল করবে।
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("notices")}
-                    className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs hover:bg-[#00503a]"
-                  >
-                    <span>নোটিশ বোর্ডে যান</span>
-                    <ArrowRight size={12} />
-                  </button>
+              {/* Office Hours */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    অফিস সময়সূচী (বাংলা)
+                    <input
+                      type="text"
+                      value={draft.officeHours}
+                      onChange={(e) => updateField("officeHours", e.target.value)}
+                      placeholder="রবিবার - বৃহস্পতিবার: সকাল ৯:০০ - বিকাল ৪:০০"
+                      className={inputClass}
+                    />
+                  </label>
                 </div>
+              )}
 
-                {/* Live Dynamic Ticker Preview */}
-                <div>
-                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-1">
-                    <Sparkles size={12} className="text-amber-500" />
-                    <span>লাইভ টিকার প্রিভিউ (ওয়েবসাইটে যেভাবে দেখা যাবে):</span>
-                  </span>
-                  <div className="flex items-center overflow-hidden rounded border border-amber-300 bg-[#fffbeb] p-2 text-xs font-semibold text-gray-900 shadow-2xs dark:border-amber-700/60 dark:bg-slate-900">
-                    <div className="flex shrink-0 items-center gap-1 rounded bg-[#da291c] px-2 py-0.5 text-[10px] font-bold text-white shadow-xs mr-2">
-                      <Bell size={10} />
-                      <span>জরুরি:</span>
-                    </div>
-                  <div className="flex-1 overflow-hidden">
-                    {(() => {
-                      const previewItems: Array<{ id: string; isBreaking: boolean; breakingText?: string; notice?: (typeof draft.notices)[number] }> = [];
-                      if (draft.breakingNews && draft.breakingNews.trim() !== "") {
-                        previewItems.push({ id: "__breaking__", isBreaking: true, breakingText: draft.breakingNews });
-                      }
-                      (draft.notices || []).slice(0, 5).forEach((n, i) => {
-                        previewItems.push({ id: String(n.id ?? i), isBreaking: false, notice: n });
-                      });
-                      if (previewItems.length === 0) {
-                        previewItems.push({ id: "__empty__", isBreaking: true, breakingText: "★ কোনো নোটিশ নেই — নোটিশ যোগ করলে এখানে সর্বশেষ ৫টি স্বয়ংক্রিয়ভাবে দেখা যাবে।" });
-                      }
-                      const dur = `${Math.max(30, previewItems.length * 8)}s`;
-                      return (
-                        <div
-                          className="animate-ticker-horizontal items-center gap-10"
-                          style={{ "--ticker-h-duration": dur } as React.CSSProperties}
-                        >
-                          {[...previewItems, ...previewItems].map((item, idx) => {
-                            if (item.isBreaking) {
-                              return (
-                                <span key={`${item.id}-${idx}`} className={`shrink-0 font-bold ${item.id === "__breaking__" ? "text-[#da291c]" : "text-gray-500"}`}>
-                                  {item.breakingText}
-                                </span>
-                              );
-                            }
-                            const n = item.notice!;
-                            return (
-                              <span key={`${item.id}-${idx}`} className="shrink-0 text-[#006a4e] dark:text-emerald-400 font-medium">
-                                ★ [{n.category || "নোটিশ"}] {n.title || "শিরোনামহীন নোটিশ"} {n.date && `(${n.date})`}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  </div>
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Office Hours (English)
+                    <input
+                      type="text"
+                      value={draft.officeHoursEn || ""}
+                      onChange={(e) => updateField("officeHoursEn", e.target.value)}
+                      placeholder="Sunday - Thursday: 9:00 AM - 4:00 PM"
+                      className={inputClass}
+                    />
+                  </label>
                 </div>
+              )}
 
-                {/* Dynamic List of Last 5 Notices */}
-                <div>
-                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
-                    টিকারে অন্তর্ভুক্ত সর্বশেষ ৫টি নোটিশের তালিকা:
-                  </span>
-                  <div className="mt-1.5 space-y-1.5">
-                    {(draft.notices || []).slice(0, 5).length > 0 ? (
-                      (draft.notices || []).slice(0, 5).map((n, i) => (
-                        <div
-                          key={n.id || i}
-                          className="flex items-center justify-between gap-2 rounded border border-gray-200 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                              #{i + 1}
-                            </span>
-                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
-                              {n.category || "সাধারণ"}
-                            </span>
-                            <p className="truncate font-semibold text-gray-800 dark:text-gray-200">
-                              {n.title || "শিরোনামহীন নোটিশ"}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {n.fileUrl && n.fileUrl !== "#" && (
-                              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-[#006a4e] border border-emerald-200">
-                                {n.fileUrl.endsWith(".pdf") || n.fileUrl.startsWith("data:application/pdf") ? "PDF" : "ছবি"}
-                              </span>
-                            )}
-                            <span className="text-[10px] text-gray-500">{n.date}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="rounded border border-dashed border-gray-300 p-2 text-center text-xs text-gray-500">
-                        নোটিশ বোর্ডে কোনো নোটিশ পাওয়া যায়নি।
-                      </p>
-                    )}
-                  </div>
+              {/* Address */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    বিদ্যালয়ের পূর্ণ ঠিকানা (বাংলা)
+                    <input
+                      type="text"
+                      value={draft.address}
+                      onChange={(e) => updateField("address", e.target.value)}
+                      placeholder="কলেজ রোড, ধানমন্ডি, ঢাকা-১২০৫, বাংলাদেশ"
+                      className={inputClass}
+                    />
+                  </label>
                 </div>
+              )}
 
-                {/* Optional Custom Breaking News Override */}
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 pt-1">
-                  কাস্টম জরুরি বিশেষ বার্তা (ঐচ্ছিক — ৫টি নোটিশের পাশাপাশি এটিও সবার প্রথমে টিকারে স্ক্রল করবে):
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Full School Address (English)
+                    <input
+                      type="text"
+                      value={draft.addressEn || ""}
+                      onChange={(e) => updateField("addressEn", e.target.value)}
+                      placeholder="College Road, Dhanmondi, Dhaka-1205, Bangladesh"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* Breaking News Ticker */}
+              {(editLangMode === "bn" || editLangMode === "dual") && (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      জরুরি স্ক্রলিং সংবাদ / ব্রেকিং নিউজ (বাংলায়)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("breakingNews", "breakingNewsEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → Translate to English
+                    </button>
+                  </div>
                   <input
                     type="text"
-                    value={draft.breakingNews || ""}
+                    value={draft.breakingNews}
                     onChange={(e) => updateField("breakingNews", e.target.value)}
-                    placeholder="যেমন: জরুরি বিজ্ঞপ্তি: বৈরি আবহাওয়ার কারণে আগামীকাল বিদ্যালয় বন্ধ থাকবে..."
+                    placeholder="২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে..."
                     className={inputClass}
                   />
-                </label>
-              </div>
+                </div>
+              )}
+
+              {(editLangMode === "en" || editLangMode === "dual") && (
+                <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Emergency Scrolling News / Breaking News (English)
+                    <input
+                      type="text"
+                      value={draft.breakingNewsEn || ""}
+                      onChange={(e) => updateField("breakingNewsEn", e.target.value)}
+                      placeholder="Admission applications for Classes 6 to 9 are ongoing..."
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           </section>
         )}
@@ -951,43 +1240,117 @@ const WebsiteContentPage: React.FC = () => {
         {/* TAB 2: HERO & ABOUT */}
         {activeTab === "hero_about" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <LayoutDashboard size={16} className="text-[#006a4e]" />
-              <span>২. হোম ব্যানার, পরিচিতি ও লক্ষ্য-উদ্দেশ্য</span>
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <LayoutDashboard size={16} className="text-[#006a4e]" />
+                ২. হোম ব্যানার, পরিচিতি ও লক্ষ্য-উদ্দেশ্য (Bilingual)
+              </span>
+              <button
+                type="button"
+                onClick={handleTranslateCurrentTab}
+                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+              >
+                <Sparkles size={11} />
+                <span>এই সেকশন অটো-অনুবাদ</span>
+              </button>
             </h2>
 
             <div className="mt-4 space-y-4">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                হোম ব্যানার প্রধান শিরোনাম *
-                <input
-                  type="text"
-                  value={draft.heroTitle}
-                  onChange={(e) => updateField("heroTitle", e.target.value)}
-                  className={inputClass}
-                  required
-                />
-              </label>
+              {/* Hero Title */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {(editLangMode === "bn" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      হোম ব্যানার প্রধান শিরোনাম (বাংলায়) *
+                      <input
+                        type="text"
+                        value={draft.heroTitle}
+                        onChange={(e) => updateField("heroTitle", e.target.value)}
+                        className={inputClass}
+                        required
+                      />
+                    </label>
+                  </div>
+                )}
 
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                হোম ব্যানার উপ-শিরোনাম
-                <input
-                  type="text"
-                  value={draft.heroSubtitle}
-                  onChange={(e) => updateField("heroSubtitle", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
+                {(editLangMode === "en" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Home Banner Main Title (English) *
+                      <input
+                        type="text"
+                        value={draft.heroTitleEn || ""}
+                        onChange={(e) => updateField("heroTitleEn", e.target.value)}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
 
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                হোম ব্যানার পরিচিতি বিবরণ
-                <textarea
-                  rows={3}
-                  value={draft.heroDescription}
-                  onChange={(e) => updateField("heroDescription", e.target.value)}
-                  className={textareaClass}
-                />
-              </label>
+              {/* Hero Subtitle */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {(editLangMode === "bn" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      হোম ব্যানার উপ-শিরোনাম (বাংলায়)
+                      <input
+                        type="text"
+                        value={draft.heroSubtitle}
+                        onChange={(e) => updateField("heroSubtitle", e.target.value)}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                )}
 
+                {(editLangMode === "en" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Home Banner Subtitle (English)
+                      <input
+                        type="text"
+                        value={draft.heroSubtitleEn || ""}
+                        onChange={(e) => updateField("heroSubtitleEn", e.target.value)}
+                        className={inputClass}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Hero Description */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {(editLangMode === "bn" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      হোম ব্যানার বিবরণ (বাংলায়)
+                      <textarea
+                        rows={3}
+                        value={draft.heroDescription}
+                        onChange={(e) => updateField("heroDescription", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {(editLangMode === "en" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      Home Banner Description (English)
+                      <textarea
+                        rows={3}
+                        value={draft.heroDescriptionEn || ""}
+                        onChange={(e) => updateField("heroDescriptionEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Hero Image */}
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
                 হোম ব্যানার ছবি (Image URL or Path)
                 <input
@@ -998,68 +1361,151 @@ const WebsiteContentPage: React.FC = () => {
                 />
               </label>
 
+              {/* About Title & Description */}
               <div className="border-t pt-4">
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  পরিচিতি পেজের শিরোনাম
-                  <input
-                    type="text"
-                    value={draft.aboutTitle}
-                    onChange={(e) => updateField("aboutTitle", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        পরিচিতি পেজের শিরোনাম (বাংলায়)
+                        <input
+                          type="text"
+                          value={draft.aboutTitle}
+                          onChange={(e) => updateField("aboutTitle", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        About Page Title (English)
+                        <input
+                          type="text"
+                          value={draft.aboutTitleEn || ""}
+                          onChange={(e) => updateField("aboutTitleEn", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                বিদ্যালয় পরিচিতি বিবরণ (About Us)
-                <textarea
-                  rows={4}
-                  value={draft.aboutText}
-                  onChange={(e) => updateField("aboutText", e.target.value)}
-                  className={textareaClass}
-                />
-              </label>
-
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                বিদ্যালয়ের ইতিহাস (History of the School)
-                <textarea
-                  rows={3}
-                  value={draft.historyText}
-                  onChange={(e) => updateField("historyText", e.target.value)}
-                  className={textareaClass}
-                />
-              </label>
-
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                ক্যাম্পাস পরিচিতি (Campus Overview)
-                <textarea
-                  rows={3}
-                  value={draft.campusOverview}
-                  onChange={(e) => updateField("campusOverview", e.target.value)}
-                  className={textareaClass}
-                />
-              </label>
-
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  আমাদের লক্ষ্য (Mission)
-                  <textarea
-                    rows={3}
-                    value={draft.missionText}
-                    onChange={(e) => updateField("missionText", e.target.value)}
-                    className={textareaClass}
-                  />
-                </label>
+                {(editLangMode === "bn" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বিদ্যালয় পরিচিতি বিবরণ (বাংলায়)
+                      <textarea
+                        rows={4}
+                        value={draft.aboutText}
+                        onChange={(e) => updateField("aboutText", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  আমাদের দৃষ্টিভঙ্গি (Vision)
-                  <textarea
-                    rows={3}
-                    value={draft.visionText}
-                    onChange={(e) => updateField("visionText", e.target.value)}
-                    className={textareaClass}
-                  />
-                </label>
+                {(editLangMode === "en" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      About Us Description (English)
+                      <textarea
+                        rows={4}
+                        value={draft.aboutTextEn || ""}
+                        onChange={(e) => updateField("aboutTextEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* History */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {(editLangMode === "bn" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বিদ্যালয়ের ইতিহাস (History in Bengali)
+                      <textarea
+                        rows={3}
+                        value={draft.historyText}
+                        onChange={(e) => updateField("historyText", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
+
+                {(editLangMode === "en" || editLangMode === "dual") && (
+                  <div className="rounded-md border border-blue-100 bg-blue-50/20 p-2.5 dark:border-blue-900/30">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      History of the School (English)
+                      <textarea
+                        rows={3}
+                        value={draft.historyTextEn || ""}
+                        onChange={(e) => updateField("historyTextEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              {/* Mission & Vision */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      আমাদের লক্ষ্য (Mission in Bengali)
+                      <textarea
+                        rows={2}
+                        value={draft.missionText}
+                        onChange={(e) => updateField("missionText", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2">
+                      Our Mission (English)
+                      <textarea
+                        rows={2}
+                        value={draft.missionTextEn || ""}
+                        onChange={(e) => updateField("missionTextEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <div>
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      আমাদের দৃষ্টিভঙ্গি (Vision in Bengali)
+                      <textarea
+                        rows={2}
+                        value={draft.visionText}
+                        onChange={(e) => updateField("visionText", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2">
+                      Our Vision (English)
+                      <textarea
+                        rows={2}
+                        value={draft.visionTextEn || ""}
+                        onChange={(e) => updateField("visionTextEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -1068,17 +1514,27 @@ const WebsiteContentPage: React.FC = () => {
         {/* TAB 3: LEADERSHIP */}
         {activeTab === "leadership" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <GraduationCap size={16} className="text-[#006a4e]" />
-              <span>৩. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য</span>
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <GraduationCap size={16} className="text-[#006a4e]" />
+                ৩. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য (Bilingual)
+              </span>
+              <button
+                type="button"
+                onClick={handleTranslateCurrentTab}
+                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200"
+              >
+                <Sparkles size={11} />
+                <span>বাণী ও পদবী অনুবাদ</span>
+              </button>
             </h2>
 
             {/* Principal */}
-            <div className="mt-4 rounded-md border border-emerald-100 bg-emerald-50/40 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">প্রধান শিক্ষক</h3>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50/40 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+              <h3 className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">প্রধান শিক্ষক / Headmaster</h3>
+              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  নাম
+                  নাম (বাংলায়)
                   <input
                     type="text"
                     value={draft.principalName}
@@ -1087,8 +1543,18 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Name (English)
+                  <input
+                    type="text"
+                    value={draft.principalNameEn || ""}
+                    onChange={(e) => updateField("principalNameEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  পদবি
+                  পদবি (বাংলায়)
                   <input
                     type="text"
                     value={draft.principalTitle}
@@ -1097,8 +1563,18 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Title (English)
+                  <input
+                    type="text"
+                    value={draft.principalTitleEn || ""}
+                    onChange={(e) => updateField("principalTitleEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  যোগ্যতা
+                  যোগ্যতা (বাংলায়)
                   <input
                     type="text"
                     value={draft.principalQualification}
@@ -1107,7 +1583,17 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Qualification (English)
+                  <input
+                    type="text"
+                    value={draft.principalQualificationEn || ""}
+                    onChange={(e) => updateField("principalQualificationEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
                   ছবির লিঙ্ক (Image URL)
                   <input
                     type="text"
@@ -1117,12 +1603,22 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
-                  প্রধান শিক্ষকের শুভেচ্ছা বাণী
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  প্রধান শিক্ষকের শুভেচ্ছা বাণী (বাংলায়)
                   <textarea
                     rows={4}
                     value={draft.principalMessage}
                     onChange={(e) => updateField("principalMessage", e.target.value)}
+                    className={textareaClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Principal's Message (English)
+                  <textarea
+                    rows={4}
+                    value={draft.principalMessageEn || ""}
+                    onChange={(e) => updateField("principalMessageEn", e.target.value)}
                     className={textareaClass}
                   />
                 </label>
@@ -1131,10 +1627,10 @@ const WebsiteContentPage: React.FC = () => {
 
             {/* Assistant Principal */}
             <div className="mt-5 rounded-md border border-gray-200 bg-gray-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
-              <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">সহকারী প্রধান শিক্ষক</h3>
+              <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">সহকারী প্রধান শিক্ষক / Assistant Headmaster</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  নাম
+                  নাম (বাংলায়)
                   <input
                     type="text"
                     value={draft.asstPrincipalName}
@@ -1143,32 +1639,32 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  পদবি
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Name (English)
                   <input
                     type="text"
-                    value={draft.asstPrincipalTitle}
-                    onChange={(e) => updateField("asstPrincipalTitle", e.target.value)}
+                    value={draft.asstPrincipalNameEn || ""}
+                    onChange={(e) => updateField("asstPrincipalNameEn", e.target.value)}
                     className={inputClass}
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  ছবির লিঙ্ক
-                  <input
-                    type="text"
-                    value={draft.asstPrincipalPhoto}
-                    onChange={(e) => updateField("asstPrincipalPhoto", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  সহকারী প্রধান শিক্ষকের বাণী
+                  সহকারী প্রধান শিক্ষকের বাণী (বাংলায়)
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={draft.asstPrincipalMessage}
                     onChange={(e) => updateField("asstPrincipalMessage", e.target.value)}
+                    className={textareaClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                  Assistant Principal's Message (English)
+                  <textarea
+                    rows={2}
+                    value={draft.asstPrincipalMessageEn || ""}
+                    onChange={(e) => updateField("asstPrincipalMessageEn", e.target.value)}
                     className={textareaClass}
                   />
                 </label>
@@ -1177,10 +1673,10 @@ const WebsiteContentPage: React.FC = () => {
 
             {/* SMC President */}
             <div className="mt-5 rounded-md border border-amber-200 bg-amber-50/40 p-4">
-              <h3 className="text-xs font-bold text-amber-900">সভাপতি, ম্যানেজিং কমিটি (SMC)</h3>
+              <h3 className="text-xs font-bold text-amber-900">সভাপতি, ম্যানেজিং কমিটি (SMC President)</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700">
-                  সভাপতির নাম
+                  সভাপতির নাম (বাংলায়)
                   <input
                     type="text"
                     value={draft.smcPresidentName}
@@ -1189,32 +1685,32 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
+                <label className="text-xs font-semibold text-blue-800">
+                  President Name (English)
+                  <input
+                    type="text"
+                    value={draft.smcPresidentNameEn || ""}
+                    onChange={(e) => updateField("smcPresidentNameEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
                 <label className="text-xs font-semibold text-gray-700">
-                  পদবি
-                  <input
-                    type="text"
-                    value={draft.smcPresidentTitle}
-                    onChange={(e) => updateField("smcPresidentTitle", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="text-xs font-semibold text-gray-700 sm:col-span-2">
-                  সভাপতির ছবির লিঙ্ক
-                  <input
-                    type="text"
-                    value={draft.smcPresidentPhoto}
-                    onChange={(e) => updateField("smcPresidentPhoto", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="text-xs font-semibold text-gray-700 sm:col-span-2">
-                  সভাপতির বার্তা
+                  সভাপতির বার্তা (বাংলায়)
                   <textarea
                     rows={3}
                     value={draft.smcPresidentMessage}
                     onChange={(e) => updateField("smcPresidentMessage", e.target.value)}
+                    className={textareaClass}
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-blue-800">
+                  President's Message (English)
+                  <textarea
+                    rows={3}
+                    value={draft.smcPresidentMessageEn || ""}
+                    onChange={(e) => updateField("smcPresidentMessageEn", e.target.value)}
                     className={textareaClass}
                   />
                 </label>
@@ -1230,21 +1726,43 @@ const WebsiteContentPage: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <UserCheck size={16} className="text-[#006a4e]" />
-                  <span>৪. শিক্ষক ও কর্মকর্তা তালিকা ব্যবস্থাপনা ({(draft.teachers || []).length} জন)</span>
+                  <span>৪. শিক্ষক ও কর্মকর্তা তালিকা (দ্বিভাষিক ব্যবস্থাপনা) ({(draft.teachers || []).length} জন)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  পাবলিক ওয়েবসাইট `/teachers-list` পেজের শিক্ষক ও কর্মকর্তা তালিকা নিয়ন্ত্রণ করুন।
+                  প্রতিটি শিক্ষকের নাম, পদবী, বিষয় ও শিক্ষাগত যোগ্যতা বাংলা ও ইংরেজি উভয় ভাষায় সংরক্ষণ করুন।
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={addTeacher}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-              >
-                <Plus size={14} />
-                <span>নতুন শিক্ষক / কর্মকর্তা যোগ করুন</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((prev) => ({
+                      ...prev,
+                      teachers: (prev.teachers || []).map((t) => ({
+                        ...t,
+                        nameEn: t.nameEn || translateBnToEn(t.name),
+                        designationEn: t.designationEn || translateBnToEn(t.designation),
+                        subjectEn: t.subjectEn || translateBnToEn(t.subject),
+                        qualificationEn: t.qualificationEn || translateBnToEn(t.qualification),
+                      })),
+                    }));
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100"
+                >
+                  <Sparkles size={13} />
+                  <span>সকল শিক্ষক তথ্য ইংরেজি অনুবাদ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={addTeacher}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন শিক্ষক যোগ করুন</span>
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 space-y-4">
@@ -1254,107 +1772,109 @@ const WebsiteContentPage: React.FC = () => {
                   className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e]">
-                      শিক্ষক/কর্মকর্তা #{index + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removeTeacher(index)}
-                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={13} />
-                      <span>মুছুন</span>
-                    </button>
+                    <span className="text-xs font-bold text-[#006a4e]">শিক্ষক #{index + 1}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => translateTeacherItem(index)}
+                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles size={12} />
+                        <span>অটো অনুবাদ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeTeacher(index)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      শিক্ষকের নাম *
+                      নাম (বাংলায়) *
                       <input
                         type="text"
                         value={teacher.name}
                         onChange={(e) => updateTeacher(index, "name", e.target.value)}
-                        placeholder="যেমন: এস. এম. তানভীর আহমেদ"
                         className={inputClass}
                         required
                       />
                     </label>
 
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Name (English)
+                      <input
+                        type="text"
+                        value={teacher.nameEn || ""}
+                        onChange={(e) => updateTeacher(index, "nameEn", e.target.value)}
+                        placeholder="e.g. Md. Abdur Rahman"
+                        className={inputClass}
+                      />
+                    </label>
+
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      পদবি
+                      পদবি (বাংলায়)
                       <input
                         type="text"
                         value={teacher.designation}
                         onChange={(e) => updateTeacher(index, "designation", e.target.value)}
-                        placeholder="সিনিয়র শিক্ষক / সহকারী শিক্ষক"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Designation (English)
+                      <input
+                        type="text"
+                        value={teacher.designationEn || ""}
+                        onChange={(e) => updateTeacher(index, "designationEn", e.target.value)}
+                        placeholder="e.g. Assistant Teacher"
                         className={inputClass}
                       />
                     </label>
 
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      পাঠদানের বিষয়
+                      বিষয় (বাংলায়)
                       <input
                         type="text"
                         value={teacher.subject}
                         onChange={(e) => updateTeacher(index, "subject", e.target.value)}
-                        placeholder="গণিত / বাংলা / ইংরেজি"
+                        className={inputClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Subject (English)
+                      <input
+                        type="text"
+                        value={teacher.subjectEn || ""}
+                        onChange={(e) => updateTeacher(index, "subjectEn", e.target.value)}
+                        placeholder="e.g. Mathematics"
                         className={inputClass}
                       />
                     </label>
 
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      শিক্ষাগত যোগ্যতা
+                      যোগ্যতা (বাংলায়)
                       <input
                         type="text"
                         value={teacher.qualification}
                         onChange={(e) => updateTeacher(index, "qualification", e.target.value)}
-                        placeholder="বি.এস.সি (অনার্স), এম.এস.সি"
                         className={inputClass}
                       />
                     </label>
 
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ক্যাটাগরি
-                      <select
-                        value={teacher.category}
-                        onChange={(e) => updateTeacher(index, "category", e.target.value as any)}
-                        className={inputClass}
-                      >
-                        <option value="শিক্ষক">শিক্ষক</option>
-                        <option value="প্রশাসন">প্রশাসন</option>
-                        <option value="কর্মচারী">কর্মচারী</option>
-                      </select>
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ছবির লিংক (Photo URL)
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Qualification (English)
                       <input
                         type="text"
-                        value={teacher.photo || ""}
-                        onChange={(e) => updateTeacher(index, "photo", e.target.value)}
-                        placeholder="https://... বা /images/avatar.png"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ফোন নম্বর
-                      <input
-                        type="text"
-                        value={teacher.phone || ""}
-                        onChange={(e) => updateTeacher(index, "phone", e.target.value)}
-                        placeholder="+880 1..."
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                      ইমেইল
-                      <input
-                        type="email"
-                        value={teacher.email || ""}
-                        onChange={(e) => updateTeacher(index, "email", e.target.value)}
-                        placeholder="teacher@mkschool.edu.bd"
+                        value={teacher.qualificationEn || ""}
+                        onChange={(e) => updateTeacher(index, "qualificationEn", e.target.value)}
+                        placeholder="e.g. B.Sc (Hons), M.Sc"
                         className={inputClass}
                       />
                     </label>
@@ -1368,71 +1888,101 @@ const WebsiteContentPage: React.FC = () => {
         {/* TAB 5: STATISTICS */}
         {activeTab === "statistics" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Award size={16} className="text-[#006a4e]" />
-              <span>৫. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য</span>
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Award size={16} className="text-[#006a4e]" />
+                ৫. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য (বাংলা ও ইংরেজি সংখ্যা)
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  updateField("studentCountEn", toEnglishDigits(draft.studentCount));
+                  updateField("teacherCountEn", toEnglishDigits(draft.teacherCount));
+                  updateField("staffCountEn", toEnglishDigits(draft.staffCount));
+                  updateField("classCountEn", toEnglishDigits(draft.classCount));
+                  updateField("passRateEn", toEnglishDigits(draft.passRate));
+                  updateField("gpa5CountEn", toEnglishDigits(draft.gpa5Count));
+                  updateField("labCountEn", translateBnToEn(draft.labCount));
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
+              >
+                <Sparkles size={12} />
+                <span>ইংরেজি সংখ্যায় রূপান্তর</span>
+              </button>
             </h2>
 
-            <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                মোট শিক্ষার্থী সংখ্যা
-                <input
-                  type="text"
-                  value={draft.studentCount}
-                  onChange={(e) => updateField("studentCount", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+              <div className="rounded border p-2.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  মোট শিক্ষার্থী সংখ্যা (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studentCount}
+                    onChange={(e) => {
+                      updateField("studentCount", e.target.value);
+                      updateField("studentCountEn", toEnglishDigits(e.target.value));
+                    }}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2 block">
+                  Total Students (English)
+                  <input
+                    type="text"
+                    value={draft.studentCountEn || ""}
+                    onChange={(e) => updateField("studentCountEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                মোট শিক্ষক সংখ্যা
-                <input
-                  type="text"
-                  value={draft.teacherCount}
-                  onChange={(e) => updateField("teacherCount", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
+              <div className="rounded border p-2.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  মোট শিক্ষক সংখ্যা (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.teacherCount}
+                    onChange={(e) => {
+                      updateField("teacherCount", e.target.value);
+                      updateField("teacherCountEn", toEnglishDigits(e.target.value));
+                    }}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2 block">
+                  Faculty Members (English)
+                  <input
+                    type="text"
+                    value={draft.teacherCountEn || ""}
+                    onChange={(e) => updateField("teacherCountEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                কর্মচারী সংখ্যা
-                <input
-                  type="text"
-                  value={draft.staffCount}
-                  onChange={(e) => updateField("staffCount", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                শ্রেণি কক্ষ সংখ্যা
-                <input
-                  type="text"
-                  value={draft.classCount}
-                  onChange={(e) => updateField("classCount", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                পাসের হার (%)
-                <input
-                  type="text"
-                  value={draft.passRate}
-                  onChange={(e) => updateField("passRate", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                জিপিএ-৫ প্রাপ্তি
-                <input
-                  type="text"
-                  value={draft.gpa5Count}
-                  onChange={(e) => updateField("gpa5Count", e.target.value)}
-                  className={inputClass}
-                />
-              </label>
+              <div className="rounded border p-2.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  পাসের হার (Pass Rate in Bangla)
+                  <input
+                    type="text"
+                    value={draft.passRate}
+                    onChange={(e) => {
+                      updateField("passRate", e.target.value);
+                      updateField("passRateEn", toEnglishDigits(e.target.value));
+                    }}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2 block">
+                  Pass Rate (English)
+                  <input
+                    type="text"
+                    value={draft.passRateEn || ""}
+                    onChange={(e) => updateField("passRateEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
             </div>
           </section>
         )}
@@ -1444,21 +1994,42 @@ const WebsiteContentPage: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Bell size={16} className="text-[#da291c]" />
-                  <span>৬. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ)</span>
+                  <span>৬. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ — দ্বিভাষিক)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  সকল প্রকার ভর্তি, পরীক্ষা, ফলাফল ও প্রাতিষ্ঠানিক আদেশ যোগ বা অপসারণ করুন।
+                  নোটিশের শিরোনাম, ক্যাটাগরি ও বিস্তারিত বিবরণ বাংলা এবং ইংরেজি উভয় ভাষায় লিখুন অথবা অটো-অনুবাদ ব্যবহার করুন।
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={addNotice}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-              >
-                <Plus size={14} />
-                <span>নতুন নোটিশ যোগ করুন</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft((prev) => ({
+                      ...prev,
+                      notices: (prev.notices || []).map((n) => ({
+                        ...n,
+                        titleEn: n.titleEn || translateBnToEn(n.title),
+                        categoryEn: n.categoryEn || translateBnToEn(n.category),
+                        contentEn: n.contentEn || translateBnToEn(n.content || ""),
+                      })),
+                    }));
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e]"
+                >
+                  <Sparkles size={13} />
+                  <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={addNotice}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন নোটিশ যোগ করুন</span>
+                </button>
+              </div>
             </div>
 
             <div className="mt-4 space-y-4">
@@ -1471,19 +2042,29 @@ const WebsiteContentPage: React.FC = () => {
                     <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e]">
                       নোটিশ #{index + 1}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => removeNotice(index)}
-                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={13} />
-                      <span>মুছুন</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => translateNoticeItem(index)}
+                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1"
+                      >
+                        <Sparkles size={12} />
+                        <span>ইংরেজি অনুবাদ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeNotice(index)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                      নোটিশের শিরোনাম *
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      নোটিশের শিরোনাম (বাংলায়) *
                       <input
                         type="text"
                         value={notice.title}
@@ -1493,8 +2074,19 @@ const WebsiteContentPage: React.FC = () => {
                       />
                     </label>
 
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Notice Title (English) *
+                      <input
+                        type="text"
+                        value={notice.titleEn || ""}
+                        onChange={(e) => updateNotice(index, "titleEn", e.target.value)}
+                        placeholder="e.g. Admission Notice 2026"
+                        className={inputClass}
+                      />
+                    </label>
+
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      তারিখ
+                      তারিখ (Date)
                       <input
                         type="date"
                         value={notice.date}
@@ -1507,204 +2099,35 @@ const WebsiteContentPage: React.FC = () => {
                       ক্যাটাগরি
                       <select
                         value={notice.category}
-                        onChange={(e) => updateNotice(index, "category", e.target.value)}
+                        onChange={(e) => {
+                          updateNotice(index, "category", e.target.value);
+                          updateNotice(index, "categoryEn", translateBnToEn(e.target.value));
+                        }}
                         className={inputClass}
                       >
-                        <option value="সাধারণ">সাধারণ</option>
-                        <option value="ভর্তি">ভর্তি</option>
-                        <option value="পরীক্ষা">পরীক্ষা</option>
-                        <option value="একাডেমিক">একাডেমিক</option>
+                        <option value="সাধারণ">সাধারণ (General)</option>
+                        <option value="ভর্তি">ভর্তি (Admission)</option>
+                        <option value="পরীক্ষা">পরীক্ষা (Examination)</option>
+                        <option value="একাডেমিক">একাডেমিক (Academic)</option>
                       </select>
                     </label>
 
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                          <FileText size={13} className="text-[#006a4e]" />
-                          <span>ফাইল বা পিডিএফ লিঙ্ক (ছবি বা পিডিএফ আপলোড)</span>
-                        </label>
-                        <span className="text-[10px] text-gray-500 font-medium">
-                          PDF, JPG, PNG, WebP (সর্বোচ্চ ১০MB)
-                        </span>
-                      </div>
-
-                      {/* Hidden File Input for this specific notice */}
-                      <input
-                        type="file"
-                        id={`notice-file-input-${notice.id || index}`}
-                        accept="application/pdf,image/png,image/jpeg,image/webp,image/svg+xml,.pdf,.jpg,.jpeg,.png,.webp,.svg"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleNoticeFileUpload(index, file);
-                          }
-                          e.target.value = "";
-                        }}
-                      />
-
-                      {/* File Card if file is attached and not '#' */}
-                      {notice.fileUrl && notice.fileUrl.trim() !== "" && notice.fileUrl.trim() !== "#" ? (
-                        <div className="rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs dark:border-slate-700 dark:bg-slate-800/80">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {notice.fileUrl.startsWith("data:image/") ||
-                              /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl) ? (
-                                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded border border-emerald-300 bg-gray-50 dark:border-emerald-700">
-                                  <img
-                                    src={notice.fileUrl}
-                                    alt="Notice file"
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                              ) : notice.fileUrl.startsWith("data:application/pdf") ||
-                                /\.pdf(\?.*)?$/i.test(notice.fileUrl) ? (
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-red-200 bg-red-100 text-red-700 font-bold text-[10px] shadow-2xs dark:border-red-800 dark:bg-red-950/60 dark:text-red-400">
-                                  PDF
-                                </div>
-                              ) : (
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-[#006a4e]">
-                                  <LinkIcon size={18} />
-                                </div>
-                              )}
-
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                                    {notice.fileUrl.startsWith("data:image/") ||
-                                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl)
-                                      ? "সংযুক্ত ছবি"
-                                      : notice.fileUrl.startsWith("data:application/pdf") ||
-                                        /\.pdf(\?.*)?$/i.test(notice.fileUrl)
-                                      ? "সংযুক্ত পিডিএফ"
-                                      : "সংযুক্ত ওয়েব লিঙ্ক"}
-                                  </span>
-                                  {uploadingNoticeIndex === index && (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006a4e]">
-                                      <Loader2 size={12} className="animate-spin" />
-                                      আপলোড হচ্ছে...
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-300 max-w-[200px] sm:max-w-[300px]">
-                                  {notice.fileUrl.startsWith("data:")
-                                    ? "লোকাল ফাইল ডাটা (সফলভাবে যুক্ত)"
-                                    : notice.fileUrl}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              <a
-                                href={notice.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
-                                title="প্রিভিউ দেখুন"
-                              >
-                                <Eye size={12} />
-                                <span>দেখুন</span>
-                              </a>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const el = document.getElementById(
-                                    `notice-file-input-${notice.id || index}`
-                                  ) as HTMLInputElement;
-                                  el?.click();
-                                }}
-                                disabled={uploadingNoticeIndex === index}
-                                className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a] disabled:opacity-50"
-                              >
-                                <Upload size={12} />
-                                <span>নতুন ফাইল</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => updateNotice(index, "fileUrl", "")}
-                                className="inline-flex items-center gap-1 rounded bg-red-50 p-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
-                                title="ফাইল মুছুন"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div
-                            onClick={() => {
-                              const el = document.getElementById(
-                                `notice-file-input-${notice.id || index}`
-                              ) as HTMLInputElement;
-                              el?.click();
-                            }}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              const file = e.dataTransfer.files?.[0];
-                              if (file) handleNoticeFileUpload(index, file);
-                            }}
-                            className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-white p-3 text-center transition hover:border-[#006a4e] hover:bg-emerald-50/40 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-[#006a4e]"
-                          >
-                            {uploadingNoticeIndex === index ? (
-                              <div className="flex items-center gap-2 py-1 text-xs font-semibold text-[#006a4e]">
-                                <Loader2 size={16} className="animate-spin" />
-                                <span>ফাইল আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-[#006a4e] transition group-hover:scale-110 dark:bg-emerald-950/60 dark:text-emerald-400">
-                                  <FileUp size={16} />
-                                </div>
-                                <div className="text-left text-xs">
-                                  <p className="font-bold text-gray-800 dark:text-gray-200">
-                                    ছবি বা পিডিএফ ফাইল আপলোড করতে ক্লিক করুন
-                                  </p>
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                    বা ফাইল টেনে এনে এখানে ড্রপ করুন (PDF, JPG, PNG, WebP — সর্বোচ্চ ১০MB)
-                                  </p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-500 shrink-0">অথবা সরাসরি লিঙ্ক দিন:</span>
-                            <input
-                              type="text"
-                              value={notice.fileUrl || ""}
-                              onChange={(e) => updateNotice(index, "fileUrl", e.target.value)}
-                              placeholder="https://... বা ফাইলের লিঙ্ক"
-                              className="flex-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs text-black outline-none transition focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {noticeUploadError && noticeUploadError.index === index && (
-                        <div className="flex items-center gap-1.5 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
-                          <AlertCircle size={13} className="shrink-0" />
-                          <span>{noticeUploadError.message}</span>
-                          <button
-                            type="button"
-                            onClick={() => setNoticeUploadError(null)}
-                            className="ml-auto text-red-500 hover:text-red-700"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
-                      নোটিশের পূর্ণাঙ্গ বিবরণ
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      বিস্তারিত বিবরণ (বাংলায়)
                       <textarea
                         rows={2}
                         value={notice.content || ""}
                         onChange={(e) => updateNotice(index, "content", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Notice Content (English)
+                      <textarea
+                        rows={2}
+                        value={notice.contentEn || ""}
+                        onChange={(e) => updateNotice(index, "contentEn", e.target.value)}
                         className={textareaClass}
                       />
                     </label>
@@ -1722,10 +2145,10 @@ const WebsiteContentPage: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Download size={16} className="text-[#006a4e]" />
-                  <span>৭. ডাউনলোড ও একাডেমিক রুটিন ব্যবস্থাপনা</span>
+                  <span>৭. ডাউনলোড ও ক্লাস রুটিন (দ্বিভাষিক)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  ক্লাস রুটিন, সিলেবাস ও শিক্ষাপঞ্জি ডাউনলোড আইটেম।
+                  ক্লাস রুটিন, সিলেবাস ও বার্ষিক ক্যালেন্ডার বাংলা ও ইংরেজি শিরোনামে প্রকাশ করুন।
                 </p>
               </div>
 
@@ -1739,14 +2162,14 @@ const WebsiteContentPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               {(draft.downloads || []).map((item, index) => (
                 <div
                   key={item.id || index}
-                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
+                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-[#006a4e]">ডাউনলোড #{index + 1}</span>
+                    <span className="text-xs font-bold text-[#006a4e]">ফাইল #{index + 1}</span>
                     <button
                       type="button"
                       onClick={() => removeDownloadItem(index)}
@@ -1757,218 +2180,28 @@ const WebsiteContentPage: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                      ফাইলের নাম / শিরোনাম
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      শিরোনাম (বাংলায়) *
                       <input
                         type="text"
                         value={item.title}
                         onChange={(e) => updateDownloadItem(index, "title", e.target.value)}
                         className={inputClass}
+                        required
                       />
                     </label>
 
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ক্যাটাগরি
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Title (English) *
                       <input
                         type="text"
-                        value={item.category}
-                        onChange={(e) => updateDownloadItem(index, "category", e.target.value)}
+                        value={item.titleEn || ""}
+                        onChange={(e) => updateDownloadItem(index, "titleEn", e.target.value)}
+                        placeholder="e.g. Class Routine 2026 (PDF)"
                         className={inputClass}
                       />
                     </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      প্রকাশের তারিখ
-                      <input
-                        type="date"
-                        value={item.publishDate}
-                        onChange={(e) => updateDownloadItem(index, "publishDate", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <div className="sm:col-span-2 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                          <FileText size={13} className="text-[#006a4e]" />
-                          <span>ফাইল ডাউনলোড লিঙ্ক (ছবি বা পিডিএফ আপলোড)</span>
-                        </label>
-                        <span className="text-[10px] text-gray-500 font-medium">
-                          PDF, JPG, PNG, WebP (সর্বোচ্চ ১০MB)
-                        </span>
-                      </div>
-
-                      {/* Hidden File Input for this specific download item */}
-                      <input
-                        type="file"
-                        id={`download-file-input-${item.id || index}`}
-                        accept="application/pdf,image/png,image/jpeg,image/webp,image/svg+xml,.pdf,.jpg,.jpeg,.png,.webp,.svg"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleDownloadFileUpload(index, file);
-                          }
-                          e.target.value = "";
-                        }}
-                      />
-
-                      {/* File Card if file is attached and not '#' */}
-                      {item.fileUrl && item.fileUrl.trim() !== "" && item.fileUrl.trim() !== "#" ? (
-                        <div className="rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs dark:border-slate-700 dark:bg-slate-800/80">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {item.fileUrl.startsWith("data:image/") ||
-                              /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl) ? (
-                                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded border border-emerald-300 bg-gray-50 dark:border-emerald-700">
-                                  <img
-                                    src={item.fileUrl}
-                                    alt="Download file"
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                              ) : item.fileUrl.startsWith("data:application/pdf") ||
-                                /\.pdf(\?.*)?$/i.test(item.fileUrl) ? (
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-red-200 bg-red-100 text-red-700 font-bold text-[10px] shadow-2xs dark:border-red-800 dark:bg-red-950/60 dark:text-red-400">
-                                  PDF
-                                </div>
-                              ) : (
-                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-[#006a4e]">
-                                  <LinkIcon size={18} />
-                                </div>
-                              )}
-
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                                    {item.fileUrl.startsWith("data:image/") ||
-                                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl)
-                                      ? "সংযুক্ত ছবি"
-                                      : item.fileUrl.startsWith("data:application/pdf") ||
-                                        /\.pdf(\?.*)?$/i.test(item.fileUrl)
-                                      ? "সংযুক্ত পিডিএফ"
-                                      : "সংযুক্ত লিঙ্ক"}
-                                  </span>
-                                  {uploadingDownloadIndex === index && (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006a4e]">
-                                      <Loader2 size={12} className="animate-spin" />
-                                      আপলোড হচ্ছে...
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-300 max-w-[200px] sm:max-w-[300px]">
-                                  {item.fileUrl.startsWith("data:")
-                                    ? "লোকাল ফাইল ডাটা (সফলভাবে যুক্ত)"
-                                    : item.fileUrl}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              <a
-                                href={item.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
-                                title="প্রিভিউ দেখুন"
-                              >
-                                <Eye size={12} />
-                                <span>দেখুন</span>
-                              </a>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const el = document.getElementById(
-                                    `download-file-input-${item.id || index}`
-                                  ) as HTMLInputElement;
-                                  el?.click();
-                                }}
-                                disabled={uploadingDownloadIndex === index}
-                                className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a] disabled:opacity-50"
-                              >
-                                <Upload size={12} />
-                                <span>নতুন ফাইল</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => updateDownloadItem(index, "fileUrl", "")}
-                                className="inline-flex items-center gap-1 rounded bg-red-50 p-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
-                                title="ফাইল মুছুন"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <div
-                            onClick={() => {
-                              const el = document.getElementById(
-                                `download-file-input-${item.id || index}`
-                              ) as HTMLInputElement;
-                              el?.click();
-                            }}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              const file = e.dataTransfer.files?.[0];
-                              if (file) handleDownloadFileUpload(index, file);
-                            }}
-                            className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-white p-3 text-center transition hover:border-[#006a4e] hover:bg-emerald-50/40 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-[#006a4e]"
-                          >
-                            {uploadingDownloadIndex === index ? (
-                              <div className="flex items-center gap-2 py-1 text-xs font-semibold text-[#006a4e]">
-                                <Loader2 size={16} className="animate-spin" />
-                                <span>ফাইল আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</span>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-[#006a4e] transition group-hover:scale-110 dark:bg-emerald-950/60 dark:text-emerald-400">
-                                  <FileUp size={16} />
-                                </div>
-                                <div className="text-left text-xs">
-                                  <p className="font-bold text-gray-800 dark:text-gray-200">
-                                    ছবি বা পিডিএফ ফাইল আপলোড করতে ক্লিক করুন
-                                  </p>
-                                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                    বা ফাইল টেনে এনে এখানে ড্রপ করুন (PDF, JPG, PNG, WebP — সর্বোচ্চ ১০MB)
-                                  </p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] text-gray-500 shrink-0">অথবা সরাসরি লিঙ্ক দিন:</span>
-                            <input
-                              type="text"
-                              value={item.fileUrl || ""}
-                              onChange={(e) => updateDownloadItem(index, "fileUrl", e.target.value)}
-                              placeholder="https://... বা ফাইলের লিঙ্ক"
-                              className="flex-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs text-black outline-none transition focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {downloadUploadError && downloadUploadError.index === index && (
-                        <div className="flex items-center gap-1.5 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
-                          <AlertCircle size={13} className="shrink-0" />
-                          <span>{downloadUploadError.message}</span>
-                          <button
-                            type="button"
-                            onClick={() => setDownloadUploadError(null)}
-                            className="ml-auto text-red-500 hover:text-red-700"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
               ))}
@@ -1981,42 +2214,53 @@ const WebsiteContentPage: React.FC = () => {
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <BookOpen size={16} className="text-[#006a4e]" />
-              <span>৮. অনলাইন ভর্তি তথ্য ও নীতিমালা</span>
+              <span>৮. অনলাইন ভর্তি তথ্য ও নীতিমালা (দ্বিভাষিক)</span>
             </h2>
 
             <div className="mt-4 space-y-4">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                ভর্তি নির্দেশিকা ও সাধারণ নিয়মাবলি
-                <textarea
-                  rows={4}
-                  value={draft.admissionGuidelines}
-                  onChange={(e) => updateField("admissionGuidelines", e.target.value)}
-                  placeholder="মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তরের ডিজিটাল লটারির মাধ্যমে..."
-                  className={textareaClass}
-                />
-              </label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  ভর্তি নির্দেশিকা (বাংলায়)
+                  <textarea
+                    rows={4}
+                    value={draft.admissionGuidelines}
+                    onChange={(e) => updateField("admissionGuidelines", e.target.value)}
+                    className={textareaClass}
+                  />
+                </label>
 
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                শ্রেণিভিত্তিক আসন সংখ্যা বিবরণ
-                <input
-                  type="text"
-                  value={draft.admissionSeats}
-                  onChange={(e) => updateField("admissionSeats", e.target.value)}
-                  placeholder="৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন..."
-                  className={inputClass}
-                />
-              </label>
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Admission Guidelines (English)
+                  <textarea
+                    rows={4}
+                    value={draft.admissionGuidelinesEn || ""}
+                    onChange={(e) => updateField("admissionGuidelinesEn", e.target.value)}
+                    className={textareaClass}
+                  />
+                </label>
+              </div>
 
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                সরকারি অনলাইন ভর্তি পোর্টাল লিঙ্ক (GSA URL)
-                <input
-                  type="text"
-                  value={draft.admissionFormUrl}
-                  onChange={(e) => updateField("admissionFormUrl", e.target.value)}
-                  placeholder="https://gsa.teletalk.com.bd"
-                  className={inputClass}
-                />
-              </label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  শ্রেণিভিত্তিক আসন সংখ্যা (বাংলায়)
+                  <input
+                    type="text"
+                    value={draft.admissionSeats}
+                    onChange={(e) => updateField("admissionSeats", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Admission Seats (English)
+                  <input
+                    type="text"
+                    value={draft.admissionSeatsEn || ""}
+                    onChange={(e) => updateField("admissionSeatsEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
             </div>
           </section>
         )}
@@ -2028,11 +2272,8 @@ const WebsiteContentPage: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <ImageIcon size={16} className="text-[#006a4e]" />
-                  <span>৯. ফটো গ্যালারি ব্যবস্থাপনা</span>
+                  <span>৯. ফটো গ্যালারি ব্যবস্থাপনা (দ্বিভাষিক)</span>
                 </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  বিদ্যালয় ক্যাম্পাস, ল্যাব, প্রাত্যহিক সমাবেশ ও জাতীয় দিবসের ছবি।
-                </p>
               </div>
 
               <button
@@ -2065,7 +2306,7 @@ const WebsiteContentPage: React.FC = () => {
 
                   <div className="mt-3 space-y-2">
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ছবির শিরোনাম
+                      ছবির শিরোনাম (বাংলায়)
                       <input
                         type="text"
                         value={photo.title}
@@ -2074,18 +2315,19 @@ const WebsiteContentPage: React.FC = () => {
                       />
                     </label>
 
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ক্যাটাগরি
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Photo Title (English)
                       <input
                         type="text"
-                        value={photo.category}
-                        onChange={(e) => updateGalleryItem(index, "category", e.target.value)}
+                        value={photo.titleEn || ""}
+                        onChange={(e) => updateGalleryItem(index, "titleEn", e.target.value)}
+                        placeholder="e.g. Main Academic Building"
                         className={inputClass}
                       />
                     </label>
 
                     <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ছবির ইউআরএল (Image URL or Path)
+                      ছবির ইউআরএল (Image URL)
                       <input
                         type="text"
                         value={photo.imageUrl}
@@ -2103,656 +2345,55 @@ const WebsiteContentPage: React.FC = () => {
         {/* TAB 10: STUDY CORNER */}
         {activeTab === "study_co" && (
           <div className="space-y-6">
-            {/* 1. Basic Info & Banner */}
             <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
               <div className="border-b pb-3">
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <BookOpen size={16} className="text-[#006a4e]" />
-                  <span>১০.১ Study Corner — মূল তথ্য, ব্যানার ও উক্তি</span>
+                  <span>১০.১ Study Corner — মূল তথ্য ও ব্যানার (দ্বিভাষিক)</span>
                 </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Study Corner পেজের শীর্ষ ব্যানার, পরিচিতি, অনুপ্রেরণামূলক উক্তি ও সময়সূচি পরিচালনা করুন।
-                </p>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  Study Corner শিরোনাম (Title)
+                  Study Corner শিরোনাম (বাংলা)
                   <input
                     type="text"
                     value={draft.studyCornerTitle || ""}
                     onChange={(e) => updateField("studyCornerTitle", e.target.value)}
-                    placeholder="Study Corner — জ্ঞান অন্বেষণের কেন্দ্র"
                     className={inputClass}
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  সাব-টাইটেল / স্লোগান (Subtitle)
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Study Corner Title (English)
                   <input
                     type="text"
-                    value={draft.studyCornerSubtitle || ""}
-                    onChange={(e) => updateField("studyCornerSubtitle", e.target.value)}
-                    placeholder="শিক্ষার্থীদের সমৃদ্ধ মানসিক বিকাশ ও জ্ঞান আহরণের জন্য বিদ্যালয়ের বিশেষ পাঠ ও গবেষণা কেন্দ্র"
+                    value={draft.studyCornerTitleEn || ""}
+                    onChange={(e) => updateField("studyCornerTitleEn", e.target.value)}
+                    placeholder="Study Corner — Center of Knowledge & Learning"
                     className={inputClass}
                   />
                 </label>
 
-                <div className="sm:col-span-2 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <ImageIcon size={13} className="text-[#006a4e]" />
-                      <span>কভার ছবির লিঙ্ক (ছবি আপলোড বা লিঙ্ক)</span>
-                    </label>
-                    <span className="text-[10px] text-gray-500 font-medium">
-                      JPG, PNG, WebP, SVG (সর্বোচ্চ ১০MB)
-                    </span>
-                  </div>
-
-                  {/* Hidden File Input */}
-                  <input
-                    type="file"
-                    id="study-corner-image-input"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml,.jpg,.jpeg,.png,.webp,.svg"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleStudyCornerImageUpload(file);
-                      }
-                      e.target.value = "";
-                    }}
-                  />
-
-                  {/* Image Card if image is present */}
-                  {draft.studyCornerImage && draft.studyCornerImage.trim() !== "" ? (
-                    <div className="rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs dark:border-slate-700 dark:bg-slate-800/80">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded border border-emerald-300 bg-gray-50 dark:border-emerald-700">
-                            <img
-                              src={draft.studyCornerImage}
-                              alt="Study Corner Cover"
-                              className="h-full w-full object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/images/logo.png";
-                              }}
-                            />
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                                সংযুক্ত কভার ছবি
-                              </span>
-                              {uploadingStudyCornerImage && (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006a4e]">
-                                  <Loader2 size={12} className="animate-spin" />
-                                  আপলোড হচ্ছে...
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-300 max-w-[200px] sm:max-w-[320px]">
-                              {draft.studyCornerImage.startsWith("data:")
-                                ? "লোকাল ছবি ডাটা (সফলভাবে যুক্ত)"
-                                : draft.studyCornerImage}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          <a
-                            href={draft.studyCornerImage}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
-                            title="প্রিভিউ দেখুন"
-                          >
-                            <Eye size={12} />
-                            <span>দেখুন</span>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const el = document.getElementById(
-                                "study-corner-image-input"
-                              ) as HTMLInputElement;
-                              el?.click();
-                            }}
-                            disabled={uploadingStudyCornerImage}
-                            className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a] disabled:opacity-50"
-                          >
-                            <Upload size={12} />
-                            <span>নতুন ছবি</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => updateField("studyCornerImage", "")}
-                            className="inline-flex items-center gap-1 rounded bg-red-50 p-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
-                            title="ছবি মুছুন"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div
-                        onClick={() => {
-                          const el = document.getElementById(
-                            "study-corner-image-input"
-                          ) as HTMLInputElement;
-                          el?.click();
-                        }}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const file = e.dataTransfer.files?.[0];
-                          if (file) handleStudyCornerImageUpload(file);
-                        }}
-                        className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-white p-3.5 text-center transition hover:border-[#006a4e] hover:bg-emerald-50/40 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-[#006a4e]"
-                      >
-                        {uploadingStudyCornerImage ? (
-                          <div className="flex items-center gap-2 py-1 text-xs font-semibold text-[#006a4e]">
-                            <Loader2 size={16} className="animate-spin" />
-                            <span>ছবি আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-[#006a4e] transition group-hover:scale-110 dark:bg-emerald-950/60 dark:text-emerald-400">
-                              <FileUp size={18} />
-                            </div>
-                            <div className="text-left text-xs">
-                              <p className="font-bold text-gray-800 dark:text-gray-200">
-                                ছবি আপলোড করতে ক্লিক করুন
-                              </p>
-                              <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                                বা ছবি টেনে এনে এখানে ড্রপ করুন (JPG, PNG, WebP — সর্বোচ্চ ১০MB)
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="text-[11px] text-gray-500 shrink-0">অথবা সরাসরি লিঙ্ক দিন:</span>
-                    <input
-                      type="text"
-                      value={draft.studyCornerImage || ""}
-                      onChange={(e) => updateField("studyCornerImage", e.target.value)}
-                      placeholder="https://images.unsplash.com/... বা ছবির লিঙ্ক"
-                      className="flex-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs text-black outline-none transition focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                    />
-                  </div>
-
-                  {studyCornerImageError && (
-                    <div className="flex items-center gap-1.5 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
-                      <AlertCircle size={13} className="shrink-0" />
-                      <span>{studyCornerImageError}</span>
-                      <button
-                        type="button"
-                        onClick={() => setStudyCornerImageError(null)}
-                        className="ml-auto text-red-500 hover:text-red-700"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  বিস্তারিত বিবরণ (Detailed Overview)
+                  বিবরণ (বাংলায়)
                   <textarea
-                    rows={3}
+                    rows={2}
                     value={draft.studyCornerText || ""}
                     onChange={(e) => updateField("studyCornerText", e.target.value)}
-                    placeholder="বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র..."
                     className={textareaClass}
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  অনুপ্রেরণামূলক উক্তি (Quote)
-                  <input
-                    type="text"
-                    value={draft.studyCornerQuote || ""}
-                    onChange={(e) => updateField("studyCornerQuote", e.target.value)}
-                    placeholder="“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”"
-                    className={inputClass}
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                  Overview (English)
+                  <textarea
+                    rows={2}
+                    value={draft.studyCornerTextEn || ""}
+                    onChange={(e) => updateField("studyCornerTextEn", e.target.value)}
+                    className={textareaClass}
                   />
                 </label>
-
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  উক্তির বক্তা / উৎস (Quote Author / Attribution)
-                  <input
-                    type="text"
-                    value={draft.studyCornerQuoteAuthor || ""}
-                    onChange={(e) => updateField("studyCornerQuoteAuthor", e.target.value)}
-                    placeholder="Study Corner, বিদ্যালয় পাঠ কেন্দ্র"
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  খোলা থাকার দিনসমূহ (Days)
-                  <input
-                    type="text"
-                    value={draft.studyCornerDays || ""}
-                    onChange={(e) => updateField("studyCornerDays", e.target.value)}
-                    placeholder="সোমবার - শনিবার"
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  সময়সূচি (Visiting Hours)
-                  <input
-                    type="text"
-                    value={draft.studyCornerHours || ""}
-                    onChange={(e) => updateField("studyCornerHours", e.target.value)}
-                    placeholder="সকাল ৮:০০ - বিকাল ৪:০০"
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  প্রবেশ নীতি / শর্ত (Fee / Policy)
-                  <input
-                    type="text"
-                    value={draft.studyCornerFee || ""}
-                    onChange={(e) => updateField("studyCornerFee", e.target.value)}
-                    placeholder="বিনামূল্যে প্রবেশ"
-                    className={inputClass}
-                  />
-                </label>
-              </div>
-            </section>
-
-            {/* 2. Quick Highlights / Stats */}
-            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Award size={16} className="text-[#006a4e]" />
-                    <span>১০.২ ব্যানার পরিসংখ্যান (Quick Stats)</span>
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    ব্যানারে প্রদর্শিত ৪টি হাইলাইট পরিসংখ্যান (বই সংখ্যা, ই-রিসোর্স, পাঠক, আসন)।
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addStudyCornerStat}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন পরিসংখ্যান যোগ করুন</span>
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {(draft.studyCornerStats || []).map((stat, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col justify-between rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className="text-xs font-bold text-[#006a4e]">পরিসংখ্যান #{idx + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeStudyCornerStat(idx)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                      >
-                        <Trash2 size={13} />
-                        <span>মুছুন</span>
-                      </button>
-                    </div>
-
-                    <div className="mt-2.5 space-y-2">
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        লেবেল (Label)
-                        <input
-                          type="text"
-                          value={stat.label}
-                          onChange={(e) => updateStudyCornerStat(idx, "label", e.target.value)}
-                          placeholder="রেফারেন্স বই"
-                          className={inputClass}
-                        />
-                      </label>
-
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        মান (Value)
-                        <input
-                          type="text"
-                          value={stat.value}
-                          onChange={(e) => updateStudyCornerStat(idx, "value", e.target.value)}
-                          placeholder="৫০০+"
-                          className={inputClass}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* 3. Facilities / Resource Cards */}
-            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <BookMarked size={16} className="text-[#006a4e]" />
-                    <span>১০.৩ সুযোগ-সুবিধাসমূহ (Facilities & Learning Zones)</span>
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    Study Corner-এর সুবিধা ও বিশেষ জোনের কার্ডসমূহ (ডিজিটাল লাইব্রেরি, শান্ত পাঠ কক্ষ ইত্যাদি)।
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addStudyCornerResource}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন সুবিধা যোগ করুন</span>
-                </button>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {(draft.studyCornerResources || []).map((res, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <div className="flex items-center justify-between border-b pb-2">
-                      <span className="text-xs font-bold text-[#006a4e]">সুবিধা #{idx + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeStudyCornerResource(idx)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                      >
-                        <Trash2 size={13} />
-                        <span>মুছুন</span>
-                      </button>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                        সুবিধার শিরোনাম (Title)
-                        <input
-                          type="text"
-                          value={res.title}
-                          onChange={(e) => updateStudyCornerResource(idx, "title", e.target.value)}
-                          placeholder="ডিজিটাল লাইব্রেরি অ্যাক্সেস"
-                          className={inputClass}
-                        />
-                      </label>
-
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        আইকন (Icon)
-                        <select
-                          value={res.icon || "BookOpen"}
-                          onChange={(e) => updateStudyCornerResource(idx, "icon", e.target.value)}
-                          className={inputClass}
-                        >
-                          <option value="BookOpen">BookOpen (বই)</option>
-                          <option value="BookMarked">BookMarked (বুকমার্ক)</option>
-                          <option value="Users">Users (গ্রুপ)</option>
-                          <option value="Monitor">Monitor (কম্পিউটার)</option>
-                          <option value="Award">Award (পুরস্কার)</option>
-                          <option value="Lightbulb">Lightbulb (আইডিয়া)</option>
-                          <option value="Clock">Clock (সময়)</option>
-                          <option value="Wifi">Wifi (ইন্টারনেট)</option>
-                          <option value="Star">Star (তারা)</option>
-                        </select>
-                      </label>
-
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-3">
-                        বিবরণ (Description)
-                        <input
-                          type="text"
-                          value={res.description}
-                          onChange={(e) => updateStudyCornerResource(idx, "description", e.target.value)}
-                          placeholder="মুক্তপাঠ ও শিক্ষা বাতায়নের ই-বুক ও ভিডিও লেকচার"
-                          className={inputClass}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* 4. Book Catalogue Management */}
-            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <BookOpen size={16} className="text-[#006a4e]" />
-                      <span>১০.৪ পাঠাগারের বই ক্যাটালগ (Book Catalogue)</span>
-                    </h2>
-                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                      মোট {(draft.studyCornerBooks || []).length} টি বই
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    শিক্ষার্থীদের জন্য পাঠাগারে রক্ষিত বইয়ের তালিকা, লেখক ও বিষয়ভিত্তিক ক্যাটাগরি পরিচালনা করুন।
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addStudyCornerBook}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন বই যোগ করুন</span>
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(draft.studyCornerBooks || []).map((book, idx) => (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-1 gap-2.5 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 sm:grid-cols-[2fr_1.5fr_1.2fr_auto] sm:items-center dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      বইয়ের নাম (Book Title)
-                      <input
-                        type="text"
-                        value={book.title}
-                        onChange={(e) => updateStudyCornerBook(idx, "title", e.target.value)}
-                        placeholder="বইয়ের নাম লিখুন..."
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      লেখক / সংকলক (Author)
-                      <input
-                        type="text"
-                        value={book.author}
-                        onChange={(e) => updateStudyCornerBook(idx, "author", e.target.value)}
-                        placeholder="লেখকের নাম..."
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ক্যাটাগরি (Category)
-                      <input
-                        type="text"
-                        list="study-book-categories"
-                        value={book.category}
-                        onChange={(e) => updateStudyCornerBook(idx, "category", e.target.value)}
-                        placeholder="যেমন: গণিত, বিজ্ঞান..."
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => removeStudyCornerBook(idx)}
-                      title="বই মুছুন"
-                      aria-label="বই মুছুন"
-                      className="mt-4 sm:mt-5 flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
-
-                <datalist id="study-book-categories">
-                  <option value="গণিত" />
-                  <option value="বিজ্ঞান" />
-                  <option value="সাহিত্য" />
-                  <option value="ইংরেজি" />
-                  <option value="ইতিহাস" />
-                  <option value="পদার্থবিজ্ঞান" />
-                  <option value="রসায়ন" />
-                  <option value="তথ্যপ্রযুক্তি" />
-                  <option value="সাধারণ জ্ঞান" />
-                  <option value="জীববিজ্ঞান" />
-                  <option value="বাংলাদেশ স্টাডিজ" />
-                </datalist>
-              </div>
-            </section>
-
-            {/* 5. Digital Resources Links */}
-            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Monitor size={16} className="text-[#006a4e]" />
-                    <span>১০.৫ ডিজিটাল শিক্ষা রিসোর্স ও পোর্টাল লিঙ্ক</span>
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    মুক্তপাঠ, শিক্ষা বাতায়ন, এনসিটিবি বা খান একাডেমির মত ই-লার্নিং পোর্টাল লিঙ্ক।
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addStudyCornerLink}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন রিসোর্স লিঙ্ক যোগ করুন</span>
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(draft.studyCornerLinks || []).map((link, idx) => (
-                  <div
-                    key={idx}
-                    className="grid grid-cols-1 gap-2.5 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 sm:grid-cols-[1.5fr_1.5fr_2fr_auto] sm:items-center dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      পোর্টাল / রিসোর্স নাম
-                      <input
-                        type="text"
-                        value={link.name}
-                        onChange={(e) => updateStudyCornerLink(idx, "name", e.target.value)}
-                        placeholder="মুক্তপাঠ (ই-লার্নিং)"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ওয়েবসাইট লিঙ্ক (URL)
-                      <input
-                        type="text"
-                        value={link.url}
-                        onChange={(e) => updateStudyCornerLink(idx, "url", e.target.value)}
-                        placeholder="https://..."
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      সংক্ষিপ্ত বিবরণ
-                      <input
-                        type="text"
-                        value={link.desc}
-                        onChange={(e) => updateStudyCornerLink(idx, "desc", e.target.value)}
-                        placeholder="সরকারি ই-বুক ও ভিডিও কোর্স"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => removeStudyCornerLink(idx)}
-                      title="লিঙ্ক মুছুন"
-                      aria-label="লিঙ্ক মুছুন"
-                      className="mt-4 sm:mt-5 flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* 6. Study Tips */}
-            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-                <div>
-                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Lightbulb size={16} className="text-[#006a4e]" />
-                    <span>১০.৬ কার্যকর অধ্যয়নের টিপস ও কৌশল (Study Tips)</span>
-                  </h2>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    শিক্ষার্থীদের জন্য অনুপ্রেরণামূলক ও কার্যকর অধ্যয়নের কৌশল পরিচালনা করুন।
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={addStudyCornerTip}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন টিপস যোগ করুন</span>
-                </button>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {(draft.studyCornerTips || []).map((tipItem, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-[#fbfdfc] p-3 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#006a4e]/10 text-xs font-bold text-[#006a4e]">
-                      {idx + 1}
-                    </span>
-                    <input
-                      type="text"
-                      value={tipItem.tip}
-                      onChange={(e) => updateStudyCornerTip(idx, e.target.value)}
-                      placeholder="যেমন: প্রতিদিন কমপক্ষে ৩০ মিনিট বই পড়ার অভ্যাস গড়ে তোলো..."
-                      className={inputClass + " mt-0 flex-1"}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeStudyCornerTip(idx)}
-                      title="টিপস মুছুন"
-                      aria-label="টিপস মুছুন"
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                ))}
               </div>
             </section>
           </div>
@@ -2765,11 +2406,8 @@ const WebsiteContentPage: React.FC = () => {
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <LinkIcon size={16} className="text-[#006a4e]" />
-                  <span>১১. সরকারি ও প্রয়োজনীয় লিঙ্কসমূহ</span>
+                  <span>১১. সরকারি ও প্রয়োজনীয় লিঙ্কসমূহ (দ্বিভাষিক)</span>
                 </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  শিক্ষা মন্ত্রণালয়, মাউশি, শিক্ষা বোর্ড ও অন্যান্য সরকারি বাতায়ন লিঙ্ক।
-                </p>
               </div>
 
               <button
@@ -2786,14 +2424,25 @@ const WebsiteContentPage: React.FC = () => {
               {draft.quickLinks.map((link, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-gray-200 p-3 sm:grid-cols-[1fr_1fr_auto] dark:border-slate-700"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-gray-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] dark:border-slate-700"
                 >
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    লিঙ্কের শিরোনাম
+                    লিঙ্কের শিরোনাম (বাংলা)
                     <input
                       type="text"
                       value={link.label}
                       onChange={(e) => updateQuickLink(index, "label", e.target.value)}
+                      className={inputClass}
+                    />
+                  </label>
+
+                  <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                    Label (English)
+                    <input
+                      type="text"
+                      value={link.labelEn || ""}
+                      onChange={(e) => updateQuickLink(index, "labelEn", e.target.value)}
+                      placeholder="e.g. Ministry of Education"
                       className={inputClass}
                     />
                   </label>
@@ -2846,14 +2495,26 @@ const WebsiteContentPage: React.FC = () => {
             </a>
           </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-[#006a4e] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-[#00503a] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <Save size={15} />
-            <span>{saving ? "সংরক্ষণ ও প্রকাশ হচ্ছে..." : "সংরক্ষণ ও প্রকাশ করুন (Save & Publish)"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={translating}
+              onClick={() => handleAutoTranslateAll("en")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-4 py-2.5 text-xs font-bold text-[#006a4e] hover:bg-emerald-100"
+            >
+              <Sparkles size={14} />
+              <span>ইংরেজি অনুবাদ সিঙ্ক</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-[#006a4e] px-6 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-[#00503a] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save size={15} />
+              <span>{saving ? "সংরক্ষণ ও প্রকাশ হচ্ছে..." : "সংরক্ষণ ও প্রকাশ করুন (Save & Publish)"}</span>
+            </button>
+          </div>
         </footer>
       </form>
     </div>

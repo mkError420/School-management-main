@@ -18,12 +18,18 @@ import { BdGovEmblem } from "@/components/government/GovtEmblem";
 import type { SchoolNotice } from "@/types/site";
 
 export const NoticesPage: React.FC = () => {
-  const { websiteContent: content } = useSiteSettings();
+  const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
   const [activeCategory, setActiveCategory] = useState<string>("সকল");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
 
-  const categories = ["সকল", "ভর্তি", "পরীক্ষা", "একাডেমিক", "সাধারণ"];
+  const categories = [
+    { key: "সকল", labelBn: "সকল", labelEn: "All" },
+    { key: "ভর্তি", labelBn: "ভর্তি", labelEn: "Admission" },
+    { key: "পরীক্ষা", labelBn: "পরীক্ষা", labelEn: "Exam" },
+    { key: "একাডেমিক", labelBn: "একাডেমিক", labelEn: "Academic" },
+    { key: "সাধারণ", labelBn: "সাধারণ", labelEn: "General" },
+  ];
 
   const filteredNotices = useMemo(() => {
     const list = Array.isArray(content.notices) ? content.notices : [];
@@ -31,14 +37,17 @@ export const NoticesPage: React.FC = () => {
       const matchCat =
         activeCategory === "সকল" ||
         item.category?.toLowerCase() === activeCategory.toLowerCase() ||
-        (activeCategory === "ভর্তি" && (item.category?.includes("ভর্তি") || item.category?.toLowerCase().includes("admission"))) ||
-        (activeCategory === "পরীক্ষা" && (item.category?.includes("পরীক্ষা") || item.category?.toLowerCase().includes("exam"))) ||
-        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.category?.toLowerCase().includes("academic")));
+        (activeCategory === "ভর্তি" && (item.category?.includes("ভর্তি") || item.category?.toLowerCase().includes("admission") || item.categoryEn?.toLowerCase().includes("admission"))) ||
+        (activeCategory === "পরীক্ষা" && (item.category?.includes("পরীক্ষা") || item.category?.toLowerCase().includes("exam") || item.categoryEn?.toLowerCase().includes("exam"))) ||
+        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.category?.toLowerCase().includes("academic") || item.categoryEn?.toLowerCase().includes("academic")));
 
+      const search = searchTerm.trim().toLowerCase();
       const matchSearch =
-        !searchTerm.trim() ||
-        item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.content?.toLowerCase().includes(searchTerm.toLowerCase());
+        !search ||
+        item.title?.toLowerCase().includes(search) ||
+        item.titleEn?.toLowerCase().includes(search) ||
+        item.content?.toLowerCase().includes(search) ||
+        item.contentEn?.toLowerCase().includes(search);
       return matchCat && matchSearch;
     });
   }, [content.notices, activeCategory, searchTerm]);
@@ -49,20 +58,25 @@ export const NoticesPage: React.FC = () => {
       <nav className="flex items-center gap-2 text-xs font-semibold text-gray-500">
         <Link to="/" className="flex items-center gap-1 hover:text-[#006a4e]">
           <Home size={14} />
-          <span>হোম</span>
+          <span>{t("হোম", "Home")}</span>
         </Link>
         <span>/</span>
-        <span className="text-[#006a4e]">নোটিশ বোর্ড</span>
+        <span className="text-[#006a4e]">{t("নোটিশ বোর্ড", "Notice Board")}</span>
       </nav>
 
       {/* Page Header */}
       <div className="rounded-lg border border-[#cbe0d3] bg-[#004d38] p-6 text-white shadow-md sm:p-8">
         <span className="rounded bg-[#da291c] px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
-          প্রাতিষ্ঠানিক ঘোষণা
+          {t("প্রাতিষ্ঠানিক ঘোষণা", "Institutional Announcements")}
         </span>
-        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">বিদ্যালয় নোটিশ বোর্ড</h2>
+        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+          {t("বিদ্যালয় নোটিশ বোর্ড", "School Notice Board")}
+        </h2>
         <p className="mt-1 text-xs text-emerald-200 sm:text-sm">
-          ভর্তি, পরীক্ষা, ছুটির তালিকা ও দাপ্তরিক নোটিশের কেন্দ্রীয় সংরক্ষণাগার
+          {t(
+            "ভর্তি, পরীক্ষা, ছুটির তালিকা ও দাপ্তরিক নোটিশের কেন্দ্রীয় সংরক্ষণাগার",
+            "Central repository of admissions, exams, holidays, and official directives"
+          )}
         </p>
       </div>
 
@@ -71,16 +85,16 @@ export const NoticesPage: React.FC = () => {
         <div className="flex flex-wrap gap-2">
           {categories.map((cat) => (
             <button
-              key={cat}
+              key={cat.key}
               type="button"
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveCategory(cat.key)}
               className={`rounded-md px-3.5 py-1.5 text-xs font-bold transition ${
-                activeCategory === cat
+                activeCategory === cat.key
                   ? "bg-[#006a4e] text-white shadow-xs"
                   : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
               }`}
             >
-              {cat}
+              {t(cat.labelBn, cat.labelEn)}
             </button>
           ))}
         </div>
@@ -90,7 +104,7 @@ export const NoticesPage: React.FC = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="নোটিশ খুঁজুন..."
+            placeholder={t("নোটিশ খুঁজুন...", "Search notices...")}
             className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-2 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white"
           />
           <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -102,7 +116,7 @@ export const NoticesPage: React.FC = () => {
         {filteredNotices.map((notice, index) => {
           const noticeDate = notice.date ? new Date(notice.date) : new Date();
           const day = noticeDate.getDate();
-          const month = noticeDate.toLocaleDateString("bn-BD", { month: "short" });
+          const month = noticeDate.toLocaleDateString(lang === "en" ? "en-US" : "bn-BD", { month: "short" });
           const year = noticeDate.getFullYear();
 
           return (
@@ -112,17 +126,19 @@ export const NoticesPage: React.FC = () => {
             >
               <div className="flex items-start gap-4">
                 <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs">
-                  <span className="text-lg font-bold leading-none">{day}</span>
+                  <span className="text-lg font-bold leading-none">{formatDigits(day)}</span>
                   <span className="mt-0.5 text-xs font-semibold uppercase">{month}</span>
-                  <span className="text-[10px] text-emerald-200">{year}</span>
+                  <span className="text-[10px] text-emerald-200">{formatDigits(year)}</span>
                 </div>
 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
-                      {notice.category || "সাধারণ"}
+                      {t(notice.category, notice.categoryEn) || t("সাধারণ", "General")}
                     </span>
-                    <span className="text-xs text-gray-500">তারিখ: {notice.date}</span>
+                    <span className="text-xs text-gray-500">
+                      {t("তারিখ:", "Date:")} {formatDigits(notice.date)}
+                    </span>
 
                     {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
                       <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
@@ -135,28 +151,28 @@ export const NoticesPage: React.FC = () => {
                         {notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl) ? (
                           <>
                             <FileText size={11} className="text-red-600" />
-                            <span>পিডিএফ সংযুক্ত</span>
+                            <span>{t("পিডিএফ সংযুক্ত", "PDF Attached")}</span>
                           </>
                         ) : notice.fileUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl) ? (
                           <>
                             <ImageIcon size={11} className="text-[#006a4e]" />
-                            <span>ছবি সংযুক্ত</span>
+                            <span>{t("ছবি সংযুক্ত", "Image Attached")}</span>
                           </>
                         ) : (
                           <>
                             <ExternalLink size={11} className="text-blue-600" />
-                            <span>ফাইল সংযুক্ত</span>
+                            <span>{t("ফাইল সংযুক্ত", "File Attached")}</span>
                           </>
                         )}
                       </span>
                     )}
                   </div>
                   <h3 className="mt-1.5 text-sm font-bold text-gray-900 sm:text-base group-hover:text-[#006a4e] transition">
-                    {notice.title}
+                    {t(notice.title, notice.titleEn)}
                   </h3>
-                  {notice.content && (
+                  {(notice.content || notice.contentEn) && (
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-gray-600">
-                      {notice.content}
+                      {t(notice.content, notice.contentEn)}
                     </p>
                   )}
                 </div>
@@ -169,7 +185,7 @@ export const NoticesPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 rounded bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
                 >
                   <Eye size={14} />
-                  <span>বিস্তারিত পড়ুন</span>
+                  <span>{t("বিস্তারিত পড়ুন", "View Details")}</span>
                 </button>
               </div>
             </article>
@@ -178,7 +194,7 @@ export const NoticesPage: React.FC = () => {
 
         {filteredNotices.length === 0 && (
           <div className="rounded-md border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
-            কোনো নোটিশ পাওয়া যায়নি।
+            {t("কোনো নোটিশ পাওয়া যায়নি।", "No notices found.")}
           </div>
         )}
       </div>
@@ -196,16 +212,18 @@ export const NoticesPage: React.FC = () => {
                 <BdGovEmblem size={24} />
                 <div>
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
-                    {selectedNotice.category || "নোটিশ"}
+                    {t(selectedNotice.category, selectedNotice.categoryEn) || t("নোটিশ", "Notice")}
                   </span>
-                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">সরকারি নোটিশ পত্র</h3>
+                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">
+                    {t("সরকারি নোটিশ পত্র", "Official Notice Document")}
+                  </h3>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedNotice(null)}
                 className="rounded p-1 text-white hover:bg-white/20"
-                aria-label="বন্ধ করুন"
+                aria-label="Close"
               >
                 <X size={20} />
               </button>
@@ -213,13 +231,20 @@ export const NoticesPage: React.FC = () => {
 
             <div className="p-6">
               <div className="border-b border-gray-100 pb-3">
-                <p className="text-xs text-gray-500">তারিখ: {selectedNotice.date || "২০২৬-১০-১৫"}</p>
-                <h4 className="mt-1 text-lg font-bold text-gray-900">{selectedNotice.title}</h4>
+                <p className="text-xs text-gray-500">
+                  {t("তারিখ:", "Date:")} {formatDigits(selectedNotice.date || "2026-10-15")}
+                </p>
+                <h4 className="mt-1 text-lg font-bold text-gray-900">
+                  {t(selectedNotice.title, selectedNotice.titleEn)}
+                </h4>
               </div>
 
               <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-gray-800">
-                {selectedNotice.content ||
-                  "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।"}
+                {t(selectedNotice.content, selectedNotice.contentEn) ||
+                  t(
+                    "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।",
+                    "All teachers, students, and guardians are hereby notified to adhere to this directive. For further inquiries, please contact the school office."
+                  )}
               </div>
 
               {/* Attachment Display (Image or PDF) */}
@@ -231,7 +256,7 @@ export const NoticesPage: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
                           <ImageIcon size={14} />
-                          <span>সংযুক্ত নোটিশ পত্র (ছবি):</span>
+                          <span>{t("সংযুক্ত নোটিশ পত্র (ছবি):", "Attached Notice Document (Image):")}</span>
                         </span>
                         <a
                           href={selectedNotice.fileUrl}
@@ -241,13 +266,13 @@ export const NoticesPage: React.FC = () => {
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
                         >
                           <Download size={12} />
-                          <span>ডাউনলোড করুন</span>
+                          <span>{t("ডাউনলোড করুন", "Download")}</span>
                         </a>
                       </div>
                       <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
                         <img
                           src={selectedNotice.fileUrl}
-                          alt={selectedNotice.title}
+                          alt={t(selectedNotice.title, selectedNotice.titleEn)}
                           className="max-h-[380px] w-full object-contain bg-gray-50 p-1"
                         />
                       </div>
@@ -262,10 +287,13 @@ export const NoticesPage: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-900">
-                              অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)
+                              {t("অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)", "Official Notice Document (PDF)")}
                             </p>
                             <p className="text-[11px] text-gray-600">
-                              মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন
+                              {t(
+                                "মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন",
+                                "Click the button below to view or download the official PDF notice file"
+                              )}
                             </p>
                           </div>
                         </div>
@@ -277,7 +305,7 @@ export const NoticesPage: React.FC = () => {
                           className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
                         >
                           <FileText size={14} />
-                          <span>পিডিএফ দেখুন ও ডাউনলোড</span>
+                          <span>{t("পিডিএফ দেখুন ও ডাউনলোড", "View & Download PDF")}</span>
                         </a>
                       </div>
                     </div>
@@ -285,7 +313,7 @@ export const NoticesPage: React.FC = () => {
                     <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-xs text-gray-800">
                         <ExternalLink size={14} className="text-blue-600 shrink-0" />
-                        <span>সংযুক্ত ফাইল বা ওয়েব লিঙ্ক</span>
+                        <span>{t("সংযুক্ত ফাইল বা ওয়েব লিঙ্ক", "Attached File or Link")}</span>
                       </div>
                       <a
                         href={selectedNotice.fileUrl}
@@ -294,7 +322,7 @@ export const NoticesPage: React.FC = () => {
                         className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
                       >
                         <Download size={13} />
-                        <span>ফাইল খুলুন</span>
+                        <span>{t("ফাইল খুলুন", "Open File")}</span>
                       </a>
                     </div>
                   )}
@@ -303,9 +331,13 @@ export const NoticesPage: React.FC = () => {
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-xs">
                 <div>
-                  <p className="font-semibold text-gray-800">আদেশক্রমে,</p>
-                  <p className="font-bold text-[#006a4e]">{content.principalName || "প্রধান শিক্ষক"}</p>
-                  <p className="text-[11px] text-gray-500">{content.schoolNameBn || content.schoolName}</p>
+                  <p className="font-semibold text-gray-800">{t("আদেশক্রমে,", "By Order,")}</p>
+                  <p className="font-bold text-[#006a4e]">
+                    {t(content.principalName, content.principalNameEn) || t("প্রধান শিক্ষক", "Principal")}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    {lang === "en" ? content.schoolName : (content.schoolNameBn || content.schoolName)}
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -315,14 +347,14 @@ export const NoticesPage: React.FC = () => {
                     className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
                   >
                     <Printer size={13} />
-                    <span>প্রিন্ট করুন</span>
+                    <span>{t("প্রিন্ট করুন", "Print")}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedNotice(null)}
                     className="rounded bg-[#006a4e] px-4 py-1.5 font-bold text-white hover:bg-[#00503a]"
                   >
-                    ঠিক আছে
+                    {t("ঠিক আছে", "Close")}
                   </button>
                 </div>
               </div>

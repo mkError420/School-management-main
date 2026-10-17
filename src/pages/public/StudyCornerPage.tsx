@@ -30,50 +30,50 @@ const RESOURCE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const DEFAULT_STATS = [
-  { label: "রেফারেন্স বই", value: "৫০০+" },
-  { label: "ই-রিসোর্স", value: "১০০+" },
-  { label: "দৈনিক পাঠক", value: "৮০+" },
-  { label: "আসন", value: "৪০" },
+  { label: "রেফারেন্স বই", labelEn: "Reference Books", value: "৫০০+", valueEn: "500+" },
+  { label: "ই-রিসোর্স", labelEn: "E-Resources", value: "১০০+", valueEn: "100+" },
+  { label: "দৈনিক পাঠক", labelEn: "Daily Readers", value: "৮০+", valueEn: "80+" },
+  { label: "আসন", labelEn: "Seats", value: "৪০", valueEn: "40" },
 ];
 
 const DEFAULT_BOOKS = [
-  { title: "Algebra & Higher Mathematics", author: "S.L. Loney", category: "গণিত" },
-  { title: "General Science Encyclopedia", author: "Various Authors", category: "বিজ্ঞান" },
-  { title: "বাংলা সাহিত্য সমগ্র", author: "রবীন্দ্রনাথ ঠাকুর", category: "সাহিত্য" },
-  { title: "English Grammar & Composition", author: "Wren & Martin", category: "ইংরেজি" },
-  { title: "বাংলাদেশের ইতিহাস ও সংস্কৃতি", author: "ড. মুহম্মদ কুদরাত-এ-খুদা", category: "ইতিহাস" },
-  { title: "Physics for Class 9-10", author: "NCTB", category: "পদার্থবিজ্ঞান" },
-  { title: "Chemistry Practical Guide", author: "Prof. Md. Abdur Rahim", category: "রসায়ন" },
-  { title: "Computer Science & ICT", author: "Digital Bangladesh Series", category: "তথ্যপ্রযুক্তি" },
+  { title: "Algebra & Higher Mathematics", titleEn: "Algebra & Higher Mathematics", author: "S.L. Loney", authorEn: "S.L. Loney", category: "গণিত", categoryEn: "Mathematics" },
+  { title: "General Science Encyclopedia", titleEn: "General Science Encyclopedia", author: "Various Authors", authorEn: "Various Authors", category: "বিজ্ঞান", categoryEn: "Science" },
+  { title: "বাংলা সাহিত্য সমগ্র", titleEn: "Collected Bengali Literature", author: "রবীন্দ্রনাথ ঠাকুর", authorEn: "Rabindranath Tagore", category: "সাহিত্য", categoryEn: "Literature" },
+  { title: "English Grammar & Composition", titleEn: "English Grammar & Composition", author: "Wren & Martin", authorEn: "Wren & Martin", category: "ইংরেজি", categoryEn: "English" },
+  { title: "বাংলাদেশের ইতিহাস ও সংস্কৃতি", titleEn: "History & Culture of Bangladesh", author: "ড. মুহম্মদ কুদরাত-এ-খুদা", authorEn: "Dr. Muhammad Qudrat-i-Khuda", category: "ইতিহাস", categoryEn: "History" },
+  { title: "Physics for Class 9-10", titleEn: "Physics for Class 9-10", author: "NCTB", authorEn: "NCTB", category: "পদার্থবিজ্ঞান", categoryEn: "Physics" },
+  { title: "Chemistry Practical Guide", titleEn: "Chemistry Practical Guide", author: "Prof. Md. Abdur Rahim", authorEn: "Prof. Md. Abdur Rahim", category: "রসায়ন", categoryEn: "Chemistry" },
+  { title: "Computer Science & ICT", titleEn: "Computer Science & ICT", author: "Digital Bangladesh Series", authorEn: "Digital Bangladesh Series", category: "তথ্যপ্রযুক্তি", categoryEn: "ICT" },
 ];
 
 const DEFAULT_RESOURCES = [
-  { title: "ডিজিটাল লাইব্রেরি অ্যাক্সেস", description: "মুক্তপাঠ ও শিক্ষা বাতায়নের ই-বুক ও ভিডিও লেকচার", icon: "BookOpen" },
-  { title: "শান্ত পাঠ কক্ষ", description: "শিক্ষার্থীদের নিরিবিলি স্ব-অধ্যয়নের জন্য বিশেষ কক্ষ", icon: "BookMarked" },
-  { title: "গ্রুপ স্টাডি জোন", description: "দলগত আলোচনা ও প্রজেক্ট ওয়ার্কের জন্য উন্মুক্ত এলাকা", icon: "Users" },
-  { title: "কম্পিউটার রিসার্চ ডেস্ক", description: "ইন্টারনেটসহ কম্পিউটার ব্যবহারের সুবিধা", icon: "Monitor" },
+  { title: "ডিজিটাল লাইব্রেরি অ্যাক্সেস", titleEn: "Digital Library Access", description: "মুক্তপাঠ ও শিক্ষা বাতায়নের ই-বুক ও ভিডিও লেকচার", descriptionEn: "E-books & video lectures via Muktopaath & Teachers Portal", icon: "BookOpen" },
+  { title: "শান্ত পাঠ কক্ষ", titleEn: "Quiet Reading Room", description: "শিক্ষার্থীদের নিরিবিলি স্ব-অধ্যয়নের জন্য বিশেষ কক্ষ", descriptionEn: "Specialized silent room for uninterrupted self-study", icon: "BookMarked" },
+  { title: "গ্রুপ স্টাডি জোন", titleEn: "Group Study Zone", description: "দলগত আলোচনা ও প্রজেক্ট ওয়ার্কের জন্য উন্মুক্ত এলাকা", descriptionEn: "Open area for group discussion & team projects", icon: "Users" },
+  { title: "কম্পিউটার রিসার্চ ডেস্ক", titleEn: "Computer Research Desk", description: "ইন্টারনেটসহ কম্পিউটার ব্যবহারের সুবিধা", descriptionEn: "Computer and high-speed internet access", icon: "Monitor" },
 ];
 
 const DEFAULT_LINKS = [
-  { name: "মুক্তপাঠ (ই-লার্নিং প্লাটফর্ম)", url: "https://muktopaath.gov.bd", desc: "সরকারি ই-বুক ও ভিডিও কোর্স" },
-  { name: "শিক্ষা বাতায়ন (Teachers Portal)", url: "https://teachers.gov.bd", desc: "শিক্ষক ও শিক্ষার্থীদের জন্য ডিজিটাল কন্টেন্ট" },
-  { name: "NCTB ডিজিটাল পাঠ্যপুস্তক", url: "https://nctb.gov.bd", desc: "জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড" },
-  { name: "Khan Academy (বাংলা)", url: "https://bn.khanacademy.org", desc: "বিনামূল্যে গণিত ও বিজ্ঞান শিক্ষা" },
+  { name: "মুক্তপাঠ (ই-লার্নিং প্লাটফর্ম)", nameEn: "Muktopaath (E-Learning Platform)", url: "https://muktopaath.gov.bd", desc: "সরকারি ই-বুক ও ভিডিও কোর্স", descEn: "Official government e-books & video courses" },
+  { name: "শিক্ষা বাতায়ন (Teachers Portal)", nameEn: "Teachers Portal (Shikkhok Batayan)", url: "https://teachers.gov.bd", desc: "শিক্ষক ও শিক্ষার্থীদের জন্য ডিজিটাল কন্টেন্ট", descEn: "Digital learning content for teachers and students" },
+  { name: "NCTB ডিজিটাল পাঠ্যপুস্তক", nameEn: "NCTB Digital Textbooks", url: "https://nctb.gov.bd", desc: "জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড", descEn: "National Curriculum & Textbook Board Portal" },
+  { name: "Khan Academy (বাংলা)", nameEn: "Khan Academy (Bangla)", url: "https://bn.khanacademy.org", desc: "বিনামূল্যে গণিত ও বিজ্ঞান শিক্ষা", descEn: "Free mathematics & science education" },
 ];
 
 const DEFAULT_TIPS = [
-  { tip: "প্রতিদিন কমপক্ষে ৩০ মিনিট বই পড়ার অভ্যাস গড়ে তোলো।" },
-  { tip: "কঠিন বিষয়গুলো নোট করে রাখো এবং বারবার রিভিশন দাও।" },
-  { tip: "গ্রুপ স্টাডিতে অংশ নাও — অন্যকে শেখালে নিজেও শেখা যায়।" },
-  { tip: "ডিজিটাল রিসোর্স ব্যবহার করো — মুক্তপাঠ ও শিক্ষা বাতায়ন অন্বেষণ করো।" },
+  { tip: "প্রতিদিন কমপক্ষে ৩০ মিনিট বই পড়ার অভ্যাস গড়ে তোলো।", tipEn: "Cultivate the habit of reading for at least 30 minutes every day." },
+  { tip: "কঠিন বিষয়গুলো নোট করে রাখো এবং বারবার রিভিশন দাও।", tipEn: "Take notes on difficult topics and revise them regularly." },
+  { tip: "গ্রুপ স্টাডিতে অংশ নাও — অন্যকে শেখালে নিজেও শেখা যায়।", tipEn: "Participate in group study — teaching others deepens your own understanding." },
+  { tip: "ডিজিটাল রিসোর্স ব্যবহার করো — মুক্তপাঠ ও শিক্ষা বাতায়ন অন্বেষণ করো।", tipEn: "Utilize digital tools — explore Muktopaath and Teachers Portal." },
 ];
 
 const TIP_ICONS = [Clock, Lightbulb, Users, Wifi, Award, Star];
 
 export const StudyCornerPage: React.FC = () => {
-  const { websiteContent: content } = useSiteSettings();
+  const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
   const [bookSearch, setBookSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("সকল");
+  const [selectedCategory, setSelectedCategory] = useState<string>("সকল");
 
   const books = content.studyCornerBooks?.length ? content.studyCornerBooks : DEFAULT_BOOKS;
   const resources = content.studyCornerResources?.length ? content.studyCornerResources : DEFAULT_RESOURCES;
@@ -85,23 +85,30 @@ export const StudyCornerPage: React.FC = () => {
   const categories = useMemo(() => {
     const set = new Set<string>();
     books.forEach((b) => {
-      if (b.category && b.category.trim()) {
-        set.add(b.category.trim());
+      const cat = lang === "en" ? (b.categoryEn || b.category) : b.category;
+      if (cat && cat.trim()) {
+        set.add(cat.trim());
       }
     });
-    return ["সকল", ...Array.from(set)];
-  }, [books]);
+    return [lang === "en" ? "All" : "সকল", ...Array.from(set)];
+  }, [books, lang]);
 
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
-      const matchCat = selectedCategory === "সকল" || book.category === selectedCategory;
+      const catCurrent = lang === "en" ? (book.categoryEn || book.category) : book.category;
+      const allKey = lang === "en" ? "All" : "সকল";
+      const matchCat = selectedCategory === allKey || selectedCategory === "সকল" || selectedCategory === "All" || catCurrent === selectedCategory || book.category === selectedCategory || (book.categoryEn || "") === selectedCategory;
+
+      const q = bookSearch.trim().toLowerCase();
       const matchSearch =
-        !bookSearch.trim() ||
-        book.title.toLowerCase().includes(bookSearch.toLowerCase()) ||
-        book.author.toLowerCase().includes(bookSearch.toLowerCase());
+        !q ||
+        book.title?.toLowerCase().includes(q) ||
+        book.titleEn?.toLowerCase().includes(q) ||
+        book.author?.toLowerCase().includes(q) ||
+        book.authorEn?.toLowerCase().includes(q);
       return matchCat && matchSearch;
     });
-  }, [books, selectedCategory, bookSearch]);
+  }, [books, selectedCategory, bookSearch, lang]);
 
   return (
     <div className="space-y-8 font-sans">
@@ -109,10 +116,10 @@ export const StudyCornerPage: React.FC = () => {
       <nav className="flex items-center gap-2 text-xs font-semibold text-gray-500">
         <Link to="/" className="flex items-center gap-1 hover:text-[#006a4e]">
           <Home size={14} />
-          <span>হোম</span>
+          <span>{t("হোম", "Home")}</span>
         </Link>
         <span>/</span>
-        <span className="text-[#006a4e]">Study Corner</span>
+        <span className="text-[#006a4e]">{t("স্টাডি কর্নার", "Study Corner")}</span>
       </nav>
 
       {/* Page Header Banner */}
@@ -120,14 +127,17 @@ export const StudyCornerPage: React.FC = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <span className="rounded bg-[#eab308] px-2.5 py-1 text-xs font-bold text-gray-950">
-              পাঠ ও গবেষণা কেন্দ্র
+              {t("পাঠ ও গবেষণা কেন্দ্র", "Study & Research Center")}
             </span>
             <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-              {content.studyCornerTitle || "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র"}
+              {t(content.studyCornerTitle, content.studyCornerTitleEn) || t("Study Corner — জ্ঞান অন্বেষণের কেন্দ্র", "Study Corner — Center for Knowledge Exploration")}
             </h2>
             <p className="mt-1 text-xs text-emerald-200 sm:text-sm">
-              {content.studyCornerSubtitle ||
-                "শিক্ষার্থীদের সমৃদ্ধ মানসিক বিকাশ ও জ্ঞান আহরণের জন্য বিদ্যালয়ের বিশেষ পাঠ ও গবেষণা কেন্দ্র"}
+              {t(content.studyCornerSubtitle, content.studyCornerSubtitleEn) ||
+                t(
+                  "শিক্ষার্থীদের সমৃদ্ধ মানসিক বিকাশ ও জ্ঞান আহরণের জন্য বিদ্যালয়ের বিশেষ পাঠ ও গবেষণা কেন্দ্র",
+                  "Dedicated study and research center for student enrichment and cognitive growth"
+                )}
             </p>
           </div>
 
@@ -136,8 +146,8 @@ export const StudyCornerPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {stats.map((s, i) => (
                 <div key={i} className="rounded-md bg-white/15 p-2 text-center backdrop-blur-xs">
-                  <p className="text-lg font-extrabold">{s.value}</p>
-                  <p className="text-[10px] font-medium text-emerald-200">{s.label}</p>
+                  <p className="text-lg font-extrabold">{formatDigits(t(s.value, s.valueEn))}</p>
+                  <p className="text-[10px] font-medium text-emerald-200">{t(s.label, s.labelEn)}</p>
                 </div>
               ))}
             </div>
@@ -158,7 +168,7 @@ export const StudyCornerPage: React.FC = () => {
               }}
             />
             <div className="absolute inset-x-0 bottom-0 bg-[#004d38]/90 py-1 text-center text-[10px] font-bold text-white">
-              জ্ঞানের আলোয় আলোকিত
+              {t("জ্ঞানের আলোয় আলোকিত", "Illuminated by Knowledge")}
             </div>
           </div>
 
@@ -166,27 +176,30 @@ export const StudyCornerPage: React.FC = () => {
             {/* Quote */}
             <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f4f9f6] p-5 shadow-2xs dark:bg-slate-800">
               <p className="font-serif text-lg font-bold italic text-[#004d38] sm:text-xl dark:text-emerald-400">
-                {content.studyCornerQuote || "“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”"}
+                {t(content.studyCornerQuote, content.studyCornerQuoteEn) || t("“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”", "“Knowledge is power. Read and enlighten yourself.”")}
               </p>
               <p className="mt-1 text-xs font-semibold text-[#006a4e] dark:text-emerald-300">
-                — {content.studyCornerQuoteAuthor || "Study Corner, বিদ্যালয় পাঠ কেন্দ্র"}
+                — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn) || t("Study Corner, বিদ্যালয় পাঠ কেন্দ্র", "Study Corner, School Study Center")}
               </p>
             </div>
 
             <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
-              {content.studyCornerText ||
-                "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।"}
+              {t(content.studyCornerText, content.studyCornerTextEn) ||
+                t(
+                  "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।",
+                  "The school's Study Corner is a premier learning and research hub equipped with a rich library, digital resources, reference books in science and mathematics, and serene spaces for self-study."
+                )}
             </p>
 
             <div className="flex flex-wrap gap-2">
               <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e] dark:bg-emerald-950/50 dark:text-emerald-300">
-                {content.studyCornerDays || "সোমবার - শনিবার"}
+                {t(content.studyCornerDays, content.studyCornerDaysEn) || t("সোমবার - শনিবার", "Monday - Saturday")}
               </span>
               <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950/50 dark:text-blue-300">
-                {content.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"}
+                {formatDigits(t(content.studyCornerHours, content.studyCornerHoursEn)) || t("সকাল ৮:০০ - বিকাল ৪:০০", "8:00 AM - 4:00 PM")}
               </span>
               <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
-                {content.studyCornerFee || "বিনামূল্যে প্রবেশ"}
+                {t(content.studyCornerFee, content.studyCornerFeeEn) || t("বিনামূল্যে প্রবেশ", "Free Admission")}
               </span>
             </div>
           </div>
@@ -198,7 +211,7 @@ export const StudyCornerPage: React.FC = () => {
         <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
             <Award size={18} className="text-[#006a4e]" />
-            <span>Study Corner-এর সুযোগ-সুবিধাসমূহ</span>
+            <span>{t("Study Corner-এর সুযোগ-সুবিধাসমূহ", "Study Corner Facilities")}</span>
           </h3>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
             {resources.map((res, i) => (
@@ -209,8 +222,8 @@ export const StudyCornerPage: React.FC = () => {
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#006a4e]/10 text-[#006a4e] group-hover:bg-[#006a4e] group-hover:text-white transition">
                   {RESOURCE_ICONS[res.icon] ?? <BookOpen size={20} />}
                 </span>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{res.title}</h4>
-                <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">{res.description}</p>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{t(res.title, res.titleEn)}</h4>
+                <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">{t(res.description, res.descriptionEn)}</p>
               </div>
             ))}
           </div>
@@ -222,7 +235,9 @@ export const StudyCornerPage: React.FC = () => {
         <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
           <h3 className="flex items-center gap-2 text-lg font-bold text-[#005a40] dark:text-emerald-400">
             <BookOpen size={18} />
-            <span>Study Corner পাঠাগারের বইসমূহ ({books.length})</span>
+            <span>
+              {t("Study Corner পাঠাগারের বইসমূহ", "Study Corner Library Books")} ({formatDigits(books.length)})
+            </span>
           </h3>
           {/* Search */}
           <div className="relative w-full sm:w-60">
@@ -230,7 +245,7 @@ export const StudyCornerPage: React.FC = () => {
               type="text"
               value={bookSearch}
               onChange={(e) => setBookSearch(e.target.value)}
-              placeholder="বই বা লেখক খুঁজুন..."
+              placeholder={t("বই বা লেখক খুঁজুন...", "Search book or author...")}
               className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-1.5 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -245,13 +260,12 @@ export const StudyCornerPage: React.FC = () => {
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                selectedCategory === cat
-                  ? "bg-[#006a4e] text-white shadow-xs"
-                  : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
-              }`}
+              className={`rounded-md px-3 py-1 text-xs font-semibold transition ${selectedCategory === cat
+                ? "bg-[#006a4e] text-white shadow-xs"
+                : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
+                }`}
             >
-              {cat}
+              {cat === "সকল" ? t("সকল", "All") : cat}
             </button>
           ))}
         </div>
@@ -268,17 +282,17 @@ export const StudyCornerPage: React.FC = () => {
                   <BookOpen size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold leading-snug text-gray-900 dark:text-white">{book.title}</p>
-                  <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">{book.author}</p>
+                  <p className="text-xs font-bold leading-snug text-gray-900 dark:text-white">{t(book.title, book.titleEn)}</p>
+                  <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">{t(book.author, book.authorEn)}</p>
                   <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    {book.category}
+                    {t(book.category, book.categoryEn)}
                   </span>
                 </div>
               </div>
             ))
           ) : (
             <div className="col-span-4 rounded-md border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
-              কোনো বই পাওয়া যায়নি।
+              {t("কোনো বই পাওয়া যায়নি।", "No books found.")}
             </div>
           )}
         </div>
@@ -289,10 +303,10 @@ export const StudyCornerPage: React.FC = () => {
         <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
             <Star size={18} className="text-[#eab308]" />
-            <span>কার্যকর অধ্যয়নের টিপস ও কৌশল</span>
+            <span>{t("কার্যকর অধ্যয়নের টিপস ও কৌশল", "Effective Study Tips & Strategies")}</span>
           </h3>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-            {tips.map((t, i) => {
+            {tips.map((tItem, i) => {
               const Icon = TIP_ICONS[i % TIP_ICONS.length];
               return (
                 <div
@@ -302,7 +316,7 @@ export const StudyCornerPage: React.FC = () => {
                   <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#006a4e]/10 text-[#006a4e]">
                     <Icon size={18} />
                   </span>
-                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">{t.tip}</p>
+                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">{t(tItem.tip, tItem.tipEn)}</p>
                 </div>
               );
             })}
@@ -315,7 +329,7 @@ export const StudyCornerPage: React.FC = () => {
         <section className="rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-[#f2f9f5] to-white p-6 shadow-xs dark:from-slate-900 dark:to-slate-800">
           <h3 className="flex items-center gap-2 border-b border-emerald-100 pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
             <Monitor size={18} />
-            <span>বিনামূল্যে ডিজিটাল শিক্ষা উপকরণ</span>
+            <span>{t("বিনামূল্যে ডিজিটাল শিক্ষা উপকরণ", "Free Digital Learning Materials")}</span>
           </h3>
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {links.map((link, i) => (
@@ -327,8 +341,8 @@ export const StudyCornerPage: React.FC = () => {
                 className="flex items-center justify-between rounded-md border border-[#cbe0d3] bg-white p-4 transition hover:border-[#006a4e] hover:shadow-sm dark:border-slate-700 dark:bg-slate-800"
               >
                 <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{link.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{link.desc}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t(link.name, link.nameEn)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t(link.desc, link.descEn)}</p>
                 </div>
                 <ArrowRight size={15} className="shrink-0 text-[#006a4e]" />
               </a>
@@ -339,15 +353,18 @@ export const StudyCornerPage: React.FC = () => {
 
       {/* CTA Footer */}
       <div className="rounded-lg bg-[#006a4e] p-5 text-center text-white">
-        <p className="text-sm font-bold">Study Corner আপনার জন্য সর্বদা উন্মুক্ত</p>
+        <p className="text-sm font-bold">{t("Study Corner আপনার জন্য সর্বদা উন্মুক্ত", "Study Corner is Always Open for You")}</p>
         <p className="mt-1 text-xs text-emerald-200">
-          বিদ্যালয়ের যেকোনো কার্যদিবসে {content.studyCornerHours || "সকাল ৮:০০ থেকে বিকাল ৪:০০"}-এর মধ্যে Study Corner পরিদর্শন করুন।
+          {t(
+            `বিদ্যালয়ের যেকোনো কার্যদিবসে ${content.studyCornerHours || "সকাল ৮:০০ থেকে বিকাল ৪:০০"}-এর মধ্যে Study Corner পরিদর্শন করুন।`,
+            `Visit Study Corner on any school working day between ${content.studyCornerHoursEn || content.studyCornerHours || "8:00 AM and 4:00 PM"}.`
+          )}
         </p>
         <Link
           to="/contact"
           className="mt-3 inline-flex items-center gap-2 rounded-md bg-[#eab308] px-5 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#fde047]"
         >
-          <span>যোগাযোগ করুন</span>
+          <span>{t("যোগাযোগ করুন", "Contact Us")}</span>
           <ArrowRight size={13} />
         </Link>
       </div>

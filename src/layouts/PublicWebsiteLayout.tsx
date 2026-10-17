@@ -31,14 +31,13 @@ import { BdGovEmblem, SmartBdBadge } from "@/components/government/GovtEmblem";
 import type { SchoolNotice } from "@/types/site";
 
 export const PublicWebsiteLayout: React.FC = () => {
-  const { websiteContent: content, siteLogo } = useSiteSettings();
+  const { websiteContent: content, siteLogo, lang, toggleLang, t, formatDigits } = useSiteSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
   const [showCharterModal, setShowCharterModal] = useState<boolean>(false);
   const [showAnthemModal, setShowAnthemModal] = useState<boolean>(false);
   const [isPlayingAnthem, setIsPlayingAnthem] = useState<boolean>(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
-  const [lang, setLang] = useState<"bn" | "en">("bn");
   const location = useLocation();
 
   // Close mobile drawer on route change & scroll to top
@@ -148,26 +147,32 @@ export const PublicWebsiteLayout: React.FC = () => {
             <div className="flex items-center gap-2">
               <BdGovEmblem size={22} className="h-5 w-5 shrink-0" />
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-semibold text-emerald-200">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</span>
+                <span className="font-semibold text-emerald-200">
+                  {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of the People's Republic of Bangladesh"}
+                </span>
                 <span className="hidden text-white/40 md:inline">|</span>
-                <span className="hidden text-white/90 md:inline">মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর · শিক্ষা মন্ত্রণালয়</span>
+                <span className="hidden text-white/90 md:inline">
+                  {lang === "bn"
+                    ? "মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর · শিক্ষা মন্ত্রণালয়"
+                    : "Directorate of Secondary & Higher Education · Ministry of Education"}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
               <span className="hidden items-center gap-1.5 text-white/80 lg:flex">
                 <Calendar size={13} className="text-amber-400" />
-                {currentTime.dateStrBn || "আজকের তারিখ"}
+                {lang === "bn" ? (currentTime.dateStrBn || "আজকের তারিখ") : (currentTime.dateStrEn || "Today's Date")}
               </span>
 
               <button
                 type="button"
                 onClick={() => setShowAnthemModal(true)}
                 className="inline-flex items-center gap-1 rounded bg-white/10 px-2 py-0.5 font-medium transition hover:bg-white/20"
-                title="জাতীয় সংগীত শুনুন ও লিরিক্স দেখুন"
+                title={lang === "bn" ? "জাতীয় সংগীত শুনুন ও লিরিক্স দেখুন" : "Play National Anthem & View Lyrics"}
               >
                 <Music size={12} className="text-amber-300" />
-                <span className="hidden sm:inline">জাতীয় সংগীত</span>
+                <span className="hidden sm:inline">{lang === "bn" ? "জাতীয় সংগীত" : "Anthem"}</span>
               </button>
 
               <button
@@ -176,17 +181,17 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1 rounded bg-white/10 px-2 py-0.5 font-medium transition hover:bg-white/20"
               >
                 <Shield size={12} className="text-amber-300" />
-                <span className="hidden sm:inline">সিটিজেন চার্টার</span>
+                <span className="hidden sm:inline">{lang === "bn" ? "সিটিজেন চার্টার" : "Citizen Charter"}</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setLang(lang === "bn" ? "en" : "bn")}
-                className="inline-flex items-center gap-1 rounded border border-white/20 px-2 py-0.5 font-semibold transition hover:bg-white/15"
-                title="ভাষা পরিবর্তন"
+                onClick={toggleLang}
+                className="inline-flex items-center gap-1 rounded border border-white/20 bg-white/10 px-2.5 py-0.5 font-bold transition hover:bg-white/20 text-[#fef08a]"
+                title="ভাষা পরিবর্তন / Switch Language"
               >
-                <Languages size={12} />
-                {lang === "bn" ? "English" : "বাংলা"}
+                <Languages size={13} />
+                <span>{lang === "bn" ? "English" : "বাংলা"}</span>
               </button>
 
               <Link
@@ -194,7 +199,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
               >
                 <Users size={13} />
-                <span>পোর্টাল লগইন</span>
+                <span>{lang === "bn" ? "পোর্টাল লগইন" : "Portal Login"}</span>
               </Link>
             </div>
           </div>
@@ -226,17 +231,17 @@ export const PublicWebsiteLayout: React.FC = () => {
                   {secondarySchoolName}
                 </p>
                 <p className="mt-0.5 hidden text-xs font-medium text-[#006a4e] sm:block">
-                  {content.boardName || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · গণপ্রজাতন্ত্রী বাংলাদেশ সরকার
+                  {t(content.boardName, content.boardNameEn) || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-gray-700 sm:justify-start">
                   <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
-                    স্থাপিত: {content.establishedYear || "১৯৮৫"}
+                    {lang === "bn" ? "স্থাপিত:" : "Est:"} {formatDigits(content.establishedYear || "1985")}
                   </span>
                   <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
                     EIIN: {content.eiin || "123456"}
                   </span>
                   <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
-                    কোড: {content.schoolCode || "1001"}
+                    {lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode || "1001"}
                   </span>
                 </div>
               </div>
@@ -295,7 +300,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3.5 py-1.5 text-xs font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047]"
               >
                 <GraduationCap size={15} />
-                <span>পোর্টাল</span>
+                <span>{lang === "bn" ? "পোর্টাল" : "Portal"}</span>
                 <ArrowUpRight size={13} />
               </Link>
             </div>
@@ -327,7 +332,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                   onClick={() => setMobileMenuOpen(false)}
                   className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#eab308] py-2 text-xs font-bold text-gray-950"
                 >
-                  <span>সুপার অ্যাডমিন ও শিক্ষক লগইন</span>
+                  <span>{lang === "bn" ? "সুপার অ্যাডমিন ও শিক্ষক লগইন" : "Admin & Teacher Login"}</span>
                   <ArrowRight size={14} />
                 </Link>
               </div>
@@ -340,7 +345,7 @@ export const PublicWebsiteLayout: React.FC = () => {
           <div className="mx-auto flex max-w-7xl items-center px-3 py-2 sm:px-6 lg:px-8">
             <div className="flex shrink-0 items-center gap-1.5 rounded-sm bg-[#da291c] px-2.5 py-1 text-xs font-bold text-white shadow-xs">
               <Bell size={13} className="animate-bounce" />
-              <span>জরুরি নোটিশ:</span>
+              <span>{lang === "bn" ? "জরুরি নোটিশ:" : "Urgent Notice:"}</span>
             </div>
 
             {/* Seamless infinite circular scroll — duplicated track translates 0 → -50% */}
@@ -353,14 +358,16 @@ export const PublicWebsiteLayout: React.FC = () => {
                   if (item.isBreaking && item.id === "__breaking__") {
                     return (
                       <span key={`b-${idx}`} className="shrink-0 font-bold text-[#da291c]">
-                        ★ {content.breakingNews}
+                        ★ {t(content.breakingNews, content.breakingNewsEn)}
                       </span>
                     );
                   }
                   if (item.isBreaking && item.id === "__default__") {
                     return (
                       <span key={`d-${idx}`} className="shrink-0 text-[#006a4e]">
-                        ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান · সকল শিক্ষকদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো
+                        ★ {lang === "bn"
+                          ? "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান · সকল শিক্ষকদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো"
+                          : "Admission applications for Academic Year 2026 are ongoing · Teachers are requested to be on time"}
                       </span>
                     );
                   }
@@ -374,11 +381,11 @@ export const PublicWebsiteLayout: React.FC = () => {
                     >
                       <span className="text-amber-500 font-bold">★</span>
                       <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
-                        {n.category || "সাধারণ"}
+                        {t(n.category, n.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
                       </span>
-                      <span className="group-hover:underline underline-offset-2">{n.title}</span>
+                      <span className="group-hover:underline underline-offset-2">{t(n.title, n.titleEn)}</span>
                       {n.date && (
-                        <span className="text-[11px] text-gray-500 font-normal">({n.date})</span>
+                        <span className="text-[11px] text-gray-500 font-normal">({formatDigits(n.date)})</span>
                       )}
                     </button>
                   );
@@ -386,12 +393,11 @@ export const PublicWebsiteLayout: React.FC = () => {
               </div>
             </div>
 
-
             <Link
               to="/notices"
               className="hidden shrink-0 text-xs font-bold text-[#006a4e] hover:underline sm:inline-flex sm:items-center sm:gap-1"
             >
-              <span>সকল নোটিশ</span>
+              <span>{lang === "bn" ? "সকল নোটিশ" : "All Notices"}</span>
               <ArrowRight size={13} />
             </Link>
           </div>
@@ -412,58 +418,60 @@ export const PublicWebsiteLayout: React.FC = () => {
                 <BdGovEmblem size={28} />
                 <div>
                   <h4 className="text-sm font-bold">{primarySchoolName}</h4>
-                  <p className="text-[10px] text-emerald-300">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</p>
+                  <p className="text-[10px] text-emerald-300">
+                    {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
+                  </p>
                 </div>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-white/80">
-                {activeMotto}. সুশৃঙ্খল পাঠদান ও মেধা বিকাশের নির্ভরযোগ্য সরকারি বিদ্যাপীঠ।
+                {activeMotto}. {lang === "bn" ? "সুশৃঙ্খল পাঠদান ও মেধা বিকাশের নির্ভরযোগ্য সরকারি বিদ্যাপীঠ।" : "A reliable government institution committed to disciplined learning and excellence."}
               </p>
               <div className="mt-3 flex items-center gap-2 text-[11px] text-emerald-200">
                 <span>EIIN: {content.eiin}</span>
                 <span>·</span>
-                <span>কোড: {content.schoolCode}</span>
+                <span>{lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode}</span>
               </div>
             </div>
 
             <div>
               <h4 className="border-b border-emerald-800 pb-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-                ওয়েবসাইট পেজসমূহ
+                {lang === "bn" ? "ওয়েবসাইট পেজসমূহ" : "Website Pages"}
               </h4>
               <ul className="mt-3 space-y-2 text-xs text-white/85">
-                <li><Link to="/about" className="hover:text-amber-300">আমাদের পরিচিতি</Link></li>
-                <li><Link to="/administration" className="hover:text-amber-300">প্রশাসন ও বাণী</Link></li>
-                <li><Link to="/teachers-list" className="hover:text-amber-300">শিক্ষকমণ্ডলী তালিকা</Link></li>
-                <li><Link to="/notices" className="hover:text-amber-300">নোটিশ বোর্ড</Link></li>
-                <li><Link to="/academics" className="hover:text-amber-300">ক্লাস রুটিন ও সিলেবাস</Link></li>
-                <li><Link to="/admission" className="hover:text-amber-300">ভর্তি নীতিমালা</Link></li>
+                <li><Link to="/about" className="hover:text-amber-300">{lang === "bn" ? "আমাদের পরিচিতি" : "About Us"}</Link></li>
+                <li><Link to="/administration" className="hover:text-amber-300">{lang === "bn" ? "প্রশাসন ও বাণী" : "Administration"}</Link></li>
+                <li><Link to="/teachers-list" className="hover:text-amber-300">{lang === "bn" ? "শিক্ষকমণ্ডলী তালিকা" : "Teachers List"}</Link></li>
+                <li><Link to="/notices" className="hover:text-amber-300">{lang === "bn" ? "নোটিশ বোর্ড" : "Notice Board"}</Link></li>
+                <li><Link to="/academics" className="hover:text-amber-300">{lang === "bn" ? "ক্লাস রুটিন ও সিলেবাস" : "Routine & Syllabus"}</Link></li>
+                <li><Link to="/admission" className="hover:text-amber-300">{lang === "bn" ? "ভর্তি নীতিমালা" : "Admission Info"}</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="border-b border-emerald-800 pb-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-                সরকারি বাতায়ন
+                {lang === "bn" ? "সরকারি বাতায়ন" : "Govt Portals"}
               </h4>
               <ul className="mt-3 space-y-2 text-xs text-white/85">
-                <li><a href="https://moedu.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">শিক্ষা মন্ত্রণালয়</a></li>
-                <li><a href="https://dshe.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">মাউশি অধিদপ্তর</a></li>
-                <li><a href="https://bangladesh.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">বাংলাদেশ জাতীয় পোর্টাল</a></li>
-                <li><a href="https://teachers.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">শিক্ষক বাতায়ন</a></li>
-                <li><a href="https://nctb.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">এনসিটিবি (NCTB)</a></li>
+                <li><a href="https://moedu.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">{lang === "bn" ? "শিক্ষা মন্ত্রণালয়" : "Ministry of Education"}</a></li>
+                <li><a href="https://dshe.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">{lang === "bn" ? "মাউশি অধিদপ্তর" : "DSHE Directorate"}</a></li>
+                <li><a href="https://bangladesh.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">{lang === "bn" ? "বাংলাদেশ জাতীয় পোর্টাল" : "Bangladesh National Portal"}</a></li>
+                <li><a href="https://teachers.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">{lang === "bn" ? "শিক্ষক বাতায়ন" : "Teachers Portal"}</a></li>
+                <li><a href="https://nctb.gov.bd" target="_blank" rel="noreferrer" className="hover:text-amber-300">NCTB</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="border-b border-emerald-800 pb-2 text-xs font-bold uppercase tracking-wider text-amber-300">
-                ম্যানেজমেন্ট ও হটলাইন
+                {lang === "bn" ? "ম্যানেজমেন্ট ও হটলাইন" : "Management & Helpline"}
               </h4>
-              <p className="mt-3 text-xs text-white/80">জরুরি সেবা: ৯৯৯, ৩৩৩, ১০৯</p>
+              <p className="mt-3 text-xs text-white/80">{lang === "bn" ? "জরুরি সেবা: ৯৯৯, ৩৩৩, ১০৯" : "Emergency Services: 999, 333, 109"}</p>
               <div className="mt-4">
                 <Link
                   to="/sign-in"
                   className="inline-flex items-center gap-2 rounded bg-[#eab308] px-4 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#fde047]"
                 >
                   <Users size={14} />
-                  <span>সুপার অ্যাডমিন লগইন</span>
+                  <span>{lang === "bn" ? "সুপার অ্যাডমিন লগইন" : "Admin Login"}</span>
                 </Link>
               </div>
             </div>
@@ -471,10 +479,10 @@ export const PublicWebsiteLayout: React.FC = () => {
 
           <div className="mt-10 border-t border-emerald-900/80 pt-5 text-center text-xs text-white/70">
             <p>
-              পরিকল্পনা ও বাস্তবায়নে: <span className="font-semibold text-white">{primarySchoolName} কর্তৃপক্ষ</span> · কারিগরি তত্ত্বাবধানে: মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)
+              {lang === "bn" ? "পরিকল্পনা ও বাস্তবায়নে:" : "Planned & Managed by:"} <span className="font-semibold text-white">{primarySchoolName}</span> · {lang === "bn" ? "কারিগরি তত্ত্বাবধানে: মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)" : "Technical Supervision: Directorate of Secondary & Higher Education (DSHE)"}
             </p>
             <p className="mt-1.5 text-[11px] text-white/50">
-              © {new Date().getFullYear()} {content.schoolName}. সর্বস্বত্ব সংরক্ষিত · গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত বাতায়ন
+              © {new Date().getFullYear()} {content.schoolName}. {lang === "bn" ? "সর্বস্বত্ব সংরক্ষিত · গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত বাতায়ন" : "All rights reserved · Government of Bangladesh Approved Portal"}
             </p>
           </div>
         </div>
@@ -493,16 +501,18 @@ export const PublicWebsiteLayout: React.FC = () => {
                 <BdGovEmblem size={24} />
                 <div>
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
-                    {selectedNotice.category || "নোটিশ"}
+                    {t(selectedNotice.category, selectedNotice.categoryEn) || (lang === "bn" ? "নোটিশ" : "Notice")}
                   </span>
-                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">সরকারি নোটিশ পত্র</h3>
+                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">
+                    {lang === "bn" ? "সরকারি নোটিশ পত্র" : "Official Notice Paper"}
+                  </h3>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedNotice(null)}
                 className="rounded p-1 text-white hover:bg-white/20"
-                aria-label="বন্ধ করুন"
+                aria-label={lang === "bn" ? "বন্ধ করুন" : "Close"}
               >
                 <X size={20} />
               </button>
@@ -510,13 +520,14 @@ export const PublicWebsiteLayout: React.FC = () => {
 
             <div className="p-6">
               <div className="border-b border-gray-100 pb-3">
-                <p className="text-xs text-gray-500">তারিখ: {selectedNotice.date || "২০২৬-১০-১৫"}</p>
-                <h4 className="mt-1 text-lg font-bold text-gray-900">{selectedNotice.title}</h4>
+                <p className="text-xs text-gray-500">{lang === "bn" ? "তারিখ:" : "Date:"} {formatDigits(selectedNotice.date || "2026-10-15")}</p>
+                <h4 className="mt-1 text-lg font-bold text-gray-900">{t(selectedNotice.title, selectedNotice.titleEn)}</h4>
               </div>
 
               <div className="mt-4 whitespace-pre-line text-sm leading-relaxed text-gray-800">
-                {selectedNotice.content ||
-                  "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।"}
+                {lang === "en"
+                  ? (selectedNotice.contentEn || selectedNotice.content || "For details, please contact the school office.")
+                  : (selectedNotice.content || "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।")}
               </div>
 
               {/* Attachment Display (Image or PDF) */}
@@ -528,7 +539,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
                           <ImageIcon size={14} />
-                          <span>সংযুক্ত নোটিশ পত্র (ছবি):</span>
+                          <span>{lang === "bn" ? "সংযুক্ত নোটিশ পত্র (ছবি):" : "Attached Notice (Image):"}</span>
                         </span>
                         <a
                           href={selectedNotice.fileUrl}
@@ -538,7 +549,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                           className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
                         >
                           <Download size={12} />
-                          <span>ডাউনলোড করুন</span>
+                          <span>{lang === "bn" ? "ডাউনলোড করুন" : "Download"}</span>
                         </a>
                       </div>
                       <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
@@ -559,10 +570,10 @@ export const PublicWebsiteLayout: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-900">
-                              অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)
+                              {lang === "bn" ? "অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)" : "Official Notice (PDF Document)"}
                             </p>
                             <p className="text-[11px] text-gray-600">
-                              মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন
+                              {lang === "bn" ? "মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন" : "Click the button below to view or download the official PDF notice."}
                             </p>
                           </div>
                         </div>
@@ -574,7 +585,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                           className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
                         >
                           <FileText size={14} />
-                          <span>পিডিএফ দেখুন ও ডাউনলোড</span>
+                          <span>{lang === "bn" ? "পিডিএফ দেখুন ও ডাউনলোড" : "View & Download PDF"}</span>
                         </a>
                       </div>
                     </div>
@@ -582,7 +593,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                     <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2 text-xs text-gray-800">
                         <ExternalLink size={14} className="text-blue-600 shrink-0" />
-                        <span>সংযুক্ত ফাইল বা ওয়েব লিঙ্ক</span>
+                        <span>{lang === "bn" ? "সংযুক্ত ফাইল বা ওয়েব লিঙ্ক" : "Attached File or Web Link"}</span>
                       </div>
                       <a
                         href={selectedNotice.fileUrl}
@@ -591,7 +602,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                         className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
                       >
                         <Download size={13} />
-                        <span>ফাইল খুলুন</span>
+                        <span>{lang === "bn" ? "ফাইল খুলুন" : "Open File"}</span>
                       </a>
                     </div>
                   )}
@@ -600,9 +611,9 @@ export const PublicWebsiteLayout: React.FC = () => {
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-xs">
                 <div>
-                  <p className="font-semibold text-gray-800">আদেশক্রমে,</p>
-                  <p className="font-bold text-[#006a4e]">{content.principalName || "প্রধান শিক্ষক"}</p>
-                  <p className="text-[11px] text-gray-500">{content.schoolNameBn || content.schoolName}</p>
+                  <p className="font-semibold text-gray-800">{lang === "bn" ? "আদেশক্রমে," : "By Order,"}</p>
+                  <p className="font-bold text-[#006a4e]">{lang === "bn" ? (content.principalName || "প্রধান শিক্ষক") : (content.principalNameEn || content.principalName || "Headmaster")}</p>
+                  <p className="text-[11px] text-gray-500">{lang === "bn" ? (content.schoolNameBn || content.schoolName) : (content.schoolName || content.schoolNameBn)}</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -611,14 +622,14 @@ export const PublicWebsiteLayout: React.FC = () => {
                     onClick={() => window.print()}
                     className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
                   >
-                    <span>প্রিন্ট করুন</span>
+                    <span>{lang === "bn" ? "প্রিন্ট করুন" : "Print"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedNotice(null)}
                     className="rounded bg-[#006a4e] px-4 py-1.5 font-bold text-white hover:bg-[#00503a]"
                   >
-                    ঠিক আছে
+                    {lang === "bn" ? "ঠিক আছে" : "OK"}
                   </button>
                 </div>
               </div>
@@ -637,7 +648,7 @@ export const PublicWebsiteLayout: React.FC = () => {
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
                 <Shield size={20} className="text-[#006a4e]" />
-                <h3 className="text-lg font-bold text-[#006a4e]">নাগরিক সেবা সনদ (সিটিজেন চার্টার)</h3>
+                <h3 className="text-lg font-bold text-[#006a4e]">{lang === "bn" ? "নাগরিক সেবা সনদ (সিটিজেন চার্টার)" : "Citizen Service Charter"}</h3>
               </div>
               <button
                 type="button"
@@ -650,40 +661,42 @@ export const PublicWebsiteLayout: React.FC = () => {
 
             <div className="mt-4 space-y-4 text-xs leading-relaxed text-gray-800">
               <div className="rounded bg-emerald-50 p-3">
-                <p className="font-bold text-[#006a4e]">সেবা প্রদানের অঙ্গীকার:</p>
+                <p className="font-bold text-[#006a4e]">{lang === "bn" ? "সেবা প্রদানের অঙ্গীকার:" : "Service Delivery Commitment:"}</p>
                 <p className="mt-1">
-                  বিদ্যালয় সকল শিক্ষার্থী, অভিভাবক ও সেবাগ্রহীতাকে তথ্য অধিকার আইন ও সরকারি নীতিমালা অনুযায়ী সর্বোচ্চ নিষ্ঠা ও দ্রুততার সাথে সেবা দিতে প্রতিশ্রুতিবদ্ধ।
+                  {lang === "bn"
+                    ? "বিদ্যালয় সকল শিক্ষার্থী, অভিভাবক ও সেবাগ্রহীতাকে তথ্য অধিকার আইন ও সরকারি নীতিমালা অনুযায়ী সর্বোচ্চ নিষ্ঠা ও দ্রুততার সাথে সেবা দিতে প্রতিশ্রুতিবদ্ধ।"
+                    : "The school is committed to providing all students, guardians, and service recipients with the highest level of dedication and promptness as per the Right to Information Act and government guidelines."}
                 </p>
               </div>
 
               <table className="w-full border-collapse border border-gray-200 text-left">
                 <thead>
                   <tr className="bg-gray-100 font-bold text-gray-900">
-                    <th className="border p-2">সেবার নাম</th>
-                    <th className="border p-2">প্রয়োজনীয় সময়</th>
-                    <th className="border p-2">দায়িত্বপ্রাপ্ত কর্মকর্তা</th>
+                    <th className="border p-2">{lang === "bn" ? "সেবার নাম" : "Service Name"}</th>
+                    <th className="border p-2">{lang === "bn" ? "প্রয়োজনীয় সময়" : "Duration"}</th>
+                    <th className="border p-2">{lang === "bn" ? "দায়িত্বপ্রাপ্ত কর্মকর্তা" : "Responsible Officer"}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="border p-2">প্রশংসাপত্র ও প্রত্যয়নপত্র প্রদান</td>
-                    <td className="border p-2">১-২ কর্মদিবস</td>
-                    <td className="border p-2">প্রধান শিক্ষক / প্রধান সহকারী</td>
+                    <td className="border p-2">{lang === "bn" ? "প্রশংসাপত্র ও প্রত্যয়নপত্র প্রদান" : "Testimonial & Character Certificate"}</td>
+                    <td className="border p-2">{lang === "bn" ? "১-২ কর্মদিবস" : "1-2 Working Days"}</td>
+                    <td className="border p-2">{lang === "bn" ? "প্রধান শিক্ষক / প্রধান সহকারী" : "Headmaster / Head Assistant"}</td>
                   </tr>
                   <tr>
-                    <td className="border p-2">স্থানান্তর সনদ (টিসি) প্রদান</td>
-                    <td className="border p-2">৩ কর্মদিবস</td>
-                    <td className="border p-2">প্রধান শিক্ষক</td>
+                    <td className="border p-2">{lang === "bn" ? "স্থানান্তর সনদ (টিসি) প্রদান" : "Transfer Certificate (TC) Issuance"}</td>
+                    <td className="border p-2">{lang === "bn" ? "৩ কর্মদিবস" : "3 Working Days"}</td>
+                    <td className="border p-2">{lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster"}</td>
                   </tr>
                   <tr>
-                    <td className="border p-2">ভর্তি সংক্রান্ত সেবা</td>
-                    <td className="border p-2">সরকারি সময়সূচী অনুযায়ী</td>
-                    <td className="border p-2">ভর্তি কমিটি</td>
+                    <td className="border p-2">{lang === "bn" ? "ভর্তি সংক্রান্ত সেবা" : "Admission-Related Services"}</td>
+                    <td className="border p-2">{lang === "bn" ? "সরকারি সময়সূচী অনুযায়ী" : "As per Govt. Schedule"}</td>
+                    <td className="border p-2">{lang === "bn" ? "ভর্তি কমিটি" : "Admission Committee"}</td>
                   </tr>
                   <tr>
-                    <td className="border p-2">নম্বরপত্র / ফলাফল সংক্রান্ত অনুসন্ধান</td>
-                    <td className="border p-2">১ কর্মদিবস</td>
-                    <td className="border p-2">পরীক্ষা নিয়ন্ত্রক শিক্ষক</td>
+                    <td className="border p-2">{lang === "bn" ? "নম্বরপত্র / ফলাফল সংক্রান্ত অনুসন্ধান" : "Marksheet / Result Inquiry"}</td>
+                    <td className="border p-2">{lang === "bn" ? "১ কর্মদিবস" : "1 Working Day"}</td>
+                    <td className="border p-2">{lang === "bn" ? "পরীক্ষা নিয়ন্ত্রক শিক্ষক" : "Examination Controller Teacher"}</td>
                   </tr>
                 </tbody>
               </table>
@@ -695,7 +708,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 onClick={() => setShowCharterModal(false)}
                 className="rounded bg-[#006a4e] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#00503a]"
               >
-                বন্ধ করুন
+                {lang === "bn" ? "বন্ধ করুন" : "Close"}
               </button>
             </div>
           </div>
@@ -718,8 +731,8 @@ export const PublicWebsiteLayout: React.FC = () => {
             </button>
 
             <BdGovEmblem size={48} className="mx-auto" />
-            <h3 className="mt-2 text-lg font-bold text-[#006a4e]">আমাদের জাতীয় সংগীত</h3>
-            <p className="text-xs text-gray-500">রচিয়তা: বিশ্বকবি রবীন্দ্রনাথ ঠাকুর</p>
+            <h3 className="mt-2 text-lg font-bold text-[#006a4e]">{lang === "bn" ? "আমাদের জাতীয় সংগীত" : "Our National Anthem"}</h3>
+            <p className="text-xs text-gray-500">{lang === "bn" ? "রচিয়তা: বিশ্বকবি রবীন্দ্রনাথ ঠাকুর" : "Composed by: Rabindranath Tagore"}</p>
 
             <div className="my-4 rounded-lg bg-emerald-50/70 p-4 font-serif text-sm leading-relaxed text-gray-800">
               <p>আমার সোনার বাংলা, আমি তোমায় ভালোবাসি।</p>
@@ -741,14 +754,14 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-full bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
               >
                 {isPlayingAnthem ? <Pause size={14} /> : <Play size={14} />}
-                <span>{isPlayingAnthem ? "সংগীত বন্ধ করুন" : "সংগীত বাজান"}</span>
+                <span>{isPlayingAnthem ? (lang === "bn" ? "সংগীত বন্ধ করুন" : "Stop Anthem") : (lang === "bn" ? "সংগীত বাজান" : "Play Anthem")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setShowAnthemModal(false)}
                 className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
               >
-                বন্ধ করুন
+                {lang === "bn" ? "বন্ধ করুন" : "Close"}
               </button>
             </div>
           </div>

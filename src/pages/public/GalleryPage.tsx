@@ -10,16 +10,35 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 import type { SchoolGalleryItem } from "@/types/site";
 
 export const GalleryPage: React.FC = () => {
-  const { websiteContent: content } = useSiteSettings();
+  const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
   const [activeCategory, setActiveCategory] = useState<string>("সকল");
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
 
-  const categories = ["সকল", "ক্যাম্পাস", "ল্যাব", "সমাবেশ", "ক্রীড়া", "বিজ্ঞান মেলা", "জাতীয় দিবস"];
+  const categories = [
+    { key: "সকল", labelBn: "সকল", labelEn: "All" },
+    { key: "ক্যাম্পাস", labelBn: "ক্যাম্পাস", labelEn: "Campus" },
+    { key: "ল্যাব", labelBn: "ল্যাব", labelEn: "Labs" },
+    { key: "সমাবেশ", labelBn: "সমাবেশ", labelEn: "Assembly" },
+    { key: "ক্রীড়া", labelBn: "ক্রীড়া", labelEn: "Sports" },
+    { key: "বিজ্ঞান মেলা", labelBn: "বিজ্ঞান মেলা", labelEn: "Science Fair" },
+    { key: "জাতীয় দিবস", labelBn: "জাতীয় দিবস", labelEn: "National Days" },
+  ];
 
   const filteredPhotos = useMemo(() => {
     const list = Array.isArray(content.gallery) ? content.gallery : [];
     if (activeCategory === "সকল") return list;
-    return list.filter((item) => item.category === activeCategory);
+    return list.filter((item) => {
+      return (
+        item.category === activeCategory ||
+        item.categoryEn?.toLowerCase() === activeCategory.toLowerCase() ||
+        (activeCategory === "ক্যাম্পাস" && (item.category?.includes("ক্যাম্পাস") || item.categoryEn?.toLowerCase().includes("campus"))) ||
+        (activeCategory === "ল্যাব" && (item.category?.includes("ল্যাব") || item.categoryEn?.toLowerCase().includes("lab"))) ||
+        (activeCategory === "সমাবেশ" && (item.category?.includes("সমাবেশ") || item.categoryEn?.toLowerCase().includes("assembly"))) ||
+        (activeCategory === "ক্রীড়া" && (item.category?.includes("ক্রীড়া") || item.categoryEn?.toLowerCase().includes("sport"))) ||
+        (activeCategory === "বিজ্ঞান মেলা" && (item.category?.includes("বিজ্ঞান") || item.categoryEn?.toLowerCase().includes("science"))) ||
+        (activeCategory === "জাতীয় দিবস" && (item.category?.includes("দিবস") || item.categoryEn?.toLowerCase().includes("national")))
+      );
+    });
   }, [content.gallery, activeCategory]);
 
   return (
@@ -28,20 +47,25 @@ export const GalleryPage: React.FC = () => {
       <nav className="flex items-center gap-2 text-xs font-semibold text-gray-500">
         <Link to="/" className="flex items-center gap-1 hover:text-[#006a4e]">
           <Home size={14} />
-          <span>হোম</span>
+          <span>{t("হোম", "Home")}</span>
         </Link>
         <span>/</span>
-        <span className="text-[#006a4e]">ফটো গ্যালারি</span>
+        <span className="text-[#006a4e]">{t("ফটো গ্যালারি", "Photo Gallery")}</span>
       </nav>
 
       {/* Page Header */}
       <div className="rounded-lg border border-[#cbe0d3] bg-[#004d38] p-6 text-white shadow-md sm:p-8">
         <span className="rounded bg-[#eab308] px-2.5 py-1 text-xs font-bold text-gray-950">
-          ছবিতে আমাদের বিদ্যালয়
+          {t("ছবিতে আমাদের বিদ্যালয়", "Our School in Pictures")}
         </span>
-        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">বিদ্যালয় ফটো গ্যালারি</h2>
+        <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
+          {t("বিদ্যালয় ফটো গ্যালারি", "School Photo Gallery")}
+        </h2>
         <p className="mt-1 text-xs text-emerald-200 sm:text-sm">
-          ক্যাম্পাস প্রাঙ্গণ, ল্যাব, ক্রীড়া প্রতিযোগিতা ও বিভিন্ন জাতীয় দিবসের খণ্ডচিত্র
+          {t(
+            "ক্যাম্পাস প্রাঙ্গণ, ল্যাব, ক্রীড়া প্রতিযোগিতা ও বিভিন্ন জাতীয় দিবসের খণ্ডচিত্র",
+            "Moments captured from campus grounds, laboratories, sports meets, and national day celebrations"
+          )}
         </p>
       </div>
 
@@ -49,16 +73,16 @@ export const GalleryPage: React.FC = () => {
       <div className="flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-xs">
         {categories.map((cat) => (
           <button
-            key={cat}
+            key={cat.key}
             type="button"
-            onClick={() => setActiveCategory(cat)}
+            onClick={() => setActiveCategory(cat.key)}
             className={`rounded-md px-3.5 py-1.5 text-xs font-bold transition ${
-              activeCategory === cat
+              activeCategory === cat.key
                 ? "bg-[#006a4e] text-white shadow-xs"
                 : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
             }`}
           >
-            {cat}
+            {t(cat.labelBn, cat.labelEn)}
           </button>
         ))}
       </div>
@@ -74,7 +98,7 @@ export const GalleryPage: React.FC = () => {
             <div className="aspect-4/3 w-full overflow-hidden">
               <img
                 src={photo.imageUrl}
-                alt={photo.title}
+                alt={t(photo.title, photo.titleEn)}
                 className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 onError={(e) => {
                   e.currentTarget.src = "/images/bgimage.jpg";
@@ -84,21 +108,23 @@ export const GalleryPage: React.FC = () => {
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white">
               <span className="flex items-center gap-1.5 rounded-full bg-[#006a4e] px-3 py-1.5 text-xs font-bold shadow-md">
                 <ZoomIn size={14} />
-                <span>বড় করে দেখুন</span>
+                <span>{t("বড় করে দেখুন", "Enlarge")}</span>
               </span>
             </div>
             <div className="p-3 bg-white">
               <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#006a4e]">
-                {photo.category}
+                {t(photo.category, photo.categoryEn)}
               </span>
-              <h4 className="mt-1 font-bold text-xs text-gray-900 line-clamp-1">{photo.title}</h4>
+              <h4 className="mt-1 font-bold text-xs text-gray-900 line-clamp-1">
+                {t(photo.title, photo.titleEn)}
+              </h4>
             </div>
           </div>
         ))}
 
         {filteredPhotos.length === 0 && (
           <div className="col-span-full rounded-md border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
-            এই ক্যাটাগরিতে কোনো ছবি পাওয়া যায়নি।
+            {t("এই ক্যাটাগরিতে কোনো ছবি পাওয়া যায়নি।", "No photos found in this category.")}
           </div>
         )}
       </div>
@@ -119,18 +145,22 @@ export const GalleryPage: React.FC = () => {
               type="button"
               onClick={() => setPreviewImage(null)}
               className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black"
-              aria-label="বন্ধ করুন"
+              aria-label="Close"
             >
               <X size={20} />
             </button>
             <img
               src={previewImage.imageUrl}
-              alt={previewImage.title}
+              alt={t(previewImage.title, previewImage.titleEn)}
               className="max-h-[80vh] w-auto object-contain"
             />
             <div className="p-3 text-white bg-black/90">
-              <span className="rounded bg-[#006a4e] px-2 py-0.5 text-xs font-bold">{previewImage.category}</span>
-              <p className="mt-1 text-sm font-semibold">{previewImage.title}</p>
+              <span className="rounded bg-[#006a4e] px-2 py-0.5 text-xs font-bold">
+                {t(previewImage.category, previewImage.categoryEn)}
+              </span>
+              <p className="mt-1 text-sm font-semibold">
+                {t(previewImage.title, previewImage.titleEn)}
+              </p>
             </div>
           </div>
         </div>

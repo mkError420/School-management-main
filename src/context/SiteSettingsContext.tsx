@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
 import type { SchoolWebsiteContent } from "@/types/site";
+import { toEnglishDigits, toBengaliDigits, translateBnToEn, translateEnToBn } from "@/lib/translation";
 
 export const CURRENCY_OPTIONS = [
   { symbol: "৳", label: "Bangladeshi Taka (৳)" },
@@ -22,6 +23,7 @@ export const CURRENCY_OPTIONS = [
 
 const CURRENCY_STORAGE_KEY = "school_currency_symbol";
 const LOGO_STORAGE_KEY = "school_site_logo";
+const LANG_STORAGE_KEY = "school_site_lang";
 export const DEFAULT_SITE_LOGO = "/images/logo.png";
 
 interface SiteSettingsContextValue {
@@ -31,6 +33,11 @@ interface SiteSettingsContextValue {
   websiteContent: SchoolWebsiteContent;
   currencySymbol: string;
   isLoading: boolean;
+  lang: "bn" | "en";
+  setLang: (lang: "bn" | "en") => void;
+  toggleLang: () => void;
+  t: (bnText?: string, enText?: string) => string;
+  formatDigits: (val: string | number) => string;
   saveSiteName: (siteName: string) => Promise<{ success: boolean; message?: string }>;
   saveWebsiteContent: (content: SchoolWebsiteContent) => Promise<{ success: boolean; message?: string }>;
   saveCurrencySymbol: (symbol: string) => void;
@@ -66,6 +73,11 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   websiteContent: DEFAULT_WEBSITE_CONTENT,
   currencySymbol: "৳",
   isLoading: false,
+  lang: "bn",
+  setLang: () => {},
+  toggleLang: () => {},
+  t: (bnText?: string, enText?: string) => bnText || enText || "",
+  formatDigits: (val: string | number) => String(val ?? ""),
   saveSiteName: async () => ({ success: false, message: "Site settings are unavailable." }),
   saveWebsiteContent: async () => ({ success: false, message: "Site settings are unavailable." }),
   saveCurrencySymbol: () => {},
@@ -121,8 +133,8 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
   // Sanitize every scalar string field from DEFAULT_WEBSITE_CONTENT
   const sanitizedStrings: Record<string, string> = {};
   for (const key of Object.keys(DEFAULT_WEBSITE_CONTENT) as (keyof SchoolWebsiteContent)[]) {
-    const defVal = DEFAULT_WEBSITE_CONTENT[key];
-    const incVal = incoming[key];
+    const defVal = (DEFAULT_WEBSITE_CONTENT as any)[key];
+    const incVal = (incoming as any)[key];
     if (typeof defVal === "string") {
       sanitizedStrings[key] = cleanStr(incVal, defVal);
     }
@@ -168,9 +180,12 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     studyCornerText,
     studyCornerImage,
     studyCornerDays: cleanStr(incoming.studyCornerDays, DEFAULT_WEBSITE_CONTENT.studyCornerDays || "সোমবার - শনিবার"),
+    studyCornerDaysEn: cleanStr(incoming.studyCornerDaysEn, DEFAULT_WEBSITE_CONTENT.studyCornerDaysEn || "Monday - Saturday"),
     studyCornerHours: cleanStr(incoming.studyCornerHours, DEFAULT_WEBSITE_CONTENT.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"),
+    studyCornerHoursEn: cleanStr(incoming.studyCornerHoursEn, DEFAULT_WEBSITE_CONTENT.studyCornerHoursEn || "8:00 AM - 4:00 PM"),
     studyCornerFee: cleanStr(incoming.studyCornerFee, DEFAULT_WEBSITE_CONTENT.studyCornerFee || "বিনামূল্যে প্রবেশ"),
-    notices: cleanList(incoming.notices, DEFAULT_WEBSITE_CONTENT.notices, [(n) => n.title, (n) => n.content]),
+    studyCornerFeeEn: cleanStr(incoming.studyCornerFeeEn, DEFAULT_WEBSITE_CONTENT.studyCornerFeeEn || "Free Admission"),
+    notices: cleanList(incoming.notices, DEFAULT_WEBSITE_CONTENT.notices, [(n) => n.title, (n) => n.content || ""]),
     quickLinks: cleanList(incoming.quickLinks, DEFAULT_WEBSITE_CONTENT.quickLinks, [(l) => l.label]),
     downloads: cleanList(incoming.downloads, DEFAULT_WEBSITE_CONTENT.downloads, [(d) => d.title]),
     gallery: cleanList(incoming.gallery, DEFAULT_WEBSITE_CONTENT.gallery, [(g) => g.title]),
@@ -178,7 +193,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     teachers: cleanList(incoming.teachers, DEFAULT_WEBSITE_CONTENT.teachers, [(t) => t.name, (t) => t.designation]),
     studyCornerBooks: cleanList(incoming.studyCornerBooks, DEFAULT_WEBSITE_CONTENT.studyCornerBooks, [(b) => b.title, (b) => b.author]),
     studyCornerResources: cleanList(incoming.studyCornerResources, DEFAULT_WEBSITE_CONTENT.studyCornerResources, [(r) => r.title, (r) => r.description]),
-    studyCornerLinks: cleanList(incoming.studyCornerLinks, DEFAULT_WEBSITE_CONTENT.studyCornerLinks || [], [(l) => l.name, (l) => l.desc]),
+    studyCornerLinks: cleanList(incoming.studyCornerLinks, DEFAULT_WEBSITE_CONTENT.studyCornerLinks || [], [(l) => l.name, (l) => l.desc || ""]),
     studyCornerTips: cleanList(incoming.studyCornerTips, DEFAULT_WEBSITE_CONTENT.studyCornerTips || [], [(t) => t.tip]),
     studyCornerStats:
       Array.isArray(incoming.studyCornerStats) &&
@@ -215,6 +230,14 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return DEFAULT_SITE_LOGO;
     }
   });
+  const [lang, setLangState] = useState<"bn" | "en">(() => {
+    try {
+      const cached = localStorage.getItem(LANG_STORAGE_KEY);
+      return cached === "en" ? "en" : "bn";
+    } catch {
+      return "bn";
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [currencySymbol, setCurrencySymbol] = useState<string>(() => {
     try {
@@ -223,6 +246,34 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return "৳";
     }
   });
+
+  const setLang = (nextLang: "bn" | "en") => {
+    setLangState(nextLang);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, nextLang);
+      window.dispatchEvent(new CustomEvent("school-site-lang-changed", { detail: { lang: nextLang } }));
+    } catch {}
+  };
+
+  const toggleLang = () => {
+    setLang(lang === "bn" ? "en" : "bn");
+  };
+
+  const t = (bnText?: string, enText?: string): string => {
+    if (lang === "en") {
+      if (enText && enText.trim()) return enText;
+      if (bnText && bnText.trim()) return translateBnToEn(bnText);
+      return "";
+    }
+    if (bnText && bnText.trim()) return bnText;
+    if (enText && enText.trim()) return translateEnToBn(enText);
+    return "";
+  };
+
+  const formatDigits = (val: string | number): string => {
+    const str = String(val ?? "");
+    return lang === "en" ? toEnglishDigits(str) : toBengaliDigits(str);
+  };
 
   const refreshSettings = async () => {
     try {
@@ -292,15 +343,21 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (cachedLogo) {
           setSiteLogo(resolveLogoUrl(cachedLogo));
         }
+        const cachedLang = localStorage.getItem(LANG_STORAGE_KEY);
+        if (cachedLang === "bn" || cachedLang === "en") {
+          setLangState(cachedLang);
+        }
       } catch {}
     };
 
     window.addEventListener("school-site-settings-updated", handleSync);
+    window.addEventListener("school-site-lang-changed", handleSync);
     window.addEventListener("storage", handleSync);
 
     return () => {
       active = false;
       window.removeEventListener("school-site-settings-updated", handleSync);
+      window.removeEventListener("school-site-lang-changed", handleSync);
       window.removeEventListener("storage", handleSync);
     };
   }, []);
@@ -350,7 +407,6 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const saveSiteLogo = async (fileOrUrl: File | string): Promise<{ success: boolean; message?: string; logoUrl?: string }> => {
     try {
       if (fileOrUrl instanceof File) {
-        // Try uploading to backend
         const response = await api.uploadSiteLogo(fileOrUrl);
         if (response.success && response.data?.site_logo) {
           const newLogo = resolveLogoUrl(response.data.site_logo);
@@ -362,13 +418,11 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return { success: true, logoUrl: newLogo };
         }
 
-        // If backend returns an error or is unavailable, fallback to base64 DataURL
         const dataUrl = await fileToDataUrl(fileOrUrl);
         setSiteLogo(dataUrl);
         try {
           localStorage.setItem(LOGO_STORAGE_KEY, dataUrl);
         } catch {}
-        // Also try saving base64 to settings API
         api.updateSiteLogo(dataUrl).catch(() => {});
         broadcastUpdate(dataUrl);
         return {
@@ -391,7 +445,6 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return { success: true, logoUrl: logoStr };
       }
     } catch (err: any) {
-      // Offline / network fallback
       if (fileOrUrl instanceof File) {
         try {
           const dataUrl = await fileToDataUrl(fileOrUrl);
@@ -423,9 +476,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setCurrencySymbol(symbol);
     try {
       localStorage.setItem(CURRENCY_STORAGE_KEY, symbol);
-    } catch {
-      // ignore storage errors
-    }
+    } catch {}
   };
 
   return (
@@ -437,6 +488,11 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         websiteContent,
         currencySymbol,
         isLoading,
+        lang,
+        setLang,
+        toggleLang,
+        t,
+        formatDigits,
         saveSiteName,
         saveWebsiteContent,
         saveCurrencySymbol,
