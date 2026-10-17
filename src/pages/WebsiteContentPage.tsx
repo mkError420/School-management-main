@@ -803,25 +803,44 @@ const WebsiteContentPage: React.FC = () => {
                       <Bell size={10} />
                       <span>জরুরি:</span>
                     </div>
-                    <div className="flex-1 overflow-hidden whitespace-nowrap">
-                      <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
-                        {draft.breakingNews && draft.breakingNews.trim() !== "" && (
-                          <span className="mx-3 text-[#da291c] font-bold">
-                            ★ {draft.breakingNews}
-                          </span>
-                        )}
-                        {(draft.notices || []).slice(0, 5).map((n, i) => (
-                          <span key={n.id || i} className="mx-3 text-[#006a4e] dark:text-emerald-400 font-medium">
-                            ★ [{n.category || "নোটিশ"}] {n.title || "শিরোনামহীন নোটিশ"} {n.date && `(${n.date})`}
-                          </span>
-                        ))}
-                        {(!draft.notices || draft.notices.length === 0) && !draft.breakingNews && (
-                          <span className="mx-3 text-gray-500">
-                            ★ কোনো নোটিশ নেই। নোটিশ যোগ করলে এখানে সর্বশেষ ৫টি নোটিশ স্বয়ংক্রিয়ভাবে দেখা যাবে।
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="flex-1 overflow-hidden">
+                    {(() => {
+                      const previewItems: Array<{ id: string; isBreaking: boolean; breakingText?: string; notice?: (typeof draft.notices)[number] }> = [];
+                      if (draft.breakingNews && draft.breakingNews.trim() !== "") {
+                        previewItems.push({ id: "__breaking__", isBreaking: true, breakingText: draft.breakingNews });
+                      }
+                      (draft.notices || []).slice(0, 5).forEach((n, i) => {
+                        previewItems.push({ id: String(n.id ?? i), isBreaking: false, notice: n });
+                      });
+                      if (previewItems.length === 0) {
+                        previewItems.push({ id: "__empty__", isBreaking: true, breakingText: "★ কোনো নোটিশ নেই — নোটিশ যোগ করলে এখানে সর্বশেষ ৫টি স্বয়ংক্রিয়ভাবে দেখা যাবে।" });
+                      }
+                      const dur = `${Math.max(30, previewItems.length * 8)}s`;
+                      return (
+                        <div
+                          className="animate-ticker-horizontal items-center gap-10"
+                          style={{ "--ticker-h-duration": dur } as React.CSSProperties}
+                        >
+                          {[...previewItems, ...previewItems].map((item, idx) => {
+                            if (item.isBreaking) {
+                              return (
+                                <span key={`${item.id}-${idx}`} className={`shrink-0 font-bold ${item.id === "__breaking__" ? "text-[#da291c]" : "text-gray-500"}`}>
+                                  {item.breakingText}
+                                </span>
+                              );
+                            }
+                            const n = item.notice!;
+                            return (
+                              <span key={`${item.id}-${idx}`} className="shrink-0 text-[#006a4e] dark:text-emerald-400 font-medium">
+                                ★ [{n.category || "নোটিশ"}] {n.title || "শিরোনামহীন নোটিশ"} {n.date && `(${n.date})`}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+
                   </div>
                 </div>
 

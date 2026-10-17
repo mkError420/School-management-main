@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Bell,
@@ -120,6 +120,24 @@ export const PublicWebsiteLayout: React.FC = () => {
   const primarySchoolName = lang === "bn" ? content.schoolNameBn || content.schoolName : content.schoolName || content.schoolNameBn;
   const secondarySchoolName = lang === "bn" ? content.schoolName : content.schoolNameBn;
   const activeMotto = lang === "bn" ? content.mottoBn || content.motto : content.motto || content.mottoBn;
+
+  // Build the ticker items list once (memoized) for the seamless circular scroll
+  const tickerItems = useMemo(() => {
+    const items: Array<{ id: string; isBreaking: boolean; notice?: SchoolNotice }> = [];
+    if (content.breakingNews && content.breakingNews.trim() !== "") {
+      items.push({ id: "__breaking__", isBreaking: true });
+    }
+    (content.notices || []).slice(0, 5).forEach((n, i) => {
+      items.push({ id: String(n.id ?? i), isBreaking: false, notice: n });
+    });
+    if (items.length === 0) {
+      items.push({ id: "__default__", isBreaking: true });
+    }
+    return items;
+  }, [content.breakingNews, content.notices]);
+
+  // Duration scales with number of items so each item gets enough reading time
+  const tickerDuration = `${Math.max(30, tickerItems.length * 8)}s`;
 
   return (
     <div className="min-h-screen bg-[#f3f6f4] font-sans text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white flex flex-col justify-between">
@@ -325,41 +343,49 @@ export const PublicWebsiteLayout: React.FC = () => {
               <span>জরুরি নোটিশ:</span>
             </div>
 
-            <div className="relative mx-3 flex-1 overflow-hidden whitespace-nowrap text-xs font-semibold text-gray-800 sm:text-sm">
-              <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
-                {content.breakingNews && content.breakingNews.trim() !== "" && (
-                  <span className="mx-4 font-bold text-[#da291c]">
-                    ★ {content.breakingNews}
-                  </span>
-                )}
-                {(content.notices || []).slice(0, 5).map((n, i) => (
-                  <button
-                    key={n.id || i}
-                    type="button"
-                    onClick={() => setSelectedNotice(n)}
-                    className="mx-3 inline-flex items-center gap-1.5 hover:text-[#006a4e] transition group text-left cursor-pointer"
-                  >
-                    <span className="text-amber-500 font-bold">★</span>
-                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
-                      {n.category || "সাধারণ"}
-                    </span>
-                    <span className="group-hover:underline underline-offset-2">
-                      {n.title}
-                    </span>
-                    {n.date && (
-                      <span className="text-[11px] text-gray-500 font-normal">
-                        ({n.date})
+            {/* Seamless infinite circular scroll — duplicated track translates 0 → -50% */}
+            <div className="relative mx-3 flex-1 overflow-hidden text-xs font-semibold text-gray-800 sm:text-sm">
+              <div
+                className="animate-ticker-horizontal items-center gap-12"
+                style={{ "--ticker-h-duration": tickerDuration } as React.CSSProperties}
+              >
+                {[...tickerItems, ...tickerItems].map((item, idx) => {
+                  if (item.isBreaking && item.id === "__breaking__") {
+                    return (
+                      <span key={`b-${idx}`} className="shrink-0 font-bold text-[#da291c]">
+                        ★ {content.breakingNews}
                       </span>
-                    )}
-                  </button>
-                ))}
-                {(!content.notices || content.notices.length === 0) && !content.breakingNews && (
-                  <span className="mx-4 text-[#006a4e]">
-                    ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · সকল শিক্ষক ও শিক্ষার্থীদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো।
-                  </span>
-                )}
+                    );
+                  }
+                  if (item.isBreaking && item.id === "__default__") {
+                    return (
+                      <span key={`d-${idx}`} className="shrink-0 text-[#006a4e]">
+                        ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান · সকল শিক্ষকদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো
+                      </span>
+                    );
+                  }
+                  const n = item.notice!;
+                  return (
+                    <button
+                      key={`n-${item.id}-${idx}`}
+                      type="button"
+                      onClick={() => setSelectedNotice(n)}
+                      className="shrink-0 inline-flex items-center gap-1.5 hover:text-[#006a4e] transition group text-left cursor-pointer"
+                    >
+                      <span className="text-amber-500 font-bold">★</span>
+                      <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                        {n.category || "সাধারণ"}
+                      </span>
+                      <span className="group-hover:underline underline-offset-2">{n.title}</span>
+                      {n.date && (
+                        <span className="text-[11px] text-gray-500 font-normal">({n.date})</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
 
             <Link
               to="/notices"
