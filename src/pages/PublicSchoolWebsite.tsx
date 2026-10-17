@@ -371,17 +371,36 @@ export const PublicSchoolWebsite: React.FC = () => {
 
           <div className="relative mx-3 flex-1 overflow-hidden whitespace-nowrap text-xs font-semibold text-gray-800 sm:text-sm">
             <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
-              <span className="mx-4 text-[#006a4e]">
-                ★ {content.breakingNews || "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · সকল শিক্ষক ও শিক্ষার্থীদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো।"}
-              </span>
-              {content.notices?.[0] && (
+              {content.breakingNews && content.breakingNews.trim() !== "" && (
+                <span className="mx-4 font-bold text-[#da291c]">
+                  ★ {content.breakingNews}
+                </span>
+              )}
+              {(content.notices || []).slice(0, 5).map((n, i) => (
                 <button
+                  key={n.id || i}
                   type="button"
-                  onClick={() => setSelectedNotice(content.notices[0])}
-                  className="mx-4 underline decoration-[#006a4e] underline-offset-2 hover:text-[#006a4e]"
+                  onClick={() => setSelectedNotice(n)}
+                  className="mx-3 inline-flex items-center gap-1.5 hover:text-[#006a4e] transition group text-left cursor-pointer"
                 >
-                  ★ {content.notices[0].title}
+                  <span className="text-amber-500 font-bold">★</span>
+                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                    {n.category || "সাধারণ"}
+                  </span>
+                  <span className="group-hover:underline underline-offset-2">
+                    {n.title}
+                  </span>
+                  {n.date && (
+                    <span className="text-[11px] text-gray-500 font-normal">
+                      ({n.date})
+                    </span>
+                  )}
                 </button>
+              ))}
+              {(!content.notices || content.notices.length === 0) && !content.breakingNews && (
+                <span className="mx-4 text-[#006a4e]">
+                  ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · সকল শিক্ষক ও শিক্ষার্থীদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো।
+                </span>
               )}
             </div>
           </div>

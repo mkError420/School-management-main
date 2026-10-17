@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowRight,
   Award,
   Bell,
   BookMarked,
@@ -203,6 +204,68 @@ const WebsiteContentPage: React.FC = () => {
       ...prev,
       downloads: (prev.downloads || []).map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     }));
+  };
+
+  const [uploadingDownloadIndex, setUploadingDownloadIndex] = useState<number | null>(null);
+  const [downloadUploadError, setDownloadUploadError] = useState<{ index: number; message: string } | null>(null);
+
+  const handleDownloadFileUpload = async (index: number, file: File) => {
+    // 10 MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      setDownloadUploadError({ index, message: "ফাইলের সাইজ ১০ MB এর বেশি হতে পারবে না।" });
+      return;
+    }
+
+    const validTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/svg+xml",
+    ];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const isAllowed =
+      validTypes.includes(file.type) ||
+      ["pdf", "jpg", "jpeg", "png", "webp", "svg"].includes(ext);
+
+    if (!isAllowed) {
+      setDownloadUploadError({
+        index,
+        message: "শুধুমাত্র পিডিএফ (PDF) অথবা ছবি (JPG, PNG, WebP) ফাইল আপলোড করা যাবে।",
+      });
+      return;
+    }
+
+    setDownloadUploadError(null);
+    setUploadingDownloadIndex(index);
+
+    try {
+      const response = await api.uploadDownloadFile(file);
+      if (response.success && response.data?.file_url) {
+        updateDownloadItem(index, "fileUrl", response.data.file_url);
+        setUploadingDownloadIndex(null);
+        return;
+      }
+    } catch {
+      // Fallback to FileReader base64 DataURL
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (result) {
+        updateDownloadItem(index, "fileUrl", result);
+      }
+      setUploadingDownloadIndex(null);
+    };
+    reader.onerror = () => {
+      setDownloadUploadError({
+        index,
+        message: "ফাইল পড়তে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।",
+      });
+      setUploadingDownloadIndex(null);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Gallery handlers
@@ -703,16 +766,118 @@ const WebsiteContentPage: React.FC = () => {
                 />
               </label>
 
-              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                টিকার নোটিশ (জরুরি সংবাদ স্ক্রল)
-                <input
-                  type="text"
-                  value={draft.breakingNews}
-                  onChange={(e) => updateField("breakingNews", e.target.value)}
-                  placeholder="২০২৬ শিক্ষাবর্ষে ভর্তি আবেদন চলমান রয়েছে..."
-                  className={inputClass}
-                />
-              </label>
+              <div className="sm:col-span-2 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5 dark:border-emerald-800/60 dark:bg-emerald-950/20">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2 dark:border-emerald-800/40">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#da291c] text-white">
+                      <Bell size={13} className="animate-bounce" />
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-900 dark:text-white">
+                        টিকার নোটিশ (জরুরি সংবাদ স্ক্রল — সর্বশেষ ৫টি নোটিশ)
+                      </h4>
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                        ওয়েবসাইটের শীর্ষে নোটিশ বোর্ডের সর্বশেষ ৫টি নোটিশ স্বয়ংক্রিয়ভাবে ডায়নামিক স্ক্রল করবে।
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("notices")}
+                    className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1 text-[11px] font-bold text-white shadow-2xs hover:bg-[#00503a]"
+                  >
+                    <span>নোটিশ বোর্ডে যান</span>
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+
+                {/* Live Dynamic Ticker Preview */}
+                <div>
+                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1 mb-1">
+                    <Sparkles size={12} className="text-amber-500" />
+                    <span>লাইভ টিকার প্রিভিউ (ওয়েবসাইটে যেভাবে দেখা যাবে):</span>
+                  </span>
+                  <div className="flex items-center overflow-hidden rounded border border-amber-300 bg-[#fffbeb] p-2 text-xs font-semibold text-gray-900 shadow-2xs dark:border-amber-700/60 dark:bg-slate-900">
+                    <div className="flex shrink-0 items-center gap-1 rounded bg-[#da291c] px-2 py-0.5 text-[10px] font-bold text-white shadow-xs mr-2">
+                      <Bell size={10} />
+                      <span>জরুরি:</span>
+                    </div>
+                    <div className="flex-1 overflow-hidden whitespace-nowrap">
+                      <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
+                        {draft.breakingNews && draft.breakingNews.trim() !== "" && (
+                          <span className="mx-3 text-[#da291c] font-bold">
+                            ★ {draft.breakingNews}
+                          </span>
+                        )}
+                        {(draft.notices || []).slice(0, 5).map((n, i) => (
+                          <span key={n.id || i} className="mx-3 text-[#006a4e] dark:text-emerald-400 font-medium">
+                            ★ [{n.category || "নোটিশ"}] {n.title || "শিরোনামহীন নোটিশ"} {n.date && `(${n.date})`}
+                          </span>
+                        ))}
+                        {(!draft.notices || draft.notices.length === 0) && !draft.breakingNews && (
+                          <span className="mx-3 text-gray-500">
+                            ★ কোনো নোটিশ নেই। নোটিশ যোগ করলে এখানে সর্বশেষ ৫টি নোটিশ স্বয়ংক্রিয়ভাবে দেখা যাবে।
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dynamic List of Last 5 Notices */}
+                <div>
+                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                    টিকারে অন্তর্ভুক্ত সর্বশেষ ৫টি নোটিশের তালিকা:
+                  </span>
+                  <div className="mt-1.5 space-y-1.5">
+                    {(draft.notices || []).slice(0, 5).length > 0 ? (
+                      (draft.notices || []).slice(0, 5).map((n, i) => (
+                        <div
+                          key={n.id || i}
+                          className="flex items-center justify-between gap-2 rounded border border-gray-200 bg-white px-2.5 py-1.5 text-xs dark:border-slate-700 dark:bg-slate-800"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                              #{i + 1}
+                            </span>
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                              {n.category || "সাধারণ"}
+                            </span>
+                            <p className="truncate font-semibold text-gray-800 dark:text-gray-200">
+                              {n.title || "শিরোনামহীন নোটিশ"}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {n.fileUrl && n.fileUrl !== "#" && (
+                              <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-[#006a4e] border border-emerald-200">
+                                {n.fileUrl.endsWith(".pdf") || n.fileUrl.startsWith("data:application/pdf") ? "PDF" : "ছবি"}
+                              </span>
+                            )}
+                            <span className="text-[10px] text-gray-500">{n.date}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="rounded border border-dashed border-gray-300 p-2 text-center text-xs text-gray-500">
+                        নোটিশ বোর্ডে কোনো নোটিশ পাওয়া যায়নি।
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Optional Custom Breaking News Override */}
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 pt-1">
+                  কাস্টম জরুরি বিশেষ বার্তা (ঐচ্ছিক — ৫টি নোটিশের পাশাপাশি এটিও সবার প্রথমে টিকারে স্ক্রল করবে):
+                  <input
+                    type="text"
+                    value={draft.breakingNews || ""}
+                    onChange={(e) => updateField("breakingNews", e.target.value)}
+                    placeholder="যেমন: জরুরি বিজ্ঞপ্তি: বৈরি আবহাওয়ার কারণে আগামীকাল বিদ্যালয় বন্ধ থাকবে..."
+                    className={inputClass}
+                  />
+                </label>
+              </div>
             </div>
           </section>
         )}
@@ -1557,15 +1722,187 @@ const WebsiteContentPage: React.FC = () => {
                       />
                     </label>
 
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                      ফাইল ডাউনলোড লিঙ্ক (PDF URL or Path)
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                          <FileText size={13} className="text-[#006a4e]" />
+                          <span>ফাইল ডাউনলোড লিঙ্ক (ছবি বা পিডিএফ আপলোড)</span>
+                        </label>
+                        <span className="text-[10px] text-gray-500 font-medium">
+                          PDF, JPG, PNG, WebP (সর্বোচ্চ ১০MB)
+                        </span>
+                      </div>
+
+                      {/* Hidden File Input for this specific download item */}
                       <input
-                        type="text"
-                        value={item.fileUrl}
-                        onChange={(e) => updateDownloadItem(index, "fileUrl", e.target.value)}
-                        className={inputClass}
+                        type="file"
+                        id={`download-file-input-${item.id || index}`}
+                        accept="application/pdf,image/png,image/jpeg,image/webp,image/svg+xml,.pdf,.jpg,.jpeg,.png,.webp,.svg"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleDownloadFileUpload(index, file);
+                          }
+                          e.target.value = "";
+                        }}
                       />
-                    </label>
+
+                      {/* File Card if file is attached and not '#' */}
+                      {item.fileUrl && item.fileUrl.trim() !== "" && item.fileUrl.trim() !== "#" ? (
+                        <div className="rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs dark:border-slate-700 dark:bg-slate-800/80">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {item.fileUrl.startsWith("data:image/") ||
+                              /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl) ? (
+                                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded border border-emerald-300 bg-gray-50 dark:border-emerald-700">
+                                  <img
+                                    src={item.fileUrl}
+                                    alt="Download file"
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                              ) : item.fileUrl.startsWith("data:application/pdf") ||
+                                /\.pdf(\?.*)?$/i.test(item.fileUrl) ? (
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-red-200 bg-red-100 text-red-700 font-bold text-[10px] shadow-2xs dark:border-red-800 dark:bg-red-950/60 dark:text-red-400">
+                                  PDF
+                                </div>
+                              ) : (
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-[#006a4e]">
+                                  <LinkIcon size={18} />
+                                </div>
+                              )}
+
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                                    {item.fileUrl.startsWith("data:image/") ||
+                                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl)
+                                      ? "সংযুক্ত ছবি"
+                                      : item.fileUrl.startsWith("data:application/pdf") ||
+                                        /\.pdf(\?.*)?$/i.test(item.fileUrl)
+                                      ? "সংযুক্ত পিডিএফ"
+                                      : "সংযুক্ত লিঙ্ক"}
+                                  </span>
+                                  {uploadingDownloadIndex === index && (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006a4e]">
+                                      <Loader2 size={12} className="animate-spin" />
+                                      আপলোড হচ্ছে...
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-300 max-w-[200px] sm:max-w-[300px]">
+                                  {item.fileUrl.startsWith("data:")
+                                    ? "লোকাল ফাইল ডাটা (সফলভাবে যুক্ত)"
+                                    : item.fileUrl}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={item.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
+                                title="প্রিভিউ দেখুন"
+                              >
+                                <Eye size={12} />
+                                <span>দেখুন</span>
+                              </a>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const el = document.getElementById(
+                                    `download-file-input-${item.id || index}`
+                                  ) as HTMLInputElement;
+                                  el?.click();
+                                }}
+                                disabled={uploadingDownloadIndex === index}
+                                className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a] disabled:opacity-50"
+                              >
+                                <Upload size={12} />
+                                <span>নতুন ফাইল</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => updateDownloadItem(index, "fileUrl", "")}
+                                className="inline-flex items-center gap-1 rounded bg-red-50 p-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
+                                title="ফাইল মুছুন"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div
+                            onClick={() => {
+                              const el = document.getElementById(
+                                `download-file-input-${item.id || index}`
+                              ) as HTMLInputElement;
+                              el?.click();
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const file = e.dataTransfer.files?.[0];
+                              if (file) handleDownloadFileUpload(index, file);
+                            }}
+                            className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-white p-3 text-center transition hover:border-[#006a4e] hover:bg-emerald-50/40 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-[#006a4e]"
+                          >
+                            {uploadingDownloadIndex === index ? (
+                              <div className="flex items-center gap-2 py-1 text-xs font-semibold text-[#006a4e]">
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>ফাইল আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</span>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 text-[#006a4e] transition group-hover:scale-110 dark:bg-emerald-950/60 dark:text-emerald-400">
+                                  <FileUp size={16} />
+                                </div>
+                                <div className="text-left text-xs">
+                                  <p className="font-bold text-gray-800 dark:text-gray-200">
+                                    ছবি বা পিডিএফ ফাইল আপলোড করতে ক্লিক করুন
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                    বা ফাইল টেনে এনে এখানে ড্রপ করুন (PDF, JPG, PNG, WebP — সর্বোচ্চ ১০MB)
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-gray-500 shrink-0">অথবা সরাসরি লিঙ্ক দিন:</span>
+                            <input
+                              type="text"
+                              value={item.fileUrl || ""}
+                              onChange={(e) => updateDownloadItem(index, "fileUrl", e.target.value)}
+                              placeholder="https://... বা ফাইলের লিঙ্ক"
+                              className="flex-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs text-black outline-none transition focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {downloadUploadError && downloadUploadError.index === index && (
+                        <div className="flex items-center gap-1.5 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
+                          <AlertCircle size={13} className="shrink-0" />
+                          <span>{downloadUploadError.message}</span>
+                          <button
+                            type="button"
+                            onClick={() => setDownloadUploadError(null)}
+                            className="ml-auto text-red-500 hover:text-red-700"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

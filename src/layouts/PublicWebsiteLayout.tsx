@@ -4,9 +4,12 @@ import {
   Bell,
   Calendar,
   Clock,
+  Download,
   ExternalLink,
+  FileText,
   GraduationCap,
   HeartHandshake,
+  Image as ImageIcon,
   Languages,
   Mail,
   MapPin,
@@ -16,6 +19,7 @@ import {
   Phone,
   PhoneCall,
   Play,
+  Printer,
   Shield,
   Users,
   X,
@@ -323,17 +327,36 @@ export const PublicWebsiteLayout: React.FC = () => {
 
             <div className="relative mx-3 flex-1 overflow-hidden whitespace-nowrap text-xs font-semibold text-gray-800 sm:text-sm">
               <div className="inline-block animate-marquee hover:[animation-play-state:paused]">
-                <span className="mx-4 text-[#006a4e]">
-                  ★ {content.breakingNews || "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · সকল শিক্ষক ও শিক্ষার্থীদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো।"}
-                </span>
-                {content.notices?.[0] && (
+                {content.breakingNews && content.breakingNews.trim() !== "" && (
+                  <span className="mx-4 font-bold text-[#da291c]">
+                    ★ {content.breakingNews}
+                  </span>
+                )}
+                {(content.notices || []).slice(0, 5).map((n, i) => (
                   <button
+                    key={n.id || i}
                     type="button"
-                    onClick={() => setSelectedNotice(content.notices[0])}
-                    className="mx-4 underline decoration-[#006a4e] underline-offset-2 hover:text-[#006a4e]"
+                    onClick={() => setSelectedNotice(n)}
+                    className="mx-3 inline-flex items-center gap-1.5 hover:text-[#006a4e] transition group text-left cursor-pointer"
                   >
-                    ★ {content.notices[0].title}
+                    <span className="text-amber-500 font-bold">★</span>
+                    <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                      {n.category || "সাধারণ"}
+                    </span>
+                    <span className="group-hover:underline underline-offset-2">
+                      {n.title}
+                    </span>
+                    {n.date && (
+                      <span className="text-[11px] text-gray-500 font-normal">
+                        ({n.date})
+                      </span>
+                    )}
                   </button>
+                ))}
+                {(!content.notices || content.notices.length === 0) && !content.breakingNews && (
+                  <span className="mx-4 text-[#006a4e]">
+                    ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · সকল শিক্ষক ও শিক্ষার্থীদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো।
+                  </span>
                 )}
               </div>
             </div>
@@ -469,6 +492,85 @@ export const PublicWebsiteLayout: React.FC = () => {
                 {selectedNotice.content ||
                   "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।"}
               </div>
+
+              {/* Attachment Display (Image or PDF) */}
+              {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
+                <div className="mt-4">
+                  {selectedNotice.fileUrl.startsWith("data:image/") ||
+                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
+                          <ImageIcon size={14} />
+                          <span>সংযুক্ত নোটিশ পত্র (ছবি):</span>
+                        </span>
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
+                        >
+                          <Download size={12} />
+                          <span>ডাউনলোড করুন</span>
+                        </a>
+                      </div>
+                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
+                        <img
+                          src={selectedNotice.fileUrl}
+                          alt={selectedNotice.title}
+                          className="max-h-[380px] w-full object-contain bg-gray-50 p-1"
+                        />
+                      </div>
+                    </div>
+                  ) : selectedNotice.fileUrl.startsWith("data:application/pdf") ||
+                    /\.pdf(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50/60 p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-red-600 text-white font-bold text-xs shadow-2xs">
+                            PDF
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900">
+                              অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)
+                            </p>
+                            <p className="text-[11px] text-gray-600">
+                              মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন
+                            </p>
+                          </div>
+                        </div>
+
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
+                        >
+                          <FileText size={14} />
+                          <span>পিডিএফ দেখুন ও ডাউনলোড</span>
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-800">
+                        <ExternalLink size={14} className="text-blue-600 shrink-0" />
+                        <span>সংযুক্ত ফাইল বা ওয়েব লিঙ্ক</span>
+                      </div>
+                      <a
+                        href={selectedNotice.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                      >
+                        <Download size={13} />
+                        <span>ফাইল খুলুন</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-xs">
                 <div>

@@ -70,9 +70,11 @@ export const AcademicsPage: React.FC = () => {
 
                   <a
                     href={item.fileUrl || "#"}
+                    target={item.fileUrl && item.fileUrl !== "#" ? "_blank" : undefined}
+                    rel="noreferrer"
                     download
                     onClick={(e) => {
-                      if (item.fileUrl === "#") {
+                      if (!item.fileUrl || item.fileUrl === "#") {
                         e.preventDefault();
                         alert(`“${item.title}” ডাউনলোড শীঘ্রই শুরু হবে।`);
                       }
@@ -80,7 +82,13 @@ export const AcademicsPage: React.FC = () => {
                     className="inline-flex items-center justify-center gap-1.5 rounded bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a] shrink-0"
                   >
                     <Download size={14} />
-                    <span>পিডিএফ ডাউনলোড</span>
+                    <span>
+                      {item.fileUrl &&
+                      (item.fileUrl.startsWith("data:image/") ||
+                        /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl))
+                        ? "ফাইল / ছবি ডাউনলোড"
+                        : "পিডিএফ ডাউনলোড"}
+                    </span>
                   </a>
                 </div>
               ))}

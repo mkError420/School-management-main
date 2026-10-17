@@ -14,7 +14,7 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
-        } elseif ($action === 'upload-notice-file' || $action === 'upload-file' || !empty($_FILES['file']) || !empty($_FILES['notice_file'])) {
+        } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-file' || !empty($_FILES['file']) || !empty($_FILES['notice_file'])) {
             uploadNoticeFile($db);
         } else {
             updateSiteSettings($db);
