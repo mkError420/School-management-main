@@ -468,6 +468,53 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  const [uploadingStudyCornerImage, setUploadingStudyCornerImage] = useState(false);
+  const [studyCornerImageError, setStudyCornerImageError] = useState<string | null>(null);
+
+  const handleStudyCornerImageUpload = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) {
+      setStudyCornerImageError("ছবির সাইজ ১০ MB এর বেশি হতে পারবে না।");
+      return;
+    }
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const isAllowed = validTypes.includes(file.type) || ["jpg", "jpeg", "png", "webp", "svg"].includes(ext);
+
+    if (!isAllowed) {
+      setStudyCornerImageError("শুধুমাত্র ছবি (JPG, PNG, WebP, SVG) ফাইল আপলোড করা যাবে।");
+      return;
+    }
+
+    setStudyCornerImageError(null);
+    setUploadingStudyCornerImage(true);
+
+    try {
+      const response = await api.uploadFile(file);
+      if (response.success && response.data?.file_url) {
+        updateField("studyCornerImage", response.data.file_url);
+        setUploadingStudyCornerImage(false);
+        return;
+      }
+    } catch {
+      // Fallback to FileReader base64 DataURL
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (result) {
+        updateField("studyCornerImage", result);
+      }
+      setUploadingStudyCornerImage(false);
+    };
+    reader.onerror = () => {
+      setStudyCornerImageError("ছবি পড়তে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।");
+      setUploadingStudyCornerImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Reset to default
   const handleResetToDefault = () => {
     if (window.confirm("আপনি কি নিশ্চিত যে সকল তথ্য ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেটে রিসেট করতে চান?")) {
@@ -2091,16 +2138,173 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  কভার ছবির লিঙ্ক (Image URL)
+                <div className="sm:col-span-2 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <ImageIcon size={13} className="text-[#006a4e]" />
+                      <span>কভার ছবির লিঙ্ক (ছবি আপলোড বা লিঙ্ক)</span>
+                    </label>
+                    <span className="text-[10px] text-gray-500 font-medium">
+                      JPG, PNG, WebP, SVG (সর্বোচ্চ ১০MB)
+                    </span>
+                  </div>
+
+                  {/* Hidden File Input */}
                   <input
-                    type="text"
-                    value={draft.studyCornerImage || ""}
-                    onChange={(e) => updateField("studyCornerImage", e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className={inputClass}
+                    type="file"
+                    id="study-corner-image-input"
+                    accept="image/png,image/jpeg,image/webp,image/svg+xml,.jpg,.jpeg,.png,.webp,.svg"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleStudyCornerImageUpload(file);
+                      }
+                      e.target.value = "";
+                    }}
                   />
-                </label>
+
+                  {/* Image Card if image is present */}
+                  {draft.studyCornerImage && draft.studyCornerImage.trim() !== "" ? (
+                    <div className="rounded-md border border-gray-200 bg-white p-2.5 shadow-2xs dark:border-slate-700 dark:bg-slate-800/80">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded border border-emerald-300 bg-gray-50 dark:border-emerald-700">
+                            <img
+                              src={draft.studyCornerImage}
+                              alt="Study Corner Cover"
+                              className="h-full w-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/images/logo.png";
+                              }}
+                            />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                                সংযুক্ত কভার ছবি
+                              </span>
+                              {uploadingStudyCornerImage && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006a4e]">
+                                  <Loader2 size={12} className="animate-spin" />
+                                  আপলোড হচ্ছে...
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 truncate text-xs text-gray-600 dark:text-gray-300 max-w-[200px] sm:max-w-[320px]">
+                              {draft.studyCornerImage.startsWith("data:")
+                                ? "লোকাল ছবি ডাটা (সফলভাবে যুক্ত)"
+                                : draft.studyCornerImage}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={draft.studyCornerImage}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
+                            title="প্রিভিউ দেখুন"
+                          >
+                            <Eye size={12} />
+                            <span>দেখুন</span>
+                          </a>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const el = document.getElementById(
+                                "study-corner-image-input"
+                              ) as HTMLInputElement;
+                              el?.click();
+                            }}
+                            disabled={uploadingStudyCornerImage}
+                            className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a] disabled:opacity-50"
+                          >
+                            <Upload size={12} />
+                            <span>নতুন ছবি</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => updateField("studyCornerImage", "")}
+                            className="inline-flex items-center gap-1 rounded bg-red-50 p-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400"
+                            title="ছবি মুছুন"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div
+                        onClick={() => {
+                          const el = document.getElementById(
+                            "study-corner-image-input"
+                          ) as HTMLInputElement;
+                          el?.click();
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) handleStudyCornerImageUpload(file);
+                        }}
+                        className="group flex cursor-pointer items-center justify-center gap-3 rounded-md border-2 border-dashed border-gray-300 bg-white p-3.5 text-center transition hover:border-[#006a4e] hover:bg-emerald-50/40 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:border-[#006a4e]"
+                      >
+                        {uploadingStudyCornerImage ? (
+                          <div className="flex items-center gap-2 py-1 text-xs font-semibold text-[#006a4e]">
+                            <Loader2 size={16} className="animate-spin" />
+                            <span>ছবি আপলোড হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-[#006a4e] transition group-hover:scale-110 dark:bg-emerald-950/60 dark:text-emerald-400">
+                              <FileUp size={18} />
+                            </div>
+                            <div className="text-left text-xs">
+                              <p className="font-bold text-gray-800 dark:text-gray-200">
+                                ছবি আপলোড করতে ক্লিক করুন
+                              </p>
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                বা ছবি টেনে এনে এখানে ড্রপ করুন (JPG, PNG, WebP — সর্বোচ্চ ১০MB)
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[11px] text-gray-500 shrink-0">অথবা সরাসরি লিঙ্ক দিন:</span>
+                    <input
+                      type="text"
+                      value={draft.studyCornerImage || ""}
+                      onChange={(e) => updateField("studyCornerImage", e.target.value)}
+                      placeholder="https://images.unsplash.com/... বা ছবির লিঙ্ক"
+                      className="flex-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-xs text-black outline-none transition focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  {studyCornerImageError && (
+                    <div className="flex items-center gap-1.5 rounded bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-800">
+                      <AlertCircle size={13} className="shrink-0" />
+                      <span>{studyCornerImageError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setStudyCornerImageError(null)}
+                        className="ml-auto text-red-500 hover:text-red-700"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
 
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
                   বিস্তারিত বিবরণ (Detailed Overview)
