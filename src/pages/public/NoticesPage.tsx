@@ -4,8 +4,11 @@ import {
   Bell,
   Calendar,
   Download,
+  ExternalLink,
   Eye,
+  FileText,
   Home,
+  Image as ImageIcon,
   Printer,
   Search,
   X,
@@ -115,11 +118,38 @@ export const NoticesPage: React.FC = () => {
                 </div>
 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
                       {notice.category || "সাধারণ"}
                     </span>
                     <span className="text-xs text-gray-500">তারিখ: {notice.date}</span>
+
+                    {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
+                      <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
+                        notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl)
+                          ? "bg-red-50 text-red-700 border border-red-200"
+                          : notice.fileUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl)
+                          ? "bg-emerald-50 text-[#006a4e] border border-emerald-200"
+                          : "bg-blue-50 text-blue-700 border border-blue-200"
+                      }`}>
+                        {notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl) ? (
+                          <>
+                            <FileText size={11} className="text-red-600" />
+                            <span>পিডিএফ সংযুক্ত</span>
+                          </>
+                        ) : notice.fileUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl) ? (
+                          <>
+                            <ImageIcon size={11} className="text-[#006a4e]" />
+                            <span>ছবি সংযুক্ত</span>
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLink size={11} className="text-blue-600" />
+                            <span>ফাইল সংযুক্ত</span>
+                          </>
+                        )}
+                      </span>
+                    )}
                   </div>
                   <h3 className="mt-1.5 text-sm font-bold text-gray-900 sm:text-base group-hover:text-[#006a4e] transition">
                     {notice.title}
@@ -191,6 +221,85 @@ export const NoticesPage: React.FC = () => {
                 {selectedNotice.content ||
                   "উক্ত বিষয়ের প্রেক্ষিতে সকল শিক্ষক, শিক্ষার্থী ও অভিভাবকদের সদয় অবগতির জন্য জানানো যাচ্ছে যে, নোটিশটি যথাযথভাবে অনুসরণ করার নির্দেশ প্রদান করা হলো। বিস্তারিত তথ্যের জন্য বিদ্যালয় কার্যালয়ে যোগাযোগ করুন।"}
               </div>
+
+              {/* Attachment Display (Image or PDF) */}
+              {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
+                <div className="mt-4">
+                  {selectedNotice.fileUrl.startsWith("data:image/") ||
+                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
+                          <ImageIcon size={14} />
+                          <span>সংযুক্ত নোটিশ পত্র (ছবি):</span>
+                        </span>
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
+                        >
+                          <Download size={12} />
+                          <span>ডাউনলোড করুন</span>
+                        </a>
+                      </div>
+                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
+                        <img
+                          src={selectedNotice.fileUrl}
+                          alt={selectedNotice.title}
+                          className="max-h-[380px] w-full object-contain bg-gray-50 p-1"
+                        />
+                      </div>
+                    </div>
+                  ) : selectedNotice.fileUrl.startsWith("data:application/pdf") ||
+                    /\.pdf(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50/60 p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-red-600 text-white font-bold text-xs shadow-2xs">
+                            PDF
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900">
+                              অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)
+                            </p>
+                            <p className="text-[11px] text-gray-600">
+                              মূল নোটিশের অফিসিয়াল পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন
+                            </p>
+                          </div>
+                        </div>
+
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
+                        >
+                          <FileText size={14} />
+                          <span>পিডিএফ দেখুন ও ডাউনলোড</span>
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-800">
+                        <ExternalLink size={14} className="text-blue-600 shrink-0" />
+                        <span>সংযুক্ত ফাইল বা ওয়েব লিঙ্ক</span>
+                      </div>
+                      <a
+                        href={selectedNotice.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                      >
+                        <Download size={13} />
+                        <span>ফাইল খুলুন</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 text-xs">
                 <div>

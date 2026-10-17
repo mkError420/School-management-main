@@ -127,6 +127,15 @@ class ApiService {
     });
   }
 
+  async uploadNoticeFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ file_url: string; original_name?: string }>('settings?action=upload-notice-file', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   // Dashboard Metrics
   async getDashboard(params?: { finance_year?: number | string }) {
     const qs = params?.finance_year ? `?finance_year=${params.finance_year}` : '';

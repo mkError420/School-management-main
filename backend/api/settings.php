@@ -14,6 +14,8 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
+        } elseif ($action === 'upload-notice-file' || $action === 'upload-file' || !empty($_FILES['file']) || !empty($_FILES['notice_file'])) {
+            uploadNoticeFile($db);
         } else {
             updateSiteSettings($db);
         }
@@ -287,3 +289,113 @@ function uploadSiteLogo($db) {
         'site_logo' => $logoUrl,
     ]);
 }
+
+function uploadNoticeFile($db) {
+    $user = AuthMiddleware::authenticate();
+    if (!in_array($user['role'] ?? '', ['super_admin', 'admin'])) {
+        Response::forbidden('Only an administrator can upload notice files');
+    }
+
+    $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['notice_file']) ? 'notice_file' : null);
+    if (!$uploadKey || empty($_FILES[$uploadKey]) || $_FILES[$uploadKey]['error'] === UPLOAD_ERR_NO_FILE) {
+        Response::error('Please choose an image or PDF file to upload');
+    }
+
+    $upload = $_FILES[$uploadKey];
+    if ($upload['error'] !== UPLOAD_ERR_OK) {
+        Response::error('File upload failed (code ' . $upload['error'] . ')');
+    }
+
+    if ($upload['size'] > 10 * 1024 * 1024) {
+        Response::error('File must be 10 MB or smaller');
+    }
+
+    $allowedMimes = [
+        'application/pdf' => 'pdf',
+        'image/jpeg'      => 'jpg',
+        'image/png'       => 'png',
+        'image/webp'      => 'webp',
+        'image/svg+xml'   => 'svg',
+    ];
+
+    $mimeType = '';
+    if (function_exists('finfo_open')) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        if ($finfo) {
+            $detected = finfo_file($finfo, $upload['tmp_name']);
+            if ($detected) {
+                $mimeType = $detected;
+            }
+            finfo_close($finfo);
+        }
+    }
+    if (!$mimeType && function_exists('mime_content_type')) {
+        $mimeType = @mime_content_type($upload['tmp_name']);
+    }
+
+    $origName = $upload['name'] ?? 'notice_file';
+    $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
+
+    if ($ext === 'pdf' || strpos($mimeType, 'pdf') !== false) {
+        $extension = 'pdf';
+    } elseif ($ext === 'svg' || strpos($mimeType, 'svg') !== false) {
+        $extension = 'svg';
+    } elseif (isset($allowedMimes[$mimeType])) {
+        $extension = $allowedMimes[$mimeType];
+    } elseif (in_array($ext, ['png', 'jpg', 'jpeg', 'webp'])) {
+        $extension = $ext === 'jpeg' ? 'jpg' : $ext;
+    } else {
+        Response::error('Please choose a valid PDF document or image (JPG, PNG, WebP, SVG)');
+    }
+
+    $root = dirname(__DIR__, 2);
+    $targetDirs = [];
+    if (is_dir($root . '/public/uploads/notices')) {
+        $targetDirs[] = $root . '/public/uploads/notices';
+    } elseif (is_dir($root . '/public')) {
+        @mkdir($root . '/public/uploads/notices', 0755, true);
+        if (is_dir($root . '/public/uploads/notices')) {
+            $targetDirs[] = $root . '/public/uploads/notices';
+        }
+    }
+
+    if (is_dir($root . '/uploads/notices')) {
+        $targetDirs[] = $root . '/uploads/notices';
+    } else {
+        @mkdir($root . '/uploads/notices', 0755, true);
+        if (is_dir($root . '/uploads/notices')) {
+            $targetDirs[] = $root . '/uploads/notices';
+        }
+    }
+
+    if (empty($targetDirs)) {
+        $targetDirs[] = $root . '/uploads/notices';
+        @mkdir($root . '/uploads/notices', 0755, true);
+    }
+
+    $cleanOrig = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', pathinfo($origName, PATHINFO_FILENAME));
+    if (strlen($cleanOrig) > 30) {
+        $cleanOrig = substr($cleanOrig, 0, 30);
+    }
+    $fileName = 'notice_' . time() . '_' . bin2hex(random_bytes(3)) . ($cleanOrig ? '_' . $cleanOrig : '') . '.' . $extension;
+    $primaryDir = $targetDirs[0];
+    $primaryPath = $primaryDir . '/' . $fileName;
+
+    if (!move_uploaded_file($upload['tmp_name'], $primaryPath)) {
+        Response::serverError('Unable to save the uploaded notice file');
+    }
+
+    for ($i = 1; $i < count($targetDirs); $i++) {
+        @copy($primaryPath, $targetDirs[$i] . '/' . $fileName);
+    }
+
+    $fileUrl = '/uploads/notices/' . $fileName;
+
+    Response::success('Notice file uploaded successfully', [
+        'file_url'      => $fileUrl,
+        'original_name' => $origName,
+        'extension'     => $extension,
+        'size'          => $upload['size'],
+    ]);
+}
+
