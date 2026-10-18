@@ -53,7 +53,7 @@ const DashboardLayoutContent: React.FC = () => {
             className="flex items-center gap-2.5 min-w-0"
           >
             <Image
-              src={siteLogo || "/logo.png"}
+              src={siteLogo || "/images/logo.png"}
               alt={siteName}
               width={34}
               height={34}
@@ -138,7 +138,7 @@ const DashboardLayoutContent: React.FC = () => {
             } py-1`}
           >
             <Image
-              src={siteLogo || "/logo.png"}
+              src={siteLogo || "/images/logo.png"}
               alt={siteName}
               width={32}
               height={32}

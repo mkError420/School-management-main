@@ -10,6 +10,7 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: [
+          '"SolaimanLipi"',
           '"Hind Siliguri"',
           '"Noto Sans Bengali"',
           '"Inter"',
@@ -22,11 +23,11 @@ const config: Config = {
           'Roboto',
           '"Helvetica Neue"',
           'Arial',
-          '"SolaimanLipi"',
           '"Kalpurush"',
           'sans-serif',
         ],
         serif: [
+          '"SolaimanLipi"',
           '"Tiro Bangla"',
           '"Hind Siliguri"',
           '"Noto Sans Bengali"',
@@ -37,18 +38,18 @@ const config: Config = {
           'serif',
         ],
         bengali: [
+          '"SolaimanLipi"',
           '"Hind Siliguri"',
           '"Noto Sans Bengali"',
           '"Tiro Bangla"',
-          '"SolaimanLipi"',
           '"Kalpurush"',
           'sans-serif',
         ],
         bangla: [
+          '"SolaimanLipi"',
           '"Hind Siliguri"',
           '"Noto Sans Bengali"',
           '"Tiro Bangla"',
-          '"SolaimanLipi"',
           '"Kalpurush"',
           'sans-serif',
         ],

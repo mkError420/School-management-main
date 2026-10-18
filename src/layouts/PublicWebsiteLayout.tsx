@@ -525,7 +525,14 @@ export const PublicWebsiteLayout: React.FC = () => {
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-2.5">
-                <BdGovEmblem size={28} />
+                <img
+                  src={siteLogo || "/images/logo.png"}
+                  alt="School Logo"
+                  className="h-10 w-10 rounded-full border border-emerald-700 bg-white p-0.5 object-contain shadow-sm"
+                  onError={(e) => {
+                    e.currentTarget.src = "/images/logo.png";
+                  }}
+                />
                 <div>
                   <h4 className="text-sm font-bold">{primarySchoolName}</h4>
                   <p className="text-[10px] text-emerald-300">
