@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Clock,
   Compass,
+  Database,
   Download,
   ExternalLink,
   Eye,
@@ -36,6 +37,7 @@ import {
   Monitor,
   Plus,
   Radio,
+  RefreshCw,
   RotateCcw,
   Save,
   School,
@@ -98,10 +100,11 @@ type ContentTab =
 type EditLangMode = "bn" | "en" | "dual";
 
 const WebsiteContentPage: React.FC = () => {
-  const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo } = useSiteSettings();
+  const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo, refreshSettings, isLoading } = useSiteSettings();
   const [draft, setDraft] = useState<SchoolWebsiteContent>(websiteContent);
   const [activeTab, setActiveTab] = useState<ContentTab>("identity");
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [editLangMode, setEditLangMode] = useState<EditLangMode>("dual");
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
@@ -114,6 +117,19 @@ const WebsiteContentPage: React.FC = () => {
   useEffect(() => {
     setDraft(websiteContent);
   }, [websiteContent]);
+
+  const handleReloadFromDatabase = async () => {
+    setSyncing(true);
+    setFeedback({ type: "info", message: "ডাটাবেজ থেকে সর্বশেষ তথ্য লোড করা হচ্ছে..." });
+    try {
+      await refreshSettings();
+      setFeedback({ type: "success", message: "ডাটাবেজ থেকে সর্বশেষ তথ্য সফলভাবে সিঙ্ক হয়েছে।" });
+    } catch (err: any) {
+      setFeedback({ type: "error", message: "ডাটাবেজ থেকে তথ্য লোড করতে সমস্যা হয়েছে: " + (err?.message || "") });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const updateField = <K extends keyof SchoolWebsiteContent>(key: K, value: SchoolWebsiteContent[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -865,18 +881,18 @@ const WebsiteContentPage: React.FC = () => {
       if (result.success) {
         setFeedback({
           type: "success",
-          message: "অভিনন্দন! বাংলা ও ইংরেজি উভয় ভাষার সকল তথ্য সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে। লাইভ ওয়েবসাইটে ভিজিট করে ভাষা পরিবর্তন করে দেখতে পারেন।",
+          message: "অভিনন্দন! বাংলা ও ইংরেজি উভয় ভাষার সকল তথ্য সফলভাবে ব্যাকএন্ড ডাটাবেজে সংরক্ষিত ও প্রকাশিত হয়েছে। লাইভ ওয়েবসাইটে সরাসরি পরিবর্তন দেখতে পারেন।",
         });
       } else {
         setFeedback({
           type: "error",
-          message: result.message || "ওয়েবসাইট কনটেন্ট সংরক্ষণ করা যায়নি।",
+          message: result.message || "ওয়েবসাইট কনটেন্ট ডাটাবেজে সংরক্ষণ করা যায়নি।",
         });
       }
-    } catch {
+    } catch (err: any) {
       setFeedback({
         type: "error",
-        message: "সার্ভারে যোগাযোগ করা যায়নি। লোকাল ব্রাউজারে সংরক্ষিত হয়েছে।",
+        message: "সার্ভারে যোগাযোগ করা যায়নি: " + (err?.message || "নেটওয়ার্ক সমস্যা"),
       });
     } finally {
       setSaving(false);
@@ -925,10 +941,15 @@ const WebsiteContentPage: React.FC = () => {
               সুপার অ্যাডমিন ড্যাশবোর্ড · দ্বিভাষিক (বাংলা ও ইংরেজি) ওয়েবসাইট কনটেন্ট কন্ট্রোল
             </p>
 
-            {isDirty && (
+            {isDirty ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900 shadow-2xs dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
                 <AlertCircle size={12} className="text-amber-600 animate-pulse" />
                 <span>অসংরক্ষিত পরিবর্তন রয়েছে</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800 shadow-2xs dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span>ডাটাবেজ সিঙ্কড ও লাইভ</span>
               </span>
             )}
           </div>
@@ -942,6 +963,18 @@ const WebsiteContentPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap shrink-0 items-center gap-2">
+          {/* Sync / Reload from Database */}
+          <button
+            type="button"
+            disabled={syncing}
+            onClick={handleReloadFromDatabase}
+            title="ডাটাবেজ থেকে সর্বশেষ সংরক্ষিত কনটেন্ট রিফ্রেশ করুন"
+            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-white px-2.5 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-400"
+          >
+            <RefreshCw size={14} className={syncing ? "animate-spin text-[#006a4e]" : "text-[#006a4e]"} />
+            <span className="hidden sm:inline">{syncing ? "সিঙ্ক হচ্ছে..." : "ডাটাবেজ সিঙ্ক"}</span>
+          </button>
+
           {/* Export JSON */}
           <button
             type="button"

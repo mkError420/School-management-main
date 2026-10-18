@@ -101,18 +101,18 @@ export const isCorruptedText = (val: unknown): boolean => {
   if (typeof val !== "string") return false;
   const str = val.trim();
   if (!str) return false;
+  // Classic MySQL latin1 encoding artifact is 3 or more consecutive question marks
+  if (/\?{3,}/.test(str)) return true;
   const qMatches = str.match(/\?/g);
-  if (!qMatches) return false;
-  const qCount = qMatches.length;
-  if (qCount < 2) return false;
+  if (!qMatches || qMatches.length < 4) return false;
   const letters = str.replace(/[\s\d.,\-·–/\\:;!@#$%^&*()_+={}\[\]|`~'"]/g, "");
   if (letters.length === 0) return true;
-  return qCount / letters.length >= 0.35;
+  return qMatches.length / letters.length >= 0.6;
 };
 
 const cleanStr = (incomingVal: any, defaultVal: string): string => {
   if (typeof incomingVal !== "string") return defaultVal;
-  if (!incomingVal.trim() || isCorruptedText(incomingVal)) {
+  if (isCorruptedText(incomingVal)) {
     return defaultVal;
   }
   return incomingVal;
@@ -130,45 +130,56 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
   if (!incoming) return DEFAULT_WEBSITE_CONTENT;
   const anyInc = incoming as any;
 
-  // Sanitize every scalar string field from DEFAULT_WEBSITE_CONTENT
+  // Preserve user scalar string fields, only falling back to default if field is undefined or null
   const sanitizedStrings: Record<string, string> = {};
   for (const key of Object.keys(DEFAULT_WEBSITE_CONTENT) as (keyof SchoolWebsiteContent)[]) {
     const defVal = (DEFAULT_WEBSITE_CONTENT as any)[key];
     const incVal = (incoming as any)[key];
     if (typeof defVal === "string") {
-      sanitizedStrings[key] = cleanStr(incVal, defVal);
+      if (incVal !== undefined && incVal !== null) {
+        if (typeof incVal === "string" && isCorruptedText(incVal)) {
+          sanitizedStrings[key] = defVal;
+        } else {
+          sanitizedStrings[key] = String(incVal);
+        }
+      } else {
+        sanitizedStrings[key] = defVal;
+      }
     }
   }
 
-  // Handle legacy studyCorner / mujibCorner migrations
-  const studyCornerTitle = cleanStr(
-    incoming.studyCornerTitle || anyInc.mujibCornerTitle,
-    DEFAULT_WEBSITE_CONTENT.studyCornerTitle
-  );
-  const studyCornerQuote = cleanStr(
-    incoming.studyCornerQuote || anyInc.mujibCornerQuote,
-    DEFAULT_WEBSITE_CONTENT.studyCornerQuote
-  );
-  const studyCornerText = cleanStr(
-    incoming.studyCornerText || anyInc.mujibCornerText,
-    DEFAULT_WEBSITE_CONTENT.studyCornerText
-  );
-  const studyCornerImage = cleanStr(
-    incoming.studyCornerImage || anyInc.mujibCornerImage,
-    DEFAULT_WEBSITE_CONTENT.studyCornerImage
-  );
+  // Handle studyCorner / legacy migrations
+  const studyCornerTitle =
+    incoming.studyCornerTitle !== undefined
+      ? incoming.studyCornerTitle
+      : anyInc.mujibCornerTitle !== undefined
+      ? anyInc.mujibCornerTitle
+      : DEFAULT_WEBSITE_CONTENT.studyCornerTitle;
 
-  const cleanList = <T,>(
-    list: T[] | undefined,
-    defaultList: T[],
-    checkFns: ((item: T) => string)[]
-  ): T[] => {
-    if (!Array.isArray(list) || list.length === 0) return defaultList;
-    const isCorrupted = list.some((item) =>
-      checkFns.some((fn) => isCorruptedText(fn(item)))
-    );
-    if (isCorrupted) return defaultList;
-    return list;
+  const studyCornerQuote =
+    incoming.studyCornerQuote !== undefined
+      ? incoming.studyCornerQuote
+      : anyInc.mujibCornerQuote !== undefined
+      ? anyInc.mujibCornerQuote
+      : DEFAULT_WEBSITE_CONTENT.studyCornerQuote;
+
+  const studyCornerText =
+    incoming.studyCornerText !== undefined
+      ? incoming.studyCornerText
+      : anyInc.mujibCornerText !== undefined
+      ? anyInc.mujibCornerText
+      : DEFAULT_WEBSITE_CONTENT.studyCornerText;
+
+  const studyCornerImage =
+    incoming.studyCornerImage !== undefined
+      ? incoming.studyCornerImage
+      : anyInc.mujibCornerImage !== undefined
+      ? anyInc.mujibCornerImage
+      : DEFAULT_WEBSITE_CONTENT.studyCornerImage;
+
+  const cleanList = <T,>(list: T[] | undefined, defaultList: T[]): T[] => {
+    if (list === undefined || list === null) return defaultList;
+    return Array.isArray(list) ? list : defaultList;
   };
 
   return {
@@ -179,33 +190,28 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     studyCornerQuote,
     studyCornerText,
     studyCornerImage,
-    studyCornerDays: cleanStr(incoming.studyCornerDays, DEFAULT_WEBSITE_CONTENT.studyCornerDays || "সোমবার - শনিবার"),
-    studyCornerDaysEn: cleanStr(incoming.studyCornerDaysEn, DEFAULT_WEBSITE_CONTENT.studyCornerDaysEn || "Monday - Saturday"),
-    studyCornerHours: cleanStr(incoming.studyCornerHours, DEFAULT_WEBSITE_CONTENT.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"),
-    studyCornerHoursEn: cleanStr(incoming.studyCornerHoursEn, DEFAULT_WEBSITE_CONTENT.studyCornerHoursEn || "8:00 AM - 4:00 PM"),
-    studyCornerFee: cleanStr(incoming.studyCornerFee, DEFAULT_WEBSITE_CONTENT.studyCornerFee || "বিনামূল্যে প্রবেশ"),
-    studyCornerFeeEn: cleanStr(incoming.studyCornerFeeEn, DEFAULT_WEBSITE_CONTENT.studyCornerFeeEn || "Free Admission"),
-    notices: cleanList(incoming.notices, DEFAULT_WEBSITE_CONTENT.notices, [(n) => n.title, (n) => n.content || ""]),
-    quickLinks: cleanList(incoming.quickLinks, DEFAULT_WEBSITE_CONTENT.quickLinks, [(l) => l.label]),
-    downloads: cleanList(incoming.downloads, DEFAULT_WEBSITE_CONTENT.downloads, [(d) => d.title]),
-    gallery: cleanList(incoming.gallery, DEFAULT_WEBSITE_CONTENT.gallery, [(g) => g.title]),
-    coCurricular: cleanList(incoming.coCurricular, DEFAULT_WEBSITE_CONTENT.coCurricular, [(c) => c.title]),
-    teachers: cleanList(incoming.teachers, DEFAULT_WEBSITE_CONTENT.teachers, [(t) => t.name, (t) => t.designation]),
-    studyCornerBooks: cleanList(incoming.studyCornerBooks, DEFAULT_WEBSITE_CONTENT.studyCornerBooks, [(b) => b.title, (b) => b.author]),
-    studyCornerResources: cleanList(incoming.studyCornerResources, DEFAULT_WEBSITE_CONTENT.studyCornerResources, [(r) => r.title, (r) => r.description]),
-    studyCornerLinks: cleanList(incoming.studyCornerLinks, DEFAULT_WEBSITE_CONTENT.studyCornerLinks || [], [(l) => l.name, (l) => l.desc || ""]),
-    studyCornerTips: cleanList(incoming.studyCornerTips, DEFAULT_WEBSITE_CONTENT.studyCornerTips || [], [(t) => t.tip]),
-    studyCornerStats:
-      Array.isArray(incoming.studyCornerStats) &&
-      incoming.studyCornerStats.length > 0 &&
-      !incoming.studyCornerStats.some((s) => isCorruptedText(s.label) || isCorruptedText(s.value))
-        ? incoming.studyCornerStats
-        : DEFAULT_WEBSITE_CONTENT.studyCornerStats || [],
-    tickerItems: cleanList(incoming.tickerItems, DEFAULT_WEBSITE_CONTENT.tickerItems || [], [(tk) => tk.text]),
+    studyCornerDays: incoming.studyCornerDays !== undefined ? incoming.studyCornerDays : (DEFAULT_WEBSITE_CONTENT.studyCornerDays || "সোমবার - শনিবার"),
+    studyCornerDaysEn: incoming.studyCornerDaysEn !== undefined ? incoming.studyCornerDaysEn : (DEFAULT_WEBSITE_CONTENT.studyCornerDaysEn || "Monday - Saturday"),
+    studyCornerHours: incoming.studyCornerHours !== undefined ? incoming.studyCornerHours : (DEFAULT_WEBSITE_CONTENT.studyCornerHours || "সকাল ৮:০০ - বিকাল ৪:০০"),
+    studyCornerHoursEn: incoming.studyCornerHoursEn !== undefined ? incoming.studyCornerHoursEn : (DEFAULT_WEBSITE_CONTENT.studyCornerHoursEn || "8:00 AM - 4:00 PM"),
+    studyCornerFee: incoming.studyCornerFee !== undefined ? incoming.studyCornerFee : (DEFAULT_WEBSITE_CONTENT.studyCornerFee || "বিনামূল্যে প্রবেশ"),
+    studyCornerFeeEn: incoming.studyCornerFeeEn !== undefined ? incoming.studyCornerFeeEn : (DEFAULT_WEBSITE_CONTENT.studyCornerFeeEn || "Free Admission"),
+    notices: cleanList(incoming.notices, DEFAULT_WEBSITE_CONTENT.notices),
+    quickLinks: cleanList(incoming.quickLinks, DEFAULT_WEBSITE_CONTENT.quickLinks),
+    downloads: cleanList(incoming.downloads, DEFAULT_WEBSITE_CONTENT.downloads),
+    gallery: cleanList(incoming.gallery, DEFAULT_WEBSITE_CONTENT.gallery),
+    coCurricular: cleanList(incoming.coCurricular, DEFAULT_WEBSITE_CONTENT.coCurricular),
+    teachers: cleanList(incoming.teachers, DEFAULT_WEBSITE_CONTENT.teachers),
+    studyCornerBooks: cleanList(incoming.studyCornerBooks, DEFAULT_WEBSITE_CONTENT.studyCornerBooks),
+    studyCornerResources: cleanList(incoming.studyCornerResources, DEFAULT_WEBSITE_CONTENT.studyCornerResources),
+    studyCornerLinks: cleanList(incoming.studyCornerLinks, DEFAULT_WEBSITE_CONTENT.studyCornerLinks || []),
+    studyCornerTips: cleanList(incoming.studyCornerTips, DEFAULT_WEBSITE_CONTENT.studyCornerTips || []),
+    studyCornerStats: cleanList(incoming.studyCornerStats, DEFAULT_WEBSITE_CONTENT.studyCornerStats || []),
+    tickerItems: cleanList(incoming.tickerItems, DEFAULT_WEBSITE_CONTENT.tickerItems || []),
     tickerSpeed: incoming.tickerSpeed || DEFAULT_WEBSITE_CONTENT.tickerSpeed || "normal",
     tickerIncludeNotices: incoming.tickerIncludeNotices !== undefined ? incoming.tickerIncludeNotices : true,
-    tickerLabel: cleanStr(incoming.tickerLabel, DEFAULT_WEBSITE_CONTENT.tickerLabel || "জরুরি নোটিশ:"),
-    tickerLabelEn: cleanStr(incoming.tickerLabelEn, DEFAULT_WEBSITE_CONTENT.tickerLabelEn || "Urgent Notice:"),
+    tickerLabel: incoming.tickerLabel !== undefined ? incoming.tickerLabel : (DEFAULT_WEBSITE_CONTENT.tickerLabel || "জরুরি নোটিশ:"),
+    tickerLabelEn: incoming.tickerLabelEn !== undefined ? incoming.tickerLabelEn : (DEFAULT_WEBSITE_CONTENT.tickerLabelEn || "Urgent Notice:"),
   };
 };
 
@@ -383,30 +389,38 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return { success: true };
   };
 
-  const saveWebsiteContent = async (content: SchoolWebsiteContent) => {
+  const saveWebsiteContent = async (content: SchoolWebsiteContent): Promise<{ success: boolean; message?: string }> => {
+    // 1. Optimistic local update
     try {
       localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(content));
     } catch {}
     setWebsiteContent(content);
     broadcastUpdate();
 
+    // 2. Persist to MySQL Backend API
     try {
       const response = await api.updateWebsiteContent(content);
-      if (response.success && response.data?.website_content) {
-        const normalized = normalizeContent(response.data.website_content);
-        setWebsiteContent(normalized);
-        try {
-          localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(normalized));
-        } catch {}
-        return { success: true };
-      } else if (!response.success) {
-        return { success: false, message: response.message || "Failed to update on server." };
+      if (response.success) {
+        if (response.data?.website_content) {
+          const normalized = normalizeContent(response.data.website_content);
+          setWebsiteContent(normalized);
+          try {
+            localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(normalized));
+          } catch {}
+        }
+        if ((response.data as any)?.site_name) {
+          setSiteName((response.data as any).site_name);
+        }
+        return { success: true, message: "ওয়েবসাইট কনটেন্ট ডাটাবেজে সফলভাবে সংরক্ষিত ও প্রকাশিত হয়েছে।" };
+      } else {
+        return { success: false, message: response.message || "সার্ভার ডাটাবেজে সংরক্ষণ করা যায়নি।" };
       }
     } catch (err: any) {
-      // Saved locally
-      return { success: true, message: "Website updated and saved locally." };
+      return {
+        success: false,
+        message: "সার্ভারে যোগাযোগ ব্যর্থ হয়েছে: " + (err?.message || "নেটওয়ার্ক সমস্যা") + "। অনুগ্রহ করে ব্যাকএন্ড সংযোগ চেক করুন।",
+      };
     }
-    return { success: true };
   };
 
   const saveSiteLogo = async (fileOrUrl: File | string): Promise<{ success: boolean; message?: string; logoUrl?: string }> => {

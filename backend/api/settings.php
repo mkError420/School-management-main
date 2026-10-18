@@ -24,20 +24,6 @@ switch ($method) {
         Response::methodNotAllowed();
 }
 
-function isCorruptedSettingsValue($val) {
-    if (is_string($val)) {
-        $trimmed = trim($val);
-        $qMarks = substr_count($trimmed, '?');
-        if ($qMarks >= 2) {
-            $cleaned = preg_replace('/[\s\d.,\-·–\/\\:;!@#$%^&*()_+={}\[\]|`~\'"]/u', '', $trimmed);
-            if (strlen($cleaned) === 0 || ($qMarks / (strlen($cleaned) ?: 1)) >= 0.4) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
 function ensureSiteSettingsTable($db) {
     try {
         $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
@@ -67,6 +53,10 @@ function ensureSiteSettingsTable($db) {
 
 function getSiteSettings($db) {
     ensureSiteSettingsTable($db);
+    try {
+        $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+    } catch (Exception $e) {}
+
     $rows = $db->fetchAll(
         "SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('site_name', 'site_logo', 'website_content')"
     );
@@ -83,18 +73,7 @@ function getSiteSettings($db) {
                 if ($row['setting_key'] === 'website_content') {
                     $decoded = json_decode($row['setting_value'], true);
                     if (is_array($decoded)) {
-                        // Check if data was corrupted by legacy latin1 encoding
-                        $schoolNameBn = $decoded['schoolNameBn'] ?? '';
-                        $heroTitle = $decoded['heroTitle'] ?? '';
-                        if (isCorruptedSettingsValue($schoolNameBn) || isCorruptedSettingsValue($heroTitle)) {
-                            // Reset corrupted content so default Bengali template loads cleanly
-                            $settings['website_content'] = null;
-                            try {
-                                $db->query("DELETE FROM site_settings WHERE setting_key = 'website_content'");
-                            } catch (Exception $e) {}
-                        } else {
-                            $settings['website_content'] = $decoded;
-                        }
+                        $settings['website_content'] = $decoded;
                     }
                 } else {
                     $settings[$row['setting_key']] = $row['setting_value'];
@@ -108,20 +87,25 @@ function getSiteSettings($db) {
 
 function updateSiteSettings($db) {
     $user = AuthMiddleware::authenticate();
-    if (($user['role'] ?? '') !== 'super_admin') {
-        Response::forbidden('Only a super admin can change site settings');
+    if (!AuthMiddleware::isAdmin($user)) {
+        Response::forbidden('Only an administrator can change site settings');
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $rawInput = file_get_contents('php://input');
+    $input = json_decode($rawInput, true) ?? [];
     ensureSiteSettingsTable($db);
+
+    try {
+        $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+    } catch (Exception $e) {}
 
     $responsePayload = [];
 
     if (isset($input['site_name'])) {
         $siteName = trim((string)$input['site_name']);
         $length = function_exists('mb_strlen') ? mb_strlen($siteName) : strlen($siteName);
-        if ($siteName === '' || $length > 80) {
-            Response::error('Site name must be between 1 and 80 characters');
+        if ($siteName === '' || $length > 150) {
+            Response::error('Site name must be between 1 and 150 characters');
         }
 
         $db->query(
@@ -153,29 +137,26 @@ function updateSiteSettings($db) {
         if (!is_array($websiteContent)) {
             Response::error('Website content must be an object');
         }
-        $notices = $websiteContent['notices'] ?? [];
-        $quickLinks = $websiteContent['quickLinks'] ?? [];
-        if (!is_array($notices) || !is_array($quickLinks)) {
-            Response::error('Notices and quick links must be lists');
-        }
-        if (count($notices) > 100 || count($quickLinks) > 50) {
-            Response::error('Website content has too many notices or quick links');
-        }
-        foreach ($quickLinks as $link) {
-            if (!is_array($link)) {
-                Response::error('Each quick link must include a label and URL');
+
+        // Sanitize quickLinks URLs safely without aborting save
+        if (isset($websiteContent['quickLinks']) && is_array($websiteContent['quickLinks'])) {
+            foreach ($websiteContent['quickLinks'] as &$link) {
+                if (is_array($link)) {
+                    $url = trim((string)($link['url'] ?? ''));
+                    if ($url === '') {
+                        $link['url'] = '#';
+                    } elseif (!preg_match('~^(https?://|mailto:|tel:|/|#)~i', $url)) {
+                        $link['url'] = 'https://' . $url;
+                    }
+                }
             }
-            $url = trim((string)($link['url'] ?? ''));
-            $isLocal = substr($url, 0, 1) === '/' && substr($url, 0, 2) !== '//';
-            $isAnchor = substr($url, 0, 1) === '#';
-            $scheme = strtolower((string)parse_url($url, PHP_URL_SCHEME));
-            if (!$url || (!$isLocal && !$isAnchor && !in_array($scheme, ['http', 'https', 'mailto'], true))) {
-                Response::error('Quick links must use a safe website URL');
-            }
+            unset($link);
         }
+
+        // Encode to UTF-8 JSON
         $encodedContent = json_encode($websiteContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($encodedContent === false || strlen($encodedContent) > 1000000) {
-            Response::error('Website content must be valid JSON smaller than 1 MB');
+        if ($encodedContent === false) {
+            Response::error('Website content contains invalid character encoding');
         }
 
         try {
@@ -189,6 +170,30 @@ function updateSiteSettings($db) {
             [$encodedContent]
         );
         $responsePayload['website_content'] = $websiteContent;
+
+        // Automatically keep site_name in sync with schoolNameBn / schoolName
+        $schoolName = trim((string)($websiteContent['schoolNameBn'] ?? $websiteContent['schoolName'] ?? ''));
+        if ($schoolName !== '') {
+            $db->query(
+                "INSERT INTO site_settings (setting_key, setting_value)
+                 VALUES ('site_name', ?)
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                [$schoolName]
+            );
+            $responsePayload['site_name'] = $schoolName;
+        }
+
+        // Automatically keep site_logo in sync if provided
+        if (!empty($websiteContent['siteLogo'])) {
+            $siteLogo = trim((string)$websiteContent['siteLogo']);
+            $db->query(
+                "INSERT INTO site_settings (setting_key, setting_value)
+                 VALUES ('site_logo', ?)
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+                [$siteLogo]
+            );
+            $responsePayload['site_logo'] = $siteLogo;
+        }
     }
 
     if (empty($responsePayload)) {
@@ -200,8 +205,8 @@ function updateSiteSettings($db) {
 
 function uploadSiteLogo($db) {
     $user = AuthMiddleware::authenticate();
-    if (($user['role'] ?? '') !== 'super_admin') {
-        Response::forbidden('Only a super admin can upload a site logo');
+    if (!AuthMiddleware::isAdmin($user)) {
+        Response::forbidden('Only an administrator can upload a site logo');
     }
 
     if (empty($_FILES['logo']) || $_FILES['logo']['error'] === UPLOAD_ERR_NO_FILE) {
@@ -257,6 +262,9 @@ function uploadSiteLogo($db) {
     if (is_dir($root . '/images')) {
         $targetDirs[] = $root . '/images';
     }
+    if (is_dir($root . '/dist/images')) {
+        $targetDirs[] = $root . '/dist/images';
+    }
     if (empty($targetDirs)) {
         $targetDirs[] = $root . '/public/images';
         @mkdir($root . '/public/images', 0755, true);
@@ -292,8 +300,8 @@ function uploadSiteLogo($db) {
 
 function uploadNoticeFile($db) {
     $user = AuthMiddleware::authenticate();
-    if (!in_array($user['role'] ?? '', ['super_admin', 'admin'])) {
-        Response::forbidden('Only an administrator can upload notice files');
+    if (!AuthMiddleware::isAdmin($user)) {
+        Response::forbidden('Only an administrator can upload notice and website files');
     }
 
     $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['notice_file']) ? 'notice_file' : null);
@@ -365,6 +373,15 @@ function uploadNoticeFile($db) {
         @mkdir($root . '/uploads/notices', 0755, true);
         if (is_dir($root . '/uploads/notices')) {
             $targetDirs[] = $root . '/uploads/notices';
+        }
+    }
+
+    if (is_dir($root . '/dist/uploads/notices')) {
+        $targetDirs[] = $root . '/dist/uploads/notices';
+    } elseif (is_dir($root . '/dist')) {
+        @mkdir($root . '/dist/uploads/notices', 0755, true);
+        if (is_dir($root . '/dist/uploads/notices')) {
+            $targetDirs[] = $root . '/dist/uploads/notices';
         }
     }
 
