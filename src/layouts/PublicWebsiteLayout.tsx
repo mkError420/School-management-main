@@ -104,7 +104,7 @@ export const PublicWebsiteLayout: React.FC = () => {
     if (isPlayingAnthem) {
       audioRef.pause();
     } else {
-      audioRef.play().catch(() => {});
+      audioRef.play().catch(() => { });
     }
   };
 
@@ -202,7 +202,6 @@ export const PublicWebsiteLayout: React.FC = () => {
         <div className="border-b border-[#0a4634] bg-[#004d38] text-white">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-[11px] sm:px-6 sm:text-xs">
             <div className="flex items-center gap-2">
-              <BdGovEmblem size={22} className="h-5 w-5 shrink-0" />
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-semibold text-emerald-200">
                   {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of the People's Republic of Bangladesh"}
@@ -275,9 +274,6 @@ export const PublicWebsiteLayout: React.FC = () => {
                     e.currentTarget.src = "/images/logo.png";
                   }}
                 />
-                <div className="absolute -bottom-1 -right-1 rounded-full border border-white bg-[#006a4e] p-0.5 shadow-xs">
-                  <BdGovEmblem size={16} />
-                </div>
               </div>
 
               <div>
@@ -338,10 +334,9 @@ export const PublicWebsiteLayout: React.FC = () => {
                   to={item.path}
                   end={item.path === "/"}
                   className={({ isActive }) =>
-                    `relative px-3 py-3 text-xs md:text-sm font-semibold transition ${
-                      isActive
-                        ? "bg-[#004e39] text-[#fef08a] border-b-2 border-[#fef08a]"
-                        : "hover:bg-[#00523d] hover:text-[#fef08a]"
+                    `relative px-3 py-3 text-xs md:text-sm font-semibold transition ${isActive
+                      ? "bg-[#004e39] text-[#fef08a] border-b-2 border-[#fef08a]"
+                      : "hover:bg-[#00523d] hover:text-[#fef08a]"
                     }`
                   }
                 >
@@ -374,8 +369,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                     end={item.path === "/"}
                     onClick={() => setMobileMenuOpen(false)}
                     className={({ isActive }) =>
-                      `rounded-md px-3 py-2 text-xs font-semibold transition ${
-                        isActive ? "bg-[#eab308] text-gray-950 font-bold" : "border border-white/10 bg-white/5 text-white hover:bg-white/15"
+                      `rounded-md px-3 py-2 text-xs font-semibold transition ${isActive ? "bg-[#eab308] text-gray-950 font-bold" : "border border-white/10 bg-white/5 text-white hover:bg-white/15"
                       }`
                     }
                   >
@@ -424,8 +418,8 @@ export const PublicWebsiteLayout: React.FC = () => {
                       item.priority === "urgent"
                         ? "bg-[#da291c] text-white"
                         : item.priority === "important"
-                        ? "bg-amber-100 text-amber-900 border border-amber-300"
-                        : "bg-emerald-100 text-[#006a4e]";
+                          ? "bg-amber-100 text-amber-900 border border-amber-300"
+                          : "bg-emerald-100 text-[#006a4e]";
 
                     const innerContent = (
                       <span className="shrink-0 inline-flex items-center gap-1.5 transition group cursor-pointer hover:text-[#006a4e]">
@@ -651,7 +645,7 @@ export const PublicWebsiteLayout: React.FC = () => {
               {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
                 <div className="mt-4">
                   {selectedNotice.fileUrl.startsWith("data:image/") ||
-                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
