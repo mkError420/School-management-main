@@ -57,13 +57,10 @@ export const resolveLogoUrl = (logo?: string | null): string => {
   ) {
     return trimmed;
   }
-  if (trimmed.startsWith("/images/")) {
+  if (trimmed.startsWith("/")) {
     return trimmed;
   }
-  if (trimmed.startsWith("/")) {
-    return `/images${trimmed}`;
-  }
-  return `/images/${trimmed}`;
+  return `/${trimmed}`;
 };
 
 const SiteSettingsContext = createContext<SiteSettingsContextValue>({

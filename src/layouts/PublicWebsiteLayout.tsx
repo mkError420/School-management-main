@@ -26,9 +26,9 @@ import {
   ArrowRight,
   ArrowUpRight,
 } from "lucide-react";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { BdGovEmblem, SmartBdBadge } from "@/components/government/GovtEmblem";
+import { useSiteSettings, resolveLogoUrl } from "@/context/SiteSettingsContext";
 import type { SchoolNotice } from "@/types/site";
+import { SmartBdBadge } from "@/components/government/GovtEmblem";
 
 export const PublicWebsiteLayout: React.FC = () => {
   const { websiteContent: content, siteLogo, lang, toggleLang, t, formatDigits } = useSiteSettings();
@@ -267,8 +267,8 @@ export const PublicWebsiteLayout: React.FC = () => {
             <Link to="/" className="flex items-center gap-3.5 text-center sm:text-left group">
               <div className="relative shrink-0">
                 <img
-                  src={siteLogo || "/images/logo.png"}
-                  alt="School Monogram"
+                  src={resolveLogoUrl(siteLogo) || "/images/logo.png"}
+                  alt={primarySchoolName || "School Monogram"}
                   className="h-16 w-16 rounded-full border-2 border-[#006a4e] bg-white p-1 shadow-md object-contain transition group-hover:scale-105 sm:h-20 sm:w-20"
                   onError={(e) => {
                     e.currentTarget.src = "/images/logo.png";
@@ -352,8 +352,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3.5 py-1.5 text-xs font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047]"
               >
                 <GraduationCap size={15} />
-                <span>{lang === "bn" ? "পোর্টাল" : "Portal"}</span>
-                <ArrowUpRight size={13} />
+                <span>{lang === "bn" ? "লগইন" : "Login"}</span>
               </Link>
             </div>
           </div>
@@ -423,7 +422,7 @@ export const PublicWebsiteLayout: React.FC = () => {
 
                     const innerContent = (
                       <span className="shrink-0 inline-flex items-center gap-1.5 transition group cursor-pointer hover:text-[#006a4e]">
-                        <span className="text-amber-500 font-bold">★</span>
+                        <span className="text-amber-500 font-bold">▪️</span>
                         {badgeText && (
                           <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>
                             {badgeText}
@@ -520,8 +519,8 @@ export const PublicWebsiteLayout: React.FC = () => {
             <div>
               <div className="flex items-center gap-2.5">
                 <img
-                  src={siteLogo || "/images/logo.png"}
-                  alt="School Logo"
+                  src={resolveLogoUrl(siteLogo) || "/images/logo.png"}
+                  alt={primarySchoolName || "School Logo"}
                   className="h-10 w-10 rounded-full border border-emerald-700 bg-white p-0.5 object-contain shadow-sm"
                   onError={(e) => {
                     e.currentTarget.src = "/images/logo.png";

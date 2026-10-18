@@ -26,7 +26,6 @@ import {
   X,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { BdGovEmblem } from "@/components/government/GovtEmblem";
 import type { SchoolNotice, SchoolGalleryItem } from "@/types/site";
 
 const EMERGENCY_HOTLINES = [
@@ -196,6 +195,7 @@ export const HomePage: React.FC = () => {
                   {
                     label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
                     value: lang === "bn" ? (content.studentCount || "১,৫০০+") : (content.studentCountEn || "1,500+"),
+                    icon: Users,
                     color: "text-[#006a4e] bg-emerald-50",
                   },
                   {
@@ -236,7 +236,7 @@ export const HomePage: React.FC = () => {
                       className="rounded-lg border border-[#e2ece5] bg-white p-3 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
                     >
                       <span className={`mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full ${stat.color}`}>
-                        <Icon size={16} />
+                        {Icon && <Icon size={16} />}
                       </span>
                       <p className="text-lg font-bold text-gray-900">{stat.value}</p>
                       <p className="text-[11px] font-medium text-gray-600">{stat.label}</p>
@@ -686,7 +686,6 @@ export const HomePage: React.FC = () => {
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
               <div className="flex items-center gap-2">
-                <BdGovEmblem size={24} />
                 <div>
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
                     {t(selectedNotice.category, selectedNotice.categoryEn) || (lang === "bn" ? "নোটিশ" : "Notice")}

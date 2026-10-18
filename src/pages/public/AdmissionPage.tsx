@@ -14,7 +14,6 @@ import {
   Users,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { BdGovEmblem } from "@/components/government/GovtEmblem";
 
 export const AdmissionPage: React.FC = () => {
   const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
