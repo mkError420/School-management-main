@@ -156,7 +156,7 @@ export const StudyCornerPage: React.FC = () => {
       </div>
 
       {/* Intro + Image */}
-      <section className="relative overflow-hidden rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs sm:p-8 dark:border-slate-800 dark:bg-slate-900">
+      <section className="relative overflow-hidden rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <div className="relative mx-auto h-56 w-44 shrink-0 overflow-hidden rounded-lg border-2 border-[#006a4e] bg-gray-100 shadow-xl sm:mx-0">
             <img
@@ -174,16 +174,16 @@ export const StudyCornerPage: React.FC = () => {
 
           <div className="flex-1 space-y-4">
             {/* Quote */}
-            <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f4f9f6] p-5 shadow-2xs dark:bg-slate-800">
-              <p className="font-serif text-lg font-bold italic text-[#004d38] sm:text-xl dark:text-emerald-400">
+            <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f4f9f6] p-5 shadow-2xs">
+              <p className="font-serif text-lg font-bold italic text-[#004d38] sm:text-xl">
                 {t(content.studyCornerQuote, content.studyCornerQuoteEn) || t("“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”", "“Knowledge is power. Read and enlighten yourself.”")}
               </p>
-              <p className="mt-1 text-xs font-semibold text-[#006a4e] dark:text-emerald-300">
+              <p className="mt-1 text-xs font-semibold text-[#006a4e]">
                 — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn) || t("Study Corner, বিদ্যালয় পাঠ কেন্দ্র", "Study Corner, School Study Center")}
               </p>
             </div>
 
-            <p className="text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+            <p className="text-sm leading-relaxed text-gray-700">
               {t(content.studyCornerText, content.studyCornerTextEn) ||
                 t(
                   "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।",
@@ -192,13 +192,13 @@ export const StudyCornerPage: React.FC = () => {
             </p>
 
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e] dark:bg-emerald-950/50 dark:text-emerald-300">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e]">
                 {t(content.studyCornerDays, content.studyCornerDaysEn) || t("সোমবার - শনিবার", "Monday - Saturday")}
               </span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800 dark:bg-blue-950/50 dark:text-blue-300">
+              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
                 {formatDigits(t(content.studyCornerHours, content.studyCornerHoursEn)) || t("সকাল ৮:০০ - বিকাল ৪:০০", "8:00 AM - 4:00 PM")}
               </span>
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
                 {t(content.studyCornerFee, content.studyCornerFeeEn) || t("বিনামূল্যে প্রবেশ", "Free Admission")}
               </span>
             </div>
@@ -208,8 +208,8 @@ export const StudyCornerPage: React.FC = () => {
 
       {/* Facilities / Resources Section */}
       {resources.length > 0 && (
-        <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
+        <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
+          <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40]">
             <Award size={18} className="text-[#006a4e]" />
             <span>{t("Study Corner-এর সুযোগ-সুবিধাসমূহ", "Study Corner Facilities")}</span>
           </h3>
@@ -217,13 +217,13 @@ export const StudyCornerPage: React.FC = () => {
             {resources.map((res, i) => (
               <div
                 key={i}
-                className="group flex flex-col items-center gap-3 rounded-lg border border-[#e4ede7] bg-[#f7faf8] p-5 text-center transition hover:border-[#006a4e] hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
+                className="group flex flex-col items-center gap-3 rounded-lg border border-[#e4ede7] bg-[#f7faf8] p-5 text-center transition hover:border-[#006a4e] hover:shadow-md"
               >
                 <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#006a4e]/10 text-[#006a4e] group-hover:bg-[#006a4e] group-hover:text-white transition">
                   {RESOURCE_ICONS[res.icon] ?? <BookOpen size={20} />}
                 </span>
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white">{t(res.title, res.titleEn)}</h4>
-                <p className="text-xs leading-relaxed text-gray-600 dark:text-gray-400">{t(res.description, res.descriptionEn)}</p>
+                <h4 className="text-sm font-bold text-gray-900">{t(res.title, res.titleEn)}</h4>
+                <p className="text-xs leading-relaxed text-gray-600">{t(res.description, res.descriptionEn)}</p>
               </div>
             ))}
           </div>
@@ -231,9 +231,9 @@ export const StudyCornerPage: React.FC = () => {
       )}
 
       {/* Book Catalogue with Filter */}
-      <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+      <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
         <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-bold text-[#005a40] dark:text-emerald-400">
+          <h3 className="flex items-center gap-2 text-lg font-bold text-[#005a40]">
             <BookOpen size={18} />
             <span>
               {t("Study Corner পাঠাগারের বইসমূহ", "Study Corner Library Books")} ({formatDigits(books.length)})
@@ -246,14 +246,14 @@ export const StudyCornerPage: React.FC = () => {
               value={bookSearch}
               onChange={(e) => setBookSearch(e.target.value)}
               placeholder={t("বই বা লেখক খুঁজুন...", "Search book or author...")}
-              className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-1.5 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-1.5 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white"
             />
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
         </div>
 
         {/* Category Filters */}
-        <div className="mt-4 flex flex-wrap gap-1.5 border-b border-gray-100 pb-3 dark:border-slate-800">
+        <div className="mt-4 flex flex-wrap gap-1.5 border-b border-gray-100 pb-3">
           <Filter size={14} className="mt-1 shrink-0 text-gray-400" />
           {categories.map((cat) => (
             <button
@@ -262,7 +262,7 @@ export const StudyCornerPage: React.FC = () => {
               onClick={() => setSelectedCategory(cat)}
               className={`rounded-md px-3 py-1 text-xs font-semibold transition ${selectedCategory === cat
                 ? "bg-[#006a4e] text-white shadow-xs"
-                : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700"
+                : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
                 }`}
             >
               {cat === "সকল" ? t("সকল", "All") : cat}
@@ -276,15 +276,15 @@ export const StudyCornerPage: React.FC = () => {
             filteredBooks.map((book, idx) => (
               <div
                 key={idx}
-                className="flex items-start gap-3 rounded-md border border-gray-100 bg-[#fcfdfc] p-3 transition hover:border-[#006a4e] hover:shadow-2xs dark:border-slate-700 dark:bg-slate-800"
+                className="flex items-start gap-3 rounded-md border border-gray-100 bg-[#fcfdfc] p-3 transition hover:border-[#006a4e] hover:shadow-2xs"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#006a4e]/10 text-[#006a4e]">
                   <BookOpen size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-bold leading-snug text-gray-900 dark:text-white">{t(book.title, book.titleEn)}</p>
-                  <p className="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400">{t(book.author, book.authorEn)}</p>
-                  <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <p className="text-xs font-bold leading-snug text-gray-900">{t(book.title, book.titleEn)}</p>
+                  <p className="mt-0.5 text-[10px] text-gray-500">{t(book.author, book.authorEn)}</p>
+                  <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
                     {t(book.category, book.categoryEn)}
                   </span>
                 </div>
@@ -300,8 +300,8 @@ export const StudyCornerPage: React.FC = () => {
 
       {/* Study Tips Section */}
       {tips.length > 0 && (
-        <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
+        <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
+          <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40]">
             <Star size={18} className="text-[#eab308]" />
             <span>{t("কার্যকর অধ্যয়নের টিপস ও কৌশল", "Effective Study Tips & Strategies")}</span>
           </h3>
@@ -311,12 +311,12 @@ export const StudyCornerPage: React.FC = () => {
               return (
                 <div
                   key={i}
-                  className="rounded-lg border border-[#e4ede7] bg-gradient-to-br from-[#f4f9f6] to-white p-4 text-center dark:border-slate-700 dark:from-slate-800 dark:to-slate-850"
+                  className="rounded-lg border border-[#e4ede7] bg-gradient-to-br from-[#f4f9f6] to-white p-4 text-center"
                 >
                   <span className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#006a4e]/10 text-[#006a4e]">
                     <Icon size={18} />
                   </span>
-                  <p className="text-xs leading-relaxed text-gray-700 dark:text-gray-300">{t(tItem.tip, tItem.tipEn)}</p>
+                  <p className="text-xs leading-relaxed text-gray-700">{t(tItem.tip, tItem.tipEn)}</p>
                 </div>
               );
             })}
@@ -326,8 +326,8 @@ export const StudyCornerPage: React.FC = () => {
 
       {/* Digital Resources Links */}
       {links.length > 0 && (
-        <section className="rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-[#f2f9f5] to-white p-6 shadow-xs dark:from-slate-900 dark:to-slate-800">
-          <h3 className="flex items-center gap-2 border-b border-emerald-100 pb-3 text-lg font-bold text-[#005a40] dark:text-emerald-400">
+        <section className="rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-[#f2f9f5] to-white p-6 shadow-xs">
+          <h3 className="flex items-center gap-2 border-b border-emerald-100 pb-3 text-lg font-bold text-[#005a40]">
             <Monitor size={18} />
             <span>{t("বিনামূল্যে ডিজিটাল শিক্ষা উপকরণ", "Free Digital Learning Materials")}</span>
           </h3>
@@ -338,11 +338,11 @@ export const StudyCornerPage: React.FC = () => {
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center justify-between rounded-md border border-[#cbe0d3] bg-white p-4 transition hover:border-[#006a4e] hover:shadow-sm dark:border-slate-700 dark:bg-slate-800"
+                className="flex items-center justify-between rounded-md border border-[#cbe0d3] bg-white p-4 transition hover:border-[#006a4e] hover:shadow-sm"
               >
                 <div>
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{t(link.name, link.nameEn)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t(link.desc, link.descEn)}</p>
+                  <p className="text-sm font-bold text-gray-900">{t(link.name, link.nameEn)}</p>
+                  <p className="text-xs text-gray-500">{t(link.desc, link.descEn)}</p>
                 </div>
                 <ArrowRight size={15} className="shrink-0 text-[#006a4e]" />
               </a>

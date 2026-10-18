@@ -419,6 +419,74 @@ html.dark .rbc-timeslot-group {
 }
 
 /* ==========================================================================
+   Public Website: Always Force Light-Mode Theme (Immune to Dashboard Dark Mode)
+   ========================================================================== */
+
+/* Public website root container always stays light */
+.public-website-root,
+html.dark .public-website-root {
+  color-scheme: light !important;
+  color: #1c2c24 !important;
+  background-color: #f3f6f4 !important;
+}
+
+/* Neutralize global html.dark overrides inside the public website */
+html.dark .public-website-root .bg-white { background-color: #ffffff !important; }
+html.dark .public-website-root .bg-gray-50 { background-color: #f9fafb !important; }
+html.dark .public-website-root .bg-gray-100 { background-color: #f3f4f6 !important; }
+html.dark .public-website-root .bg-gray-200 { background-color: #e5e7eb !important; }
+html.dark .public-website-root .bg-slate-50 { background-color: #f8fafc !important; }
+html.dark .public-website-root .bg-slate-100 { background-color: #f1f5f9 !important; }
+
+/* Keep headings, texts, labels in their natural light colors */
+html.dark .public-website-root h1,
+html.dark .public-website-root h2,
+html.dark .public-website-root h3,
+html.dark .public-website-root h4,
+html.dark .public-website-root h5,
+html.dark .public-website-root h6 {
+  color: inherit !important;
+}
+
+html.dark .public-website-root p,
+html.dark .public-website-root span,
+html.dark .public-website-root label {
+  color: inherit;
+}
+
+html.dark .public-website-root .text-black { color: #000000 !important; }
+html.dark .public-website-root .text-gray-900,
+html.dark .public-website-root .text-slate-900 { color: #111827 !important; }
+html.dark .public-website-root .text-gray-800,
+html.dark .public-website-root .text-slate-800 { color: #1f2937 !important; }
+html.dark .public-website-root .text-gray-700,
+html.dark .public-website-root .text-slate-700 { color: #374151 !important; }
+html.dark .public-website-root .text-gray-600,
+html.dark .public-website-root .text-slate-600 { color: #4b5563 !important; }
+html.dark .public-website-root .text-gray-500,
+html.dark .public-website-root .text-slate-500 { color: #6b7280 !important; }
+html.dark .public-website-root .text-gray-400,
+html.dark .public-website-root .text-slate-400 { color: #9ca3af !important; }
+
+/* Borders inside public website */
+html.dark .public-website-root .border-gray-100 { border-color: #f3f4f6 !important; }
+html.dark .public-website-root .border-gray-200 { border-color: #e5e7eb !important; }
+html.dark .public-website-root .border-gray-300 { border-color: #d1d5db !important; }
+
+/* Form controls inside public website */
+html.dark .public-website-root input,
+html.dark .public-website-root select,
+html.dark .public-website-root textarea {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+html.dark .public-website-root input::placeholder,
+html.dark .public-website-root textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* ==========================================================================
    Login Card: Always Force Light-Mode Theme (immune to dark-mode globals)
    ========================================================================== */
 

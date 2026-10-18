@@ -1,6 +1,7 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { hasAdminAccess, useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 
 // Layouts
 import DashboardLayout from "@/layouts/DashboardLayout";
@@ -82,9 +83,41 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return hasAdminAccess(role) ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
 
+const ThemeRouteSync: React.FC = () => {
+  const location = useLocation();
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    const isPublicWebsite =
+      location.pathname === "/" ||
+      location.pathname.startsWith("/about") ||
+      location.pathname.startsWith("/administration") ||
+      location.pathname.startsWith("/teachers-list") ||
+      location.pathname.startsWith("/notices") ||
+      location.pathname.startsWith("/academics") ||
+      location.pathname.startsWith("/admission") ||
+      location.pathname.startsWith("/study-corner") ||
+      location.pathname.startsWith("/gallery") ||
+      location.pathname.startsWith("/co-curricular") ||
+      location.pathname.startsWith("/contact") ||
+      location.pathname.startsWith("/sign-in");
+
+    if (isPublicWebsite) {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.style.colorScheme = "light";
+    } else {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      document.documentElement.style.colorScheme = theme;
+    }
+  }, [location.pathname, theme]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   return (
     <Router>
+      <ThemeRouteSync />
       <Routes>
         {/* Public school website multi-page routes */}
         <Route element={<PublicWebsiteLayout />}>

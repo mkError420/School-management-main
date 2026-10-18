@@ -22,22 +22,50 @@ const readStoredTheme = (): Theme => {
   }
 };
 
+export const isDashboardPath = (path: string = typeof window !== "undefined" ? window.location.pathname : ""): boolean => {
+  const publicPaths = [
+    "/",
+    "/about",
+    "/administration",
+    "/teachers-list",
+    "/notices",
+    "/academics",
+    "/admission",
+    "/study-corner",
+    "/gallery",
+    "/co-curricular",
+    "/contact",
+    "/sign-in",
+  ];
+  if (publicPaths.includes(path)) return false;
+  return true;
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const initialTheme = readStoredTheme();
     if (typeof document !== "undefined") {
-      document.documentElement.classList.toggle("dark", initialTheme === "dark");
+      if (isDashboardPath()) {
+        document.documentElement.classList.toggle("dark", initialTheme === "dark");
+        document.documentElement.style.colorScheme = initialTheme;
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.style.colorScheme = "light";
+      }
     }
     return initialTheme;
   });
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    document.documentElement.style.colorScheme = theme;
     try {
       localStorage.setItem("school_theme", theme);
     } catch {
       // Theme still works for this session if storage is unavailable.
+    }
+
+    if (typeof window !== "undefined" && isDashboardPath(window.location.pathname)) {
+      document.documentElement.classList.toggle("dark", theme === "dark");
+      document.documentElement.style.colorScheme = theme;
     }
   }, [theme]);
 

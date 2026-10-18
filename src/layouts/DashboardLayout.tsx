@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
 import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import Image from "@/components/Image";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
 import { X, ChevronLeft, ChevronRight, LogOut, Shield } from "lucide-react";
 
@@ -12,6 +13,16 @@ const DashboardLayoutContent: React.FC = () => {
   const { siteName, siteLogo } = useSiteSettings();
   const { user, role, logout } = useAuth();
   const { isMobileOpen, setMobileOpen, isCollapsed, toggleCollapse } = useSidebar();
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.style.colorScheme = theme;
+    return () => {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.style.colorScheme = "light";
+    };
+  }, [theme]);
 
   return (
     <div className="h-screen flex bg-gray-100 dark:bg-[#0b1220] overflow-hidden font-sans">

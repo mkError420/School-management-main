@@ -40,6 +40,12 @@ export const PublicWebsiteLayout: React.FC = () => {
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   const location = useLocation();
 
+  // Ensure public website is always in light mode and immune to dashboard dark mode
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.style.colorScheme = "light";
+  }, [location.pathname]);
+
   // Close mobile drawer on route change & scroll to top
   useEffect(() => {
     setMobileMenuOpen(false);
@@ -139,7 +145,7 @@ export const PublicWebsiteLayout: React.FC = () => {
   const tickerDuration = `${Math.max(30, tickerItems.length * 8)}s`;
 
   return (
-    <div className="min-h-screen bg-[#f3f6f4] font-sans text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white flex flex-col justify-between">
+    <div className="public-website-root min-h-screen bg-[#f3f6f4] font-sans text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white flex flex-col justify-between">
       <div>
         {/* ─── 1. TOP GOVERNMENT STRIP ─── */}
         <div className="border-b border-[#0a4634] bg-[#004d38] text-white">
