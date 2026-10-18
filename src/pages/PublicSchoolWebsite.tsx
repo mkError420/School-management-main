@@ -75,6 +75,17 @@ export const PublicSchoolWebsite: React.FC = () => {
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   const [lang, setLang] = useState<"bn" | "en">("bn");
 
+  const t = (bnText?: string, enText?: string) => {
+    if (lang === "en") return enText || bnText || "";
+    return bnText || enText || "";
+  };
+
+  const formatDigits = (val: string | number) => {
+    if (lang === "en") return String(val);
+    const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+    return String(val).replace(/\d/g, (d) => bnDigits[Number(d)]);
+  };
+
   // Real-time live date & time display
   const [currentTime, setCurrentTime] = useState({
     timeStr: "",
@@ -157,20 +168,67 @@ export const PublicSchoolWebsite: React.FC = () => {
 
   // Build the ticker items list for the seamless circular scroll
   const tickerItems = useMemo(() => {
-    const items: Array<{ id: string; isBreaking: boolean; notice?: (typeof content.notices)[number] }> = [];
-    if (content.breakingNews && content.breakingNews.trim() !== "") {
-      items.push({ id: "__breaking__", isBreaking: true });
-    }
-    (content.notices || []).slice(0, 5).forEach((n, i) => {
-      items.push({ id: String(n.id ?? i), isBreaking: false, notice: n });
-    });
-    if (items.length === 0) {
-      items.push({ id: "__default__", isBreaking: true });
-    }
-    return items;
-  }, [content.breakingNews, content.notices]);
+    const items: Array<{
+      id: string;
+      type: "breaking" | "dynamic" | "notice" | "default";
+      text?: string;
+      textEn?: string;
+      badge?: string;
+      badgeEn?: string;
+      link?: string;
+      priority?: "urgent" | "important" | "normal";
+      notice?: (typeof content.notices)[number];
+    }> = [];
 
-  const tickerDuration = `${Math.max(30, tickerItems.length * 8)}s`;
+    // 1. Dynamic custom ticker items
+    const customItems = (content.tickerItems || []).filter(
+      (item) => item.isActive !== false && item.text?.trim()
+    );
+    if (customItems.length > 0) {
+      customItems.forEach((tk) => {
+        items.push({
+          id: tk.id || String(Math.random()),
+          type: "dynamic",
+          text: tk.text,
+          textEn: tk.textEn,
+          badge: tk.badge,
+          badgeEn: tk.badgeEn,
+          link: tk.link,
+          priority: tk.priority || "normal",
+        });
+      });
+    }
+
+    // 2. Breaking News
+    if (content.breakingNews && content.breakingNews.trim() !== "") {
+      items.push({
+        id: "__breaking__",
+        type: "breaking",
+        text: content.breakingNews,
+        textEn: content.breakingNewsEn,
+      });
+    }
+
+    // 3. Notices
+    if (content.tickerIncludeNotices !== false) {
+      (content.notices || []).slice(0, 5).forEach((n, i) => {
+        items.push({ id: `notice_${n.id ?? i}`, type: "notice", notice: n });
+      });
+    }
+
+    // 4. Default fallback
+    if (items.length === 0) {
+      items.push({ id: "__default__", type: "default" });
+    }
+
+    return items;
+  }, [content.tickerItems, content.breakingNews, content.notices, content.tickerIncludeNotices]);
+
+  const tickerDuration = useMemo(() => {
+    const basePerItem = content.tickerSpeed === "fast" ? 5 : content.tickerSpeed === "slow" ? 11 : 8;
+    const minDuration = content.tickerSpeed === "fast" ? 20 : content.tickerSpeed === "slow" ? 48 : 32;
+    return `${Math.max(minDuration, tickerItems.length * basePerItem)}s`;
+  }, [content.tickerSpeed, tickerItems.length]);
 
   return (
     <div className="min-h-screen bg-[#f3f6f4] font-sans text-[#1c2c24] antialiased selection:bg-[#006a4e] selection:text-white">
@@ -383,7 +441,12 @@ export const PublicSchoolWebsite: React.FC = () => {
         <div className="mx-auto flex max-w-7xl items-center px-3 py-2 sm:px-6 lg:px-8">
           <div className="flex shrink-0 items-center gap-1.5 rounded-sm bg-[#da291c] px-2.5 py-1 text-xs font-bold text-white shadow-xs">
             <Bell size={13} className="animate-bounce" />
-            <span>জরুরি নোটিশ:</span>
+            <span>
+              {t(
+                content.tickerLabel || (lang === "bn" ? "জরুরি নোটিশ:" : "Urgent Notice:"),
+                content.tickerLabelEn || (lang === "bn" ? "জরুরি নোটিশ:" : "Urgent Notice:")
+              )}
+            </span>
           </div>
 
           {/* Seamless infinite circular scroll — duplicated track translates 0 → -50% */}
@@ -393,20 +456,70 @@ export const PublicSchoolWebsite: React.FC = () => {
               style={{ "--ticker-h-duration": tickerDuration } as React.CSSProperties}
             >
               {[...tickerItems, ...tickerItems].map((item, idx) => {
-                if (item.isBreaking && item.id === "__breaking__") {
+                if (item.type === "dynamic") {
+                  const badgeText = t(item.badge, item.badgeEn);
+                  const itemText = t(item.text, item.textEn);
+                  const badgeClass =
+                    item.priority === "urgent"
+                      ? "bg-[#da291c] text-white"
+                      : item.priority === "important"
+                      ? "bg-amber-100 text-amber-900 border border-amber-300"
+                      : "bg-emerald-100 text-[#006a4e]";
+
+                  const innerContent = (
+                    <span className="shrink-0 inline-flex items-center gap-1.5 transition group cursor-pointer hover:text-[#006a4e]">
+                      <span className="text-amber-500 font-bold">★</span>
+                      {badgeText && (
+                        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${badgeClass}`}>
+                          {badgeText}
+                        </span>
+                      )}
+                      <span className="group-hover:underline underline-offset-2">{itemText}</span>
+                    </span>
+                  );
+
+                  if (item.link) {
+                    return item.link.startsWith("http") ? (
+                      <a
+                        key={`dyn-${item.id}-${idx}`}
+                        href={item.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shrink-0"
+                      >
+                        {innerContent}
+                      </a>
+                    ) : (
+                      <Link key={`dyn-${item.id}-${idx}`} to={item.link} className="shrink-0">
+                        {innerContent}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <span key={`dyn-${item.id}-${idx}`} className="shrink-0">
+                      {innerContent}
+                    </span>
+                  );
+                }
+
+                if (item.type === "breaking") {
                   return (
                     <span key={`b-${idx}`} className="shrink-0 font-bold text-[#da291c]">
-                      ★ {content.breakingNews}
+                      ★ {t(content.breakingNews, content.breakingNewsEn)}
                     </span>
                   );
                 }
-                if (item.isBreaking && item.id === "__default__") {
+
+                if (item.type === "default") {
                   return (
                     <span key={`d-${idx}`} className="shrink-0 text-[#006a4e]">
-                      ★ ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান · সকল শিক্ষকদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো
+                      ★ {lang === "bn"
+                        ? "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান · সকল শিক্ষকদের সময়মতো উপস্থিতির নির্দেশ দেওয়া হলো"
+                        : "Admission applications for Academic Year 2026 are ongoing · Teachers are requested to be on time"}
                     </span>
                   );
                 }
+
                 const n = item.notice!;
                 return (
                   <button
@@ -417,11 +530,11 @@ export const PublicSchoolWebsite: React.FC = () => {
                   >
                     <span className="text-amber-500 font-bold">★</span>
                     <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-[#006a4e]">
-                      {n.category || "সাধারণ"}
+                      {t(n.category, n.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
                     </span>
-                    <span className="group-hover:underline underline-offset-2">{n.title}</span>
+                    <span className="group-hover:underline underline-offset-2">{t(n.title, n.titleEn)}</span>
                     {n.date && (
-                      <span className="text-[11px] text-gray-500 font-normal">({n.date})</span>
+                      <span className="text-[11px] text-gray-500 font-normal">({formatDigits(n.date)})</span>
                     )}
                   </button>
                 );

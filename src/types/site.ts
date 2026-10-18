@@ -60,6 +60,17 @@ export interface SchoolTeacherMember {
   category: "শিক্ষক" | "কর্মচারী" | "প্রশাসন";
 }
 
+export interface SchoolTickerItem {
+  id: string;
+  text: string;
+  textEn?: string;
+  badge?: string;
+  badgeEn?: string;
+  link?: string;
+  isActive?: boolean;
+  priority?: "urgent" | "important" | "normal";
+}
+
 export interface SchoolWebsiteContent {
   // 1. Basic Identification & Government Details
   schoolName: string;
@@ -195,6 +206,13 @@ export interface SchoolWebsiteContent {
   studyCornerResources: StudyCornerResource[];
   studyCornerLinks?: StudyCornerLink[];
   studyCornerTips?: StudyCornerTip[];
+
+  // 9. Dynamic Ticker Announcements & Controls
+  tickerItems?: SchoolTickerItem[];
+  tickerSpeed?: "slow" | "normal" | "fast";
+  tickerIncludeNotices?: boolean;
+  tickerLabel?: string;
+  tickerLabelEn?: string;
 }
 
 export interface StudyCornerBook {
@@ -672,4 +690,42 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
     { tip: "গ্রুপ স্টাডিতে অংশ নাও — অন্যকে শেখালে নিজেও শেখা যায়।", tipEn: "Participate in group study — teaching peers deepens your own comprehension." },
     { tip: "ডিজিটাল রিসোর্স ব্যবহার করো — মুক্তপাঠ ও শিক্ষা বাতায়ন অন্বেষণ করো।", tipEn: "Make the best use of digital tools — explore Muktopaath and Teachers Portal." },
   ],
+
+  // Dynamic Ticker Announcements
+  tickerItems: [
+    {
+      id: "tk_1",
+      text: "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ডিজিটাল লটারির মাধ্যমে ভর্তি আবেদন চলমান রয়েছে",
+      textEn: "Admission applications for Classes 6 to 9 for Academic Year 2026 are ongoing",
+      badge: "ভর্তি",
+      badgeEn: "Admission",
+      link: "/admission",
+      isActive: true,
+      priority: "urgent",
+    },
+    {
+      id: "tk_2",
+      text: "বার্ষিক পরীক্ষা ২০২৬ এর বিস্তারিত সময়সূচী ও আসন বিন্যাস প্রকাশ করা হয়েছে",
+      textEn: "Annual Examination 2026 Detailed Routine and Seating Arrangement Published",
+      badge: "পরীক্ষা",
+      badgeEn: "Exam",
+      link: "/academics",
+      isActive: true,
+      priority: "important",
+    },
+    {
+      id: "tk_3",
+      text: "আগামী ১৫ অক্টোবর বিদ্যালয়ের বার্ষিক ক্রীড়া প্রতিযোগিতা ও সাংস্কৃতিক উৎসব অনুষ্ঠিত হবে",
+      textEn: "Annual Sports Competition & Cultural Festival will be held on October 15",
+      badge: "অনুষ্ঠান",
+      badgeEn: "Event",
+      link: "/notices",
+      isActive: true,
+      priority: "normal",
+    },
+  ],
+  tickerSpeed: "normal",
+  tickerIncludeNotices: true,
+  tickerLabel: "জরুরি নোটিশ:",
+  tickerLabelEn: "Urgent Notice:",
 };

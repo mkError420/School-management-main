@@ -9,10 +9,18 @@ export interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 export const Image: React.FC<ImageProps> = ({ src, alt = '', width, height, className, ...props }) => {
-  // Add /images/ prefix for local images that start with /
-  const imageSrc = src.startsWith('/') && !src.startsWith('/images/')
-    ? `/images${src}`
-    : src;
+  // Add /images/ prefix for local images that start with / except /uploads/ or data:/http:
+  const imageSrc =
+    src.startsWith('data:') ||
+    src.startsWith('blob:') ||
+    src.startsWith('http://') ||
+    src.startsWith('https://') ||
+    src.startsWith('/images/') ||
+    src.startsWith('/uploads/')
+      ? src
+      : src.startsWith('/')
+      ? `/images${src}`
+      : src;
 
   return (
     <img

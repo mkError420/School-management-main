@@ -201,6 +201,11 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
       !incoming.studyCornerStats.some((s) => isCorruptedText(s.label) || isCorruptedText(s.value))
         ? incoming.studyCornerStats
         : DEFAULT_WEBSITE_CONTENT.studyCornerStats || [],
+    tickerItems: cleanList(incoming.tickerItems, DEFAULT_WEBSITE_CONTENT.tickerItems || [], [(tk) => tk.text]),
+    tickerSpeed: incoming.tickerSpeed || DEFAULT_WEBSITE_CONTENT.tickerSpeed || "normal",
+    tickerIncludeNotices: incoming.tickerIncludeNotices !== undefined ? incoming.tickerIncludeNotices : true,
+    tickerLabel: cleanStr(incoming.tickerLabel, DEFAULT_WEBSITE_CONTENT.tickerLabel || "জরুরি নোটিশ:"),
+    tickerLabelEn: cleanStr(incoming.tickerLabelEn, DEFAULT_WEBSITE_CONTENT.tickerLabelEn || "Urgent Notice:"),
   };
 };
 

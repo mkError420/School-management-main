@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   Award,
   Bell,
   BookMarked,
@@ -10,11 +12,14 @@ import {
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Compass,
   Download,
   ExternalLink,
   Eye,
+  FileDown,
   FileText,
   FileUp,
   Globe,
@@ -30,12 +35,17 @@ import {
   Loader2,
   Monitor,
   Plus,
+  Radio,
   RotateCcw,
   Save,
   School,
+  Search,
   Shield,
+  Sliders,
   Sparkles,
   Star,
+  ToggleLeft,
+  ToggleRight,
   Trash2,
   Upload,
   UserCheck,
@@ -48,6 +58,7 @@ import {
 import { api } from "@/lib/api";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
+import { ImageUploadField } from "@/components/ImageUploadField";
 import type {
   SchoolWebsiteContent,
   SchoolNotice,
@@ -56,6 +67,7 @@ import type {
   SchoolCoCurricularItem,
   SchoolQuickLink,
   SchoolTeacherMember,
+  SchoolTickerItem,
   StudyCornerBook,
   StudyCornerResource,
   StudyCornerStat,
@@ -71,6 +83,7 @@ import {
 
 type ContentTab =
   | "identity"
+  | "ticker"
   | "hero_about"
   | "leadership"
   | "teachers"
@@ -85,13 +98,18 @@ type ContentTab =
 type EditLangMode = "bn" | "en" | "dual";
 
 const WebsiteContentPage: React.FC = () => {
-  const { websiteContent, saveWebsiteContent } = useSiteSettings();
+  const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo } = useSiteSettings();
   const [draft, setDraft] = useState<SchoolWebsiteContent>(websiteContent);
   const [activeTab, setActiveTab] = useState<ContentTab>("identity");
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [editLangMode, setEditLangMode] = useState<EditLangMode>("dual");
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [noticeSearch, setNoticeSearch] = useState("");
+  const [downloadSearch, setDownloadSearch] = useState("");
+  const [showDirectPageLinks, setShowDirectPageLinks] = useState(false);
+  const jsonInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraft(websiteContent);
@@ -162,6 +180,179 @@ const WebsiteContentPage: React.FC = () => {
     } finally {
       setTranslating(false);
     }
+  };
+
+  // Check if draft has unsaved edits
+  const isDirty = useMemo(() => {
+    return JSON.stringify(draft) !== JSON.stringify(websiteContent);
+  }, [draft, websiteContent]);
+
+  // Ticker Handlers
+  const addTickerItem = () => {
+    const newItem: SchoolTickerItem = {
+      id: "tk_" + Date.now(),
+      text: "",
+      textEn: "",
+      badge: "জরুরি",
+      badgeEn: "Urgent",
+      link: "",
+      isActive: true,
+      priority: "urgent",
+    };
+    setDraft((prev) => ({
+      ...prev,
+      tickerItems: [newItem, ...(prev.tickerItems || [])],
+    }));
+  };
+
+  const removeTickerItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      tickerItems: (prev.tickerItems || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateTickerItem = (index: number, field: keyof SchoolTickerItem, value: any) => {
+    setDraft((prev) => ({
+      ...prev,
+      tickerItems: (prev.tickerItems || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const toggleTickerItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      tickerItems: (prev.tickerItems || []).map((item, i) =>
+        i === index ? { ...item, isActive: item.isActive === false ? true : false } : item
+      ),
+    }));
+  };
+
+  const moveTickerItem = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const items = [...(prev.tickerItems || [])];
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= items.length) return prev;
+      const temp = items[index];
+      items[index] = items[targetIndex];
+      items[targetIndex] = temp;
+      return { ...prev, tickerItems: items };
+    });
+  };
+
+  const translateTickerItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      tickerItems: (prev.tickerItems || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          textEn: item.textEn || translateBnToEn(item.text),
+          badgeEn: item.badgeEn || translateBnToEn(item.badge || ""),
+        };
+      }),
+    }));
+  };
+
+  // Reorder helpers for other lists
+  const moveTeacher = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.teachers || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, teachers: list };
+    });
+  };
+
+  const moveGalleryItem = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.gallery || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, gallery: list };
+    });
+  };
+
+  const moveNotice = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.notices || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, notices: list };
+    });
+  };
+
+  const moveDownloadItem = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.downloads || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, downloads: list };
+    });
+  };
+
+  const moveQuickLink = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.quickLinks || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, quickLinks: list };
+    });
+  };
+
+  // JSON Export & Import handlers
+  const handleExportJson = () => {
+    try {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draft, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `website_content_backup_${new Date().toISOString().slice(0, 10)}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      setFeedback({ type: "success", message: "ওয়েবসাইট কনটেন্ট সফলভাবে JSON ফাইলে ব্যাকআপ ডাউনলোড হয়েছে।" });
+    } catch {
+      setFeedback({ type: "error", message: "ব্যাকআপ তৈরি করতে সমস্যা হয়েছে।" });
+    }
+  };
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed && typeof parsed === "object") {
+          setDraft((prev) => ({ ...prev, ...parsed }));
+          setFeedback({
+            type: "success",
+            message: "JSON ব্যাকআপ সফলভাবে ইমপোর্ট হয়েছে! পরিবর্তনগুলো রিভিউ করে 'সংরক্ষণ ও প্রকাশ' বাটনে ক্লিক করুন।",
+          });
+        }
+      } catch {
+        setFeedback({ type: "error", message: "ফাইলটি সঠিক JSON ফরম্যাটে নেই।" });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   // Notice handlers
@@ -247,7 +438,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingNoticeIndex(null);
         return;
       }
-    } catch {}
+    } catch { }
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -347,7 +538,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingDownloadIndex(null);
         return;
       }
-    } catch {}
+    } catch { }
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -633,7 +824,7 @@ const WebsiteContentPage: React.FC = () => {
         setUploadingStudyCornerImage(false);
         return;
       }
-    } catch {}
+    } catch { }
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -692,60 +883,142 @@ const WebsiteContentPage: React.FC = () => {
     }
   };
 
-  const tabs: { id: ContentTab; label: string; icon: LucideIcon }[] = [
-    { id: "identity", label: "১. বিদ্যালয় পরিচয়", icon: School },
-    { id: "hero_about", label: "২. ব্যানার ও ইতিহাস", icon: LayoutDashboard },
-    { id: "leadership", label: "৩. প্রশাসন ও বাণী", icon: GraduationCap },
-    { id: "teachers", label: "৪. শিক্ষক ও কর্মকর্তা", icon: UserCheck },
-    { id: "statistics", label: "৫. পরিসংখ্যান", icon: Award },
-    { id: "notices", label: "৬. নোটিশ বোর্ড", icon: Bell },
-    { id: "downloads", label: "৭. ডাউনলোড ও রুটিন", icon: Download },
-    { id: "admission", label: "৮. ভর্তি তথ্য", icon: BookOpen },
-    { id: "gallery", label: "৯. ফটো গ্যালারি", icon: ImageIcon },
-    { id: "study_co", label: "১০. স্টাডি কর্নার", icon: BookOpen },
-    { id: "links", label: "১১. সরকারি লিঙ্ক", icon: LinkIcon },
+  const tabs: { id: ContentTab; label: string; icon: LucideIcon; badgeCount?: number }[] = [
+    { id: "identity", label: "১. বিদ্যালয় পরিচয় ও লোগো", icon: School },
+    {
+      id: "ticker",
+      label: "২. ব্রেকিং নোটিশ ও স্ক্রলিং টিকার",
+      icon: Radio,
+      badgeCount: (draft.tickerItems || []).filter((i) => i.isActive !== false).length,
+    },
+    { id: "hero_about", label: "৩. হোম ব্যানার ও ইতিহাস", icon: LayoutDashboard },
+    { id: "leadership", label: "৪. প্রশাসন ও বাণী", icon: GraduationCap },
+    { id: "teachers", label: "৫. শিক্ষক ও কর্মকর্তা", icon: UserCheck, badgeCount: (draft.teachers || []).length },
+    { id: "statistics", label: "৬. পরিসংখ্যান ও সাফল্য", icon: Award },
+    { id: "notices", label: "৭. নোটিশ বোর্ড", icon: Bell, badgeCount: (draft.notices || []).length },
+    { id: "downloads", label: "৮. ডাউনলোড ও রুটিন", icon: Download, badgeCount: (draft.downloads || []).length },
+    { id: "admission", label: "৯. ভর্তি তথ্য ও আসন", icon: BookOpen },
+    { id: "gallery", label: "১০. ফটো গ্যালারি", icon: ImageIcon, badgeCount: (draft.gallery || []).length },
+    { id: "study_co", label: "১১. স্টাডি কর্নার", icon: BookOpen },
+    { id: "links", label: "১২. সরকারি লিঙ্ক", icon: LinkIcon, badgeCount: (draft.quickLinks || []).length },
   ];
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 md:p-6 font-sans">
+      {/* Hidden JSON input for backup restore */}
+      <input
+        ref={jsonInputRef}
+        type="file"
+        accept=".json,application/json"
+        onChange={handleImportJson}
+        className="hidden"
+      />
+
       {/* Top Header */}
       <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#006a4e] text-white">
               <Shield size={14} />
             </span>
             <p className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400">
-              সুপার অ্যাডমিন ড্যাশবোর্ড · দ্বিভাষিক (বাংলা ও ইংরেজি) ওয়েবসাইট ব্যবস্থাপনা
+              সুপার অ্যাডমিন ড্যাশবোর্ড · দ্বিভাষিক (বাংলা ও ইংরেজি) ওয়েবসাইট কনটেন্ট কন্ট্রোল
             </p>
+
+            {isDirty && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-900 shadow-2xs dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+                <AlertCircle size={12} className="text-amber-600 animate-pulse" />
+                <span>অসংরক্ষিত পরিবর্তন রয়েছে</span>
+              </span>
+            )}
           </div>
+
           <h1 className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-            ওয়েবসাইটের সকল পেজের কনটেন্ট ও দ্বিভাষিক অনুবাদ (Bangla & English)
+            ওয়েবসাইটের সকল পেজের কনটেন্ট, ডায়নামিক টিকার ও মিডিয়া আপলোড
           </h1>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি বাংলা ও ইংরেজি উভয় ভাষার কনটেন্ট পরিচালনা, অটোমেটিক ট্রান্সলেশন এবং লাইভ পাবলিশ করতে পারেন।
+            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি লাইভ স্ক্রলিং টিকার, ছবি ও মনোগ্রাম আপলোড, দ্বিভাষিক কনটেন্ট ও ব্যাকআপ পরিচালনা করতে পারেন।
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex flex-wrap shrink-0 items-center gap-2">
+          {/* Export JSON */}
+          <button
+            type="button"
+            onClick={handleExportJson}
+            title="বর্তমান কনটেন্ট ব্যাকআপ JSON ফাইলে ডাউনলোড করুন"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+          >
+            <FileDown size={14} className="text-emerald-700 dark:text-emerald-400" />
+            <span className="hidden sm:inline">ব্যাকআপ এক্সপোর্ট</span>
+          </button>
+
+          {/* Import JSON */}
+          <button
+            type="button"
+            onClick={() => jsonInputRef.current?.click()}
+            title="পূর্ববর্তী ব্যাকআপ JSON ফাইল রিস্টোর করুন"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+          >
+            <FileUp size={14} className="text-blue-700 dark:text-blue-400" />
+            <span className="hidden sm:inline">ব্যাকআপ রিস্টোর</span>
+          </button>
+
+          {/* Reset Template */}
           <button
             type="button"
             onClick={handleResetToDefault}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
           >
             <RotateCcw size={14} />
             <span>ডিফল্ট টেমপ্লেট</span>
           </button>
 
-          <a
-            href="/"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
-          >
-            <span>লাইভ ওয়েবসাইট</span>
-            <ExternalLink size={14} />
-          </a>
+          {/* Live Page Jump Dropdown */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDirectPageLinks((p) => !p)}
+              className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
+              <span>ওয়েবসাইট পেজ প্রিভিউ</span>
+              <ChevronDown size={13} className={`transition ${showDirectPageLinks ? "rotate-180" : ""}`} />
+            </button>
+
+            {showDirectPageLinks && (
+              <div
+                className="absolute right-0 top-full z-50 mt-1.5 w-52 rounded-lg border border-gray-200 bg-white p-1.5 shadow-xl dark:border-slate-700 dark:bg-slate-800"
+                onClick={() => setShowDirectPageLinks(false)}
+              >
+                <div className="border-b px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  সরাসরি পেজ ভিজিট করুন
+                </div>
+                {[
+                  { label: "প্রচ্ছদ (Home)", path: "/" },
+                  { label: "আমাদের পরিচিতি (About)", path: "/about" },
+                  { label: "প্রশাসন ও বাণী (Admin)", path: "/administration" },
+                  { label: "শিক্ষকমণ্ডলী (Teachers)", path: "/teachers-list" },
+                  { label: "নোটিশ বোর্ড (Notices)", path: "/notices" },
+                  { label: "একাডেমিক ও রুটিন", path: "/academics" },
+                  { label: "ভর্তি তথ্য (Admission)", path: "/admission" },
+                  { label: "স্টাডি কর্নার (Study Corner)", path: "/study-corner" },
+                  { label: "ফটো গ্যালারি (Gallery)", path: "/gallery" },
+                  { label: "যোগাযোগ (Contact)", path: "/contact" },
+                ].map((pg) => (
+                  <a
+                    key={pg.path}
+                    href={pg.path}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between rounded-md px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e] dark:text-gray-300 dark:hover:bg-slate-700"
+                  >
+                    <span>{pg.label}</span>
+                    <ExternalLink size={11} className="text-gray-400" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -771,11 +1044,10 @@ const WebsiteContentPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setEditLangMode("bn")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                editLangMode === "bn"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "bn"
                   ? "bg-[#006a4e] text-white shadow-2xs"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
-              }`}
+                }`}
             >
               <span>🇧🇩 বাংলা</span>
             </button>
@@ -783,11 +1055,10 @@ const WebsiteContentPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setEditLangMode("en")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                editLangMode === "en"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "en"
                   ? "bg-blue-700 text-white shadow-2xs"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
-              }`}
+                }`}
             >
               <span>🇬🇧 English</span>
             </button>
@@ -795,11 +1066,10 @@ const WebsiteContentPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setEditLangMode("dual")}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                editLangMode === "dual"
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "dual"
                   ? "bg-purple-700 text-white shadow-2xs"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
-              }`}
+                }`}
             >
               <Languages size={13} />
               <span>উভয় ভাষা (Side-by-Side)</span>
@@ -857,14 +1127,23 @@ const WebsiteContentPage: React.FC = () => {
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${
-                isActive
+              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${isActive
                   ? "bg-[#006a4e] text-white shadow-xs"
                   : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800"
-              }`}
+                }`}
             >
               <Icon size={14} />
               <span>{tab.label}</span>
+              {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300"
+                    }`}
+                >
+                  {tab.badgeCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -874,13 +1153,12 @@ const WebsiteContentPage: React.FC = () => {
       {feedback && (
         <div
           role="status"
-          className={`mb-5 flex items-center justify-between rounded-md border p-3.5 text-xs font-semibold ${
-            feedback.type === "success"
+          className={`mb-5 flex items-center justify-between rounded-md border p-3.5 text-xs font-semibold ${feedback.type === "success"
               ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
               : feedback.type === "error"
-              ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-              : "border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
-          }`}
+                ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                : "border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+            }`}
         >
           <div className="flex items-center gap-2">
             {feedback.type === "success" ? <Check size={16} /> : feedback.type === "error" ? <AlertCircle size={16} /> : <Info size={16} />}
@@ -908,6 +1186,22 @@ const WebsiteContentPage: React.FC = () => {
             </h2>
 
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* School Logo & Monogram Upload */}
+              <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/30 p-3.5 dark:border-slate-700 dark:bg-slate-800/40">
+                <ImageUploadField
+                  label="বিদ্যালয়ের অফিশিয়াল লোগো / মনোগ্রাম (Official School Logo & Crest)"
+                  labelEn="Official School Logo & Crest"
+                  value={siteLogo}
+                  onChange={async (newLogo) => {
+                    await saveSiteLogo(newLogo);
+                  }}
+                  aspectRatio="square"
+                  uploadEndpoint="logo"
+                  helperText="ওয়েবসাইটের হেডার, ফুটার ও রেজাল্ট শিট/আইডি কার্ডে প্রদর্শিত হবে। স্বচ্ছ ব্যাকগ্রাউন্ডের PNG বা SVG ফাইল সেরা।"
+                  presets={[{ label: "ডিফল্ট লোগো", url: "/images/logo.png" }]}
+                />
+              </div>
+
               {/* School Name */}
               {(editLangMode === "bn" || editLangMode === "dual") && (
                 <div className="rounded-md border border-emerald-100 bg-emerald-50/20 p-2.5 dark:border-emerald-900/30">
@@ -1233,17 +1527,397 @@ const WebsiteContentPage: React.FC = () => {
                   </label>
                 </div>
               )}
+
+              {/* Direct Link to Dedicated Ticker Tab */}
+              <div className="sm:col-span-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+                <div className="flex items-center gap-2">
+                  <Radio size={14} className="text-red-600 animate-pulse" />
+                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                    একাধিক ব্রেকিং নোটিশ, গতি নিয়ন্ত্রণ ও লাইভ প্রিভিউ পরিচালনা করতে চান?
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("ticker")}
+                  className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <span>ডায়নামিক টিকার সেকশনে যান</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
             </div>
           </section>
         )}
 
-        {/* TAB 2: HERO & ABOUT */}
+        {/* TAB 2: TICKER & BREAKING NEWS */}
+        {activeTab === "ticker" && (
+          <section className="space-y-6">
+            {/* 1. Live Running Ticker Interactive Preview */}
+            <div className="rounded-lg border-2 border-emerald-600/40 bg-white p-5 shadow-xs dark:border-emerald-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3 dark:border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#da291c] text-white">
+                    <Radio size={14} className="animate-pulse" />
+                  </span>
+                  <div>
+                    <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      লাইভ টিকার প্রিভিউ (Live Ticker Running Preview)
+                    </h2>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      ওয়েবসাইটে ভিজিটররা ঠিক যেভাবে নোটিশ স্ক্রলিং দেখতে পাবেন (কার্সর রাখলে স্ক্রল থেমে যাবে)।
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                    গতি: {draft.tickerSpeed === "fast" ? "দ্রুত (Fast)" : draft.tickerSpeed === "slow" ? "ধীর (Slow)" : "স্বাভাবিক (Normal)"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Ticker Bar Visual Demo */}
+              <div className="mt-4 rounded-md border border-[#ffd700]/40 bg-[#fffbeb] p-2 shadow-inner text-gray-900 overflow-hidden">
+                <div className="flex items-center">
+                  <div className="flex shrink-0 items-center gap-1.5 rounded-sm bg-[#da291c] px-2.5 py-1 text-xs font-bold text-white shadow-xs">
+                    <Bell size={13} className="animate-bounce" />
+                    <span>
+                      {editLangMode === "en"
+                        ? draft.tickerLabelEn || "Urgent Notice:"
+                        : draft.tickerLabel || "জরুরি নোটিশ:"}
+                    </span>
+                  </div>
+
+                  <div className="relative mx-3 flex-1 overflow-hidden text-xs font-semibold sm:text-sm">
+                    <div
+                      className="animate-ticker-horizontal items-center gap-12"
+                      style={{
+                        "--ticker-h-duration":
+                          draft.tickerSpeed === "fast" ? "18s" : draft.tickerSpeed === "slow" ? "45s" : "28s",
+                      } as React.CSSProperties}
+                    >
+                      {/* Repeat items for continuous infinite scroll */}
+                      {[
+                        ...(draft.tickerItems || []).filter((i) => i.isActive !== false),
+                        ...(draft.tickerItems || []).filter((i) => i.isActive !== false),
+                      ].map((item, idx) => (
+                        <span key={idx} className="shrink-0 inline-flex items-center gap-1.5">
+                          <span className="text-amber-500 font-bold">★</span>
+                          {item.badge && (
+                            <span
+                              className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
+                                  ? "bg-[#da291c] text-white"
+                                  : item.priority === "important"
+                                    ? "bg-amber-200 text-amber-900"
+                                    : "bg-emerald-100 text-[#006a4e]"
+                                }`}
+                            >
+                              {editLangMode === "en" ? item.badgeEn || item.badge : item.badge}
+                            </span>
+                          )}
+                          <span>{editLangMode === "en" ? item.textEn || item.text : item.text}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Global Ticker Settings */}
+            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400 flex items-center gap-2 border-b pb-2.5 dark:border-slate-700">
+                <Sliders size={14} />
+                টিকার কন্ট্রোল ও সেটিংসমূহ (Ticker Controls & Settings)
+              </h3>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {/* Ticker Label (BN) */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    টিকার ব্যাজ শিরোনাম (বাংলা)
+                    <input
+                      type="text"
+                      value={draft.tickerLabel || "জরুরি নোটিশ:"}
+                      onChange={(e) => updateField("tickerLabel", e.target.value)}
+                      placeholder="জরুরি নোটিশ:"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+
+                {/* Ticker Label (EN) */}
+                <div>
+                  <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                    Ticker Badge Title (English)
+                    <input
+                      type="text"
+                      value={draft.tickerLabelEn || "Urgent Notice:"}
+                      onChange={(e) => updateField("tickerLabelEn", e.target.value)}
+                      placeholder="Urgent Notice:"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
+
+                {/* Ticker Speed */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    স্ক্রলিং গতি (Ticker Speed)
+                    <select
+                      value={draft.tickerSpeed || "normal"}
+                      onChange={(e) => updateField("tickerSpeed", e.target.value as any)}
+                      className={inputClass}
+                    >
+                      <option value="slow">ধীর (Slow - ৪২ সেকেন্ড)</option>
+                      <option value="normal">স্বাভাবিক (Normal - ৩০ সেকেন্ড)</option>
+                      <option value="fast">দ্রুত (Fast - ১৮ সেকেন্ড)</option>
+                    </select>
+                  </label>
+                </div>
+
+                {/* Include notices toggle */}
+                <div className="sm:col-span-3 flex items-center justify-between rounded-md border border-gray-200 bg-gray-50/60 p-3 dark:border-slate-700 dark:bg-slate-800/40">
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="tickerIncludeNotices"
+                      checked={draft.tickerIncludeNotices !== false}
+                      onChange={(e) => updateField("tickerIncludeNotices", e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[#006a4e] focus:ring-[#006a4e]"
+                    />
+                    <label htmlFor="tickerIncludeNotices" className="cursor-pointer text-xs font-semibold text-gray-800 dark:text-gray-200">
+                      নোটিশ বোর্ডের সাম্প্রতিক নোটিশসমূহ স্বয়ংক্রিয়ভাবে টিকারে অন্তর্ভুক্ত করুন (Auto-sync Recent Notices)
+                    </label>
+                  </div>
+                  <span className="text-[11px] font-semibold text-gray-500">
+                    {draft.tickerIncludeNotices !== false ? "সক্রিয় (Active)" : "নিষ্ক্রিয় (Disabled)"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Dynamic Ticker Announcements List (CRUD) */}
+            <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 dark:border-slate-800">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Bell size={16} className="text-[#006a4e]" />
+                    <span>ডায়নামিক ব্রেকিং নোটিশ তালিকা ({(draft.tickerItems || []).length}টি আইটেম)</span>
+                  </h3>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    এখানে যে কোনো সংখ্যক ব্রেকিং নিউজ যোগ, সক্রিয়/নিষ্ক্রিয় ও সাজানো যাবে।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addTickerItem}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                >
+                  <Plus size={14} />
+                  <span>নতুন ব্রেকিং নোটিশ যোগ করুন</span>
+                </button>
+              </div>
+
+              {/* Ticker Items List */}
+              <div className="mt-4 space-y-3.5">
+                {(draft.tickerItems || []).length === 0 ? (
+                  <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center text-gray-500 dark:border-slate-700 dark:text-gray-400">
+                    <p className="text-sm font-semibold">কোনো কাস্টম ব্রেকিং নোটিশ যোগ করা হয়নি।</p>
+                    <p className="mt-1 text-xs">উপরে 'নতুন ব্রেকিং নোটিশ যোগ করুন' বাটনে ক্লিক করে প্রথম নোটিশ যোগ করুন।</p>
+                  </div>
+                ) : (
+                  (draft.tickerItems || []).map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className={`rounded-lg border p-4 transition ${item.isActive !== false
+                          ? "border-gray-200 bg-[#fbfdfc] dark:border-slate-700 dark:bg-slate-800"
+                          : "border-gray-200 bg-gray-100 opacity-60 dark:border-slate-800 dark:bg-slate-900"
+                        }`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 dark:border-slate-700">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">
+                            নোটিশ #{index + 1}
+                          </span>
+                          <span
+                            className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
+                                ? "bg-[#da291c] text-white"
+                                : item.priority === "important"
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                  : "bg-emerald-100 text-[#006a4e]"
+                              }`}
+                          >
+                            {item.priority === "urgent"
+                              ? "জরুরি (Urgent)"
+                              : item.priority === "important"
+                                ? "গুরুত্বপূর্ণ (Important)"
+                                : "সাধারণ (Normal)"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          {/* Active / Inactive Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => toggleTickerItem(index)}
+                            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold transition ${item.isActive !== false
+                                ? "bg-emerald-100 text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300"
+                              }`}
+                          >
+                            {item.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                            <span>{item.isActive !== false ? "সক্রিয়" : "নিষ্ক্রিয়"}</span>
+                          </button>
+
+                          {/* Move Up */}
+                          <button
+                            type="button"
+                            disabled={index === 0}
+                            onClick={() => moveTickerItem(index, "up")}
+                            title="উপরে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+
+                          {/* Move Down */}
+                          <button
+                            type="button"
+                            disabled={index === (draft.tickerItems || []).length - 1}
+                            onClick={() => moveTickerItem(index, "down")}
+                            title="নিচে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+
+                          {/* Auto Translate */}
+                          <button
+                            type="button"
+                            onClick={() => translateTickerItem(index)}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#006a4e] hover:underline dark:text-emerald-400"
+                          >
+                            <Sparkles size={12} />
+                            <span>অনুবাদ</span>
+                          </button>
+
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={() => removeTickerItem(index)}
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center gap-0.5 ml-1"
+                          >
+                            <Trash2 size={13} />
+                            <span>মুছুন</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {/* Text (BN) */}
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            নোটিশ বার্তা (বাংলায়) *
+                            <input
+                              type="text"
+                              value={item.text}
+                              onChange={(e) => updateTickerItem(index, "text", e.target.value)}
+                              placeholder="যেমন: ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে..."
+                              className={inputClass}
+                              required
+                            />
+                          </label>
+                        </div>
+
+                        {/* Text (EN) */}
+                        <div className="sm:col-span-2">
+                          <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                            Notice Text (English)
+                            <input
+                              type="text"
+                              value={item.textEn || ""}
+                              onChange={(e) => updateTickerItem(index, "textEn", e.target.value)}
+                              placeholder="e.g. Admission applications for Academic Year 2026 are ongoing..."
+                              className={inputClass}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Badge Tag (BN) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            ট্যাগ / ব্যাজ (বাংলায়)
+                            <input
+                              type="text"
+                              value={item.badge || ""}
+                              onChange={(e) => updateTickerItem(index, "badge", e.target.value)}
+                              placeholder="যেমন: ভর্তি, পরীক্ষা, জরুরি, নোটিশ"
+                              className={inputClass}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Badge Tag (EN) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                            Tag / Badge (English)
+                            <input
+                              type="text"
+                              value={item.badgeEn || ""}
+                              onChange={(e) => updateTickerItem(index, "badgeEn", e.target.value)}
+                              placeholder="e.g. Admission, Exam, Urgent, Event"
+                              className={inputClass}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Priority */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            অগ্রাধিকার (Priority Level)
+                            <select
+                              value={item.priority || "normal"}
+                              onChange={(e) => updateTickerItem(index, "priority", e.target.value as any)}
+                              className={inputClass}
+                            >
+                              <option value="urgent">জরুরি (Urgent - লাল ব্যাজ)</option>
+                              <option value="important">গুরুত্বপূর্ণ (Important - সোনালী ব্যাজ)</option>
+                              <option value="normal">সাধারণ (Normal - সবুজ ব্যাজ)</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        {/* Link / URL */}
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            ক্লিক অ্যাকশন লিংক (Optional Link URL)
+                            <input
+                              type="text"
+                              value={item.link || ""}
+                              onChange={(e) => updateTickerItem(index, "link", e.target.value)}
+                              placeholder="যেমন: /admission অথবা /notices অথবা https://..."
+                              className={inputClass}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* TAB 3: HERO & ABOUT */}
         {activeTab === "hero_about" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <LayoutDashboard size={16} className="text-[#006a4e]" />
-                ২. হোম ব্যানার, পরিচিতি ও লক্ষ্য-উদ্দেশ্য (Bilingual)
+                ৩. হোম ব্যানার, পরিচিতি ও লক্ষ্য-উদ্দেশ্য (Bilingual)
               </span>
               <button
                 type="button"
@@ -1351,15 +2025,21 @@ const WebsiteContentPage: React.FC = () => {
               </div>
 
               {/* Hero Image */}
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                হোম ব্যানার ছবি (Image URL or Path)
-                <input
-                  type="text"
+              <div className="pt-2">
+                <ImageUploadField
+                  label="হোম ব্যানার কভার ছবি (Home Hero Banner Image)"
                   value={draft.heroImage}
-                  onChange={(e) => updateField("heroImage", e.target.value)}
-                  className={inputClass}
+                  onChange={(url) => updateField("heroImage", url)}
+                  aspectRatio="banner"
+                  helperText="ওয়েবসাইটের হোমপেজের শীর্ষ ব্যানার ছবি। ডিভাইস থেকে আপলোড করুন বা লিংক দিন। প্রস্তাবিত অনুপাত ১৬:৯ বা ব্যানার।"
+                  presets={[
+                    { label: "Default Banner", url: "/images/bgimage.jpg" },
+                    { label: "School Campus", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400" },
+                    { label: "Academic Building", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400" },
+                    { label: "Students in Library", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400" },
+                  ]}
                 />
-              </label>
+              </div>
 
               {/* About Title & Description */}
               <div className="border-t pt-4">
@@ -1511,18 +2191,18 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 3: LEADERSHIP */}
+        {/* TAB 4: LEADERSHIP */}
         {activeTab === "leadership" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <GraduationCap size={16} className="text-[#006a4e]" />
-                ৩. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য (Bilingual)
+                ৪. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য (Bilingual)
               </span>
               <button
                 type="button"
                 onClick={handleTranslateCurrentTab}
-                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200"
+                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
               >
                 <Sparkles size={11} />
                 <span>বাণী ও পদবী অনুবাদ</span>
@@ -1593,15 +2273,19 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  ছবির লিঙ্ক (Image URL)
-                  <input
-                    type="text"
+                <div className="sm:col-span-2">
+                  <ImageUploadField
+                    label="প্রধান শিক্ষকের ছবি (Headmaster Photo)"
                     value={draft.principalPhoto}
-                    onChange={(e) => updateField("principalPhoto", e.target.value)}
-                    className={inputClass}
+                    onChange={(url) => updateField("principalPhoto", url)}
+                    aspectRatio="portrait"
+                    helperText="প্রধান শিক্ষকের পাসপোর্ট সাইজ বা পোর্ট্রেট ছবি আপলোড করুন।"
+                    presets={[
+                      { label: "Formal Portrait", url: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=400" },
+                      { label: "Avatar", url: "/images/avatar.png" },
+                    ]}
                   />
-                </label>
+                </div>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   প্রধান শিক্ষকের শুভেচ্ছা বাণী (বাংলায়)
@@ -1649,6 +2333,20 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
+                <div className="sm:col-span-2">
+                  <ImageUploadField
+                    label="সহকারী প্রধান শিক্ষকের ছবি (Assistant Headmaster Photo)"
+                    value={draft.asstPrincipalPhoto || ""}
+                    onChange={(url) => updateField("asstPrincipalPhoto", url)}
+                    aspectRatio="portrait"
+                    helperText="সহকারী প্রধান শিক্ষকের পোর্ট্রেট ছবি আপলোড করুন।"
+                    presets={[
+                      { label: "Asst. Principal", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400" },
+                      { label: "Avatar", url: "/images/avatar.png" },
+                    ]}
+                  />
+                </div>
+
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
                   সহকারী প্রধান শিক্ষকের বাণী (বাংলায়)
                   <textarea
@@ -1672,10 +2370,10 @@ const WebsiteContentPage: React.FC = () => {
             </div>
 
             {/* SMC President */}
-            <div className="mt-5 rounded-md border border-amber-200 bg-amber-50/40 p-4">
-              <h3 className="text-xs font-bold text-amber-900">সভাপতি, ম্যানেজিং কমিটি (SMC President)</h3>
+            <div className="mt-5 rounded-md border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+              <h3 className="text-xs font-bold text-amber-900 dark:text-amber-400">সভাপতি, ম্যানেজিং কমিটি (SMC President)</h3>
               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-gray-700">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   সভাপতির নাম (বাংলায়)
                   <input
                     type="text"
@@ -1685,7 +2383,7 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-blue-800">
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
                   President Name (English)
                   <input
                     type="text"
@@ -1695,7 +2393,21 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-gray-700">
+                <div className="sm:col-span-2">
+                  <ImageUploadField
+                    label="সভাপতি মহোদয়ের ছবি (SMC President Photo)"
+                    value={draft.smcPresidentPhoto || ""}
+                    onChange={(url) => updateField("smcPresidentPhoto", url)}
+                    aspectRatio="portrait"
+                    helperText="সভাপতি মহোদয়ের পোর্ট্রেট ছবি আপলোড করুন।"
+                    presets={[
+                      { label: "President Formal", url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400" },
+                      { label: "Avatar", url: "/images/avatar.png" },
+                    ]}
+                  />
+                </div>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                   সভাপতির বার্তা (বাংলায়)
                   <textarea
                     rows={3}
@@ -1705,7 +2417,7 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-blue-800">
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
                   President's Message (English)
                   <textarea
                     rows={3}
@@ -1719,17 +2431,17 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 4: TEACHERS (CRUD) */}
+        {/* TAB 5: TEACHERS (CRUD) */}
         {activeTab === "teachers" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <UserCheck size={16} className="text-[#006a4e]" />
-                  <span>৪. শিক্ষক ও কর্মকর্তা তালিকা (দ্বিভাষিক ব্যবস্থাপনা) ({(draft.teachers || []).length} জন)</span>
+                  <span>৫. শিক্ষক ও কর্মকর্তা তালিকা (দ্বিভাষিক ব্যবস্থাপনা) ({(draft.teachers || []).length} জন)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  প্রতিটি শিক্ষকের নাম, পদবী, বিষয় ও শিক্ষাগত যোগ্যতা বাংলা ও ইংরেজি উভয় ভাষায় সংরক্ষণ করুন।
+                  প্রতিটি শিক্ষকের ছবি আপলোড, নাম, পদবী, বিষয়, ক্যাটাগরি ও যোগাযোগ তথ্য বাংলা ও ইংরেজি উভয় ভাষায় সংরক্ষণ করুন।
                 </p>
               </div>
 
@@ -1748,7 +2460,7 @@ const WebsiteContentPage: React.FC = () => {
                       })),
                     }));
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                 >
                   <Sparkles size={13} />
                   <span>সকল শিক্ষক তথ্য ইংরেজি অনুবাদ</span>
@@ -1765,133 +2477,271 @@ const WebsiteContentPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Search Filter Bar */}
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-md bg-gray-50 p-3 dark:bg-slate-800/60">
+              <div className="relative flex-1 max-w-md">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  placeholder="নাম, পদবি বা বিষয় লিখে খুঁজুন..."
+                  className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+                {teacherSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTeacherSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                মোট শিক্ষক: <span className="font-bold text-[#006a4e] dark:text-emerald-400">{(draft.teachers || []).length}</span> জন
+                {teacherSearch && (
+                  <span className="ml-1 text-gray-600 dark:text-gray-300">
+                    (খোঁজা হয়েছে: {(draft.teachers || []).filter(t => (t.name + t.nameEn + t.designation + t.subject).toLowerCase().includes(teacherSearch.toLowerCase())).length} জন)
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="mt-4 space-y-4">
-              {(draft.teachers || []).map((teacher, index) => (
-                <div
-                  key={teacher.id || index}
-                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-[#006a4e]">শিক্ষক #{index + 1}</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => translateTeacherItem(index)}
-                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1"
-                      >
-                        <Sparkles size={12} />
-                        <span>অটো অনুবাদ</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeTeacher(index)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                      >
-                        <Trash2 size={13} />
-                        <span>মুছুন</span>
-                      </button>
+              {(draft.teachers || [])
+                .map((teacher, index) => ({ teacher, index }))
+                .filter(({ teacher }) => {
+                  if (!teacherSearch.trim()) return true;
+                  const q = teacherSearch.toLowerCase();
+                  return (
+                    (teacher.name || "").toLowerCase().includes(q) ||
+                    (teacher.nameEn || "").toLowerCase().includes(q) ||
+                    (teacher.designation || "").toLowerCase().includes(q) ||
+                    (teacher.designationEn || "").toLowerCase().includes(q) ||
+                    (teacher.subject || "").toLowerCase().includes(q) ||
+                    (teacher.subjectEn || "").toLowerCase().includes(q)
+                  );
+                })
+                .map(({ teacher, index }) => (
+                  <div
+                    key={teacher.id || index}
+                    className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
+                  >
+                    {/* Header with order buttons & delete */}
+                    <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                          শিক্ষক #{index + 1}
+                        </span>
+                        <span className="rounded bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-700 dark:bg-slate-700 dark:text-gray-300">
+                          {teacher.category || "শিক্ষক"}
+                        </span>
+                        {teacher.name && (
+                          <span className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-xs">
+                            — {teacher.name}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => moveTeacher(index, "up")}
+                          disabled={index === 0}
+                          title="উপরে নিন"
+                          className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                        >
+                          <ArrowUp size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveTeacher(index, "down")}
+                          disabled={index === (draft.teachers || []).length - 1}
+                          title="নিচে নিন"
+                          className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                        >
+                          <ArrowDown size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => translateTeacherItem(index)}
+                          className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
+                        >
+                          <Sparkles size={12} />
+                          <span>অটো অনুবাদ</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeTeacher(index)}
+                          className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
+                        >
+                          <Trash2 size={13} />
+                          <span>মুছুন</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Teacher Details with Image Upload */}
+                    <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
+                      {/* Photo Upload */}
+                      <div className="sm:col-span-1">
+                        <ImageUploadField
+                          label="শিক্ষকের ছবি (Teacher Photo)"
+                          value={teacher.photo || "/images/avatar.png"}
+                          onChange={(url) => updateTeacher(index, "photo", url)}
+                          aspectRatio="portrait"
+                          helperText="পাসপোর্ট সাইজ বা পোর্ট্রেট ছবি আপলোড করুন।"
+                          presets={[
+                            { label: "Avatar Male", url: "/images/avatar.png" },
+                            { label: "Photo 1", url: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=300" },
+                            { label: "Photo 2", url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=300" },
+                          ]}
+                        />
+                      </div>
+
+                      {/* Fields */}
+                      <div className="sm:col-span-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          ক্যাটাগরি *
+                          <select
+                            value={teacher.category || "শিক্ষক"}
+                            onChange={(e) => updateTeacher(index, "category", e.target.value as any)}
+                            className={inputClass}
+                          >
+                            <option value="শিক্ষক">শিক্ষক (Teacher)</option>
+                            <option value="প্রশাসন">প্রশাসন (Administration)</option>
+                            <option value="কর্মচারী">কর্মচারী (Staff)</option>
+                          </select>
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          ফোন নম্বর (Phone)
+                          <input
+                            type="text"
+                            value={teacher.phone || ""}
+                            onChange={(e) => updateTeacher(index, "phone", e.target.value)}
+                            placeholder="+880 1712..."
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          ইমেইল (Email)
+                          <input
+                            type="email"
+                            value={teacher.email || ""}
+                            onChange={(e) => updateTeacher(index, "email", e.target.value)}
+                            placeholder="teacher@school.edu.bd"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          নাম (বাংলায়) *
+                          <input
+                            type="text"
+                            value={teacher.name}
+                            onChange={(e) => updateTeacher(index, "name", e.target.value)}
+                            className={inputClass}
+                            required
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                          Name (English)
+                          <input
+                            type="text"
+                            value={teacher.nameEn || ""}
+                            onChange={(e) => updateTeacher(index, "nameEn", e.target.value)}
+                            placeholder="e.g. Md. Abdur Rahman"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          পদবি (বাংলায়)
+                          <input
+                            type="text"
+                            value={teacher.designation}
+                            onChange={(e) => updateTeacher(index, "designation", e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                          Designation (English)
+                          <input
+                            type="text"
+                            value={teacher.designationEn || ""}
+                            onChange={(e) => updateTeacher(index, "designationEn", e.target.value)}
+                            placeholder="e.g. Assistant Teacher"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          বিষয় (বাংলায়)
+                          <input
+                            type="text"
+                            value={teacher.subject}
+                            onChange={(e) => updateTeacher(index, "subject", e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                          Subject (English)
+                          <input
+                            type="text"
+                            value={teacher.subjectEn || ""}
+                            onChange={(e) => updateTeacher(index, "subjectEn", e.target.value)}
+                            placeholder="e.g. Mathematics"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          যোগ্যতা (বাংলায়)
+                          <input
+                            type="text"
+                            value={teacher.qualification}
+                            onChange={(e) => updateTeacher(index, "qualification", e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
+                          Qualification (English)
+                          <input
+                            type="text"
+                            value={teacher.qualificationEn || ""}
+                            onChange={(e) => updateTeacher(index, "qualificationEn", e.target.value)}
+                            placeholder="e.g. B.Sc (Hons), M.Sc"
+                            className={inputClass}
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
+                ))}
 
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      নাম (বাংলায়) *
-                      <input
-                        type="text"
-                        value={teacher.name}
-                        onChange={(e) => updateTeacher(index, "name", e.target.value)}
-                        className={inputClass}
-                        required
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Name (English)
-                      <input
-                        type="text"
-                        value={teacher.nameEn || ""}
-                        onChange={(e) => updateTeacher(index, "nameEn", e.target.value)}
-                        placeholder="e.g. Md. Abdur Rahman"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      পদবি (বাংলায়)
-                      <input
-                        type="text"
-                        value={teacher.designation}
-                        onChange={(e) => updateTeacher(index, "designation", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Designation (English)
-                      <input
-                        type="text"
-                        value={teacher.designationEn || ""}
-                        onChange={(e) => updateTeacher(index, "designationEn", e.target.value)}
-                        placeholder="e.g. Assistant Teacher"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      বিষয় (বাংলায়)
-                      <input
-                        type="text"
-                        value={teacher.subject}
-                        onChange={(e) => updateTeacher(index, "subject", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Subject (English)
-                      <input
-                        type="text"
-                        value={teacher.subjectEn || ""}
-                        onChange={(e) => updateTeacher(index, "subjectEn", e.target.value)}
-                        placeholder="e.g. Mathematics"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      যোগ্যতা (বাংলায়)
-                      <input
-                        type="text"
-                        value={teacher.qualification}
-                        onChange={(e) => updateTeacher(index, "qualification", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Qualification (English)
-                      <input
-                        type="text"
-                        value={teacher.qualificationEn || ""}
-                        onChange={(e) => updateTeacher(index, "qualificationEn", e.target.value)}
-                        placeholder="e.g. B.Sc (Hons), M.Sc"
-                        className={inputClass}
-                      />
-                    </label>
-                  </div>
+              {(draft.teachers || []).length === 0 && (
+                <div className="rounded-md border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500 dark:border-slate-700">
+                  কোনো শিক্ষকের তথ্য নেই। 'নতুন শিক্ষক যোগ করুন' বাটনে ক্লিক করুন।
                 </div>
-              ))}
+              )}
             </div>
           </section>
         )}
 
-        {/* TAB 5: STATISTICS */}
+        {/* TAB 6: STATISTICS */}
         {activeTab === "statistics" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <Award size={16} className="text-[#006a4e]" />
-                ৫. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য (বাংলা ও ইংরেজি সংখ্যা)
+                ৬. বিদ্যালয় পরিসংখ্যান ও একাডেমিক সাফল্য (বাংলা ও ইংরেজি সংখ্যা)
               </span>
               <button
                 type="button"
@@ -1987,17 +2837,17 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 6: NOTICES */}
+        {/* TAB 7: NOTICES */}
         {activeTab === "notices" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Bell size={16} className="text-[#da291c]" />
-                  <span>৬. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ — দ্বিভাষিক)</span>
+                  <span>৭. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ — দ্বিভাষিক)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  নোটিশের শিরোনাম, ক্যাটাগরি ও বিস্তারিত বিবরণ বাংলা এবং ইংরেজি উভয় ভাষায় লিখুন অথবা অটো-অনুবাদ ব্যবহার করুন।
+                  নোটিশের শিরোনাম, ক্যাটাগরি, সংযুক্তি ও বিস্তারিত বিবরণ বাংলা এবং ইংরেজি উভয় ভাষায় লিখুন অথবা অটো-অনুবাদ ব্যবহার করুন।
                 </p>
               </div>
 
@@ -2015,7 +2865,7 @@ const WebsiteContentPage: React.FC = () => {
                       })),
                     }));
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e]"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                 >
                   <Sparkles size={13} />
                   <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
@@ -2039,14 +2889,32 @@ const WebsiteContentPage: React.FC = () => {
                   className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e]">
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
                       নোটিশ #{index + 1}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => moveNotice(index, "up")}
+                        disabled={index === 0}
+                        title="উপরে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveNotice(index, "down")}
+                        disabled={index === draft.notices.length - 1}
+                        title="নিচে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowDown size={13} />
+                      </button>
                       <button
                         type="button"
                         onClick={() => translateNoticeItem(index)}
-                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1"
+                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
                       >
                         <Sparkles size={12} />
                         <span>ইংরেজি অনুবাদ</span>
@@ -2054,7 +2922,7 @@ const WebsiteContentPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => removeNotice(index)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
                       >
                         <Trash2 size={13} />
                         <span>মুছুন</span>
@@ -2112,6 +2980,43 @@ const WebsiteContentPage: React.FC = () => {
                       </select>
                     </label>
 
+                    {/* Notice Attachment Upload & URL */}
+                    <div className="sm:col-span-2 rounded-md border border-gray-200 bg-gray-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            নোটিশের সংযুক্তি / বিজ্ঞপ্তি ফাইল (Attachment File / PDF / Image)
+                          </label>
+                          <span className="text-[11px] text-gray-500">
+                            পিডিএফ বা ছবি ফাইল আপলোড করুন অথবা সরাসরি ফাইল লিংক দিন
+                          </span>
+                        </div>
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs border border-gray-300 hover:bg-gray-100 dark:bg-slate-700 dark:text-gray-200 dark:border-slate-600">
+                          <Upload size={13} className="text-[#006a4e] dark:text-emerald-400" />
+                          <span>{uploadingNoticeIndex === index ? "আপলোড হচ্ছে..." : "ফাইল নির্বাচন ও আপলোড"}</span>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleNoticeFileUpload(index, f);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="text"
+                        value={notice.fileUrl || ""}
+                        onChange={(e) => updateNotice(index, "fileUrl", e.target.value)}
+                        placeholder="https://... অথবা /uploads/notices/... অথবা আপলোড করুন"
+                        className={`${inputClass} mt-1`}
+                      />
+                      {noticeUploadError?.index === index && (
+                        <p className="mt-1 text-[11px] text-red-600">{noticeUploadError.message}</p>
+                      )}
+                    </div>
+
                     <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                       বিস্তারিত বিবরণ (বাংলায়)
                       <textarea
@@ -2138,17 +3043,17 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 7: DOWNLOADS */}
+        {/* TAB 8: DOWNLOADS */}
         {activeTab === "downloads" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Download size={16} className="text-[#006a4e]" />
-                  <span>৭. ডাউনলোড ও ক্লাস রুটিন (দ্বিভাষিক)</span>
+                  <span>৮. ডাউনলোড ও ক্লাস রুটিন (দ্বিভাষিক) ({draft.downloads.length} টি ফাইল)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  ক্লাস রুটিন, সিলেবাস ও বার্ষিক ক্যালেন্ডার বাংলা ও ইংরেজি শিরোনামে প্রকাশ করুন।
+                  ক্লাস রুটিন, সিলেবাস ও বার্ষিক ক্যালেন্ডার ফাইল আপলোড করুন অথবা ডাউনলোড লিঙ্ক প্রদান করুন।
                 </p>
               </div>
 
@@ -2169,15 +3074,45 @@ const WebsiteContentPage: React.FC = () => {
                   className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-[#006a4e]">ফাইল #{index + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeDownloadItem(index)}
-                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={13} />
-                      <span>মুছুন</span>
-                    </button>
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                      ফাইল #{index + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => moveDownloadItem(index, "up")}
+                        disabled={index === 0}
+                        title="উপরে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveDownloadItem(index, "down")}
+                        disabled={index === (draft.downloads || []).length - 1}
+                        title="নিচে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => translateDownloadItem(index)}
+                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
+                      >
+                        <Sparkles size={12} />
+                        <span>ইংরেজি অনুবাদ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeDownloadItem(index)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -2202,6 +3137,71 @@ const WebsiteContentPage: React.FC = () => {
                         className={inputClass}
                       />
                     </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ক্যাটাগরি
+                      <select
+                        value={item.category || "রুটিন"}
+                        onChange={(e) => {
+                          updateDownloadItem(index, "category", e.target.value);
+                          updateDownloadItem(index, "categoryEn", translateBnToEn(e.target.value));
+                        }}
+                        className={inputClass}
+                      >
+                        <option value="রুটিন">রুটিন (Routine)</option>
+                        <option value="সিলেবাস">সিলেবাস (Syllabus)</option>
+                        <option value="ক্যালেন্ডার">ক্যালেন্ডার (Calendar)</option>
+                        <option value="ভর্তি ফরম">ভর্তি ফরম (Admission Form)</option>
+                        <option value="অন্যান্য">অন্যান্য (Other)</option>
+                      </select>
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      প্রকাশের তারিখ
+                      <input
+                        type="date"
+                        value={item.publishDate || ""}
+                        onChange={(e) => updateDownloadItem(index, "publishDate", e.target.value)}
+                        className={inputClass}
+                      />
+                    </label>
+
+                    {/* Download File Attachment Upload */}
+                    <div className="sm:col-span-2 rounded-md border border-gray-200 bg-gray-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            ফাইল সংযুক্তি (PDF / Image File Upload)
+                          </label>
+                          <span className="text-[11px] text-gray-500">
+                            পিডিএফ বা ছবি আপলোড করুন অথবা এক্সটার্নাল ড্রাইভ বা ক্লাউড লিঙ্ক দিন
+                          </span>
+                        </div>
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs border border-gray-300 hover:bg-gray-100 dark:bg-slate-700 dark:text-gray-200 dark:border-slate-600">
+                          <Upload size={13} className="text-[#006a4e] dark:text-emerald-400" />
+                          <span>{uploadingDownloadIndex === index ? "আপলোড হচ্ছে..." : "ফাইল নির্বাচন ও আপলোড"}</span>
+                          <input
+                            type="file"
+                            accept=".pdf,image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleDownloadFileUpload(index, f);
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="text"
+                        value={item.fileUrl || ""}
+                        onChange={(e) => updateDownloadItem(index, "fileUrl", e.target.value)}
+                        placeholder="https://... অথবা /uploads/... অথবা ফাইল আপলোড করুন"
+                        className={`${inputClass} mt-1`}
+                      />
+                      {downloadUploadError?.index === index && (
+                        <p className="mt-1 text-[11px] text-red-600">{downloadUploadError.message}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2209,12 +3209,22 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 8: ADMISSION INFO */}
+        {/* TAB 9: ADMISSION INFO */}
         {activeTab === "admission" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <BookOpen size={16} className="text-[#006a4e]" />
-              <span>৮. অনলাইন ভর্তি তথ্য ও নীতিমালা (দ্বিভাষিক)</span>
+            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <BookOpen size={16} className="text-[#006a4e]" />
+                ৯. অনলাইন ভর্তি তথ্য ও নীতিমালা (দ্বিভাষিক)
+              </span>
+              <button
+                type="button"
+                onClick={handleTranslateCurrentTab}
+                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+              >
+                <Sparkles size={11} />
+                <span>অনুবাদ সিঙ্ক</span>
+              </button>
             </h2>
 
             <div className="mt-4 space-y-4">
@@ -2260,20 +3270,36 @@ const WebsiteContentPage: React.FC = () => {
                     className={inputClass}
                   />
                 </label>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    অনলাইন ভর্তি আবেদন লিংক (Online Admission Application URL)
+                    <input
+                      type="text"
+                      value={draft.admissionFormUrl || ""}
+                      onChange={(e) => updateField("admissionFormUrl", e.target.value)}
+                      placeholder="https://gsa.teletalk.com.bd অথবা /admission"
+                      className={inputClass}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </section>
         )}
 
-        {/* TAB 9: GALLERY */}
+        {/* TAB 10: GALLERY */}
         {activeTab === "gallery" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <ImageIcon size={16} className="text-[#006a4e]" />
-                  <span>৯. ফটো গ্যালারি ব্যবস্থাপনা (দ্বিভাষিক)</span>
+                  <span>১০. ফটো গ্যালারি ব্যবস্থাপনা (দ্বিভাষিক) ({draft.gallery.length} টি ছবি)</span>
                 </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  বিদ্যালয় ক্যাম্পাস, সাংস্কৃতিক অনুষ্ঠান ও ক্রীড়া প্রতিযোগিতার ছবি আপলোড করুন ও সাজান।
+                </p>
               </div>
 
               <button
@@ -2290,51 +3316,105 @@ const WebsiteContentPage: React.FC = () => {
               {(draft.gallery || []).map((photo, index) => (
                 <div
                   key={photo.id || index}
-                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-3.5 dark:border-slate-700 dark:bg-slate-800"
+                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 dark:border-slate-700 dark:bg-slate-800"
                 >
                   <div className="flex items-center justify-between border-b pb-2">
-                    <span className="text-xs font-bold text-[#006a4e]">ছবি #{index + 1}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeGalleryItem(index)}
-                      className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={13} />
-                      <span>মুছুন</span>
-                    </button>
+                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                      ছবি #{index + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => moveGalleryItem(index, "up")}
+                        disabled={index === 0}
+                        title="উপরে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGalleryItem(index, "down")}
+                        disabled={index === (draft.gallery || []).length - 1}
+                        title="নিচে নিন"
+                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => translateGalleryItem(index)}
+                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
+                      >
+                        <Sparkles size={12} />
+                        <span>অনুবাদ</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryItem(index)}
+                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
+                      >
+                        <Trash2 size={13} />
+                        <span>মুছুন</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="mt-3 space-y-2">
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ছবির শিরোনাম (বাংলায়)
-                      <input
-                        type="text"
-                        value={photo.title}
-                        onChange={(e) => updateGalleryItem(index, "title", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
+                  <div className="mt-3 space-y-3">
+                    {/* Image Upload Field */}
+                    <ImageUploadField
+                      label="গ্যালারির ছবি (Gallery Image)"
+                      value={photo.imageUrl}
+                      onChange={(url) => updateGalleryItem(index, "imageUrl", url)}
+                      aspectRatio="video"
+                      helperText="ডিভাইস থেকে ছবি আপলোড করুন অথবা ফটো লিঙ্ক প্রদান করুন।"
+                      presets={[
+                        { label: "Campus View", url: "/images/bgimage.jpg" },
+                        { label: "Sports Day", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800" },
+                        { label: "Classroom", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800" },
+                      ]}
+                    />
 
-                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Photo Title (English)
-                      <input
-                        type="text"
-                        value={photo.titleEn || ""}
-                        onChange={(e) => updateGalleryItem(index, "titleEn", e.target.value)}
-                        placeholder="e.g. Main Academic Building"
-                        className={inputClass}
-                      />
-                    </label>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        ছবির শিরোনাম (বাংলায়)
+                        <input
+                          type="text"
+                          value={photo.title}
+                          onChange={(e) => updateGalleryItem(index, "title", e.target.value)}
+                          className={inputClass}
+                        />
+                      </label>
 
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ছবির ইউআরএল (Image URL)
-                      <input
-                        type="text"
-                        value={photo.imageUrl}
-                        onChange={(e) => updateGalleryItem(index, "imageUrl", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
+                      <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                        Photo Title (English)
+                        <input
+                          type="text"
+                          value={photo.titleEn || ""}
+                          onChange={(e) => updateGalleryItem(index, "titleEn", e.target.value)}
+                          placeholder="e.g. Main Academic Building"
+                          className={inputClass}
+                        />
+                      </label>
+
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                        ক্যাটাগরি (Category)
+                        <select
+                          value={photo.category || "ক্যাম্পাস"}
+                          onChange={(e) => {
+                            updateGalleryItem(index, "category", e.target.value);
+                            updateGalleryItem(index, "categoryEn", translateBnToEn(e.target.value));
+                          }}
+                          className={inputClass}
+                        >
+                          <option value="ক্যাম্পাস">ক্যাম্পাস (Campus)</option>
+                          <option value="অনুষ্ঠান">অনুষ্ঠান (Events)</option>
+                          <option value="ক্রীড়া">ক্রীড়া (Sports)</option>
+                          <option value="পুরস্কার">পুরস্কার (Awards)</option>
+                          <option value="অন্যান্য">অন্যান্য (Other)</option>
+                        </select>
+                      </label>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -2342,15 +3422,28 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 10: STUDY CORNER */}
+        {/* TAB 11: STUDY CORNER */}
         {activeTab === "study_co" && (
           <div className="space-y-6">
             <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="border-b pb-3">
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BookOpen size={16} className="text-[#006a4e]" />
-                  <span>১০.১ Study Corner — মূল তথ্য ও ব্যানার (দ্বিভাষিক)</span>
-                </h2>
+              <div className="border-b pb-3 flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <BookOpen size={16} className="text-[#006a4e]" />
+                    <span>১১. Study Corner — মূল তথ্য ও ব্যানার (দ্বিভাষিক)</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    স্টাডি কর্নারের ব্যানার ছবি, শিরোনাম, বাণী ও সময়সূচী ব্যবস্থাপনা করুন।
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTranslateCurrentTab}
+                  className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                >
+                  <Sparkles size={11} />
+                  <span>অনুবাদ সিঙ্ক</span>
+                </button>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -2375,6 +3468,42 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </label>
 
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  উপ-শিরোনাম (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studyCornerSubtitle || ""}
+                    onChange={(e) => updateField("studyCornerSubtitle", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Subtitle (English)
+                  <input
+                    type="text"
+                    value={draft.studyCornerSubtitleEn || ""}
+                    onChange={(e) => updateField("studyCornerSubtitleEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                {/* Study Corner Image Upload */}
+                <div className="sm:col-span-2">
+                  <ImageUploadField
+                    label="স্টাডি কর্নার ব্যানার/কভার ছবি (Study Corner Cover Image)"
+                    value={draft.studyCornerImage || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600"}
+                    onChange={(url) => updateField("studyCornerImage", url)}
+                    aspectRatio="video"
+                    helperText="স্টাডি কর্নার পেজ ও হোমপেজে প্রদর্শিত মূল লাইব্রেরি/পাঠাগার ছবি আপলোড করুন।"
+                    presets={[
+                      { label: "Library Books", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600" },
+                      { label: "Study Hall", url: "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?auto=format&fit=crop&q=80&w=600" },
+                      { label: "Books Stack", url: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=600" },
+                    ]}
+                  />
+                </div>
+
                 <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
                   বিবরণ (বাংলায়)
                   <textarea
@@ -2394,20 +3523,107 @@ const WebsiteContentPage: React.FC = () => {
                     className={textareaClass}
                   />
                 </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  জ্ঞান বাণী / কোটেশন (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuote || ""}
+                    onChange={(e) => updateField("studyCornerQuote", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Inspirational Quote (English)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuoteEn || ""}
+                    onChange={(e) => updateField("studyCornerQuoteEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  বাণী বক্তা / রচয়িতা (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuoteAuthor || ""}
+                    onChange={(e) => updateField("studyCornerQuoteAuthor", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Quote Author (English)
+                  <input
+                    type="text"
+                    value={draft.studyCornerQuoteAuthorEn || ""}
+                    onChange={(e) => updateField("studyCornerQuoteAuthorEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  খোলার দিনসমূহ (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studyCornerDays || ""}
+                    onChange={(e) => updateField("studyCornerDays", e.target.value)}
+                    placeholder="যেমন: সোমবার - শনিবার"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Opening Days (English)
+                  <input
+                    type="text"
+                    value={draft.studyCornerDaysEn || ""}
+                    onChange={(e) => updateField("studyCornerDaysEn", e.target.value)}
+                    placeholder="e.g. Monday - Saturday"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  সময়সূচি (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.studyCornerHours || ""}
+                    onChange={(e) => updateField("studyCornerHours", e.target.value)}
+                    placeholder="যেমন: সকাল ৮:০০ - বিকাল ৪:০০"
+                    className={inputClass}
+                  />
+                </label>
+
+                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Operating Hours (English)
+                  <input
+                    type="text"
+                    value={draft.studyCornerHoursEn || ""}
+                    onChange={(e) => updateField("studyCornerHoursEn", e.target.value)}
+                    placeholder="e.g. 8:00 AM - 4:00 PM"
+                    className={inputClass}
+                  />
+                </label>
               </div>
             </section>
           </div>
         )}
 
-        {/* TAB 11: LINKS */}
+        {/* TAB 12: LINKS */}
         {activeTab === "links" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <LinkIcon size={16} className="text-[#006a4e]" />
-                  <span>১১. সরকারি ও প্রয়োজনীয় লিঙ্কসমূহ (দ্বিভাষিক)</span>
+                  <span>১২. সরকারি ও প্রয়োজনীয় লিঙ্কসমূহ (দ্বিভাষিক) ({draft.quickLinks.length} টি লিঙ্ক)</span>
                 </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  মন্ত্রণালয়, শিক্ষা বোর্ড ও প্রয়োজনীয় সরকারি পোর্টালের লিংকসমূহ যুক্ত ও পুনর্বিন্যাস করুন।
+                </p>
               </div>
 
               <button
@@ -2424,7 +3640,7 @@ const WebsiteContentPage: React.FC = () => {
               {draft.quickLinks.map((link, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-1 gap-3 rounded-md border border-gray-200 p-3 sm:grid-cols-[1fr_1fr_1fr_auto] dark:border-slate-700"
+                  className="grid grid-cols-1 gap-3 rounded-md border border-gray-200 p-3 sm:grid-cols-[1fr_1fr_1.5fr_auto] dark:border-slate-700 dark:bg-slate-800/40"
                 >
                   <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
                     লিঙ্কের শিরোনাম (বাংলা)
@@ -2457,14 +3673,44 @@ const WebsiteContentPage: React.FC = () => {
                     />
                   </label>
 
-                  <button
-                    type="button"
-                    onClick={() => removeQuickLink(index)}
-                    aria-label="মুছুন"
-                    className="mt-5 flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center gap-1 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => moveQuickLink(index, "up")}
+                      disabled={index === 0}
+                      title="উপরে নিন"
+                      className="rounded p-1.5 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveQuickLink(index, "down")}
+                      disabled={index === draft.quickLinks.length - 1}
+                      title="নিচে নিন"
+                      className="rounded p-1.5 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateQuickLink(index, "labelEn", link.labelEn || translateBnToEn(link.label));
+                      }}
+                      title="অনুবাদ"
+                      className="rounded p-1.5 text-[#006a4e] hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                    >
+                      <Sparkles size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeQuickLink(index)}
+                      title="মুছুন"
+                      className="rounded p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

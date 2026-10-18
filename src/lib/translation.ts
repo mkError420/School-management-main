@@ -573,6 +573,17 @@ export const autoTranslateWebsiteContent = async (
       ...t,
       tipEn: t.tipEn || translateBnToEn(t.tip),
     }));
+
+    if (result.tickerItems) {
+      result.tickerItems = result.tickerItems.map((tk) => ({
+        ...tk,
+        textEn: tk.textEn || translateBnToEn(tk.text),
+        badgeEn: tk.badgeEn || translateBnToEn(tk.badge || ""),
+      }));
+    }
+    if (result.tickerLabel && !result.tickerLabelEn) {
+      result.tickerLabelEn = translateBnToEn(result.tickerLabel);
+    }
   }
 
   return result;
