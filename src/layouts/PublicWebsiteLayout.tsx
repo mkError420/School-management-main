@@ -255,7 +255,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
               >
                 <Users size={13} />
-                <span>{lang === "bn" ? "পোর্টাল লগইন" : "Portal Login"}</span>
+                <span>{lang === "bn" ? "ইউজার লগইন" : "User Login"}</span>
               </Link>
             </div>
           </div>

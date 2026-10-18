@@ -95,7 +95,6 @@ export const HomePage: React.FC = () => {
 
         <div className="relative z-10 px-5 py-12 sm:px-10 sm:py-16 md:max-w-3xl">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-xs">
-            <BdGovEmblem size={16} />
             <span>
               {lang === "bn"
                 ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত সরকারি মডেল বিদ্যাপীঠ"
@@ -174,7 +173,6 @@ export const HomePage: React.FC = () => {
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-md border border-emerald-100 bg-[#f4f9f6] p-3.5">
                 <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
-                  <Compass size={14} />
                   <span>{lang === "bn" ? "আমাদের লক্ষ্য (Mission)" : "Our Mission"}</span>
                 </p>
                 <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.missionText, content.missionTextEn)}</p>
@@ -182,7 +180,6 @@ export const HomePage: React.FC = () => {
 
               <div className="rounded-md border border-amber-100 bg-[#fefce8] p-3.5">
                 <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
-                  <Sparkles size={14} />
                   <span>{lang === "bn" ? "আমাদের দৃষ্টিভঙ্গি (Vision)" : "Our Vision"}</span>
                 </p>
                 <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.visionText, content.visionTextEn)}</p>
@@ -199,7 +196,6 @@ export const HomePage: React.FC = () => {
                   {
                     label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
                     value: lang === "bn" ? (content.studentCount || "১,৫০০+") : (content.studentCountEn || "1,500+"),
-                    icon: Users,
                     color: "text-[#006a4e] bg-emerald-50",
                   },
                   {
@@ -255,9 +251,6 @@ export const HomePage: React.FC = () => {
           <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
             <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#006a4e] text-white">
-                  <GraduationCap size={16} />
-                </span>
                 <h3 className="text-xl font-bold text-[#005a40]">
                   {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক মহোদয়ের বাণী" : "Headmaster's Message")}
                 </h3>
@@ -304,9 +297,6 @@ export const HomePage: React.FC = () => {
             <div className="flex flex-col gap-3 border-b border-[#e2ece5] pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#da291c] text-white">
-                    <Bell size={16} />
-                  </span>
                   <h3 className="text-xl font-bold text-[#005a40]">
                     {lang === "bn" ? "বিদ্যালয় নোটিশ বোর্ড" : "School Notice Board"}
                   </h3>
@@ -334,11 +324,10 @@ export const HomePage: React.FC = () => {
                   key={cat}
                   type="button"
                   onClick={() => setActiveNoticeCategory(cat)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                    activeNoticeCategory === cat
-                      ? "bg-[#006a4e] text-white shadow-xs"
-                      : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
-                  }`}
+                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeNoticeCategory === cat
+                    ? "bg-[#006a4e] text-white shadow-xs"
+                    : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
+                    }`}
                 >
                   {cat}
                 </button>
@@ -419,9 +408,6 @@ export const HomePage: React.FC = () => {
           <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
             <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#006a4e] text-white">
-                  <Download size={16} />
-                </span>
                 <h3 className="text-xl font-bold text-[#005a40]">
                   {lang === "bn" ? "একাডেমিক রুটিন ও সিলেবাস" : "Academic Routine & Syllabus"}
                 </h3>
@@ -519,9 +505,6 @@ export const HomePage: React.FC = () => {
           <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
             <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#006a4e] text-white">
-                  <ImageIcon size={16} />
-                </span>
                 <h3 className="text-xl font-bold text-[#005a40]">
                   {lang === "bn" ? "বিদ্যালয় ফটো গ্যালারি" : "School Photo Gallery"}
                 </h3>
@@ -602,7 +585,6 @@ export const HomePage: React.FC = () => {
               <h4 className="text-sm font-bold">
                 {lang === "bn" ? "জাতীয় জরুরি সেবা হটলাইন" : "National Emergency Hotlines"}
               </h4>
-              <PhoneCall size={15} />
             </div>
             <div className="divide-y divide-gray-100 p-2">
               {EMERGENCY_HOTLINES.map((hl) => (

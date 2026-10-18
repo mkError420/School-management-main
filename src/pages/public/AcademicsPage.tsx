@@ -91,8 +91,8 @@ export const AcademicsPage: React.FC = () => {
                     <Download size={14} />
                     <span>
                       {item.fileUrl &&
-                      (item.fileUrl.startsWith("data:image/") ||
-                        /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl))
+                        (item.fileUrl.startsWith("data:image/") ||
+                          /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(item.fileUrl))
                         ? t("ফাইল / ছবি ডাউনলোড", "Download File / Image")
                         : t("পিডিএফ ডাউনলোড", "Download PDF")}
                     </span>
@@ -167,7 +167,6 @@ export const AcademicsPage: React.FC = () => {
           {/* Student Code of Conduct */}
           <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
             <h3 className="text-lg font-bold text-[#005a40] border-b pb-3 flex items-center gap-2">
-              <ShieldAlert size={18} />
               <span>{t("শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা", "Student Code of Conduct & Dress Code")}</span>
             </h3>
 

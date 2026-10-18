@@ -64,7 +64,6 @@ export const CoCurricularPage: React.FC = () => {
       {/* Achievements & Facilities */}
       <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
         <h3 className="text-lg font-bold text-[#005a40] border-b pb-3 flex items-center gap-2">
-          <Trophy size={18} />
           <span>{t("সহশিক্ষা কার্যক্রমে আমাদের অর্জনসমূহ", "Our Co-Curricular Achievements")}</span>
         </h3>
 

@@ -242,7 +242,7 @@ const BN_TO_EN_DICT: Record<string, string> = {
   "যোগাযোগ": "Contact Us",
   "সিটিজেন চার্টার": "Citizen Charter",
   "জাতীয় সংগীত": "National Anthem",
-  "পোর্টাল লগইন": "Portal Login",
+  "ইউজার লগইন": "User Login",
   "সুপার অ্যাডমিন ও শিক্ষক লগইন": "Super Admin & Teacher Login",
   "স্থাপিত": "Est.",
   "কোড": "Code",

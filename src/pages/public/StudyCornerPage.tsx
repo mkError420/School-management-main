@@ -302,7 +302,6 @@ export const StudyCornerPage: React.FC = () => {
       {tips.length > 0 && (
         <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
           <h3 className="flex items-center gap-2 border-b pb-3 text-lg font-bold text-[#005a40]">
-            <Star size={18} className="text-[#eab308]" />
             <span>{t("কার্যকর অধ্যয়নের টিপস ও কৌশল", "Effective Study Tips & Strategies")}</span>
           </h3>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">

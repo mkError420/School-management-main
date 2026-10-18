@@ -125,7 +125,7 @@ export const PublicSchoolWebsite: React.FC = () => {
     if (isPlayingAnthem) {
       audioRef.pause();
     } else {
-      audioRef.play().catch(() => {});
+      audioRef.play().catch(() => { });
     }
   };
 
@@ -292,7 +292,7 @@ export const PublicSchoolWebsite: React.FC = () => {
               className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
             >
               <Users size={13} />
-              <span>পোর্টাল লগইন</span>
+              <span>ইউজার লগইন</span>
             </Link>
           </div>
         </div>
@@ -382,9 +382,8 @@ export const PublicSchoolWebsite: React.FC = () => {
               <a
                 key={item.href}
                 href={item.href}
-                className={`relative px-3.5 py-3 text-sm font-semibold transition hover:bg-[#00523d] hover:text-[#fef08a] ${
-                  idx === 0 ? "bg-[#00523d] text-[#fef08a]" : ""
-                }`}
+                className={`relative px-3.5 py-3 text-sm font-semibold transition hover:bg-[#00523d] hover:text-[#fef08a] ${idx === 0 ? "bg-[#00523d] text-[#fef08a]" : ""
+                  }`}
               >
                 {lang === "bn" ? item.label : item.enLabel}
               </a>
@@ -463,8 +462,8 @@ export const PublicSchoolWebsite: React.FC = () => {
                     item.priority === "urgent"
                       ? "bg-[#da291c] text-white"
                       : item.priority === "important"
-                      ? "bg-amber-100 text-amber-900 border border-amber-300"
-                      : "bg-emerald-100 text-[#006a4e]";
+                        ? "bg-amber-100 text-amber-900 border border-amber-300"
+                        : "bg-emerald-100 text-[#006a4e]";
 
                   const innerContent = (
                     <span className="shrink-0 inline-flex items-center gap-1.5 transition group cursor-pointer hover:text-[#006a4e]">
@@ -802,11 +801,10 @@ export const PublicSchoolWebsite: React.FC = () => {
                     key={cat}
                     type="button"
                     onClick={() => setActiveNoticeCategory(cat)}
-                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
-                      activeNoticeCategory === cat
-                        ? "bg-[#006a4e] text-white shadow-xs"
-                        : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
-                    }`}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeNoticeCategory === cat
+                      ? "bg-[#006a4e] text-white shadow-xs"
+                      : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
+                      }`}
                   >
                     {cat}
                   </button>
@@ -843,13 +841,12 @@ export const PublicSchoolWebsite: React.FC = () => {
                               <span className="text-[11px] text-gray-500">{notice.date}</span>
 
                               {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
-                                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                                  notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl)
-                                    ? "bg-red-50 text-red-700 border border-red-200"
-                                    : notice.fileUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl)
+                                <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-bold ${notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl)
+                                  ? "bg-red-50 text-red-700 border border-red-200"
+                                  : notice.fileUrl.startsWith("data:image/") || /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(notice.fileUrl)
                                     ? "bg-emerald-50 text-[#006a4e] border border-emerald-200"
                                     : "bg-blue-50 text-blue-700 border border-blue-200"
-                                }`}>
+                                  }`}>
                                   {notice.fileUrl.startsWith("data:application/pdf") || /\.pdf(\?.*)?$/i.test(notice.fileUrl) ? (
                                     <>
                                       <FileText size={10} className="text-red-600" />
@@ -1551,7 +1548,7 @@ export const PublicSchoolWebsite: React.FC = () => {
               {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
                 <div className="mt-4">
                   {selectedNotice.fileUrl.startsWith("data:image/") ||
-                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
                     <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">

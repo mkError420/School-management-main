@@ -85,7 +85,6 @@ export const AboutPage: React.FC = () => {
               {(lang === "en" ? content.schoolName : (content.schoolNameBn || content.schoolName))} · {t("স্থাপিত:", "Est.:")} {formatDigits(content.establishedYear)} · EIIN: {formatDigits(content.eiin)}
             </p>
           </div>
-          <BdGovEmblem size={64} className="shrink-0" />
         </div>
       </div>
 
