@@ -36,10 +36,10 @@ switch ($method) {
 }
 
 function getLessons($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::optionalAuth();
     
     $page = intval($_GET['page'] ?? 1);
-    $limit = intval($_GET['limit'] ?? 10);
+    $limit = intval($_GET['limit'] ?? 100);
     $search = $_GET['search'] ?? '';
     $classId = $_GET['class_id'] ?? '';
     $teacherId = $_GET['teacher_id'] ?? '';
@@ -59,15 +59,17 @@ function getLessons($db) {
             WHERE 1=1";
     $params = [];
 
-    if ($user['role'] === 'teacher') {
-        $sql .= " AND l.teacher_id = ?";
-        $params[] = $user['user_id'];
-    } elseif ($user['role'] === 'student') {
-        $sql .= " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)";
-        $params[] = $user['user_id'];
-    } elseif ($user['role'] === 'parent') {
-        $sql .= " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)";
-        $params[] = $user['user_id'];
+    if ($user) {
+        if ($user['role'] === 'teacher') {
+            $sql .= " AND l.teacher_id = ?";
+            $params[] = $user['user_id'];
+        } elseif ($user['role'] === 'student') {
+            $sql .= " AND l.class_id = (SELECT class_id FROM students WHERE id = ?)";
+            $params[] = $user['user_id'];
+        } elseif ($user['role'] === 'parent') {
+            $sql .= " AND l.class_id IN (SELECT class_id FROM students WHERE parent_id = ?)";
+            $params[] = $user['user_id'];
+        }
     }
     
     if (!empty($search)) {

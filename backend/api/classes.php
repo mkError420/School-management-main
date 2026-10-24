@@ -36,10 +36,10 @@ switch ($method) {
 }
 
 function getClasses($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::optionalAuth();
     
     $page = intval($_GET['page'] ?? 1);
-    $limit = intval($_GET['limit'] ?? 10);
+    $limit = intval($_GET['limit'] ?? 100);
     $search = $_GET['search'] ?? '';
     $gradeId = $_GET['grade_id'] ?? '';
     

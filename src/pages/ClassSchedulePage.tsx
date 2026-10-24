@@ -306,6 +306,11 @@ const ClassSchedulePage: React.FC = () => {
 
         const rawSchedule = Array.isArray(dashboard.data?.schedule) ? dashboard.data.schedule : [];
         setSchedule(rawSchedule);
+        if (rawSchedule.length > 0) {
+          try {
+            localStorage.setItem("school_custom_lessons", JSON.stringify(rawSchedule));
+          } catch {}
+        }
 
         if (role === "parent" && user?.id) {
           const profile = await api.getById<any>("parents", user.id);
@@ -317,7 +322,18 @@ const ClassSchedulePage: React.FC = () => {
           }
         }
       } catch {
-        if (active) setError("Unable to connect to the server.");
+        if (active) {
+          try {
+            const cached = localStorage.getItem("school_custom_lessons");
+            if (cached) {
+              setSchedule(JSON.parse(cached));
+            } else {
+              setError("Unable to connect to the server.");
+            }
+          } catch {
+            setError("Unable to connect to the server.");
+          }
+        }
       } finally {
         if (active) setLoading(false);
       }

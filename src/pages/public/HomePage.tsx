@@ -446,6 +446,25 @@ export const HomePage: React.FC = () => {
                 </div>
               ))}
             </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-xs">
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-[#006a4e]" />
+                <span className="font-bold text-[#005a40]">
+                  {lang === "bn" ? "দৈনন্দিন ক্লাসের সময়সূচী (Daily Class Schedule)" : "Daily Class Schedule (Live)"}
+                </span>
+                <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                  {lang === "bn" ? "ড্যাশবোর্ড সিঙ্ক" : "Dashboard Synced"}
+                </span>
+              </div>
+              <Link
+                to="/academics#schedule"
+                className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-3 py-1 font-bold text-white shadow-2xs hover:bg-[#00503a]"
+              >
+                <span>{lang === "bn" ? "রুটিন দেখুন" : "View Routine"}</span>
+                <ArrowRight size={12} />
+              </Link>
+            </div>
           </section>
 
           {/* STUDY CORNER PREVIEW */}
