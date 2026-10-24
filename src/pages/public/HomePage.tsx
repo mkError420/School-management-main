@@ -548,10 +548,13 @@ export const HomePage: React.FC = () => {
         <aside className="space-y-6 lg:col-span-4">
           {/* Head Teacher Card */}
           <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
-            <div className="bg-[#006a4e] px-4 py-2.5 text-white">
+            <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
               <h4 className="text-sm font-bold">
-                {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}
+                {lang === "bn" ? "প্রধান শিক্ষকের বাণী" : "Headmaster's Message"}
               </h4>
+              <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
+                {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}
+              </span>
             </div>
             <div className="p-4 text-center">
               <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
@@ -566,13 +569,113 @@ export const HomePage: React.FC = () => {
               </div>
               <h5 className="mt-2 text-sm font-bold text-gray-900">{t(content.principalName, content.principalNameEn) || "Md. Abdur Rahman"}</h5>
               <p className="text-[11px] font-semibold text-[#006a4e]">{t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}</p>
-              <p className="mt-0.5 text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
+              {content.principalQualification && (
+                <p className="mt-0.5 text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
+              )}
+              {content.principalMessage && (
+                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                  <p className="line-clamp-3">“{t(content.principalMessage, content.principalMessageEn)}”</p>
+                </div>
+              )}
               <div className="mt-3 border-t border-gray-100 pt-2">
                 <Link
                   to="/administration"
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
                 >
-                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বার্তা" : "Profile & Message"}</span>
+                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Assistant Headmaster Card */}
+          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+            <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
+              <h4 className="text-sm font-bold">
+                {lang === "bn" ? "সহকারী প্রধান শিক্ষকের বাণী" : "Assistant Headmaster's Message"}
+              </h4>
+              <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
+                {t(content.asstPrincipalTitle, content.asstPrincipalTitleEn) || (lang === "bn" ? "সহকারী প্রধান শিক্ষক" : "Assistant Headmaster")}
+              </span>
+            </div>
+            <div className="p-4 text-center">
+              <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
+                <img
+                  src={content.asstPrincipalPhoto || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400"}
+                  alt={t(content.asstPrincipalName, content.asstPrincipalNameEn) || "Assistant Headmaster"}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/images/avatar.png";
+                  }}
+                />
+              </div>
+              <h5 className="mt-2 text-sm font-bold text-gray-900">
+                {t(content.asstPrincipalName, content.asstPrincipalNameEn) || (lang === "bn" ? "মুহাম্মদ কামরুল হাসান" : "Muhammad Kamrul Hasan")}
+              </h5>
+              <p className="text-[11px] font-semibold text-[#006a4e]">
+                {t(content.asstPrincipalTitle, content.asstPrincipalTitleEn) || (lang === "bn" ? "সহকারী প্রধান শিক্ষক" : "Assistant Headmaster")}
+              </p>
+              {content.asstPrincipalMessage && (
+                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                  <p className="line-clamp-3">“{t(content.asstPrincipalMessage, content.asstPrincipalMessageEn)}”</p>
+                </div>
+              )}
+              <div className="mt-3 border-t border-gray-100 pt-2">
+                <Link
+                  to="/administration"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                >
+                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Managing Committee Card */}
+          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+            <div className="bg-[#005a40] px-4 py-2.5 text-white flex items-center justify-between">
+              <h4 className="text-sm font-bold">
+                {lang === "bn" ? "ম্যানেজিং কমিটির সভাপতির বাণী" : "Managing Committee President's Message"}
+              </h4>
+              <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
+                {lang === "bn" ? "ম্যানেজিং কমিটি" : "SMC"}
+              </span>
+            </div>
+            <div className="p-4 text-center">
+              <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
+                <img
+                  src={content.smcPresidentPhoto || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400"}
+                  alt={t(content.smcPresidentName, content.smcPresidentNameEn) || "President"}
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/images/avatar.png";
+                  }}
+                />
+              </div>
+              <h5 className="mt-2 text-sm font-bold text-gray-900">
+                {t(content.smcPresidentName, content.smcPresidentNameEn) || (lang === "bn" ? "প্রফেসর ড. মুহাম্মদ আশরাফুল আলম" : "Prof. Dr. Muhammad Ashraful Alam")}
+              </h5>
+              <p className="text-[11px] font-semibold text-[#006a4e]">
+                {t(content.smcPresidentTitle, content.smcPresidentTitleEn) || (lang === "bn" ? "সভাপতি, ম্যানেজিং কমিটি" : "President, Managing Committee")}
+              </p>
+              {content.smcMembersCount && (
+                <p className="mt-0.5 text-[10px] text-gray-500">
+                  {lang === "bn" ? `কমিটি সদস্য সংখ্যা: ${formatDigits(content.smcMembersCount)}` : `Committee Members: ${content.smcMembersCountEn || content.smcMembersCount}`}
+                </p>
+              )}
+              {content.smcPresidentMessage && (
+                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                  <p className="line-clamp-3">“{t(content.smcPresidentMessage, content.smcPresidentMessageEn)}”</p>
+                </div>
+              )}
+              <div className="mt-3 border-t border-gray-100 pt-2">
+                <Link
+                  to="/administration"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                >
+                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
                   <ArrowRight size={13} />
                 </Link>
               </div>
