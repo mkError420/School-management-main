@@ -1115,6 +1115,28 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   />
                 </label>
 
+                {/* Class */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span>Class *</span>
+                  <select
+                    required
+                    value={formData.class_id}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const matchedClass = classes.find((c) => String(c.id) === selectedId);
+                      setFormData({
+                        ...formData,
+                        class_id: selectedId,
+                        grade_id: matchedClass?.grade_id ? String(matchedClass.grade_id) : formData.grade_id,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                  >
+                    <option value="">Select class</option>
+                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
+
                 {/* First name */}
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                   <span>First name *</span>
@@ -1466,34 +1488,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 )}
               </div>
 
-              {/* ── Placement Section ── */}
-              <div className="space-y-1 pt-1">
-                <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Academic Placement</h4>
-                <div className="h-px bg-gray-100 dark:bg-gray-800" />
-              </div>
 
-              <div>
-                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                  <span>Class *</span>
-                  <select
-                    required
-                    value={formData.class_id}
-                    onChange={(e) => {
-                      const selectedId = e.target.value;
-                      const matchedClass = classes.find((c) => String(c.id) === selectedId);
-                      setFormData({
-                        ...formData,
-                        class_id: selectedId,
-                        grade_id: matchedClass?.grade_id ? String(matchedClass.grade_id) : formData.grade_id,
-                      });
-                    }}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
-                  >
-                    <option value="">Select class</option>
-                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </label>
-              </div>
 
               {/* Modal Footer */}
               <div className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4 mt-2">
