@@ -113,6 +113,7 @@ const WebsiteContentPage: React.FC = () => {
   const [downloadSearch, setDownloadSearch] = useState("");
   const [showDirectPageLinks, setShowDirectPageLinks] = useState(false);
   const [syncingStaff, setSyncingStaff] = useState(false);
+  const [liveStaffList, setLiveStaffList] = useState<any[]>([]);
   const [liveStaffStats, setLiveStaffStats] = useState<{
     total: number;
     teaching: number;
@@ -126,6 +127,7 @@ const WebsiteContentPage: React.FC = () => {
       const res = await api.getPublicStaffDirectory();
       if (res.success && Array.isArray(res.data?.staff)) {
         const staff = res.data.staff;
+        setLiveStaffList(staff);
         const total = staff.length;
         const teaching = staff.filter((s: any) => s.type === "TEACHING").length;
         const admin = staff.filter((s: any) => s.type === "ADMINISTRATIVE").length;
@@ -140,6 +142,7 @@ const WebsiteContentPage: React.FC = () => {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          setLiveStaffList(parsed);
           const total = parsed.length;
           const teaching = parsed.filter((s: any) => s.type === "TEACHING").length;
           const admin = parsed.filter((s: any) => s.type === "ADMINISTRATIVE").length;
@@ -155,6 +158,211 @@ const WebsiteContentPage: React.FC = () => {
   useEffect(() => {
     void loadLiveStaffStats();
   }, [loadLiveStaffStats]);
+
+  // Leadership Selection & Dynamic Sync Handlers from Staff Directory
+  const handleSelectPrincipalFromStaff = (staffId: string) => {
+    if (!staffId) return;
+    const member = liveStaffList.find((s) => String(s.id) === String(staffId));
+    if (!member) return;
+    const fullNameEn = `${member.name || ""} ${member.surname || ""}`.trim();
+    const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
+    const desigEn = member.designation || "Headmaster";
+    const desigBn = translateEnToBn(desigEn) || "প্রধান শিক্ষক";
+    const qualEn = member.qualification || "";
+    const qualBn = qualEn ? translateEnToBn(qualEn) : "";
+
+    setDraft((prev) => ({
+      ...prev,
+      principalName: fullNameBn,
+      principalNameEn: fullNameEn,
+      principalTitle: desigBn,
+      principalTitleEn: desigEn,
+      principalQualification: qualBn || prev.principalQualification,
+      principalQualificationEn: qualEn || prev.principalQualificationEn,
+      principalPhone: member.phone || prev.principalPhone || "",
+      principalEmail: member.email || prev.principalEmail || "",
+      principalPhoto: member.img || prev.principalPhoto || "",
+    }));
+
+    setFeedback({
+      type: "success",
+      message: `Staff Directory থেকে ${fullNameBn} (${desigBn})-এর তথ্য প্রধান শিক্ষক হিসেবে সফলভাবে লোড হয়েছে! আপনি নিচে যেকোনো তথ্য সরাসরি এডিট করতে পারেন।`,
+    });
+  };
+
+  const handleSelectAsstPrincipalFromStaff = (staffId: string) => {
+    if (!staffId) return;
+    const member = liveStaffList.find((s) => String(s.id) === String(staffId));
+    if (!member) return;
+    const fullNameEn = `${member.name || ""} ${member.surname || ""}`.trim();
+    const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
+    const desigEn = member.designation || "Assistant Headmaster";
+    const desigBn = translateEnToBn(desigEn) || "সহকারী প্রধান শিক্ষক";
+
+    setDraft((prev) => ({
+      ...prev,
+      asstPrincipalName: fullNameBn,
+      asstPrincipalNameEn: fullNameEn,
+      asstPrincipalTitle: desigBn,
+      asstPrincipalTitleEn: desigEn,
+      asstPrincipalPhoto: member.img || prev.asstPrincipalPhoto || "",
+    }));
+
+    setFeedback({
+      type: "success",
+      message: `Staff Directory থেকে ${fullNameBn} (${desigBn})-এর তথ্য সহকারী প্রধান শিক্ষক হিসেবে সফলভাবে লোড হয়েছে!`,
+    });
+  };
+
+  const handleSelectSmcPresidentFromStaff = (staffId: string) => {
+    if (!staffId) return;
+    const member = liveStaffList.find((s) => String(s.id) === String(staffId));
+    if (!member) return;
+    const fullNameEn = `${member.name || ""} ${member.surname || ""}`.trim();
+    const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
+    const desigEn = member.designation || "President, Managing Committee";
+    const desigBn = translateEnToBn(desigEn) || "সভাপতি, ম্যানেজিং কমিটি";
+
+    setDraft((prev) => ({
+      ...prev,
+      smcPresidentName: fullNameBn,
+      smcPresidentNameEn: fullNameEn,
+      smcPresidentTitle: desigBn,
+      smcPresidentTitleEn: desigEn,
+      smcPresidentPhoto: member.img || prev.smcPresidentPhoto || "",
+    }));
+
+    setFeedback({
+      type: "success",
+      message: `Staff Directory থেকে ${fullNameBn}-এর তথ্য সভাপতি হিসেবে সফলভাবে লোড হয়েছে!`,
+    });
+  };
+
+  const handleSyncLeadershipFromStaffDirectory = async () => {
+    setSyncingStaff(true);
+    setFeedback({
+      type: "info",
+      message: "Staff & Faculty Directory থেকে প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও নেতৃবৃন্দের তথ্য সিঙ্ক করা হচ্ছে...",
+    });
+
+    try {
+      let rawStaff: any[] = liveStaffList;
+      if (rawStaff.length === 0) {
+        const res = await api.getPublicStaffDirectory();
+        if (res.success && Array.isArray(res.data?.staff)) {
+          rawStaff = res.data.staff;
+          setLiveStaffList(rawStaff);
+        }
+      }
+
+      if (rawStaff.length === 0) {
+        const stored = localStorage.getItem("mk_school_staff_list");
+        if (stored) {
+          try {
+            rawStaff = JSON.parse(stored);
+            setLiveStaffList(rawStaff);
+          } catch {}
+        }
+      }
+
+      if (rawStaff.length === 0) {
+        setFeedback({
+          type: "error",
+          message: "Staff & Faculty Directory-তে কোনো তথ্য পাওয়া যায়নি। প্রথমে Staff সেকশনে শিক্ষক ও কর্মচারী যোগ করুন।",
+        });
+        return;
+      }
+
+      // 1. Detect Principal: designation containing headmaster, principal, প্রধান শিক্ষক
+      const principalCandidate =
+        rawStaff.find((s) => {
+          const d = (s.designation || "").toLowerCase();
+          return d.includes("principal") || d.includes("headmaster") || d.includes("প্রধান শিক্ষক") || d.includes("head master");
+        }) ||
+        rawStaff.find((s) => s.type === "TEACHING") ||
+        rawStaff[0];
+
+      // 2. Detect Assistant Principal: designation containing vice, asst, assistant headmaster, সহকারী প্রধান শিক্ষক
+      const asstCandidate =
+        rawStaff.find((s) => {
+          if (principalCandidate && s.id === principalCandidate.id) return false;
+          const d = (s.designation || "").toLowerCase();
+          return d.includes("vice") || d.includes("asst") || d.includes("assistant head") || d.includes("সহকারী প্রধান শিক্ষক");
+        }) ||
+        rawStaff.filter((s) => s.type === "TEACHING" && (!principalCandidate || s.id !== principalCandidate.id))[0];
+
+      // 3. Detect SMC President: designation containing president, smc, chairman, সভাপতি
+      const smcCandidate =
+        rawStaff.find((s) => {
+          const d = (s.designation || "").toLowerCase();
+          return d.includes("president") || d.includes("smc") || d.includes("chairman") || d.includes("সভাপতি");
+        }) ||
+        rawStaff.find((s) => s.type === "ADMINISTRATIVE" && (!principalCandidate || s.id !== principalCandidate.id) && (!asstCandidate || s.id !== asstCandidate.id));
+
+      setDraft((prev) => {
+        const updated = { ...prev };
+
+        if (principalCandidate) {
+          const pNameEn = `${principalCandidate.name || ""} ${principalCandidate.surname || ""}`.trim();
+          const pNameBn = translateEnToBn(pNameEn) || pNameEn;
+          const pDesigEn = principalCandidate.designation || "Headmaster";
+          const pDesigBn = translateEnToBn(pDesigEn) || "প্রধান শিক্ষক";
+          const pQualEn = principalCandidate.qualification || "";
+          const pQualBn = pQualEn ? translateEnToBn(pQualEn) : "";
+
+          updated.principalName = pNameBn;
+          updated.principalNameEn = pNameEn;
+          updated.principalTitle = pDesigBn;
+          updated.principalTitleEn = pDesigEn;
+          if (pQualBn) updated.principalQualification = pQualBn;
+          if (pQualEn) updated.principalQualificationEn = pQualEn;
+          if (principalCandidate.img) updated.principalPhoto = principalCandidate.img;
+          if (principalCandidate.phone) updated.principalPhone = principalCandidate.phone;
+          if (principalCandidate.email) updated.principalEmail = principalCandidate.email;
+        }
+
+        if (asstCandidate) {
+          const aNameEn = `${asstCandidate.name || ""} ${asstCandidate.surname || ""}`.trim();
+          const aNameBn = translateEnToBn(aNameEn) || aNameEn;
+          const aDesigEn = asstCandidate.designation || "Assistant Headmaster";
+          const aDesigBn = translateEnToBn(aDesigEn) || "সহকারী প্রধান শিক্ষক";
+
+          updated.asstPrincipalName = aNameBn;
+          updated.asstPrincipalNameEn = aNameEn;
+          updated.asstPrincipalTitle = aDesigBn;
+          updated.asstPrincipalTitleEn = aDesigEn;
+          if (asstCandidate.img) updated.asstPrincipalPhoto = asstCandidate.img;
+        }
+
+        if (smcCandidate) {
+          const sNameEn = `${smcCandidate.name || ""} ${smcCandidate.surname || ""}`.trim();
+          const sNameBn = translateEnToBn(sNameEn) || sNameEn;
+          const sDesigEn = smcCandidate.designation || "President, Managing Committee";
+          const sDesigBn = translateEnToBn(sDesigEn) || "সভাপতি, ম্যানেজিং কমিটি";
+
+          updated.smcPresidentName = sNameBn;
+          updated.smcPresidentNameEn = sNameEn;
+          updated.smcPresidentTitle = sDesigBn;
+          updated.smcPresidentTitleEn = sDesigEn;
+          if (smcCandidate.img) updated.smcPresidentPhoto = smcCandidate.img;
+        }
+
+        return updated;
+      });
+
+      setFeedback({
+        type: "success",
+        message: "Staff & Faculty Directory থেকে প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও নেতৃবৃন্দের তথ্য সফলভাবে সিঙ্ক ও আপডেট করা হয়েছে! আপনি যেকোনো তথ্য নিচে সরাসরি সম্পাদনা করতে পারেন।",
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: "নেতৃত্ব ও প্রশাসন তথ্য সিঙ্ক করতে সমস্যা হয়েছে: " + (err?.message || ""),
+      });
+    } finally {
+      setSyncingStaff(false);
+    }
+  };
 
   const handleSyncFromStaffDirectory = async () => {
     setSyncingStaff(true);
@@ -1053,7 +1261,7 @@ const WebsiteContentPage: React.FC = () => {
       badgeCount: (draft.tickerItems || []).filter((i) => i.isActive !== false).length,
     },
     { id: "hero_about", label: "৩. হোম ব্যানার ও ইতিহাস", icon: LayoutDashboard },
-    { id: "leadership", label: "৪. প্রশাসন ও বাণী", icon: GraduationCap },
+    { id: "leadership", label: "৪. প্রশাসন ও বাণী (Leadership)", icon: GraduationCap },
     {
       id: "teachers",
       label: "৫. শিক্ষক ও কর্মকর্তা পরিচিতি (Faculty & Staff)",
@@ -2374,45 +2582,167 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 4: LEADERSHIP */}
+        {/* TAB 4: LEADERSHIP / ADMINISTRATION & MESSAGES (DYNAMIC WITH STAFF DIRECTORY) */}
         {activeTab === "leadership" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <GraduationCap size={16} className="text-[#006a4e]" />
-                ৪. প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও সভাপতি মহোদয়ের তথ্য (Bilingual)
-              </span>
-              <button
-                type="button"
-                onClick={handleTranslateCurrentTab}
-                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
-              >
-                <Sparkles size={11} />
-                <span>বাণী ও পদবী অনুবাদ</span>
-              </button>
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <GraduationCap size={16} className="text-[#006a4e]" />
+                  <span>৪. প্রশাসন ও শীর্ষ নেতৃবৃন্দের বাণী (Leadership & Administration)</span>
+                </h2>
+                <p className="mt-0.5 text-xs text-gray-500">
+                  সফটওয়্যারের Staff & Faculty Directory (/list/staff) থেকে প্রধান শিক্ষক ও নেতৃবৃন্দের তথ্য সরাসরি নির্বাচন ও অটো-সিঙ্ক করুন, এবং প্রতিটি তথ্য সম্পূর্ণ কাস্টমাইজ ও সম্পাদনা করুন।
+                </p>
+              </div>
 
-            {/* Principal */}
-            <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50/40 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-              <h3 className="text-xs font-bold text-[#006a4e] dark:text-emerald-400">প্রধান শিক্ষক / Headmaster</h3>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={syncingStaff}
+                  onClick={handleSyncLeadershipFromStaffDirectory}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-3.5 py-2 text-xs font-bold text-[#006a4e] shadow-xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 disabled:opacity-60 transition"
+                  title="Staff & Faculty Directory থেকে প্রধান শিক্ষক, সহকারী প্রধান শিক্ষক ও নেতৃবৃন্দের তথ্য স্বয়ংক্রিয়ভাবে সিঙ্ক করুন"
+                >
+                  <RefreshCw size={13} className={syncingStaff ? "animate-spin text-[#006a4e]" : "text-[#006a4e]"} />
+                  <span>Staff Directory থেকে অটো-সিঙ্ক</span>
+                </button>
+
+                <Link
+                  to="/list/staff"
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                  title="সরাসরি সফটওয়্যারের Staff & Faculty Directory ওপেন করুন"
+                >
+                  <ExternalLink size={13} />
+                  <span>Staff Directory ওপেন</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={handleTranslateCurrentTab}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  title="বাণী ও পদবী স্বয়ংক্রিয় ইংরেজি অনুবাদ করুন"
+                >
+                  <Sparkles size={13} />
+                  <span>বাণী ও পদবী অনুবাদ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Live Staff & Faculty Directory Integration Banner */}
+            <div className="mt-4 rounded-xl border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50/50 p-4 text-xs dark:border-emerald-800/40 dark:from-slate-850 dark:via-slate-800 dark:to-slate-900">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-200">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span className="text-sm">Staff & Faculty Directory লাইভ ডায়নামিক সংযোগ (Live Dynamic Leadership Sync)</span>
+                  </div>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+                    এই সেকশনটি সরাসরি সফটওয়্যার অ্যাডমিন ড্যাশবোর্ডের <span className="font-bold text-emerald-800 dark:text-emerald-300">Staff & Faculty Directory</span> (/list/staff)-এর সাথে সংযুক্ত। নিচের ড্রপডাউনগুলো থেকে যেকোনো শিক্ষক বা কর্মকর্তাকে নির্বাচন করলেই নাম, ছবি, পদবী ও যোগ্যতা স্বয়ংক্রিয়ভাবে লোড হবে। একই সাথে প্রতিটি তথ্য আপনি সরাসরি সম্পাদনা বা কাস্টমাইজ করতে পারবেন।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={syncingStaff}
+                  onClick={handleSyncLeadershipFromStaffDirectory}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] disabled:opacity-60 transition"
+                >
+                  <Sparkles size={13} className="text-amber-300" />
+                  <span>এক ক্লিকে সকল নেতৃত্ব তথ্য সিঙ্ক</span>
+                </button>
+              </div>
+
+              {/* Dynamic Badges */}
+              <div className="mt-3.5 flex flex-wrap items-center gap-2.5 pt-3 border-t border-emerald-200/80 dark:border-emerald-800/80">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-emerald-900 shadow-2xs dark:bg-slate-800 dark:text-emerald-300">
+                  <Users size={13} className="text-[#006a4e]" />
+                  <span>মোট স্টাফ ও শিক্ষক:</span>
+                  <span className="text-[#006a4e] dark:text-emerald-400 font-extrabold">{liveStaffStats?.total ?? liveStaffList.length} জন</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 shadow-2xs dark:bg-slate-800 dark:text-blue-300">
+                  <GraduationCap size={13} className="text-blue-700" />
+                  <span>শিক্ষকমণ্ডলী:</span>
+                  <span className="font-bold text-blue-700 dark:text-blue-400">{liveStaffStats?.teaching ?? liveStaffList.filter(s => s.type === "TEACHING").length} জন</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-purple-900 shadow-2xs dark:bg-slate-800 dark:text-purple-300">
+                  <Shield size={13} className="text-purple-700" />
+                  <span>প্রশাসন:</span>
+                  <span className="font-bold text-purple-700 dark:text-purple-400">{liveStaffStats?.admin ?? liveStaffList.filter(s => s.type === "ADMINISTRATIVE").length} জন</span>
+                </span>
+              </div>
+            </div>
+
+            {/* 1. PRINCIPAL / HEADMASTER */}
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50/30 p-5 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-200/60 pb-3 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#006a4e] text-white">
+                    <GraduationCap size={16} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#006a4e] dark:text-emerald-400">
+                      ১. প্রধান শিক্ষক / অধ্যক্ষ (Principal / Headmaster)
+                    </h3>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      বিদ্যালয়ের প্রধান নির্বাহী ও অ্যাকাডেমিক প্রধানের পরিচিতি ও বাণী
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Selection Dropdown from Staff Directory */}
+                {liveStaffList.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-emerald-950 dark:text-emerald-300 shrink-0">
+                      Staff Directory থেকে বেছে নিন:
+                    </span>
+                    <select
+                      onChange={(e) => handleSelectPrincipalFromStaff(e.target.value)}
+                      defaultValue=""
+                      className="rounded-md border border-emerald-300 bg-white px-2.5 py-1 text-xs font-semibold text-emerald-900 shadow-2xs outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-emerald-300"
+                    >
+                      <option value="">-- ডিরেক্টরি থেকে নির্বাচন করুন --</option>
+                      {liveStaffList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.surname || ""} — {s.designation} ({s.staff_no})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  নাম (বাংলায়)
+                  <div className="flex items-center justify-between mb-1">
+                    <span>প্রধান শিক্ষকের নাম (বাংলায়) *</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("principalName", "principalNameEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → English অনুবাদ
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={draft.principalName}
                     onChange={(e) => updateField("principalName", e.target.value)}
                     className={inputClass}
+                    placeholder="যেমন: মোঃ আবদুর রহমান"
+                    required
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Name (English)
+                  Principal Name (English) *
                   <input
                     type="text"
                     value={draft.principalNameEn || ""}
                     onChange={(e) => updateField("principalNameEn", e.target.value)}
                     className={inputClass}
+                    placeholder="e.g. Md. Abdur Rahman"
                   />
                 </label>
 
@@ -2423,36 +2753,62 @@ const WebsiteContentPage: React.FC = () => {
                     value={draft.principalTitle}
                     onChange={(e) => updateField("principalTitle", e.target.value)}
                     className={inputClass}
+                    placeholder="যেমন: প্রধান শিক্ষক"
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Title (English)
+                  Title / Designation (English)
                   <input
                     type="text"
                     value={draft.principalTitleEn || ""}
                     onChange={(e) => updateField("principalTitleEn", e.target.value)}
                     className={inputClass}
+                    placeholder="e.g. Headmaster / Principal"
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  যোগ্যতা (বাংলায়)
+                  শিক্ষাগত যোগ্যতা (বাংলায়)
                   <input
                     type="text"
                     value={draft.principalQualification}
                     onChange={(e) => updateField("principalQualification", e.target.value)}
                     className={inputClass}
+                    placeholder="যেমন: এম.এ (ইংরেজি), বি.এড (১ম শ্রেণি)"
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Qualification (English)
+                  Educational Qualification (English)
                   <input
                     type="text"
                     value={draft.principalQualificationEn || ""}
                     onChange={(e) => updateField("principalQualificationEn", e.target.value)}
                     className={inputClass}
+                    placeholder="e.g. M.A (English), B.Ed (1st Class)"
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  যোগাযোগ ফোন নম্বর (Phone)
+                  <input
+                    type="text"
+                    value={draft.principalPhone || ""}
+                    onChange={(e) => updateField("principalPhone", e.target.value)}
+                    className={inputClass}
+                    placeholder="+880 1712..."
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  অফিসিয়াল ইমেইল (Email)
+                  <input
+                    type="email"
+                    value={draft.principalEmail || ""}
+                    onChange={(e) => updateField("principalEmail", e.target.value)}
+                    className={inputClass}
+                    placeholder="headmaster@school.edu.bd"
                   />
                 </label>
 
@@ -2470,49 +2826,129 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </div>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  প্রধান শিক্ষকের শুভেচ্ছা বাণী (বাংলায়)
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span>প্রধান শিক্ষকের শুভেচ্ছা বাণী (বাংলায়)</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("principalMessage", "principalMessageEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → বাণী ইংরেজিতে রূপান্তর
+                    </button>
+                  </div>
                   <textarea
                     rows={4}
                     value={draft.principalMessage}
                     onChange={(e) => updateField("principalMessage", e.target.value)}
                     className={textareaClass}
+                    placeholder="শিক্ষার্থীদের উদ্দেশ্যে প্রধান শিক্ষকের শুভেচ্ছা বক্তব্য..."
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
                   Principal's Message (English)
                   <textarea
                     rows={4}
                     value={draft.principalMessageEn || ""}
                     onChange={(e) => updateField("principalMessageEn", e.target.value)}
                     className={textareaClass}
+                    placeholder="Principal's message for students, guardians, and visitors..."
                   />
                 </label>
               </div>
             </div>
 
-            {/* Assistant Principal */}
-            <div className="mt-5 rounded-md border border-gray-200 bg-gray-50/60 p-4 dark:border-slate-700 dark:bg-slate-800/30">
-              <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200">সহকারী প্রধান শিক্ষক / Assistant Headmaster</h3>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* 2. ASSISTANT PRINCIPAL */}
+            <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-slate-700 dark:bg-slate-800/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-200 pb-3 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-700 text-white">
+                    <UserCheck size={16} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                      ২. সহকারী প্রধান শিক্ষক (Assistant Headmaster / Vice Principal)
+                    </h3>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      সহকারী প্রধান শিক্ষকের পরিচিতি ও দিকনির্দেশনামূলক বাণী
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Selection Dropdown from Staff Directory */}
+                {liveStaffList.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 shrink-0">
+                      Staff Directory থেকে বেছে নিন:
+                    </span>
+                    <select
+                      onChange={(e) => handleSelectAsstPrincipalFromStaff(e.target.value)}
+                      defaultValue=""
+                      className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-semibold text-gray-800 shadow-2xs outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="">-- ডিরেক্টরি থেকে নির্বাচন করুন --</option>
+                      {liveStaffList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.surname || ""} — {s.designation} ({s.staff_no})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  নাম (বাংলায়)
+                  <div className="flex items-center justify-between mb-1">
+                    <span>সহকারী প্রধান শিক্ষকের নাম (বাংলায়)</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("asstPrincipalName", "asstPrincipalNameEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → English অনুবাদ
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={draft.asstPrincipalName}
                     onChange={(e) => updateField("asstPrincipalName", e.target.value)}
                     className={inputClass}
+                    placeholder="যেমন: মুহাম্মদ কামরুল হাসান"
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Name (English)
+                  Assistant Principal Name (English)
                   <input
                     type="text"
                     value={draft.asstPrincipalNameEn || ""}
                     onChange={(e) => updateField("asstPrincipalNameEn", e.target.value)}
                     className={inputClass}
+                    placeholder="e.g. Muhammad Kamrul Hasan"
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  পদবি (বাংলায়)
+                  <input
+                    type="text"
+                    value={draft.asstPrincipalTitle || "সহকারী প্রধান শিক্ষক"}
+                    onChange={(e) => updateField("asstPrincipalTitle", e.target.value)}
+                    className={inputClass}
+                    placeholder="যেমন: সহকারী প্রধান শিক্ষক"
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Title (English)
+                  <input
+                    type="text"
+                    value={draft.asstPrincipalTitleEn || "Assistant Headmaster"}
+                    onChange={(e) => updateField("asstPrincipalTitleEn", e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. Assistant Headmaster"
                   />
                 </label>
 
@@ -2531,38 +2967,95 @@ const WebsiteContentPage: React.FC = () => {
                 </div>
 
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  সহকারী প্রধান শিক্ষকের বাণী (বাংলায়)
+                  <div className="flex items-center justify-between mb-1">
+                    <span>সহকারী প্রধান শিক্ষকের বাণী (বাংলায়)</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("asstPrincipalMessage", "asstPrincipalMessageEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → বাণী অনুবাদ
+                    </button>
+                  </div>
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={draft.asstPrincipalMessage}
                     onChange={(e) => updateField("asstPrincipalMessage", e.target.value)}
                     className={textareaClass}
+                    placeholder="সহকারী প্রধান শিক্ষকের দিকনির্দেশনামূলক বাণী..."
                   />
                 </label>
 
                 <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
                   Assistant Principal's Message (English)
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={draft.asstPrincipalMessageEn || ""}
                     onChange={(e) => updateField("asstPrincipalMessageEn", e.target.value)}
                     className={textareaClass}
+                    placeholder="Assistant Principal's guidance message..."
                   />
                 </label>
               </div>
             </div>
 
-            {/* SMC President */}
-            <div className="mt-5 rounded-md border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
-              <h3 className="text-xs font-bold text-amber-900 dark:text-amber-400">সভাপতি, ম্যানেজিং কমিটি (SMC President)</h3>
-              <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {/* 3. SMC PRESIDENT & MANAGING COMMITTEE */}
+            <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/40 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-3 dark:border-amber-900/60">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-600 text-white">
+                    <Shield size={16} />
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-amber-900 dark:text-amber-400">
+                      ৩. সভাপতি, পরিচালনা পর্ষদ / ম্যানেজিং কমিটি (SMC President & Governing Body)
+                    </h3>
+                    <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80">
+                      ম্যানেজিং কমিটির সভাপতি মহোদয়ের পরিচিতি ও দিকনির্দেশনামূলক বাণী
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Selection Dropdown from Staff Directory */}
+                {liveStaffList.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold text-amber-900 dark:text-amber-300 shrink-0">
+                      Staff Directory থেকে বেছে নিন:
+                    </span>
+                    <select
+                      onChange={(e) => handleSelectSmcPresidentFromStaff(e.target.value)}
+                      defaultValue=""
+                      className="rounded-md border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-900 shadow-2xs outline-none focus:border-amber-600 dark:border-slate-700 dark:bg-slate-800 dark:text-amber-300"
+                    >
+                      <option value="">-- ডিরেক্টরি থেকে নির্বাচন করুন --</option>
+                      {liveStaffList.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} {s.surname || ""} — {s.designation} ({s.staff_no})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  সভাপতির নাম (বাংলায়)
+                  <div className="flex items-center justify-between mb-1">
+                    <span>সভাপতির নাম (বাংলায়)</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("smcPresidentName", "smcPresidentNameEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → English অনুবাদ
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={draft.smcPresidentName}
                     onChange={(e) => updateField("smcPresidentName", e.target.value)}
                     className={inputClass}
+                    placeholder="যেমন: প্রফেসর ড. মুহাম্মদ আশরাফুল আলম"
                   />
                 </label>
 
@@ -2573,6 +3066,29 @@ const WebsiteContentPage: React.FC = () => {
                     value={draft.smcPresidentNameEn || ""}
                     onChange={(e) => updateField("smcPresidentNameEn", e.target.value)}
                     className={inputClass}
+                    placeholder="e.g. Prof. Dr. Muhammad Ashraful Alam"
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  পদবি (বাংলায়)
+                  <input
+                    type="text"
+                    value={draft.smcPresidentTitle || "সভাপতি, ম্যানেজিং কমিটি"}
+                    onChange={(e) => updateField("smcPresidentTitle", e.target.value)}
+                    className={inputClass}
+                    placeholder="যেমন: সভাপতি, ম্যানেজিং কমিটি"
+                  />
+                </label>
+
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                  Title (English)
+                  <input
+                    type="text"
+                    value={draft.smcPresidentTitleEn || "President, Managing Committee"}
+                    onChange={(e) => updateField("smcPresidentTitleEn", e.target.value)}
+                    className={inputClass}
+                    placeholder="e.g. President, Managing Committee"
                   />
                 </label>
 
@@ -2590,23 +3106,34 @@ const WebsiteContentPage: React.FC = () => {
                   />
                 </div>
 
-                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  সভাপতির বার্তা (বাংলায়)
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span>সভাপতির বার্তা (বাংলায়)</span>
+                    <button
+                      type="button"
+                      onClick={() => translateSingleFieldToEn("smcPresidentMessage", "smcPresidentMessageEn")}
+                      className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                    >
+                      → বার্তা অনুবাদ
+                    </button>
+                  </div>
                   <textarea
                     rows={3}
                     value={draft.smcPresidentMessage}
                     onChange={(e) => updateField("smcPresidentMessage", e.target.value)}
                     className={textareaClass}
+                    placeholder="বিদ্যালয় পরিচালনা পর্ষদের সভাপতির অনুপ্রেরণামূলক বার্তা..."
                   />
                 </label>
 
-                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 sm:col-span-2">
                   President's Message (English)
                   <textarea
                     rows={3}
                     value={draft.smcPresidentMessageEn || ""}
                     onChange={(e) => updateField("smcPresidentMessageEn", e.target.value)}
                     className={textareaClass}
+                    placeholder="President's inspiring message for the institution..."
                   />
                 </label>
               </div>
