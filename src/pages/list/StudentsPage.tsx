@@ -28,7 +28,7 @@ interface Student {
 const columns = [
   { header: "Info", accessor: "info" },
   { header: "Student ID", accessor: "id", className: "hidden md:table-cell" },
-  { header: "Grade", accessor: "grade", className: "hidden md:table-cell" },
+  { header: "Roll", accessor: "roll", className: "hidden md:table-cell" },
   { header: "Class", accessor: "class", className: "hidden md:table-cell" },
   { header: "Phone", accessor: "phone", className: "hidden lg:table-cell" },
   { header: "Address", accessor: "address", className: "hidden lg:table-cell" },
@@ -68,8 +68,8 @@ const StudentsPage: React.FC = () => {
         </div>
       </td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.id}</td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
-        {item.grade_level ? `Grade ${item.grade_level}` : "—"}
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400 font-medium">
+        {item.roll || "—"}
       </td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
       <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">{item.phone || "—"}</td>

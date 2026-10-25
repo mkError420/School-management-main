@@ -490,6 +490,20 @@ function createAdmission($db) {
         $uploadedImage = storeAdmissionImage();
     }
 
+    // Auto-resolve grade_id from class_id if not supplied
+    $classId = !empty($input['class_id']) ? $input['class_id'] : null;
+    $gradeId = !empty($input['grade_id']) ? $input['grade_id'] : null;
+    if ($classId && empty($gradeId)) {
+        $cls = $db->fetchOne("SELECT grade_id FROM classes WHERE id = ?", [$classId]);
+        if ($cls && !empty($cls['grade_id'])) {
+            $gradeId = $cls['grade_id'];
+        }
+    }
+    if (empty($gradeId)) {
+        $defaultGrade = $db->fetchOne("SELECT id FROM grades ORDER BY id ASC LIMIT 1");
+        $gradeId = $defaultGrade['id'] ?? 1;
+    }
+
     $data = [
         'application_no' => $appNo,
         'roll' => !empty($roll) ? $roll : null,
@@ -504,8 +518,8 @@ function createAdmission($db) {
         'blood_type' => $input['blood_type'] ?? 'AB+',
         'address' => $input['address'] ?? '',
         'img' => $uploadedImage ?? ($input['img'] ?? null),
-        'grade_id' => !empty($input['grade_id']) ? $input['grade_id'] : null,
-        'class_id' => !empty($input['class_id']) ? $input['class_id'] : null,
+        'grade_id' => $gradeId,
+        'class_id' => $classId,
         'parent_name' => $parentName,
         'parent_phone' => $parentPhone,
         'parent_email' => $parentEmail,
@@ -597,6 +611,14 @@ function updateAdmission($db, $id) {
             $data['parent_name'] = trim(($parent['name'] ?? '') . ' ' . ($parent['surname'] ?? ''));
             $data['parent_phone'] = $parent['phone'] ?? ($data['parent_phone'] ?? null);
             $data['parent_email'] = $parent['email'] ?? ($data['parent_email'] ?? null);
+        }
+    }
+
+    // Auto-sync grade_id with class if class_id provided without grade_id
+    if (isset($data['class_id']) && empty($data['grade_id'])) {
+        $cls = $db->fetchOne("SELECT grade_id FROM classes WHERE id = ?", [$data['class_id']]);
+        if ($cls && !empty($cls['grade_id'])) {
+            $data['grade_id'] = $cls['grade_id'];
         }
     }
 
@@ -714,14 +736,20 @@ function enrollStudentFromAdmission($db, $data) {
             }
         }
 
-        // Get default class and grade if missing
+        // Get class and sync grade if missing
+        $classId = $data['class_id'] ?? null;
         $gradeId = $data['grade_id'] ?? null;
+        if (!empty($classId) && empty($gradeId)) {
+            $cls = $db->fetchOne("SELECT grade_id FROM classes WHERE id = ?", [$classId]);
+            if ($cls && !empty($cls['grade_id'])) {
+                $gradeId = $cls['grade_id'];
+            }
+        }
         if (empty($gradeId)) {
             $defaultGrade = $db->fetchOne("SELECT id FROM grades ORDER BY id ASC LIMIT 1");
             $gradeId = $defaultGrade['id'] ?? 1;
         }
 
-        $classId = $data['class_id'] ?? null;
         if (empty($classId)) {
             $defaultClass = $db->fetchOne("SELECT id FROM classes WHERE grade_id = ? LIMIT 1", [$gradeId]);
             if (!$defaultClass) {

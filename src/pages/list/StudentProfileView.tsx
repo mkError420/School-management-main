@@ -166,7 +166,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
 
         <section className="grid grid-cols-2 gap-3">
           <StatCard icon={<CalendarDays size={17} />} value={attendanceRate === null ? "—" : `${attendanceRate}%`} label="Attendance" tint="bg-sky-50 text-sky-700" />
-          <StatCard icon={<GraduationCap size={17} />} value={student.grade_level ? `${student.grade_level}th` : "—"} label="Grade" tint="bg-violet-50 text-violet-700" />
+          <StatCard icon={<Trophy size={17} />} value={student.roll || "—"} label="Roll No." tint="bg-violet-50 text-violet-700" />
           <StatCard icon={<CalendarDays size={17} />} value={details.lessons.length} label="Lessons" tint="bg-amber-50 text-amber-700" />
           <StatCard icon={<Users size={17} />} value={student.class_name || "—"} label="Class" tint="bg-rose-50 text-rose-700" />
         </section>

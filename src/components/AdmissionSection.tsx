@@ -285,10 +285,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   // Open Create Modal
   const openCreateModal = () => {
     setEditItem(null);
+    const defaultClass = classes[0];
     setFormData({
       ...emptyAdmissionForm,
-      grade_id: String(grades[0]?.id || ""),
-      class_id: String(classes[0]?.id || ""),
+      grade_id: String(defaultClass?.grade_id || grades[0]?.id || "1"),
+      class_id: String(defaultClass?.id || ""),
       parent_id: String(parents[0]?.id || ""),
       blood_type: "AB+",
       sex: "FEMALE",
@@ -369,7 +370,6 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     }
 
     if (!formData.class_id) { setFormError("Class is required."); return; }
-    if (!formData.grade_id) { setFormError("Grade is required."); return; }
 
     setSubmitting(true);
     try {
@@ -430,7 +430,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         date_of_birth: formData.date_of_birth || null,
         parent_id: resolvedParentId,
         class_id: formData.class_id,
-        grade_id: formData.grade_id,
+        grade_id: formData.grade_id || classes.find((c) => String(c.id) === String(formData.class_id))?.grade_id || grades[0]?.id || 1,
         status: formData.status,
         notes: formData.notes.trim() || null,
         previous_school: formData.previous_school.trim() || null,
@@ -845,10 +845,9 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
                   {/* Placement */}
                   <td className="py-3 px-3.5 whitespace-nowrap">
-                    <span className="font-medium text-gray-800 dark:text-gray-200">
-                      {item.grade_level ? `Grade ${item.grade_level}` : "Grade pending"}
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">
+                      {item.class_name ? `Class ${item.class_name}` : "Class unassigned"}
                     </span>
-                    <p className="text-[11px] text-gray-400">{item.class_name || "Class unassigned"}</p>
                   </td>
 
                   {/* Parent */}
@@ -1473,30 +1472,25 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 <div className="h-px bg-gray-100 dark:bg-gray-800" />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
                   <span>Class *</span>
                   <select
                     required
                     value={formData.class_id}
-                    onChange={(e) => setFormData({ ...formData, class_id: e.target.value })}
+                    onChange={(e) => {
+                      const selectedId = e.target.value;
+                      const matchedClass = classes.find((c) => String(c.id) === selectedId);
+                      setFormData({
+                        ...formData,
+                        class_id: selectedId,
+                        grade_id: matchedClass?.grade_id ? String(matchedClass.grade_id) : formData.grade_id,
+                      });
+                    }}
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
                   >
                     <option value="">Select class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </label>
-
-                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
-                  <span>Grade *</span>
-                  <select
-                    required
-                    value={formData.grade_id}
-                    onChange={(e) => setFormData({ ...formData, grade_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
-                  >
-                    <option value="">Select grade</option>
-                    {grades.map((g) => <option key={g.id} value={g.id}>Grade {g.level}</option>)}
                   </select>
                 </label>
               </div>
@@ -1597,9 +1591,8 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Academic Placement</span>
                   <p className="font-bold text-sm text-gray-900 dark:text-white mt-1">
-                    {detailsItem.grade_level ? `Grade ${detailsItem.grade_level}` : "Grade Pending"}
+                    {detailsItem.class_name ? `Class ${detailsItem.class_name}` : "Class unassigned"}
                   </p>
-                  <p className="text-gray-500 mt-0.5">{detailsItem.class_name || "Class unassigned"}</p>
                 </div>
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Student Info</span>

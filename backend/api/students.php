@@ -249,7 +249,7 @@ function createStudent($db) {
     $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
     $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
 
-    $required = ['username', 'password', 'name', 'surname', 'address', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
+    $required = ['username', 'password', 'name', 'surname', 'address', 'blood_type', 'sex', 'parent_id', 'class_id'];
     foreach ($required as $field) {
         if (empty($input[$field])) {
             Response::error("Field '{$field}' is required");
@@ -258,6 +258,19 @@ function createStudent($db) {
 
     if (strlen($input['password']) < 6) {
         Response::error('Password must be at least 6 characters');
+    }
+
+    // Resolve grade_id automatically from class_id or default grade
+    $gradeId = $input['grade_id'] ?? null;
+    if (empty($gradeId) && !empty($input['class_id'])) {
+        $cls = $db->fetchOne("SELECT grade_id FROM classes WHERE id = ?", [$input['class_id']]);
+        if ($cls && !empty($cls['grade_id'])) {
+            $gradeId = $cls['grade_id'];
+        }
+    }
+    if (empty($gradeId)) {
+        $defaultGrade = $db->fetchOne("SELECT id FROM grades ORDER BY id ASC LIMIT 1");
+        $gradeId = $defaultGrade['id'] ?? 1;
     }
 
     // Hash password
@@ -290,7 +303,7 @@ function createStudent($db) {
             'sex'        => $input['sex'],
             'parent_id'  => $input['parent_id'],
             'class_id'   => $input['class_id'],
-            'grade_id'   => $input['grade_id']
+            'grade_id'   => $gradeId
         ]);
 
         // Get the created student
@@ -366,6 +379,14 @@ function updateStudent($db, $id) {
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
+        }
+    }
+
+    // If class_id was updated and grade_id not provided, automatically sync grade_id with the class
+    if (isset($data['class_id']) && empty($data['grade_id'])) {
+        $cls = $db->fetchOne("SELECT grade_id FROM classes WHERE id = ?", [$data['class_id']]);
+        if ($cls && !empty($cls['grade_id'])) {
+            $data['grade_id'] = $cls['grade_id'];
         }
     }
 

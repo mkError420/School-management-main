@@ -65,7 +65,6 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "img", label: "Student photo", type: "file" },
     { name: "parent_id", label: "Parent", type: "select", required: true, resource: "parents" },
     { name: "class_id", label: "Class", type: "select", required: true, resource: "classes" },
-    { name: "grade_id", label: "Grade", type: "select", required: true, resource: "grades" },
   ],
   parent: [
     { name: "username", label: "Username", required: true },
