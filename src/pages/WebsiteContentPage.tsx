@@ -20,9 +20,7 @@ import {
   Download,
   ExternalLink,
   Eye,
-  FileDown,
   FileText,
-  FileUp,
   Globe,
   GraduationCap,
   HeartHandshake,
@@ -38,7 +36,6 @@ import {
   Plus,
   Radio,
   RefreshCw,
-  RotateCcw,
   Save,
   School,
   Search,
@@ -59,7 +56,6 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
-import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import type {
   SchoolWebsiteContent,
@@ -120,7 +116,6 @@ const WebsiteContentPage: React.FC = () => {
     admin: number;
     support: number;
   } | null>(null);
-  const jsonInputRef = useRef<HTMLInputElement>(null);
 
   const mapStaffArrayToTeachers = useCallback((rawStaff: any[]): SchoolTeacherMember[] => {
     return rawStaff.map((s, idx) => {
@@ -707,43 +702,7 @@ const WebsiteContentPage: React.FC = () => {
     });
   };
 
-  // JSON Export & Import handlers
-  const handleExportJson = () => {
-    try {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(draft, null, 2));
-      const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `website_content_backup_${new Date().toISOString().slice(0, 10)}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      setFeedback({ type: "success", message: "ওয়েবসাইট কনটেন্ট সফলভাবে JSON ফাইলে ব্যাকআপ ডাউনলোড হয়েছে।" });
-    } catch {
-      setFeedback({ type: "error", message: "ব্যাকআপ তৈরি করতে সমস্যা হয়েছে।" });
-    }
-  };
 
-  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed && typeof parsed === "object") {
-          setDraft((prev) => ({ ...prev, ...parsed }));
-          setFeedback({
-            type: "success",
-            message: "JSON ব্যাকআপ সফলভাবে ইমপোর্ট হয়েছে! পরিবর্তনগুলো রিভিউ করে 'সংরক্ষণ ও প্রকাশ' বাটনে ক্লিক করুন।",
-          });
-        }
-      } catch {
-        setFeedback({ type: "error", message: "ফাইলটি সঠিক JSON ফরম্যাটে নেই।" });
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
 
   // Notice handlers
   const addNotice = () => {
@@ -1231,13 +1190,6 @@ const WebsiteContentPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  // Reset to default
-  const handleResetToDefault = () => {
-    if (window.confirm("আপনি কি নিশ্চিত যে সকল তথ্য ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেটে রিসেট করতে চান? এতে বাংলা ও ইংরেজি উভয় ভাষার নমুনা তথ্য লোড হবে।")) {
-      setDraft(DEFAULT_WEBSITE_CONTENT);
-      setFeedback({ type: "success", message: "ডিফল্ট বাংলাদেশ সরকারি স্কুল টেমপ্লেট তথ্য (বাংলা ও ইংরেজি) লোড হয়েছে।" });
-    }
-  };
 
   // Form Submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1300,14 +1252,7 @@ const WebsiteContentPage: React.FC = () => {
 
   return (
     <div className="mx-auto w-full max-w-6xl p-4 md:p-6 font-sans">
-      {/* Hidden JSON input for backup restore */}
-      <input
-        ref={jsonInputRef}
-        type="file"
-        accept=".json,application/json"
-        onChange={handleImportJson}
-        className="hidden"
-      />
+
 
       {/* Top Header */}
       <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 pb-5 sm:flex-row sm:items-end sm:justify-between dark:border-slate-800">
@@ -1337,7 +1282,7 @@ const WebsiteContentPage: React.FC = () => {
             ওয়েবসাইটের সকল পেজের কনটেন্ট, ডায়নামিক টিকার ও মিডিয়া আপলোড
           </h1>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি লাইভ স্ক্রলিং টিকার, ছবি ও মনোগ্রাম আপলোড, দ্বিভাষিক কনটেন্ট ও ব্যাকআপ পরিচালনা করতে পারেন।
+            এই ড্যাশবোর্ড থেকে সুপার অ্যাডমিন সরাসরি লাইভ স্ক্রলিং টিকার, ছবি ও মনোগ্রাম আপলোড এবং দ্বিভাষিক কনটেন্ট পরিচালনা করতে পারেন।
           </p>
         </div>
 
@@ -1354,37 +1299,8 @@ const WebsiteContentPage: React.FC = () => {
             <span className="hidden sm:inline">{syncing ? "সিঙ্ক হচ্ছে..." : "ডাটাবেজ সিঙ্ক"}</span>
           </button>
 
-          {/* Export JSON */}
-          <button
-            type="button"
-            onClick={handleExportJson}
-            title="বর্তমান কনটেন্ট ব্যাকআপ JSON ফাইলে ডাউনলোড করুন"
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
-          >
-            <FileDown size={14} className="text-emerald-700 dark:text-emerald-400" />
-            <span className="hidden sm:inline">ব্যাকআপ এক্সপোর্ট</span>
-          </button>
 
-          {/* Import JSON */}
-          <button
-            type="button"
-            onClick={() => jsonInputRef.current?.click()}
-            title="পূর্ববর্তী ব্যাকআপ JSON ফাইল রিস্টোর করুন"
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
-          >
-            <FileUp size={14} className="text-blue-700 dark:text-blue-400" />
-            <span className="hidden sm:inline">ব্যাকআপ রিস্টোর</span>
-          </button>
 
-          {/* Reset Template */}
-          <button
-            type="button"
-            onClick={handleResetToDefault}
-            className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
-          >
-            <RotateCcw size={14} />
-            <span>ডিফল্ট টেমপ্লেট</span>
-          </button>
 
           {/* Live Page Jump Dropdown */}
           <div className="relative">
