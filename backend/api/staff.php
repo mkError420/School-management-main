@@ -287,6 +287,13 @@ function getStaffList($db) {
         $item['salary'] = (float)($item['salary'] ?? 0);
         if (!empty($item['teacher_id'])) {
             try {
+                $tRow = $db->fetchOne("SELECT username, img FROM teachers WHERE id = ?", [$item['teacher_id']]);
+                if ($tRow) {
+                    $item['username'] = $tRow['username'];
+                    if (empty($item['img']) && !empty($tRow['img'])) {
+                        $item['img'] = $tRow['img'];
+                    }
+                }
                 $subjects = $db->fetchAll(
                     "SELECT sub.id, sub.name FROM subjects sub 
                      INNER JOIN teacher_subjects ts ON sub.id = ts.subject_id 
@@ -563,8 +570,10 @@ function updateStaffMember($db, $id) {
         ], 'id = ?', [$id]);
 
         // If linked to a teacher, update the teacher record too
-        if (!empty($existing['teacher_id'])) {
-            $db->update('teachers', [
+        $effectiveTeacherId = $existing['teacher_id'];
+
+        if (!empty($effectiveTeacherId)) {
+            $tData = [
                 'name' => $name,
                 'surname' => $surname,
                 'email' => !empty($email) ? $email : null,
@@ -572,12 +581,96 @@ function updateStaffMember($db, $id) {
                 'address' => $address,
                 'blood_type' => $bloodType,
                 'sex' => $gender === 'FEMALE' ? 'FEMALE' : 'MALE'
-            ], 'id = ?', [$existing['teacher_id']]);
+            ];
+            if (!empty($input['username'])) {
+                $tData['username'] = trim($input['username']);
+            }
+            if (!empty($input['password'])) {
+                $tData['password'] = password_hash($input['password'], PASSWORD_DEFAULT);
+            }
+            $db->update('teachers', $tData, 'id = ?', [$effectiveTeacherId]);
+
+            // Update subjects if passed
+            if (isset($input['subject_ids']) && is_array($input['subject_ids'])) {
+                $db->delete('teacher_subjects', 'teacher_id = ?', [$effectiveTeacherId]);
+                foreach ($input['subject_ids'] as $subId) {
+                    $db->insert('teacher_subjects', [
+                        'teacher_id' => $effectiveTeacherId,
+                        'subject_id' => intval($subId)
+                    ]);
+                }
+            }
+
+            // Update classes if passed
+            if (isset($input['class_ids']) && is_array($input['class_ids'])) {
+                $db->delete('teacher_classes', 'teacher_id = ?', [$effectiveTeacherId]);
+                foreach ($input['class_ids'] as $classId) {
+                    $db->insert('teacher_classes', [
+                        'teacher_id' => $effectiveTeacherId,
+                        'class_id' => intval($classId)
+                    ]);
+                }
+            }
+        } elseif ($type === 'TEACHING') {
+            // Convert to teaching staff: create teacher record
+            $username = trim($input['username'] ?? '');
+            if (empty($username)) {
+                $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name . '.' . $surname));
+                $existingU = $db->fetchOne("SELECT id FROM teachers WHERE username = ?", [$username]);
+                if ($existingU) $username .= rand(10, 999);
+            }
+            $password = !empty($input['password']) ? $input['password'] : 'teacher123';
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $newTeacherId = uniqid();
+
+            $db->insert('teachers', [
+                'id' => $newTeacherId,
+                'username' => $username,
+                'password' => $hashedPassword,
+                'name' => $name,
+                'surname' => $surname,
+                'email' => !empty($email) ? $email : null,
+                'phone' => !empty($phone) ? $phone : null,
+                'address' => !empty($address) ? $address : 'Campus Staff Residence',
+                'blood_type' => !empty($bloodType) ? $bloodType : 'O+',
+                'sex' => $gender === 'FEMALE' ? 'FEMALE' : 'MALE'
+            ]);
+
+            if (!empty($input['subject_ids']) && is_array($input['subject_ids'])) {
+                foreach ($input['subject_ids'] as $subId) {
+                    $db->insert('teacher_subjects', ['teacher_id' => $newTeacherId, 'subject_id' => intval($subId)]);
+                }
+            }
+            if (!empty($input['class_ids']) && is_array($input['class_ids'])) {
+                foreach ($input['class_ids'] as $classId) {
+                    $db->insert('teacher_classes', ['teacher_id' => $newTeacherId, 'class_id' => intval($classId)]);
+                }
+            }
+            $db->update('staff', ['teacher_id' => $newTeacherId], 'id = ?', [$id]);
+            $effectiveTeacherId = $newTeacherId;
         }
 
         $db->commit();
 
         $updated = $db->fetchOne("SELECT * FROM staff WHERE id = ?", [$id]);
+        if (!empty($effectiveTeacherId)) {
+            $tRow = $db->fetchOne("SELECT username, img FROM teachers WHERE id = ?", [$effectiveTeacherId]);
+            if ($tRow) {
+                $updated['username'] = $tRow['username'];
+            }
+            $updated['subjects'] = $db->fetchAll(
+                "SELECT sub.id, sub.name FROM subjects sub 
+                 INNER JOIN teacher_subjects ts ON sub.id = ts.subject_id 
+                 WHERE ts.teacher_id = ?",
+                [$effectiveTeacherId]
+            );
+            $updated['classes'] = $db->fetchAll(
+                "SELECT c.id, c.name FROM classes c 
+                 INNER JOIN teacher_classes tc ON c.id = tc.class_id 
+                 WHERE tc.teacher_id = ?",
+                [$effectiveTeacherId]
+            );
+        }
         Response::success('Staff member updated successfully', $updated);
 
     } catch (Exception $e) {

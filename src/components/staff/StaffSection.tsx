@@ -258,6 +258,8 @@ const StaffSection: React.FC = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editItem, setEditItem] = useState<StaffMember | null>(null);
+  const [editFormData, setEditFormData] = useState(emptyStaffForm);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [detailsItem, setDetailsItem] = useState<StaffMember | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<StaffMember | null>(null);
 
@@ -501,34 +503,86 @@ const StaffSection: React.FC = () => {
     }
   };
 
-  // Handle Edit Staff
+  // Open Edit Modal with full profile state
+  const openEditModal = (item: StaffMember) => {
+    setEditItem(item);
+    setEditFormData({
+      name: item.name || "",
+      surname: item.surname || "",
+      type: item.type || "TEACHING",
+      designation: item.designation || (item.type === "TEACHING" ? "Academic Teacher" : "Staff Member"),
+      department: item.department || (item.type === "TEACHING" ? "Academic Faculty" : "Operations"),
+      email: item.email || "",
+      phone: item.phone || "",
+      gender: (item.gender || "MALE") as StaffGender,
+      blood_type: item.blood_type || "O+",
+      address: item.address || "",
+      salary: Number(item.salary || 0),
+      joining_date: item.joining_date || new Date().toISOString().split("T")[0],
+      status: (item.status || "ACTIVE") as StaffStatus,
+      qualification: item.qualification || "",
+      notes: item.notes || "",
+      username: (item as any).username || "",
+      password: "",
+      subject_ids: item.subjects ? item.subjects.map((s) => s.id) : [],
+      class_ids: item.classes ? item.classes.map((c) => c.id) : [],
+    });
+    setShowEditPassword(false);
+  };
+
+  // Handle Edit Staff (full function)
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editItem) return;
 
+    if (!editFormData.name.trim() || !editFormData.surname.trim()) {
+      showToast("First name and surname are required.", "error");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const payload = {
-        name: editItem.name,
-        surname: editItem.surname,
-        email: editItem.email,
-        phone: editItem.phone,
-        type: editItem.type,
-        designation: editItem.designation,
-        department: editItem.department,
-        gender: editItem.gender,
-        blood_type: editItem.blood_type,
-        address: editItem.address,
-        salary: Number(editItem.salary || 0),
-        joining_date: editItem.joining_date,
-        status: editItem.status,
-        qualification: editItem.qualification,
-        notes: editItem.notes,
+      const payload: Record<string, any> = {
+        name: editFormData.name.trim(),
+        surname: editFormData.surname.trim(),
+        type: editFormData.type,
+        designation: editFormData.designation.trim() || (editFormData.type === "TEACHING" ? "Academic Teacher" : "Staff Member"),
+        department: editFormData.department.trim() || (editFormData.type === "TEACHING" ? "Academic Faculty" : "Operations"),
+        email: editFormData.email.trim() || undefined,
+        phone: editFormData.phone.trim() || undefined,
+        gender: editFormData.gender,
+        blood_type: editFormData.blood_type,
+        address: editFormData.address.trim() || undefined,
+        salary: Number(editFormData.salary || 0),
+        joining_date: editFormData.joining_date,
+        status: editFormData.status,
+        qualification: editFormData.qualification.trim() || undefined,
+        notes: editFormData.notes.trim() || undefined,
       };
 
-      await api.update("staff", editItem.id, payload);
+      if (editFormData.type === "TEACHING") {
+        if (editFormData.username.trim()) payload.username = editFormData.username.trim();
+        if (editFormData.password.trim()) payload.password = editFormData.password.trim();
+        payload.subject_ids = editFormData.subject_ids;
+        payload.class_ids = editFormData.class_ids;
+      }
 
-      const updated = staff.map((s) => (s.id === editItem.id ? { ...s, ...payload } : s));
+      const res = await api.update("staff", editItem.id, payload);
+
+      const assignedSubjects = subjects.filter((s) => editFormData.subject_ids.includes(s.id));
+      const assignedClasses = classes.filter((c) => editFormData.class_ids.includes(c.id));
+
+      const updated = staff.map((s) =>
+        s.id === editItem.id
+          ? {
+              ...s,
+              ...payload,
+              subjects: assignedSubjects,
+              classes: assignedClasses,
+              ...(res.data ? res.data : {}),
+            }
+          : s
+      );
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
@@ -1064,7 +1118,7 @@ const StaffSection: React.FC = () => {
 
                           {/* Edit */}
                           <button
-                            onClick={() => setEditItem(item)}
+                            onClick={() => openEditModal(item)}
                             className="p-1.5 rounded-lg bg-[#707E94]/10 hover:bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:hover:bg-[#707E94]/60 dark:text-[#a4b3c7] transition"
                             title="Edit Staff Member"
                           >
@@ -1178,8 +1232,9 @@ const StaffSection: React.FC = () => {
                     <Eye size={13} />
                   </button>
                   <button
-                    onClick={() => setEditItem(item)}
+                    onClick={() => openEditModal(item)}
                     className="p-1.5 rounded-lg bg-[#707E94]/10 text-[#707E94] hover:bg-[#707E94]/15 transition"
+                    title="Edit Staff Member"
                   >
                     <Pencil size={13} />
                   </button>
@@ -1557,6 +1612,34 @@ const StaffSection: React.FC = () => {
                 </div>
               </div>
 
+              {/* Address & Notes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Residential Address
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 123 Campus Residence"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Notes / Remarks
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Internal notes or responsibilities..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  />
+                </div>
+              </div>
+
               {/* Submit Buttons */}
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button
@@ -1583,123 +1666,405 @@ const StaffSection: React.FC = () => {
       {/* 6. EDIT STAFF MODAL */}
       {editItem && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">
-                Edit Staff Member ({editItem.staff_no})
-              </h3>
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-[#707E94]/15 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7]">
+                  <Pencil size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-gray-900 dark:text-gray-100">
+                    Edit Staff Member ({editItem.staff_no})
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Update staff classification, credentials, compensation, and academic assignments.
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setEditItem(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               >
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4 my-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+              {/* Staff Type Selector */}
+              <div>
+                <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Staff Role & Classification *
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: "TEACHING", label: "Teacher / Faculty", icon: GraduationCap },
+                    { value: "ADMINISTRATIVE", label: "Administrator", icon: Shield },
+                    { value: "NON_TEACHING", label: "Operations / Finance", icon: Briefcase },
+                    { value: "SUPPORT", label: "Support / Clinic / Lab", icon: Building2 },
+                  ].map((opt) => {
+                    const Icon = opt.icon;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setEditFormData({
+                            ...editFormData,
+                            type: opt.value as StaffType,
+                            designation: opt.value === "TEACHING" ? (editFormData.designation === "Staff Member" ? "Academic Teacher" : editFormData.designation) : editFormData.designation,
+                            department: opt.value === "TEACHING" ? (editFormData.department === "Operations" ? "Academic Faculty" : editFormData.department) : editFormData.department,
+                          });
+                        }}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
+                          editFormData.type === opt.value
+                            ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
+                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span className="text-[11px]">{opt.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {editFormData.type === "TEACHING" && (
+                  <div className="mt-2 p-2.5 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 border border-[#707E94]/30 dark:border-[#707E94]/40 text-[#707E94] dark:text-[#a4b3c7] text-[11px] flex items-center gap-2">
+                    <Sparkles size={14} className="shrink-0" />
+                    <span>
+                      Teaching faculty profile: enables teacher portal access, subject assignments, and links directly to the Teachers section.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Names */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">First Name</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    First Name *
+                  </label>
                   <input
                     type="text"
                     required
-                    value={editItem.name}
-                    onChange={(e) => setEditItem({ ...editItem, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Surname</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Surname / Last Name *
+                  </label>
                   <input
                     type="text"
                     required
-                    value={editItem.surname}
-                    onChange={(e) => setEditItem({ ...editItem, surname: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    value={editFormData.surname}
+                    onChange={(e) => setEditFormData({ ...editFormData, surname: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Contact & Designation */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Designation</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Email Address
+                  </label>
                   <input
-                    type="text"
-                    value={editItem.designation}
-                    onChange={(e) => setEditItem({ ...editItem, designation: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    type="email"
+                    placeholder="name@school.edu"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Department</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Phone Number
+                  </label>
                   <input
                     type="text"
-                    value={editItem.department}
-                    onChange={(e) => setEditItem({ ...editItem, department: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    placeholder="+1 555-0123"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Role Title & Department */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Monthly Salary ({cs})</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Job Title / Designation *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.designation}
+                    onChange={(e) => setEditFormData({ ...editFormData, designation: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Department *
+                  </label>
+                  <select
+                    value={editFormData.department}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30 cursor-pointer"
+                  >
+                    <option value="Academic Faculty">Academic Faculty</option>
+                    <option value="Administration">Administration</option>
+                    <option value="Finance & Accounts">Finance & Accounts</option>
+                    <option value="IT & Computer Lab">IT & Computer Lab</option>
+                    <option value="Library & Media Resources">Library & Media Resources</option>
+                    <option value="Health & Medical Clinic">Health & Medical Clinic</option>
+                    <option value="Safety & Security">Safety & Security</option>
+                    <option value="Facilities & Maintenance">Facilities & Maintenance</option>
+                    <option value="Transportation">Transportation</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Teacher-Specific Fields (Subjects & Credentials) */}
+              {editFormData.type === "TEACHING" && (
+                <div className="p-3.5 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 border border-[#707E94]/20 dark:border-[#707E94]/40 space-y-3">
+                  <h4 className="font-bold text-[#707E94] dark:text-[#a4b3c7] text-xs flex items-center gap-1.5">
+                    <GraduationCap size={15} /> Teacher Academic Details
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Portal Login Username
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Username"
+                        value={editFormData.username}
+                        onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                        className="w-full px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Portal Password <span className="text-[10px] text-gray-400 font-normal">(leave blank to keep unchanged)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showEditPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          value={editFormData.password}
+                          onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })}
+                          className="w-full px-3 py-1.5 pr-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-gray-100"
+                        />
+                        <button
+                          type="button"
+                          tabIndex={-1}
+                          onClick={() => setShowEditPassword((prev) => !prev)}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                          aria-label={showEditPassword ? "Hide password" : "Show password"}
+                        >
+                          {showEditPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Assign Subjects */}
+                  <div>
+                    <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Assigned Subjects
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {subjects.map((sub) => {
+                        const isSelected = editFormData.subject_ids.includes(sub.id);
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => {
+                              const next = isSelected
+                                ? editFormData.subject_ids.filter((id) => id !== sub.id)
+                                : [...editFormData.subject_ids, sub.id];
+                              setEditFormData({ ...editFormData, subject_ids: next });
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
+                              isSelected
+                                ? "bg-[#D32F45] text-white border-[#707E94]"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                            }`}
+                          >
+                            {sub.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Assign Classes */}
+                  <div>
+                    <label className="block font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Assigned Teaching Classes
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {classes.map((cls) => {
+                        const isSelected = editFormData.class_ids.includes(cls.id);
+                        return (
+                          <button
+                            key={cls.id}
+                            type="button"
+                            onClick={() => {
+                              const next = isSelected
+                                ? editFormData.class_ids.filter((id) => id !== cls.id)
+                                : [...editFormData.class_ids, cls.id];
+                              setEditFormData({ ...editFormData, class_ids: next });
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
+                              isSelected
+                                ? "bg-[#D32F45] text-white border-[#707E94]"
+                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                            }`}
+                          >
+                            Class {cls.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Salary, Joining Date & Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Monthly Salary ({cs})
+                  </label>
                   <input
                     type="number"
-                    value={editItem.salary}
-                    onChange={(e) => setEditItem({ ...editItem, salary: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    step="0.01"
+                    value={editFormData.salary}
+                    onChange={(e) => setEditFormData({ ...editFormData, salary: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
                   />
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Status</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Joining Date
+                  </label>
+                  <input
+                    type="date"
+                    value={editFormData.joining_date}
+                    onChange={(e) => setEditFormData({ ...editFormData, joining_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Duty Status
+                  </label>
                   <select
-                    value={editItem.status}
-                    onChange={(e) => setEditItem({ ...editItem, status: e.target.value as StaffStatus })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as StaffStatus })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#707E94]/30 cursor-pointer"
                   >
-                    <option value="ACTIVE">Active</option>
+                    <option value="ACTIVE">Active Duty</option>
                     <option value="ON_LEAVE">On Leave</option>
                     <option value="INACTIVE">Inactive</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Gender, Blood Type, Qualifications */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-semibold mb-1">Email</label>
-                  <input
-                    type="email"
-                    value={editItem.email || ""}
-                    onChange={(e) => setEditItem({ ...editItem, email: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
-                  />
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Gender
+                  </label>
+                  <select
+                    value={editFormData.gender}
+                    onChange={(e) => setEditFormData({ ...editFormData, gender: e.target.value as StaffGender })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  >
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="block font-semibold mb-1">Phone</label>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Blood Group
+                  </label>
+                  <select
+                    value={editFormData.blood_type}
+                    onChange={(e) => setEditFormData({ ...editFormData, blood_type: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  >
+                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bg) => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Qualifications / Degree
+                  </label>
                   <input
                     type="text"
-                    value={editItem.phone || ""}
-                    onChange={(e) => setEditItem({ ...editItem, phone: e.target.value })}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl"
+                    placeholder="e.g. M.Sc, B.Ed, CPA"
+                    value={editFormData.qualification}
+                    onChange={(e) => setEditFormData({ ...editFormData, qualification: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-700">
+              {/* Address & Notes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Residential Address
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 123 Campus Residence"
+                    value={editFormData.address}
+                    onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                    Notes / Remarks
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Internal notes or responsibilities..."
+                    value={editFormData.notes}
+                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setEditItem(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition"
+                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
                 >
-                  Save Changes
+                  {submitting ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
+                  <span>Save Changes</span>
                 </button>
               </div>
             </form>
