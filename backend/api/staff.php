@@ -390,8 +390,15 @@ function getStaffMember($db, $id) {
 function createStaffMember($db) {
     AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
 
-    $raw = file_get_contents('php://input');
-    $input = json_decode($raw, true) ?? $_POST;
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+    unset($input['_method']);
+
+    $uploadedImage = null;
+    if ($isMultipart) {
+        $uploadedImage = storeStaffImage();
+    }
+    $finalImage = $uploadedImage ?? ($input['img'] ?? null);
 
     $name = trim($input['name'] ?? '');
     $surname = trim($input['surname'] ?? '');
@@ -458,14 +465,18 @@ function createStaffMember($db) {
                 'email' => !empty($email) ? $email : null,
                 'phone' => !empty($phone) ? $phone : null,
                 'address' => !empty($address) ? $address : 'Campus Staff Residence',
-                'img' => $input['img'] ?? null,
+                'img' => $finalImage,
                 'blood_type' => !empty($bloodType) ? $bloodType : 'O+',
                 'sex' => $gender === 'FEMALE' ? 'FEMALE' : 'MALE'
             ]);
 
-            // Assign subjects if provided
-            if (!empty($input['subject_ids']) && is_array($input['subject_ids'])) {
-                foreach ($input['subject_ids'] as $subId) {
+            $subjectIds = $input['subject_ids'] ?? null;
+            if (is_string($subjectIds)) {
+                $decoded = json_decode($subjectIds, true);
+                if (is_array($decoded)) $subjectIds = $decoded;
+            }
+            if (!empty($subjectIds) && is_array($subjectIds)) {
+                foreach ($subjectIds as $subId) {
                     $db->insert('teacher_subjects', [
                         'teacher_id' => $teacherId,
                         'subject_id' => intval($subId)
@@ -473,9 +484,13 @@ function createStaffMember($db) {
                 }
             }
 
-            // Assign classes if provided
-            if (!empty($input['class_ids']) && is_array($input['class_ids'])) {
-                foreach ($input['class_ids'] as $classId) {
+            $classIds = $input['class_ids'] ?? null;
+            if (is_string($classIds)) {
+                $decoded = json_decode($classIds, true);
+                if (is_array($decoded)) $classIds = $decoded;
+            }
+            if (!empty($classIds) && is_array($classIds)) {
+                foreach ($classIds as $classId) {
                     $db->insert('teacher_classes', [
                         'teacher_id' => $teacherId,
                         'class_id' => intval($classId)
@@ -503,7 +518,7 @@ function createStaffMember($db) {
             'joining_date' => $joiningDate,
             'status' => $status,
             'qualification' => $qualification,
-            'img' => $input['img'] ?? null,
+            'img' => $finalImage,
             'notes' => $notes
         ]);
 
@@ -529,8 +544,15 @@ function updateStaffMember($db, $id) {
         Response::notFound('Staff member not found');
     }
 
-    $raw = file_get_contents('php://input');
-    $input = json_decode($raw, true) ?? $_POST;
+    $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
+    $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
+    unset($input['_method']);
+
+    $uploadedImage = null;
+    if ($isMultipart) {
+        $uploadedImage = storeStaffImage();
+    }
+    $finalImage = $uploadedImage ?? ($input['img'] ?? $existing['img'] ?? null);
 
     $name = trim($input['name'] ?? $existing['name']);
     $surname = trim($input['surname'] ?? $existing['surname']);
@@ -566,6 +588,7 @@ function updateStaffMember($db, $id) {
             'joining_date' => $joiningDate,
             'status' => $status,
             'qualification' => $qualification,
+            'img' => $finalImage,
             'notes' => $notes
         ], 'id = ?', [$id]);
 
@@ -582,6 +605,9 @@ function updateStaffMember($db, $id) {
                 'blood_type' => $bloodType,
                 'sex' => $gender === 'FEMALE' ? 'FEMALE' : 'MALE'
             ];
+            if ($finalImage !== null) {
+                $tData['img'] = $finalImage;
+            }
             if (!empty($input['username'])) {
                 $tData['username'] = trim($input['username']);
             }
@@ -591,9 +617,14 @@ function updateStaffMember($db, $id) {
             $db->update('teachers', $tData, 'id = ?', [$effectiveTeacherId]);
 
             // Update subjects if passed
-            if (isset($input['subject_ids']) && is_array($input['subject_ids'])) {
+            $subjectIds = $input['subject_ids'] ?? null;
+            if (is_string($subjectIds)) {
+                $decoded = json_decode($subjectIds, true);
+                if (is_array($decoded)) $subjectIds = $decoded;
+            }
+            if (isset($subjectIds) && is_array($subjectIds)) {
                 $db->delete('teacher_subjects', 'teacher_id = ?', [$effectiveTeacherId]);
-                foreach ($input['subject_ids'] as $subId) {
+                foreach ($subjectIds as $subId) {
                     $db->insert('teacher_subjects', [
                         'teacher_id' => $effectiveTeacherId,
                         'subject_id' => intval($subId)
@@ -602,9 +633,14 @@ function updateStaffMember($db, $id) {
             }
 
             // Update classes if passed
-            if (isset($input['class_ids']) && is_array($input['class_ids'])) {
+            $classIds = $input['class_ids'] ?? null;
+            if (is_string($classIds)) {
+                $decoded = json_decode($classIds, true);
+                if (is_array($decoded)) $classIds = $decoded;
+            }
+            if (isset($classIds) && is_array($classIds)) {
                 $db->delete('teacher_classes', 'teacher_id = ?', [$effectiveTeacherId]);
-                foreach ($input['class_ids'] as $classId) {
+                foreach ($classIds as $classId) {
                     $db->insert('teacher_classes', [
                         'teacher_id' => $effectiveTeacherId,
                         'class_id' => intval($classId)
@@ -632,17 +668,28 @@ function updateStaffMember($db, $id) {
                 'email' => !empty($email) ? $email : null,
                 'phone' => !empty($phone) ? $phone : null,
                 'address' => !empty($address) ? $address : 'Campus Staff Residence',
+                'img' => $finalImage,
                 'blood_type' => !empty($bloodType) ? $bloodType : 'O+',
                 'sex' => $gender === 'FEMALE' ? 'FEMALE' : 'MALE'
             ]);
 
-            if (!empty($input['subject_ids']) && is_array($input['subject_ids'])) {
-                foreach ($input['subject_ids'] as $subId) {
+            $subjectIds = $input['subject_ids'] ?? null;
+            if (is_string($subjectIds)) {
+                $decoded = json_decode($subjectIds, true);
+                if (is_array($decoded)) $subjectIds = $decoded;
+            }
+            if (!empty($subjectIds) && is_array($subjectIds)) {
+                foreach ($subjectIds as $subId) {
                     $db->insert('teacher_subjects', ['teacher_id' => $newTeacherId, 'subject_id' => intval($subId)]);
                 }
             }
-            if (!empty($input['class_ids']) && is_array($input['class_ids'])) {
-                foreach ($input['class_ids'] as $classId) {
+            $classIds = $input['class_ids'] ?? null;
+            if (is_string($classIds)) {
+                $decoded = json_decode($classIds, true);
+                if (is_array($decoded)) $classIds = $decoded;
+            }
+            if (!empty($classIds) && is_array($classIds)) {
+                foreach ($classIds as $classId) {
                     $db->insert('teacher_classes', ['teacher_id' => $newTeacherId, 'class_id' => intval($classId)]);
                 }
             }
@@ -701,4 +748,41 @@ function deleteStaffMember($db, $id) {
         $db->rollback();
         Response::error('Failed to delete staff member: ' . $e->getMessage());
     }
+}
+
+function storeStaffImage() {
+    if (empty($_FILES['img']) || $_FILES['img']['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    $upload = $_FILES['img'];
+    if ($upload['error'] !== UPLOAD_ERR_OK) {
+        Response::error('Staff image upload failed');
+    }
+    if ($upload['size'] > 5 * 1024 * 1024) {
+        Response::error('Staff photo must be no larger than 5 MB');
+    }
+
+    $imageInfo = getimagesize($upload['tmp_name']);
+    $extensionsByMime = [
+        'image/jpeg' => 'jpg',
+        'image/png'  => 'png',
+        'image/webp' => 'webp',
+    ];
+    $mimeType = $imageInfo['mime'] ?? '';
+    if (!$imageInfo || !isset($extensionsByMime[$mimeType])) {
+        Response::error('Choose a valid JPG, PNG, or WebP image for staff photo');
+    }
+
+    $directory = dirname(__DIR__, 2) . '/images/teachers';
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) {
+        Response::serverError('Unable to prepare staff image storage');
+    }
+
+    $fileName = bin2hex(random_bytes(16)) . '.' . $extensionsByMime[$mimeType];
+    if (!move_uploaded_file($upload['tmp_name'], $directory . '/' . $fileName)) {
+        Response::serverError('Unable to store staff image');
+    }
+
+    return '/images/teachers/' . $fileName;
 }

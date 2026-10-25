@@ -4,6 +4,7 @@ import {
   Briefcase,
   Building2,
   Calendar,
+  Camera,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -30,6 +31,7 @@ import {
   Shield,
   Sparkles,
   Trash2,
+  Upload,
   UserCheck,
   UserPlus,
   Users,
@@ -260,8 +262,42 @@ const StaffSection: React.FC = () => {
   const [editItem, setEditItem] = useState<StaffMember | null>(null);
   const [editFormData, setEditFormData] = useState(emptyStaffForm);
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [detailsItem, setDetailsItem] = useState<StaffMember | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<StaffMember | null>(null);
+
+  // Edit image upload handlers
+  const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!validTypes.includes(file.type)) {
+      showToast("Please upload a valid image file (JPG, PNG, or WebP).", "error");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image size must not exceed 5 MB.", "error");
+      return;
+    }
+
+    setEditImageFile(file);
+    const objectUrl = URL.createObjectURL(file);
+    setEditImagePreview(objectUrl);
+  };
+
+  const handleResetEditImage = () => {
+    setEditImageFile(null);
+    setEditImagePreview(editItem?.img || null);
+  };
+
+  const closeEditModal = () => {
+    setEditItem(null);
+    setEditImageFile(null);
+    setEditImagePreview(null);
+  };
 
   // Form
   const [formData, setFormData] = useState(emptyStaffForm);
@@ -527,10 +563,12 @@ const StaffSection: React.FC = () => {
       subject_ids: item.subjects ? item.subjects.map((s) => s.id) : [],
       class_ids: item.classes ? item.classes.map((c) => c.id) : [],
     });
+    setEditImageFile(null);
+    setEditImagePreview(item.img || null);
     setShowEditPassword(false);
   };
 
-  // Handle Edit Staff (full function)
+  // Handle Edit Staff (full function with optional photo upload)
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editItem) return;
@@ -567,7 +605,23 @@ const StaffSection: React.FC = () => {
         payload.class_ids = editFormData.class_ids;
       }
 
-      const res = await api.update("staff", editItem.id, payload);
+      let res: any;
+      if (editImageFile) {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) {
+            if (Array.isArray(v)) {
+              fd.append(k, JSON.stringify(v));
+            } else {
+              fd.append(k, String(v));
+            }
+          }
+        });
+        fd.append("img", editImageFile, editImageFile.name);
+        res = await api.update("staff", editItem.id, fd);
+      } else {
+        res = await api.update("staff", editItem.id, payload);
+      }
 
       const assignedSubjects = subjects.filter((s) => editFormData.subject_ids.includes(s.id));
       const assignedClasses = classes.filter((c) => editFormData.class_ids.includes(c.id));
@@ -579,14 +633,14 @@ const StaffSection: React.FC = () => {
               ...payload,
               subjects: assignedSubjects,
               classes: assignedClasses,
-              ...(res.data ? res.data : {}),
+              ...(res?.data ? res.data : {}),
             }
           : s
       );
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
-      setEditItem(null);
+      closeEditModal();
       showToast("Staff profile updated successfully!", "success");
     } catch {
       showToast("Failed to update staff record.", "error");
@@ -1665,7 +1719,12 @@ const StaffSection: React.FC = () => {
 
       {/* 6. EDIT STAFF MODAL */}
       {editItem && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeEditModal();
+          }}
+        >
           <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-2">
@@ -1682,7 +1741,7 @@ const StaffSection: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setEditItem(null)}
+                onClick={closeEditModal}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               >
                 <X size={18} />
@@ -1690,6 +1749,82 @@ const StaffSection: React.FC = () => {
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4 my-4 text-xs">
+              {/* Photo Upload Section */}
+              <div className="p-3.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/60 flex flex-col sm:flex-row items-center gap-4">
+                {/* Profile Photo Preview */}
+                <div className="relative group shrink-0">
+                  <img
+                    src={
+                      editImagePreview ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        `${editFormData.name || "Staff"}+${editFormData.surname || "Member"}`
+                      )}&background=707E94&color=fff`
+                    }
+                    alt="Staff Preview"
+                    className="w-20 h-20 rounded-2xl object-cover border-2 border-white dark:border-gray-700 shadow-md ring-2 ring-[#707E94]/25"
+                  />
+                  <label
+                    htmlFor="edit-staff-photo-input"
+                    className="absolute inset-0 bg-black/40 text-white rounded-2xl opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center cursor-pointer transition text-[10px] font-semibold gap-1 backdrop-blur-[1px]"
+                    title="Click to change photo"
+                  >
+                    <Camera size={16} />
+                    <span>Change</span>
+                  </label>
+                </div>
+
+                {/* Upload Controls */}
+                <div className="flex-1 w-full text-center sm:text-left space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                      Profile Photograph
+                    </span>
+                    {editImageFile && (
+                      <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        New photo ready to save
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <input
+                      id="edit-staff-photo-input"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleEditImageChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="edit-staff-photo-input"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#707E94] hover:bg-[#5e6b7f] text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition"
+                    >
+                      <Upload size={14} />
+                      <span>{editImageFile ? "Change Selected Photo" : "Upload New Photo"}</span>
+                    </label>
+
+                    {editImageFile && (
+                      <button
+                        type="button"
+                        onClick={handleResetEditImage}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-medium transition"
+                        title="Cancel new selection and revert"
+                      >
+                        <X size={13} />
+                        <span>Revert</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {editImageFile ? (
+                      <span className="truncate block font-medium text-gray-700 dark:text-gray-300">
+                        File: {editImageFile.name} ({(editImageFile.size / 1024).toFixed(0)} KB)
+                      </span>
+                    ) : (
+                      "Supports JPG, PNG, or WebP up to 5 MB. Updates directory and linked faculty profile."
+                    )}
+                  </p>
+                </div>
+              </div>
+
               {/* Staff Type Selector */}
               <div>
                 <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -2053,7 +2188,7 @@ const StaffSection: React.FC = () => {
               <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-gray-700">
                 <button
                   type="button"
-                  onClick={() => setEditItem(null)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                 >
                   Cancel
