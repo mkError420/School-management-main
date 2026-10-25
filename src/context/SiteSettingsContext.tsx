@@ -24,7 +24,15 @@ export const CURRENCY_OPTIONS = [
 const CURRENCY_STORAGE_KEY = "school_currency_symbol";
 const LOGO_STORAGE_KEY = "school_site_logo";
 const LANG_STORAGE_KEY = "school_site_lang";
+const COUNTS_STORAGE_KEY = "school_site_live_counts";
 export const DEFAULT_SITE_LOGO = "/images/logo.png";
+
+export interface LiveDashboardCounts {
+  students: number;
+  teachers: number;
+  staff: number;
+  classes?: number;
+}
 
 interface SiteSettingsContextValue {
   siteName: string;
@@ -34,6 +42,7 @@ interface SiteSettingsContextValue {
   currencySymbol: string;
   isLoading: boolean;
   lang: "bn" | "en";
+  liveCounts: LiveDashboardCounts | null;
   setLang: (lang: "bn" | "en") => void;
   toggleLang: () => void;
   t: (bnText?: string, enText?: string) => string;
@@ -44,6 +53,7 @@ interface SiteSettingsContextValue {
   saveSiteLogo: (fileOrUrl: File | string) => Promise<{ success: boolean; message?: string; logoUrl?: string }>;
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
   refreshSettings: () => Promise<void>;
+  refreshLiveCounts: () => Promise<void>;
 }
 
 export const resolveLogoUrl = (logo?: string | null): string => {
@@ -71,6 +81,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   currencySymbol: "৳",
   isLoading: false,
   lang: "bn",
+  liveCounts: null,
   setLang: () => {},
   toggleLang: () => {},
   t: (bnText?: string, enText?: string) => bnText || enText || "",
@@ -81,6 +92,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   saveSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   refreshSettings: async () => {},
+  refreshLiveCounts: async () => {},
 });
 
 const fileToDataUrl = (file: File): Promise<string> => {
@@ -254,6 +266,18 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return "৳";
     }
   });
+  const [liveCounts, setLiveCounts] = useState<LiveDashboardCounts | null>(() => {
+    try {
+      const cached = localStorage.getItem(COUNTS_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed.students === "number") {
+          return parsed;
+        }
+      }
+    } catch {}
+    return null;
+  });
 
   const setLang = (nextLang: "bn" | "en") => {
     setLangState(nextLang);
@@ -283,6 +307,26 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return lang === "en" ? toEnglishDigits(str) : toBengaliDigits(str);
   };
 
+  const refreshLiveCounts = async () => {
+    try {
+      const res = await api.getPublicStats();
+      if (res.success && res.data?.counts) {
+        const c: LiveDashboardCounts = {
+          students: Number(res.data.counts.students ?? 0),
+          teachers: Number(res.data.counts.teachers ?? 0),
+          staff: Number(res.data.counts.staff ?? 0),
+          classes: Number(res.data.counts.classes ?? 0),
+        };
+        setLiveCounts(c);
+        try {
+          localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(c));
+        } catch {}
+      }
+    } catch {
+      // transient network error
+    }
+  };
+
   const refreshSettings = async () => {
     try {
       const response = await api.getSiteSettings();
@@ -295,6 +339,18 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setSiteLogo(resolved);
           try {
             localStorage.setItem(LOGO_STORAGE_KEY, resolved);
+          } catch {}
+        }
+        if (response.data.live_counts) {
+          const c: LiveDashboardCounts = {
+            students: Number(response.data.live_counts.students ?? 0),
+            teachers: Number(response.data.live_counts.teachers ?? 0),
+            staff: Number(response.data.live_counts.staff ?? 0),
+            classes: Number(response.data.live_counts.classes ?? 0),
+          };
+          setLiveCounts(c);
+          try {
+            localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(c));
           } catch {}
         }
         if (response.data.website_content) {
@@ -330,6 +386,20 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           // ignore storage errors
         }
       }
+      if (response.data.live_counts) {
+        const c: LiveDashboardCounts = {
+          students: Number(response.data.live_counts.students ?? 0),
+          teachers: Number(response.data.live_counts.teachers ?? 0),
+          staff: Number(response.data.live_counts.staff ?? 0),
+          classes: Number(response.data.live_counts.classes ?? 0),
+        };
+        setLiveCounts(c);
+        try {
+          localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(c));
+        } catch {}
+      } else {
+        refreshLiveCounts().catch(() => {});
+      }
       if (response.data.website_content) {
         const wasCorrupted = hasAnyCorruption(response.data.website_content);
         const merged = normalizeContent(response.data.website_content);
@@ -355,17 +425,33 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (cachedLang === "bn" || cachedLang === "en") {
           setLangState(cachedLang);
         }
+        const cachedCounts = localStorage.getItem(COUNTS_STORAGE_KEY);
+        if (cachedCounts) {
+          const parsed = JSON.parse(cachedCounts);
+          if (parsed && typeof parsed.students === "number") {
+            setLiveCounts(parsed);
+          }
+        }
       } catch {}
+    };
+
+    const handleLiveCounts = (e: Event) => {
+      const custom = e as CustomEvent<LiveDashboardCounts>;
+      if (custom.detail) {
+        setLiveCounts(custom.detail);
+      }
     };
 
     window.addEventListener("school-site-settings-updated", handleSync);
     window.addEventListener("school-site-lang-changed", handleSync);
+    window.addEventListener("school-live-counts-updated", handleLiveCounts);
     window.addEventListener("storage", handleSync);
 
     return () => {
       active = false;
       window.removeEventListener("school-site-settings-updated", handleSync);
       window.removeEventListener("school-site-lang-changed", handleSync);
+      window.removeEventListener("school-live-counts-updated", handleLiveCounts);
       window.removeEventListener("storage", handleSync);
     };
   }, []);
@@ -505,6 +591,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         currencySymbol,
         isLoading,
         lang,
+        liveCounts,
         setLang,
         toggleLang,
         t,
@@ -515,6 +602,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         saveSiteLogo,
         resetSiteLogo,
         refreshSettings,
+        refreshLiveCounts,
       }}
     >
       {children}

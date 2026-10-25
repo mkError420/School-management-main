@@ -94,7 +94,30 @@ class ApiService {
   }
 
   async getSiteSettings() {
-    return this.request<{ site_name: string; site_logo?: string; website_content?: SchoolWebsiteContent | null }>('settings', { method: 'GET' });
+    return this.request<{
+      site_name: string;
+      site_logo?: string;
+      website_content?: SchoolWebsiteContent | null;
+      live_counts?: {
+        students: number;
+        teachers: number;
+        staff: number;
+        classes?: number;
+      };
+    }>('settings', { method: 'GET' });
+  }
+
+  // Public School Statistics
+  async getPublicStats() {
+    return this.request<{
+      counts: {
+        students: number;
+        teachers: number;
+        staff: number;
+        classes?: number;
+        parents?: number;
+      };
+    }>('dashboard?action=public-stats', { method: 'GET' });
   }
 
   async updateSiteName(siteName: string) {

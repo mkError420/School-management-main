@@ -212,14 +212,19 @@ const DashboardStatsCards: React.FC = () => {
 
       if (dashRes.status === "fulfilled" && dashRes.value.success && dashRes.value.data) {
         const d = dashRes.value.data;
-        setCounts({
+        const newCounts = {
           students: Number(d.counts?.students ?? 0),
           teachers: Number(d.counts?.teachers ?? 0),
           parents: Number(d.counts?.parents ?? 0),
           staff: Number(d.counts?.staff ?? 0),
           classes: Number(d.counts?.classes ?? 0),
           lessons: Number(d.counts?.lessons ?? 0),
-        });
+        };
+        setCounts(newCounts);
+        try {
+          localStorage.setItem("school_site_live_counts", JSON.stringify(newCounts));
+          window.dispatchEvent(new CustomEvent("school-live-counts-updated", { detail: newCounts }));
+        } catch {}
       } else if (dashRes.status === "fulfilled") {
         setError(dashRes.value.message || "Failed to load dashboard stats.");
       }

@@ -100,7 +100,7 @@ type ContentTab =
 type EditLangMode = "bn" | "en" | "dual";
 
 const WebsiteContentPage: React.FC = () => {
-  const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo, refreshSettings, isLoading } = useSiteSettings();
+  const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo, refreshSettings, isLoading, liveCounts } = useSiteSettings();
   const [draft, setDraft] = useState<SchoolWebsiteContent>(websiteContent);
   const [activeTab, setActiveTab] = useState<ContentTab>("identity");
   const [saving, setSaving] = useState(false);
@@ -2794,6 +2794,30 @@ const WebsiteContentPage: React.FC = () => {
               </button>
             </h2>
 
+            {/* Live Dashboard Sync Info Banner */}
+            <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50/80 p-3.5 text-xs text-emerald-950 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+              <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-100">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-600 animate-pulse" />
+                <span>সফটওয়্যার অ্যাডমিন ড্যাশবোর্ড থেকে অটো-সিঙ্ক (Live Dynamic Statistics)</span>
+              </div>
+              <p className="mt-1 text-emerald-800 dark:text-emerald-300">
+                ওয়েবসাইটের হোমপেজে &quot;School Statistics at a Glance&quot; সেকশনের শিক্ষার্থী (Students), শিক্ষক (Faculty), এবং কর্মচারী (Staff) সংখ্যা সরাসরি অ্যাডমিন ড্যাশবোর্ডের Teachers, Students, ও Staff সেকশন থেকে লাইভ ডায়নামিকভাবে গণনা করে প্রদর্শিত হয়।
+              </p>
+              {liveCounts && (
+                <div className="mt-2.5 flex flex-wrap gap-3 pt-2 border-t border-emerald-200/70 dark:border-emerald-800/70">
+                  <span className="rounded bg-white px-2 py-1 shadow-2xs font-semibold text-emerald-900 dark:bg-slate-800 dark:text-emerald-200">
+                    শিক্ষার্থী (Students): <span className="font-bold text-[#006a4e] dark:text-emerald-400">{liveCounts.students} জন</span>
+                  </span>
+                  <span className="rounded bg-white px-2 py-1 shadow-2xs font-semibold text-emerald-900 dark:bg-slate-800 dark:text-emerald-200">
+                    শিক্ষক (Teachers/Faculty): <span className="font-bold text-blue-700 dark:text-blue-400">{liveCounts.teachers} জন</span>
+                  </span>
+                  <span className="rounded bg-white px-2 py-1 shadow-2xs font-semibold text-emerald-900 dark:bg-slate-800 dark:text-emerald-200">
+                    কর্মচারী (Staff): <span className="font-bold text-teal-700 dark:text-teal-400">{liveCounts.staff} জন</span>
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
               <div className="rounded border p-2.5">
                 <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
@@ -2838,6 +2862,30 @@ const WebsiteContentPage: React.FC = () => {
                     type="text"
                     value={draft.teacherCountEn || ""}
                     onChange={(e) => updateField("teacherCountEn", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+
+              <div className="rounded border p-2.5">
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  কর্মচারীবৃন্দ সংখ্যা (বাংলা)
+                  <input
+                    type="text"
+                    value={draft.staffCount || ""}
+                    onChange={(e) => {
+                      updateField("staffCount", e.target.value);
+                      updateField("staffCountEn", toEnglishDigits(e.target.value));
+                    }}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300 mt-2 block">
+                  Staff Members (English)
+                  <input
+                    type="text"
+                    value={draft.staffCountEn || ""}
+                    onChange={(e) => updateField("staffCountEn", e.target.value)}
                     className={inputClass}
                   />
                 </label>

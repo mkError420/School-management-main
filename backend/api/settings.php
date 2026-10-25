@@ -82,6 +82,36 @@ function getSiteSettings($db) {
         }
     }
 
+    // Dynamic counts from software admin dashboard (students, teachers, staff, classes)
+    $studentCount = 0;
+    $teacherCount = 0;
+    $staffCount = 0;
+    $classCount = 0;
+    try {
+        $studentCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM students")['total'] ?? 0);
+    } catch (Exception $e) {}
+    try {
+        $teacherCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM teachers")['total'] ?? 0);
+    } catch (Exception $e) {}
+    try {
+        $staffCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM staff")['total'] ?? 0);
+    } catch (Exception $e) {}
+    if ($staffCount === 0) {
+        try {
+            $staffCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM admins")['total'] ?? 0);
+        } catch (Exception $e) {}
+    }
+    try {
+        $classCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM classes")['total'] ?? 0);
+    } catch (Exception $e) {}
+
+    $settings['live_counts'] = [
+        'students' => $studentCount,
+        'teachers' => $teacherCount,
+        'staff' => $staffCount,
+        'classes' => $classCount,
+    ];
+
     Response::success('Site settings retrieved successfully', $settings);
 }
 

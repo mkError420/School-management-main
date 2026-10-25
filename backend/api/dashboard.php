@@ -7,11 +7,38 @@ if ($method !== 'GET') {
     Response::methodNotAllowed();
 }
 
+$action = $_GET['action'] ?? null;
+
+// Allow public retrieval of counts for Home page & website statistics
+if ($action === 'public-stats' || $action === 'public-counts') {
+    $studentCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM students")['total'] ?? 0);
+    $teacherCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM teachers")['total'] ?? 0);
+    $parentCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM parents")['total'] ?? 0);
+    $adminCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM admins")['total'] ?? 0);
+    $staffCount = 0;
+    try {
+        $staffCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM staff")['total'] ?? 0);
+    } catch (Exception $e) {}
+    if ($staffCount == 0) {
+        $staffCount = $adminCount;
+    }
+    $classCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM classes")['total'] ?? 0);
+
+    Response::success('Public stats retrieved successfully', [
+        'counts' => [
+            'students' => $studentCount,
+            'teachers' => $teacherCount,
+            'staff' => $staffCount,
+            'classes' => $classCount,
+            'parents' => $parentCount,
+        ]
+    ]);
+    exit;
+}
+
 $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
 $role = $user['role'];
 $userId = $user['user_id'];
-
-$action = $_GET['action'] ?? null;
 if ($action === 'finance') {
     $targetYear = isset($_GET['year']) ? intval($_GET['year']) : intval($_GET['finance_year'] ?? date('Y'));
     $financeInfo = getFinanceChartData($db, $targetYear);

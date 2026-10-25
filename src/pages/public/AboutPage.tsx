@@ -17,7 +17,7 @@ import {
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export const AboutPage: React.FC = () => {
-  const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
+  const { websiteContent: content, t, lang, formatDigits, liveCounts } = useSiteSettings();
 
   const facilities = [
     {
@@ -175,15 +175,27 @@ export const AboutPage: React.FC = () => {
               </div>
               <div className="flex justify-between py-1.5 border-b border-gray-100">
                 <span className="text-gray-500">{t("মোট শিক্ষার্থী:", "Total Students:")}</span>
-                <span className="font-bold text-[#006a4e]">{formatDigits(content.studentCount)}</span>
+                <span className="font-bold text-[#006a4e]">
+                  {liveCounts && typeof liveCounts.students === "number"
+                    ? formatDigits(liveCounts.students.toLocaleString())
+                    : formatDigits(content.studentCount)}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-gray-100">
                 <span className="text-gray-500">{t("শিক্ষক সংখ্যা:", "Total Teachers:")}</span>
-                <span className="font-bold text-[#006a4e]">{formatDigits(content.teacherCount)}</span>
+                <span className="font-bold text-[#006a4e]">
+                  {liveCounts && typeof liveCounts.teachers === "number"
+                    ? formatDigits(liveCounts.teachers.toLocaleString())
+                    : formatDigits(content.teacherCount)}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-gray-100">
                 <span className="text-gray-500">{t("কর্মচারী সংখ্যা:", "Total Staff:")}</span>
-                <span className="font-bold text-gray-900">{formatDigits(content.staffCount)}</span>
+                <span className="font-bold text-gray-900">
+                  {liveCounts && typeof liveCounts.staff === "number"
+                    ? formatDigits(liveCounts.staff.toLocaleString())
+                    : formatDigits(content.staffCount)}
+                </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-gray-100">
                 <span className="text-gray-500">{t("পাসের হার:", "Pass Rate:")}</span>

@@ -63,7 +63,7 @@ const GOVT_OFFICIAL_LINKS = [
 ];
 
 export const PublicSchoolWebsite: React.FC = () => {
-  const { websiteContent: content, siteLogo } = useSiteSettings();
+  const { websiteContent: content, siteLogo, liveCounts } = useSiteSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNoticeCategory, setActiveNoticeCategory] = useState<string>("সকল");
   const [noticeSearch, setNoticeSearch] = useState<string>("");
@@ -689,10 +689,42 @@ export const PublicSchoolWebsite: React.FC = () => {
                 </h4>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
                   {[
-                    { label: "মোট শিক্ষার্থী", value: content.studentCount || "১,৫০০+", icon: Users, color: "text-[#006a4e] bg-emerald-50" },
-                    { label: "শিক্ষকমণ্ডলী", value: content.teacherCount || "৫২", icon: GraduationCap, color: "text-blue-700 bg-blue-50" },
-                    { label: "কর্মচারীবৃন্দ", value: content.staffCount || "১৬", icon: HeartHandshake, color: "text-teal-700 bg-teal-50" },
-                    { label: "শ্রেণি কক্ষ", value: content.classCount || "২৪", icon: BookOpen, color: "text-amber-700 bg-amber-50" },
+                    {
+                      label: "মোট শিক্ষার্থী",
+                      value:
+                        liveCounts && typeof liveCounts.students === "number"
+                          ? formatDigits(liveCounts.students.toLocaleString())
+                          : content.studentCount || "১,৫০০+",
+                      icon: Users,
+                      color: "text-[#006a4e] bg-emerald-50",
+                    },
+                    {
+                      label: "শিক্ষকমণ্ডলী",
+                      value:
+                        liveCounts && typeof liveCounts.teachers === "number"
+                          ? formatDigits(liveCounts.teachers.toLocaleString())
+                          : content.teacherCount || "৫২",
+                      icon: GraduationCap,
+                      color: "text-blue-700 bg-blue-50",
+                    },
+                    {
+                      label: "কর্মচারীবৃন্দ",
+                      value:
+                        liveCounts && typeof liveCounts.staff === "number"
+                          ? formatDigits(liveCounts.staff.toLocaleString())
+                          : content.staffCount || "১৬",
+                      icon: HeartHandshake,
+                      color: "text-teal-700 bg-teal-50",
+                    },
+                    {
+                      label: "শ্রেণি কক্ষ",
+                      value:
+                        liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
+                          ? formatDigits(liveCounts.classes.toLocaleString())
+                          : content.classCount || "২৪",
+                      icon: BookOpen,
+                      color: "text-amber-700 bg-amber-50",
+                    },
                     { label: "পাসের হার", value: content.passRate || "১০০%", icon: Award, color: "text-emerald-700 bg-emerald-50" },
                     { label: "জিপিএ-৫", value: content.gpa5Count || "১২৫+", icon: CheckCircle2, color: "text-purple-700 bg-purple-50" },
                   ].map((stat, i) => {

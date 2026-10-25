@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -38,11 +38,17 @@ const EMERGENCY_HOTLINES = [
 ];
 
 export const HomePage: React.FC = () => {
-  const { websiteContent: content, lang, t, formatDigits } = useSiteSettings();
+  const { websiteContent: content, lang, t, formatDigits, liveCounts, refreshLiveCounts } = useSiteSettings();
   const [activeNoticeCategory, setActiveNoticeCategory] = useState<string>("সকল");
   const [noticeSearch, setNoticeSearch] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
+
+  useEffect(() => {
+    if (!liveCounts) {
+      void refreshLiveCounts();
+    }
+  }, [liveCounts, refreshLiveCounts]);
 
   const noticeCategories = useMemo(() => {
     return lang === "bn"
@@ -194,25 +200,45 @@ export const HomePage: React.FC = () => {
                 {[
                   {
                     label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
-                    value: lang === "bn" ? (content.studentCount || "১,৫০০+") : (content.studentCountEn || "1,500+"),
+                    value:
+                      liveCounts && typeof liveCounts.students === "number"
+                        ? formatDigits(liveCounts.students.toLocaleString())
+                        : lang === "bn"
+                        ? (content.studentCount || "১,৫০০+")
+                        : (content.studentCountEn || "1,500+"),
                     icon: Users,
                     color: "text-[#006a4e] bg-emerald-50",
                   },
                   {
                     label: lang === "bn" ? "শিক্ষকমণ্ডলী" : "Faculty",
-                    value: lang === "bn" ? (content.teacherCount || "৫২") : (content.teacherCountEn || "52"),
+                    value:
+                      liveCounts && typeof liveCounts.teachers === "number"
+                        ? formatDigits(liveCounts.teachers.toLocaleString())
+                        : lang === "bn"
+                        ? (content.teacherCount || "৫২")
+                        : (content.teacherCountEn || "52"),
                     icon: GraduationCap,
                     color: "text-blue-700 bg-blue-50",
                   },
                   {
                     label: lang === "bn" ? "কর্মচারীবৃন্দ" : "Staff",
-                    value: lang === "bn" ? (content.staffCount || "১৬") : (content.staffCountEn || "16"),
+                    value:
+                      liveCounts && typeof liveCounts.staff === "number"
+                        ? formatDigits(liveCounts.staff.toLocaleString())
+                        : lang === "bn"
+                        ? (content.staffCount || "১৬")
+                        : (content.staffCountEn || "16"),
                     icon: HeartHandshake,
                     color: "text-teal-700 bg-teal-50",
                   },
                   {
                     label: lang === "bn" ? "শ্রেণি কক্ষ" : "Classrooms",
-                    value: lang === "bn" ? (content.classCount || "২৪") : (content.classCountEn || "24"),
+                    value:
+                      liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
+                        ? formatDigits(liveCounts.classes.toLocaleString())
+                        : lang === "bn"
+                        ? (content.classCount || "২৪")
+                        : (content.classCountEn || "24"),
                     icon: BookOpen,
                     color: "text-amber-700 bg-amber-50",
                   },

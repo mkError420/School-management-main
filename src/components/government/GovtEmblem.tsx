@@ -18,7 +18,7 @@ export const BdGovEmblem: React.FC<{ className?: string; size?: number }> = ({ c
       <circle cx="50" cy="50" r="41" fill="#DA291C" />
       {/* Gold Rim */}
       <circle cx="50" cy="50" r="38" fill="#006A4E" stroke="#F4C430" strokeWidth="1.5" />
-      
+
       {/* Central Water Lily (Shapla) */}
       <path
         d="M50 25 C45 35, 42 45, 50 56 C58 45, 55 35, 50 25 Z"
@@ -40,7 +40,7 @@ export const BdGovEmblem: React.FC<{ className?: string; size?: number }> = ({ c
         d="M50 43 C63 46, 74 55, 77 62 C66 62, 58 56, 50 56 Z"
         fill="#FFFFFF"
       />
-      
+
       {/* Water Waves beneath Shapla */}
       <path
         d="M26 67 Q38 63 50 67 T74 67"
@@ -80,7 +80,7 @@ export const SmartBdBadge: React.FC<{ className?: string }> = ({ className = "h-
   return (
     <div className={`inline-flex items-center gap-2 rounded-full border border-emerald-600/30 bg-emerald-50/80 px-3 py-1 text-xs text-emerald-900 shadow-xs ${className}`}>
       <span className="flex h-2 w-2 rounded-full bg-red-600 animate-pulse" />
-      <span className="font-semibold text-[11px] tracking-wide">স্মার্ট বাংলাদেশ · ডিজিটাল শিক্ষা</span>
+      <span className="font-semibold text-[11px] tracking-wide">সবার আগে বাংলাদেশ · ডিজিটাল শিক্ষায় গড়বো দেশ</span>
     </div>
   );
 };
