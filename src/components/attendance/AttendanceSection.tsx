@@ -813,7 +813,7 @@ export const AttendanceSection: React.FC = () => {
                         Class {cls.name}
                       </h3>
                       <p className="text-xs text-slate-400 dark:text-slate-500">
-                        {cls.grade_level ? `Grade ${cls.grade_level}` : "Academic Class"}
+                        Academic Class
                       </p>
                     </div>
                   </div>

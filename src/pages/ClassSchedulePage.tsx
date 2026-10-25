@@ -1375,9 +1375,6 @@ const ClassSchedulePage: React.FC = () => {
                         <p className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
                           {detailsLesson.class_name || `Class ${detailsLesson.class_id}`}
                         </p>
-                        {detailsLesson.grade_level && (
-                          <p className="text-xs text-gray-500">Grade Level {detailsLesson.grade_level}</p>
-                        )}
                       </div>
 
                       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3">

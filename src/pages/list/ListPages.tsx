@@ -76,7 +76,6 @@ export const ClassesPage: React.FC = () => {
   const cols = [
     { header: "Class Name", accessor: "name" },
     { header: "Capacity", accessor: "capacity", className: "hidden md:table-cell" },
-    { header: "Grade", accessor: "grade_level", className: "hidden md:table-cell" },
     { header: "Supervisor", accessor: "supervisor", className: "hidden md:table-cell" },
     { header: "Actions", accessor: "actions" },
   ];
@@ -85,7 +84,6 @@ export const ClassesPage: React.FC = () => {
     <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-sm hover:bg-primary-50 dark:hover:bg-[#1a2332] transition dark:text-gray-200">
       <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">{item.name}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.capacity}</td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">Grade {item.grade_level || item.grade_id}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.supervisor_name ? `${item.supervisor_name} ${item.supervisor_surname}` : "—"}
       </td>

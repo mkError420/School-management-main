@@ -82,7 +82,6 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "name", label: "Class name", required: true },
     { name: "capacity", label: "Capacity", type: "number", required: true, min: 1 },
     { name: "supervisor_id", label: "Supervisor", type: "select", required: true, resource: "teachers" },
-    { name: "grade_id", label: "Grade", type: "select", required: true, resource: "grades" },
   ],
   lesson: [
     { name: "name", label: "Lesson name", required: true },

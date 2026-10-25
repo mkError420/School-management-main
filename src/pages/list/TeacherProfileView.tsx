@@ -246,7 +246,7 @@ const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({ details, onRelo
       <div className="grid gap-3 xl:grid-cols-2">
         <section id="teacher-classes" className="rounded-md border border-gray-100 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between"><h2 className="text-base font-semibold text-gray-900">Classes</h2><span className="text-xs text-gray-500">{allClasses.length}</span></div>
-          {allClasses.length ? <div className="mt-3 divide-y divide-gray-100">{allClasses.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 text-sm"><span className="font-medium text-gray-800">{item.name}</span><span className="text-xs text-gray-500">{item.grade_level ? `Grade ${item.grade_level}` : "Grade not set"}{details.supervised_classes.some((entry) => String(entry.id) === String(item.id)) ? " · Supervisor" : " · Teacher"}</span></div>)}</div> : <p className="mt-3 text-sm text-gray-500">No classes assigned.</p>}
+          {allClasses.length ? <div className="mt-3 divide-y divide-gray-100">{allClasses.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-2.5 text-sm"><span className="font-medium text-gray-800">{item.name}</span><span className="text-xs text-gray-500">{details.supervised_classes.some((entry) => String(entry.id) === String(item.id)) ? "Supervisor" : "Teacher"}</span></div>)}</div> : <p className="mt-3 text-sm text-gray-500">No classes assigned.</p>}
         </section>
 
         <section id="teacher-students" className="rounded-md border border-gray-100 bg-white p-4 shadow-sm">

@@ -592,10 +592,18 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
    Print
    ========================================================================== */
 @media print {
+  @page {
+    margin: 8mm 10mm;
+    size: auto;
+  }
+
   .no-print,
+  .print\:hidden,
   aside,
   header,
   nav,
+  #navbar,
+  [role="navigation"],
   button:not(.print-include) {
     display: none !important;
   }
@@ -603,6 +611,9 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     font-family: 'SolaimanLipi', 'Hind Siliguri', 'Noto Sans Bengali', 'Inter', sans-serif !important;
     background-color: #ffffff !important;
     color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
   }
   .print-area {
     width: 100% !important;
@@ -623,6 +634,43 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     visibility: visible !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* ── Fee Receipt Print Isolation ── */
+  body.printing-receipt-active,
+  body:has(#printable-receipt) {
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.printing-receipt-active *,
+  body:has(#printable-receipt) * {
+    visibility: hidden;
+  }
+
+  body.printing-receipt-active #printable-receipt,
+  body.printing-receipt-active #printable-receipt *,
+  body:has(#printable-receipt) #printable-receipt,
+  body:has(#printable-receipt) #printable-receipt * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.printing-receipt-active #printable-receipt,
+  body:has(#printable-receipt) #printable-receipt {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
   }
 }
 

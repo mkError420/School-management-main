@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -117,6 +117,17 @@ const FeesSection: React.FC = () => {
   const [paymentModalInvoice, setPaymentModalInvoice] = useState<FeeInvoice | null>(null);
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
   const [categoryModal, setCategoryModal] = useState<{ open: boolean; mode: "create" | "edit"; data?: FeeCategory | null }>({ open: false, mode: "create", data: null });
+
+  useEffect(() => {
+    if (receiptData) {
+      document.body.classList.add("printing-receipt-active");
+    } else {
+      document.body.classList.remove("printing-receipt-active");
+    }
+    return () => {
+      document.body.classList.remove("printing-receipt-active");
+    };
+  }, [receiptData]);
   const [editInvoiceModal, setEditInvoiceModal] = useState<FeeInvoice | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: "invoice" | "category"; id: number | string; label: string }>({ open: false, type: "invoice", id: 0, label: "" });
 
@@ -2552,10 +2563,10 @@ const FeesSection: React.FC = () => {
 
       {/* MODAL: PRINTABLE RECEIPT VOUCHER */}
       {receiptData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto print:static print:inset-auto print:p-0 print:m-0 print:bg-white print:overflow-visible">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 print:my-0 print:p-0 print:max-w-none print:w-full print:shadow-none print:rounded-none animate-in fade-in duration-200">
             {/* Top Toolbar (Non-printable) */}
-            <div className="p-4 bg-gray-900 text-white flex items-center justify-between print:hidden">
+            <div className="p-4 bg-gray-900 text-white flex items-center justify-between no-print print:hidden">
               <div className="flex items-center gap-2">
                 <Receipt size={18} className="text-[#a4b3c7]" />
                 <span className="font-bold text-sm">Official Fee Receipt Voucher</span>
@@ -2578,7 +2589,7 @@ const FeesSection: React.FC = () => {
             </div>
 
             {/* Printable Receipt Body */}
-            <div id="printable-receipt" className="p-8 text-gray-800 bg-white">
+            <div id="printable-receipt" className="p-8 text-gray-800 bg-white print:p-0 print:m-0">
               {/* Receipt Header */}
               <div className="border-b-2 border-[#707E94] pb-5 mb-5 flex items-start justify-between">
                 <div>
@@ -2589,7 +2600,7 @@ const FeesSection: React.FC = () => {
                     Official Fee Payment Receipt
                   </div>
                   <div className="text-[11px] text-gray-500 mt-1">
-                    Academic Year: {receiptData.academic_year || "2026-2027"} â€¢ Accounts Division
+                    Academic Year: {receiptData.academic_year || "2026-2027"} • Accounts Division
                   </div>
                 </div>
 

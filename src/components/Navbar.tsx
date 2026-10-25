@@ -49,7 +49,7 @@ const Navbar: React.FC = () => {
   }, [location.pathname, role]);
 
   return (
-    <div className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900 shadow-xs border-b border-gray-200 dark:border-slate-800 transition-colors">
+    <header className="no-print print:hidden flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 bg-white dark:bg-slate-900 shadow-xs border-b border-gray-200 dark:border-slate-800 transition-colors">
       {/* Left side: Hamburger button (mobile) / Collapse button (desktop) + Searchbar */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {/* Mobile Hamburger Button */}
@@ -156,7 +156,7 @@ const Navbar: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 

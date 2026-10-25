@@ -164,11 +164,18 @@ function createClass($db) {
     
     $input = json_decode(file_get_contents('php://input'), true);
     
-    $required = ['name', 'capacity', 'supervisor_id', 'grade_id'];
+    $required = ['name', 'capacity', 'supervisor_id'];
     foreach ($required as $field) {
         if (empty($input[$field])) {
             Response::error("Field '{$field}' is required");
         }
+    }
+
+    // Auto-resolve grade_id if not provided to preserve database foreign key integrity
+    $gradeId = !empty($input['grade_id']) ? intval($input['grade_id']) : null;
+    if (!$gradeId) {
+        $firstGrade = $db->fetchOne("SELECT id FROM grades ORDER BY id ASC LIMIT 1");
+        $gradeId = $firstGrade ? intval($firstGrade['id']) : 1;
     }
     
     try {
@@ -176,7 +183,7 @@ function createClass($db) {
             'name' => $input['name'],
             'capacity' => $input['capacity'],
             'supervisor_id' => $input['supervisor_id'],
-            'grade_id' => $input['grade_id']
+            'grade_id' => $gradeId
         ]);
         
         // Get the created class
