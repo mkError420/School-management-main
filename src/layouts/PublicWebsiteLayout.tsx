@@ -344,17 +344,6 @@ export const PublicWebsiteLayout: React.FC = () => {
                 </NavLink>
               ))}
             </div>
-
-            <div className="flex w-full items-center justify-between py-2 sm:w-auto sm:py-0">
-              <span className="text-xs font-semibold text-emerald-200 sm:hidden">এম. কে. সরকারি স্কুল বাতায়ন</span>
-              <Link
-                to="/sign-in"
-                className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3.5 py-1.5 text-xs font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047]"
-              >
-                <GraduationCap size={15} />
-                <span>{lang === "bn" ? "লগইন" : "Login"}</span>
-              </Link>
-            </div>
           </div>
 
           {/* Mobile Drawer */}
