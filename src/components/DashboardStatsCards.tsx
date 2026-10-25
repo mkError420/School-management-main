@@ -28,7 +28,8 @@ interface DashboardCounts {
   parents: number;
   staff: number;
   classes: number;
-  lessons: number;
+  subjects?: number;
+  lessons?: number;
 }
 
 interface FinanceSummary {
@@ -218,6 +219,7 @@ const DashboardStatsCards: React.FC = () => {
           parents: Number(d.counts?.parents ?? 0),
           staff: Number(d.counts?.staff ?? 0),
           classes: Number(d.counts?.classes ?? 0),
+          subjects: Number(d.counts?.subjects ?? 0),
           lessons: Number(d.counts?.lessons ?? 0),
         };
         setCounts(newCounts);
@@ -317,16 +319,16 @@ const DashboardStatsCards: React.FC = () => {
       description: "Manage classes",
     },
     {
-      key: "lessons",
-      label: "Lessons",
+      key: "subjects",
+      label: "Subjects",
       icon: <BookOpen size={20} className="text-white" />,
-      value: counts?.lessons ?? 0,
-      href: "/list/lessons",
+      value: counts?.subjects ?? 0,
+      href: "/list/subjects",
       gradient: "bg-gradient-to-br from-[#485262] to-[#363c46]",
       iconBg: "bg-white/20",
       textColor: "text-white",
       badgeColor: "bg-white/20 text-white",
-      description: "View lesson plan",
+      description: "Manage subjects",
     },
   ];
 

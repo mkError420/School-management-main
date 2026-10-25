@@ -160,7 +160,7 @@ const App: React.FC = () => {
           <Route path="list/parents" element={<ParentsPage />} />
           <Route path="list/subjects" element={<SubjectsPage />} />
           <Route path="list/classes" element={<ClassesPage />} />
-          <Route path="list/lessons" element={<LessonsPage />} />
+          <Route path="list/lessons" element={<Navigate to="/class-schedule" replace />} />
           <Route path="list/exams" element={<ExamsPage />} />
           <Route path="list/assignments" element={<AssignmentsPage />} />
           <Route path="list/results" element={<ResultsPage />} />

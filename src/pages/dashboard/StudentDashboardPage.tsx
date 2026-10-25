@@ -224,7 +224,7 @@ const StudentDashboardPage: React.FC = () => {
                   {data.lessons?.length || 0}
                 </span>
               </div>
-              <p className={`text-[11px] font-medium ${textMuted}`}>Lessons</p>
+              <p className={`text-[11px] font-medium ${textMuted}`}>Schedule</p>
             </div>
 
             <div className="p-3 md:p-4 text-center">

@@ -182,7 +182,7 @@ const TeacherDashboardPage: React.FC = () => {
             {[
               { label: "Subjects", value: data.subjects.length, icon: <BookOpen size={15} className="text-indigo-500" /> },
               { label: "Classes", value: data.classes.length, icon: <Layers3 size={15} className="text-violet-500" /> },
-              { label: "Lessons", value: data.lessons.length, icon: <CalendarDays size={15} className="text-sky-500" /> },
+              { label: "Schedule", value: data.lessons.length, icon: <CalendarDays size={15} className="text-sky-500" /> },
               { label: "Students", value: data.students.length, icon: <Users size={15} className="text-emerald-500" /> },
             ].map((stat) => (
               <div key={stat.label} className="p-3 md:p-4 text-center">

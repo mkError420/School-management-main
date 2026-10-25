@@ -66,12 +66,6 @@ const menuItems = [
         href: "/list/classes",
         visible: ["admin", "teacher"],
       },
-      {
-        icon: "/lesson.png",
-        label: "Lessons",
-        href: "/list/lessons",
-        visible: ["admin", "teacher"],
-      },
     ],
   },
   {

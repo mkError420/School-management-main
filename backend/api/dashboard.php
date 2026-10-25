@@ -69,6 +69,7 @@ try {
     }
     $classCount = $db->fetchOne("SELECT COUNT(*) as total FROM classes")['total'] ?? 0;
     $lessonCount = $db->fetchOne("SELECT COUNT(*) as total FROM lessons")['total'] ?? 0;
+    $subjectCount = $db->fetchOne("SELECT COUNT(*) as total FROM subjects")['total'] ?? 0;
 
     // 2. Gender distribution
     $boysCount = $db->fetchOne("SELECT COUNT(*) as total FROM students WHERE sex = 'MALE'")['total'] ?? 0;
@@ -133,6 +134,7 @@ try {
             'parents' => $parentCount,
             'staff' => $staffCount,
             'classes' => $classCount,
+            'subjects' => $subjectCount,
             'lessons' => $lessonCount
         ],
         'gender' => [
