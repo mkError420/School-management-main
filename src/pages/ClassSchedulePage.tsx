@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { hasAdminAccess, useAuth } from "@/context/AuthContext";
+import GoogleFormScheduleEditor from "@/components/schedule/GoogleFormScheduleEditor";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 export type ScheduleLesson = {
@@ -260,7 +261,7 @@ const ClassSchedulePage: React.FC = () => {
   const [selectedTeacherId, setSelectedTeacherId] = useState("all");
   const [selectedDayFilter, setSelectedDayFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "agenda" | "calendar">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "agenda" | "calendar" | "form">("grid");
 
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
@@ -276,6 +277,7 @@ const ClassSchedulePage: React.FC = () => {
   const [lessonDraft, setLessonDraft] = useState<LessonDraft>(emptyLessonDraft);
   const [savingLesson, setSavingLesson] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [formSuccess, setFormSuccess] = useState<string | null>(null);
 
   // Delete Confirmation Modal
   const [lessonToDelete, setLessonToDelete] = useState<ScheduleLesson | null>(null);
@@ -525,6 +527,7 @@ const ClassSchedulePage: React.FC = () => {
       subject_id: String(subjects[0]?.id || ""),
     });
     setFormError(null);
+    setFormSuccess(null);
     setEditorOpen(true);
   };
 
@@ -540,6 +543,7 @@ const ClassSchedulePage: React.FC = () => {
       teacher_id: lesson.teacher_id,
     });
     setFormError(null);
+    setFormSuccess(null);
     setEditorOpen(true);
     setDetailsLesson(null);
   };
@@ -547,9 +551,10 @@ const ClassSchedulePage: React.FC = () => {
   const saveLesson = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFormError(null);
+    setFormSuccess(null);
 
     if (!lessonDraft.name.trim() || !lessonDraft.class_id || !lessonDraft.teacher_id || !lessonDraft.subject_id) {
-      setFormError("Please fill out all required fields.");
+      setFormError("Please fill out all required fields marked with *.");
       return;
     }
     if (lessonDraft.end_time <= lessonDraft.start_time) {
@@ -573,8 +578,24 @@ const ClassSchedulePage: React.FC = () => {
         setFormError(res.message || "Failed to save lesson schedule.");
         return;
       }
+      setFormSuccess(
+        editingLessonId
+          ? "Lesson schedule successfully updated in Master Class Schedule."
+          : "New lesson routine successfully added to Master Class Schedule."
+      );
       setEditorOpen(false);
       setReloadKey((v) => v + 1);
+
+      if (viewMode === "form") {
+        setLessonDraft({
+          ...emptyLessonDraft,
+          day: selectedDayFilter !== "all" ? selectedDayFilter : "MONDAY",
+          class_id: selectedClassId === "all" ? String(classes[0]?.id || "") : selectedClassId,
+          teacher_id: selectedTeacherId === "all" ? teachers[0]?.id || "" : selectedTeacherId,
+          subject_id: String(subjects[0]?.id || ""),
+        });
+        setEditingLessonId(null);
+      }
     } catch {
       setFormError("Unable to reach the server. Please try again.");
     } finally {
@@ -687,10 +708,10 @@ const ClassSchedulePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openNewLesson()}
-                className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-sky-600/20 hover:bg-sky-700 transition"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#673ab7] hover:bg-[#5e35b1] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-md shadow-purple-600/20 transition"
               >
                 <Plus size={16} />
-                <span>Add Lesson</span>
+                <span>Add Lesson (Google Form)</span>
               </button>
             )}
           </div>
@@ -907,6 +928,21 @@ const ClassSchedulePage: React.FC = () => {
                 <CalendarIcon size={14} />
                 <span className="hidden sm:inline">Calendar</span>
               </button>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => setViewMode("form")}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                    viewMode === "form"
+                      ? "bg-[#673ab7] text-white shadow-sm font-semibold"
+                      : "text-purple-700 dark:text-purple-400 hover:text-purple-900 dark:hover:text-purple-200"
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>Google Form</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -988,6 +1024,158 @@ const ClassSchedulePage: React.FC = () => {
             <RefreshCw className="animate-spin text-sky-600" size={32} />
             <p className="text-sm font-medium">Loading schedule...</p>
           </div>
+        ) : viewMode === "form" && isAdmin ? (
+          /* GOOGLE FORM VIEW (IN-PAGE WORKSPACE) */
+          <div className="bg-[#f0ebf8]/60 dark:bg-slate-950 p-4 sm:p-8 space-y-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 max-w-3xl mx-auto">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#673ab7] animate-pulse" />
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
+                  Class Schedule Options · Google Form Structure
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {editingLessonId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingLessonId(null);
+                      setLessonDraft({
+                        ...emptyLessonDraft,
+                        day: selectedDayFilter !== "all" ? selectedDayFilter : "MONDAY",
+                        class_id: selectedClassId === "all" ? String(classes[0]?.id || "") : selectedClassId,
+                        teacher_id: selectedTeacherId === "all" ? teachers[0]?.id || "" : selectedTeacherId,
+                        subject_id: String(subjects[0]?.id || ""),
+                      });
+                      setFormError(null);
+                      setFormSuccess(null);
+                    }}
+                    className="text-xs font-semibold text-purple-700 dark:text-purple-300 hover:underline inline-flex items-center gap-1"
+                  >
+                    + New Routine Form
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className="rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-900 px-3 py-1.5 text-xs font-medium text-purple-700 dark:text-purple-300 hover:bg-purple-50 shadow-xs"
+                >
+                  View Timetable Grid
+                </button>
+              </div>
+            </div>
+
+            <GoogleFormScheduleEditor
+              lessonDraft={lessonDraft}
+              setLessonDraft={setLessonDraft}
+              classes={classes}
+              teachers={teachers}
+              subjects={subjects}
+              editingLessonId={editingLessonId}
+              savingLesson={savingLesson}
+              formError={formError}
+              formSuccess={formSuccess}
+              onSave={saveLesson}
+              onReset={() => {
+                setLessonDraft({
+                  ...emptyLessonDraft,
+                  day: selectedDayFilter !== "all" ? selectedDayFilter : "MONDAY",
+                  class_id: selectedClassId === "all" ? String(classes[0]?.id || "") : selectedClassId,
+                  teacher_id: selectedTeacherId === "all" ? teachers[0]?.id || "" : selectedTeacherId,
+                  subject_id: String(subjects[0]?.id || ""),
+                });
+                setEditingLessonId(null);
+                setFormError(null);
+                setFormSuccess(null);
+              }}
+            />
+
+            {/* Quick Live Preview Table of Routines */}
+            <div className="max-w-3xl mx-auto rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5 sm:p-6 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                <div>
+                  <h4 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
+                    Master Class Schedule Directory ({visibleSchedule.length} Routines)
+                  </h4>
+                  <p className="text-xs text-gray-500">
+                    Click "Edit in Form" on any routine to populate and adjust its schedule options above.
+                  </p>
+                </div>
+                <span className="rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 text-xs px-2.5 py-0.5 font-semibold">
+                  Live Synced
+                </span>
+              </div>
+
+              {visibleSchedule.length === 0 ? (
+                <p className="text-xs text-gray-400 italic py-4 text-center">
+                  No routines found. Submit the Google Form above to add your first lesson routine.
+                </p>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-96 overflow-y-auto">
+                  {visibleSchedule.map((lesson) => {
+                    const palette = getSubjectColor(lesson.subject_name || lesson.name, lesson.id);
+                    const duration = calculateDuration(lesson.start_time, lesson.end_time);
+                    const isBeingEdited = editingLessonId === lesson.id;
+
+                    return (
+                      <div
+                        key={lesson.id}
+                        className={`flex flex-wrap items-center justify-between gap-3 py-3 px-2 rounded-lg transition ${
+                          isBeingEdited
+                            ? "bg-purple-50 dark:bg-purple-950/40 border-l-4 border-l-[#673ab7]"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                        }`}
+                      >
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs uppercase px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                              {DAY_LABELS[lesson.day] || lesson.day}
+                            </span>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${palette.badge}`}>
+                              {lesson.subject_name || "Subject"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {formatTime12h(lesson.start_time)} – {formatTime12h(lesson.end_time)} ({duration}m)
+                            </span>
+                          </div>
+                          <p className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                            {lesson.name || lesson.title || lesson.subject_name}
+                          </p>
+                          <p className="text-xs text-gray-500 flex items-center gap-2">
+                            <span>Cohort: <strong>{lesson.class_name || `Class ${lesson.class_id}`}</strong></span>
+                            <span>•</span>
+                            <span>Teacher: <strong>{[lesson.teacher_name, lesson.teacher_surname].filter(Boolean).join(" ") || "Unassigned"}</strong></span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              openEditLesson(lesson);
+                              setEditorOpen(false);
+                              window.scrollTo({ top: 350, behavior: "smooth" });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-800 px-2.5 py-1 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-50 transition"
+                          >
+                            <Pencil size={12} />
+                            <span>Edit in Form</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLessonToDelete(lesson)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 dark:border-red-900/60 bg-white dark:bg-gray-800 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 transition"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         ) : visibleSchedule.length === 0 ? (
           <div className="flex h-80 flex-col items-center justify-center gap-3 p-6 text-center">
             <CalendarDays size={42} className="text-gray-400" />
@@ -997,9 +1185,9 @@ const ClassSchedulePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => openNewLesson()}
-                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-sky-600 px-4 py-2 text-xs font-semibold text-white hover:bg-sky-700 transition"
+                className="mt-2 inline-flex items-center gap-2 rounded-lg bg-[#673ab7] hover:bg-[#5e35b1] px-4 py-2 text-xs font-semibold text-white transition"
               >
-                <Plus size={15} /> Add Lesson
+                <Plus size={15} /> Add Lesson (Google Form)
               </button>
             )}
           </div>
@@ -1490,201 +1678,51 @@ const ClassSchedulePage: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 2: ADD / EDIT LESSON MODAL (ADMIN ONLY) */}
+      {/* MODAL 2: ADD / EDIT LESSON MODAL (ADMIN ONLY - GOOGLE FORM DESIGN) */}
       {editorOpen && isAdmin && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto animate-in fade-in"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget && !savingLesson) setEditorOpen(false);
           }}
         >
-          <section
-            role="dialog"
-            aria-modal="true"
-            className="w-full max-w-xl rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
-          >
-            <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 px-6 py-4 bg-gray-50/80 dark:bg-gray-800/80">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {editingLessonId ? "Edit Lesson Schedule" : "Add New Lesson Schedule"}
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  Assign a classroom period, instructor, and subject. Conflicts are prevented automatically.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditorOpen(false)}
-                disabled={savingLesson}
-                className="rounded-lg p-1 text-gray-400 hover:text-gray-600"
-              >
-                <X size={18} />
-              </button>
-            </header>
+          <div className="relative w-full max-w-3xl my-auto py-6">
+            <button
+              type="button"
+              onClick={() => setEditorOpen(false)}
+              disabled={savingLesson}
+              className="absolute top-2 right-2 sm:-top-2 sm:-right-2 z-20 rounded-full bg-white dark:bg-gray-800 p-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white shadow-lg border border-gray-200 dark:border-gray-700 transition"
+              title="Close form"
+            >
+              <X size={18} />
+            </button>
 
-            <form onSubmit={saveLesson} className="p-6 space-y-4">
-              {formError && (
-                <div role="alert" className="flex items-center gap-2.5 rounded-lg border border-red-200 bg-red-50 p-3 text-xs sm:text-sm text-red-700">
-                  <AlertCircle size={16} className="shrink-0" />
-                  <span>{formError}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Lesson / Topic Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  required
-                  maxLength={255}
-                  placeholder="e.g. Mathematics 101, Advanced Chemistry..."
-                  value={lessonDraft.name}
-                  onChange={(e) => setLessonDraft({ ...lessonDraft, name: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3.5 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Day of the Week <span className="text-red-500">*</span>
-                </label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {SCHOOL_DAYS.map((day) => (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => setLessonDraft({ ...lessonDraft, day })}
-                      className={`py-2 px-1 text-xs font-semibold rounded-lg border transition text-center ${
-                        lessonDraft.day === day
-                          ? "bg-sky-600 text-white border-sky-600 shadow-sm"
-                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100"
-                      }`}
-                    >
-                      {DAY_LABELS[day]?.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Subject <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={lessonDraft.subject_id}
-                    onChange={(e) => setLessonDraft({ ...lessonDraft, subject_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                  >
-                    <option value="">Select subject</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Class / Section <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={lessonDraft.class_id}
-                    onChange={(e) => setLessonDraft({ ...lessonDraft, class_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                  >
-                    <option value="">Select class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                  Instructor / Teacher <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={lessonDraft.teacher_id}
-                  onChange={(e) => setLessonDraft({ ...lessonDraft, teacher_id: e.target.value })}
-                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                >
-                  <option value="">Select teacher</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} {t.surname}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    Start Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    required
-                    type="time"
-                    value={lessonDraft.start_time}
-                    onChange={(e) => setLessonDraft({ ...lessonDraft, start_time: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-                    End Time <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    required
-                    type="time"
-                    value={lessonDraft.end_time}
-                    onChange={(e) => setLessonDraft({ ...lessonDraft, end_time: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-sky-500"
-                  />
-                </div>
-              </div>
-
-              {lessonDraft.start_time && lessonDraft.end_time && (
-                <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-2.5 border border-gray-200 dark:border-gray-700">
-                  <span className="flex items-center gap-1.5">
-                    <Clock3 size={14} className="text-sky-600" />
-                    Session Duration:
-                  </span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
-                    {calculateDuration(lessonDraft.start_time, lessonDraft.end_time)} minutes
-                  </span>
-                </div>
-              )}
-
-              <footer className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setEditorOpen(false)}
-                  disabled={savingLesson}
-                  className="rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingLesson}
-                  className="inline-flex items-center gap-2 rounded-lg bg-sky-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-sky-700 transition disabled:opacity-50"
-                >
-                  <Save size={14} />
-                  {savingLesson ? "Saving..." : editingLessonId ? "Save Changes" : "Save Lesson"}
-                </button>
-              </footer>
-            </form>
-          </section>
+            <GoogleFormScheduleEditor
+              lessonDraft={lessonDraft}
+              setLessonDraft={setLessonDraft}
+              classes={classes}
+              teachers={teachers}
+              subjects={subjects}
+              editingLessonId={editingLessonId}
+              savingLesson={savingLesson}
+              formError={formError}
+              formSuccess={formSuccess}
+              onSave={saveLesson}
+              onCancel={() => setEditorOpen(false)}
+              onReset={() => {
+                setLessonDraft({
+                  ...emptyLessonDraft,
+                  day: selectedDayFilter !== "all" ? selectedDayFilter : "MONDAY",
+                  class_id: selectedClassId === "all" ? String(classes[0]?.id || "") : selectedClassId,
+                  teacher_id: selectedTeacherId === "all" ? teachers[0]?.id || "" : selectedTeacherId,
+                  subject_id: String(subjects[0]?.id || ""),
+                });
+                setFormError(null);
+                setFormSuccess(null);
+              }}
+              isModal
+            />
+          </div>
         </div>
       )}
 
