@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertCircle,
@@ -112,7 +112,152 @@ const WebsiteContentPage: React.FC = () => {
   const [noticeSearch, setNoticeSearch] = useState("");
   const [downloadSearch, setDownloadSearch] = useState("");
   const [showDirectPageLinks, setShowDirectPageLinks] = useState(false);
+  const [syncingStaff, setSyncingStaff] = useState(false);
+  const [liveStaffStats, setLiveStaffStats] = useState<{
+    total: number;
+    teaching: number;
+    admin: number;
+    support: number;
+  } | null>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
+
+  const loadLiveStaffStats = useCallback(async () => {
+    try {
+      const res = await api.getPublicStaffDirectory();
+      if (res.success && Array.isArray(res.data?.staff)) {
+        const staff = res.data.staff;
+        const total = staff.length;
+        const teaching = staff.filter((s: any) => s.type === "TEACHING").length;
+        const admin = staff.filter((s: any) => s.type === "ADMINISTRATIVE").length;
+        const support = staff.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
+        setLiveStaffStats({ total, teaching, admin, support });
+        return staff;
+      }
+    } catch { }
+
+    try {
+      const stored = localStorage.getItem("mk_school_staff_list");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const total = parsed.length;
+          const teaching = parsed.filter((s: any) => s.type === "TEACHING").length;
+          const admin = parsed.filter((s: any) => s.type === "ADMINISTRATIVE").length;
+          const support = parsed.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
+          setLiveStaffStats({ total, teaching, admin, support });
+          return parsed;
+        }
+      }
+    } catch { }
+    return [];
+  }, []);
+
+  useEffect(() => {
+    void loadLiveStaffStats();
+  }, [loadLiveStaffStats]);
+
+  const handleSyncFromStaffDirectory = async () => {
+    setSyncingStaff(true);
+    setFeedback({
+      type: "info",
+      message: "Staff & Faculty Directory থেকে সকল শিক্ষক ও কর্মচারীর তথ্য সিঙ্ক করা হচ্ছে...",
+    });
+
+    try {
+      let rawStaff: any[] = [];
+      const res = await api.getPublicStaffDirectory();
+      if (res.success && Array.isArray(res.data?.staff) && res.data.staff.length > 0) {
+        rawStaff = res.data.staff;
+      } else {
+        const adminStaffRes = await api.getAll("staff", { limit: 200 });
+        if (adminStaffRes.success && Array.isArray(adminStaffRes.data?.staff) && adminStaffRes.data.staff.length > 0) {
+          rawStaff = adminStaffRes.data.staff;
+        }
+      }
+
+      if (rawStaff.length === 0) {
+        const stored = localStorage.getItem("mk_school_staff_list");
+        if (stored) {
+          try {
+            rawStaff = JSON.parse(stored);
+          } catch { }
+        }
+      }
+
+      if (rawStaff.length === 0) {
+        setFeedback({
+          type: "error",
+          message: "Staff & Faculty Directory-তে কোনো তথ্য পাওয়া যায়নি। প্রথমে Staff সেকশনে শিক্ষক ও কর্মচারী যুক্ত করুন।",
+        });
+        return;
+      }
+
+      const mappedTeachers: SchoolTeacherMember[] = rawStaff.map((s, idx) => {
+        const firstName = (s.name || "").trim();
+        const surName = (s.surname || "").trim();
+        const fullNameEn = surName ? `${firstName} ${surName}` : firstName;
+        const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
+
+        const isTeaching = s.type === "TEACHING";
+        const isAdmin = s.type === "ADMINISTRATIVE";
+        const category: "শিক্ষক" | "প্রশাসন" | "কর্মচারী" = isTeaching
+          ? "শিক্ষক"
+          : isAdmin
+            ? "প্রশাসন"
+            : "কর্মচারী";
+
+        const desigEn = s.designation || (isTeaching ? "Academic Teacher" : isAdmin ? "Administrative Officer" : "Staff Member");
+        const desigBn = translateEnToBn(desigEn) || desigEn;
+
+        const subjectRaw = s.subjects_list || (Array.isArray(s.subjects) ? s.subjects.join(", ") : s.subjects) || s.department || (isTeaching ? "General" : "Operations");
+        const subjectEn = String(subjectRaw);
+        const subjectBn = translateEnToBn(subjectEn) || subjectEn;
+
+        const qualEn = s.qualification || (isTeaching ? "B.Ed / M.Ed" : "Diploma / Graduate");
+        const qualBn = translateEnToBn(qualEn) || qualEn;
+
+        return {
+          id: s.id ? `stf_${s.id}` : `t_sync_${idx + 1}`,
+          name: fullNameBn,
+          nameEn: fullNameEn,
+          designation: desigBn,
+          designationEn: desigEn,
+          subject: subjectBn,
+          subjectEn: subjectEn,
+          qualification: qualBn,
+          qualificationEn: qualEn,
+          phone: s.phone || "",
+          email: s.email || "",
+          photo: s.img || "/images/avatar.png",
+          category,
+        };
+      });
+
+      setDraft((prev) => ({
+        ...prev,
+        teachers: mappedTeachers,
+        dynamicStaffDirectory: true,
+      }));
+
+      const total = mappedTeachers.length;
+      const teaching = mappedTeachers.filter((t) => t.category === "শিক্ষক").length;
+      const admin = mappedTeachers.filter((t) => t.category === "প্রশাসন").length;
+      const support = mappedTeachers.filter((t) => t.category === "কর্মচারী").length;
+      setLiveStaffStats({ total, teaching, admin, support });
+
+      setFeedback({
+        type: "success",
+        message: `সফল! Staff & Faculty Directory থেকে মোট ${total} জন (শিক্ষক: ${teaching}, প্রশাসন: ${admin}, কর্মচারী: ${support}) ওয়েবসাইটের Faculty & Staff Directory-তে সিঙ্ক করা হয়েছে! পরিবর্তন সংরক্ষণ করতে 'সংরক্ষণ ও প্রকাশ' বাটনে ক্লিক করুন।`,
+      });
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: "Staff & Faculty Directory সিঙ্ক করতে সমস্যা হয়েছে: " + (err?.message || ""),
+      });
+    } finally {
+      setSyncingStaff(false);
+    }
+  };
 
   useEffect(() => {
     setDraft(websiteContent);
@@ -909,7 +1054,12 @@ const WebsiteContentPage: React.FC = () => {
     },
     { id: "hero_about", label: "৩. হোম ব্যানার ও ইতিহাস", icon: LayoutDashboard },
     { id: "leadership", label: "৪. প্রশাসন ও বাণী", icon: GraduationCap },
-    { id: "teachers", label: "৫. শিক্ষক ও কর্মকর্তা", icon: UserCheck, badgeCount: (draft.teachers || []).length },
+    {
+      id: "teachers",
+      label: "৫. শিক্ষক ও কর্মকর্তা পরিচিতি (Faculty & Staff)",
+      icon: UserCheck,
+      badgeCount: (draft.teachers || []).length,
+    },
     { id: "statistics", label: "৬. পরিসংখ্যান ও সাফল্য", icon: Award },
     { id: "notices", label: "৭. নোটিশ বোর্ড", icon: Bell, badgeCount: (draft.notices || []).length },
     { id: "downloads", label: "৮. ডাউনলোড ও রুটিন", icon: Download, badgeCount: (draft.downloads || []).length },
@@ -1078,8 +1228,8 @@ const WebsiteContentPage: React.FC = () => {
               type="button"
               onClick={() => setEditLangMode("bn")}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "bn"
-                  ? "bg-[#006a4e] text-white shadow-2xs"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+                ? "bg-[#006a4e] text-white shadow-2xs"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
                 }`}
             >
               <span>🇧🇩 বাংলা</span>
@@ -1089,8 +1239,8 @@ const WebsiteContentPage: React.FC = () => {
               type="button"
               onClick={() => setEditLangMode("en")}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "en"
-                  ? "bg-blue-700 text-white shadow-2xs"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+                ? "bg-blue-700 text-white shadow-2xs"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
                 }`}
             >
               <span>🇬🇧 English</span>
@@ -1100,8 +1250,8 @@ const WebsiteContentPage: React.FC = () => {
               type="button"
               onClick={() => setEditLangMode("dual")}
               className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${editLangMode === "dual"
-                  ? "bg-purple-700 text-white shadow-2xs"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
+                ? "bg-purple-700 text-white shadow-2xs"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-700"
                 }`}
             >
               <Languages size={13} />
@@ -1161,8 +1311,8 @@ const WebsiteContentPage: React.FC = () => {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${isActive
-                  ? "bg-[#006a4e] text-white shadow-xs"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800"
+                ? "bg-[#006a4e] text-white shadow-xs"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800"
                 }`}
             >
               <Icon size={14} />
@@ -1170,8 +1320,8 @@ const WebsiteContentPage: React.FC = () => {
               {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300"
+                    ? "bg-white/20 text-white"
+                    : "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300"
                     }`}
                 >
                   {tab.badgeCount}
@@ -1187,10 +1337,10 @@ const WebsiteContentPage: React.FC = () => {
         <div
           role="status"
           className={`mb-5 flex items-center justify-between rounded-md border p-3.5 text-xs font-semibold ${feedback.type === "success"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-              : feedback.type === "error"
-                ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
-                : "border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+            ? "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+            : feedback.type === "error"
+              ? "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+              : "border-blue-300 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
             }`}
         >
           <div className="flex items-center gap-2">
@@ -1639,10 +1789,10 @@ const WebsiteContentPage: React.FC = () => {
                           {item.badge && (
                             <span
                               className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
-                                  ? "bg-[#da291c] text-white"
-                                  : item.priority === "important"
-                                    ? "bg-amber-200 text-amber-900"
-                                    : "bg-emerald-100 text-[#006a4e]"
+                                ? "bg-[#da291c] text-white"
+                                : item.priority === "important"
+                                  ? "bg-amber-200 text-amber-900"
+                                  : "bg-emerald-100 text-[#006a4e]"
                                 }`}
                             >
                               {editLangMode === "en" ? item.badgeEn || item.badge : item.badge}
@@ -1765,8 +1915,8 @@ const WebsiteContentPage: React.FC = () => {
                     <div
                       key={item.id || index}
                       className={`rounded-lg border p-4 transition ${item.isActive !== false
-                          ? "border-gray-200 bg-[#fbfdfc] dark:border-slate-700 dark:bg-slate-800"
-                          : "border-gray-200 bg-gray-100 opacity-60 dark:border-slate-800 dark:bg-slate-900"
+                        ? "border-gray-200 bg-[#fbfdfc] dark:border-slate-700 dark:bg-slate-800"
+                        : "border-gray-200 bg-gray-100 opacity-60 dark:border-slate-800 dark:bg-slate-900"
                         }`}
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2 dark:border-slate-700">
@@ -1776,10 +1926,10 @@ const WebsiteContentPage: React.FC = () => {
                           </span>
                           <span
                             className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
-                                ? "bg-[#da291c] text-white"
-                                : item.priority === "important"
-                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
-                                  : "bg-emerald-100 text-[#006a4e]"
+                              ? "bg-[#da291c] text-white"
+                              : item.priority === "important"
+                                ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                : "bg-emerald-100 text-[#006a4e]"
                               }`}
                           >
                             {item.priority === "urgent"
@@ -1796,8 +1946,8 @@ const WebsiteContentPage: React.FC = () => {
                             type="button"
                             onClick={() => toggleTickerItem(index)}
                             className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold transition ${item.isActive !== false
-                                ? "bg-emerald-100 text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300"
+                              ? "bg-emerald-100 text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                              : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-300"
                               }`}
                           >
                             {item.isActive !== false ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
@@ -2464,21 +2614,42 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 5: TEACHERS (CRUD) */}
+        {/* TAB 5: TEACHERS / FACULTY & STAFF DIRECTORY (CRUD + DYNAMIC SYNC) */}
         {activeTab === "teachers" && (
           <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <UserCheck size={16} className="text-[#006a4e]" />
-                  <span>৫. শিক্ষক ও কর্মকর্তা তালিকা (দ্বিভাষিক ব্যবস্থাপনা) ({(draft.teachers || []).length} জন)</span>
+                  <span>৫. শিক্ষক ও কর্মকর্তা পরিচিতি (Faculty & Staff Directory) ({(draft.teachers || []).length} জন)</span>
                 </h2>
                 <p className="mt-0.5 text-xs text-gray-500">
-                  প্রতিটি শিক্ষকের ছবি আপলোড, নাম, পদবী, বিষয়, ক্যাটাগরি ও যোগাযোগ তথ্য বাংলা ও ইংরেজি উভয় ভাষায় সংরক্ষণ করুন।
+                  সফটওয়্যারের Staff & Faculty Directory (/list/staff) থেকে সরাসরি লাইভ ডায়নামিক সংযোগ এবং দ্বিভাষিক (বাংলা ও ইংরেজি) প্রোফাইল ব্যবস্থাপনা।
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={syncingStaff}
+                  onClick={handleSyncFromStaffDirectory}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-3.5 py-2 text-xs font-bold text-[#006a4e] shadow-xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 disabled:opacity-60 transition"
+                  title="সফটওয়্যারের Staff & Faculty Directory থেকে সকল শিক্ষক ও কর্মচারীর তথ্য এখানে এক ক্লিকে সিঙ্ক করুন"
+                >
+                  <RefreshCw size={13} className={syncingStaff ? "animate-spin text-[#006a4e]" : "text-[#006a4e]"} />
+                  <span>Staff & Faculty Directory থেকে অটো-সিঙ্ক</span>
+                </button>
+
+                <Link
+                  to="/list/staff"
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                  title="সরাসরি সফটওয়্যারের Staff & Faculty Directory ওপেন করুন"
+                >
+                  <ExternalLink size={13} />
+                  <span>Staff Directory ওপেন</span>
+                </Link>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -2507,6 +2678,69 @@ const WebsiteContentPage: React.FC = () => {
                   <Plus size={14} />
                   <span>নতুন শিক্ষক যোগ করুন</span>
                 </button>
+              </div>
+            </div>
+
+            {/* Live Dashboard Dynamic Connection Banner */}
+            <div className="mt-4 rounded-xl border-2 border-emerald-500/30 bg-gradient-to-r from-emerald-50 via-teal-50 to-blue-50/50 p-4 text-xs dark:border-emerald-800/40 dark:from-slate-850 dark:via-slate-800 dark:to-slate-900">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-200">
+                    <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
+                    <span className="text-sm">সফটওয়্যার অ্যাডমিন ড্যাশবোর্ড 'Staff & Faculty Directory' লাইভ ডায়নামিক সংযোগ</span>
+                  </div>
+                  <p className="mt-1 text-gray-700 dark:text-gray-300 leading-relaxed">
+                    এই সেকশনটি সরাসরি সফটওয়্যার ড্যাশবোর্ডের <span className="font-bold text-emerald-800 dark:text-emerald-300">Staff & Faculty Directory</span> (/list/staff) এর সাথে রিয়েল-টাইমে সংযুক্ত। সফটওয়্যারে নতুন শিক্ষক বা কর্মচারী যোগ করা হলে তা লাইভ মোডে স্বয়ংক্রিয়ভাবে ওয়েবসাইটে প্রদর্শিত হয়।
+                  </p>
+                </div>
+
+                {/* Live Mode Toggle */}
+                <div className="flex shrink-0 items-center gap-2.5 rounded-lg border border-emerald-300 bg-white/95 px-3 py-2 shadow-2xs dark:border-emerald-700 dark:bg-slate-800">
+                  <div className="text-right">
+                    <div className="text-[11px] font-bold text-gray-900 dark:text-gray-100">
+                      লাইভ ডিরেক্টরি প্রদর্শন মোড
+                    </div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                      {draft.dynamicStaffDirectory !== false ? "সক্রিয় (Live Dynamic Active)" : "কাস্টম তালিকা মোড"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => updateField("dynamicStaffDirectory", draft.dynamicStaffDirectory === false ? true : false)}
+                    className="text-[#006a4e] transition hover:scale-105"
+                    title="ওয়েবসাইটে সরাসরি লাইভ Staff & Faculty Directory প্রদর্শনের মোড টগল করুন"
+                  >
+                    {draft.dynamicStaffDirectory !== false ? (
+                      <ToggleRight size={28} className="text-[#006a4e]" />
+                    ) : (
+                      <ToggleLeft size={28} className="text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Dynamic Badges */}
+              <div className="mt-3.5 flex flex-wrap items-center gap-2.5 pt-3 border-t border-emerald-200/80 dark:border-emerald-800/80">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-bold text-emerald-900 shadow-2xs dark:bg-slate-800 dark:text-emerald-300">
+                  <Users size={13} className="text-[#006a4e]" />
+                  <span>মোট স্টাফ ও শিক্ষক:</span>
+                  <span className="text-[#006a4e] dark:text-emerald-400 font-extrabold">{liveStaffStats?.total ?? (draft.teachers || []).length} জন</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-blue-900 shadow-2xs dark:bg-slate-800 dark:text-blue-300">
+                  <GraduationCap size={13} className="text-blue-700" />
+                  <span>শিক্ষকমণ্ডলী (Academic Faculty):</span>
+                  <span className="font-bold text-blue-700 dark:text-blue-400">{liveStaffStats?.teaching ?? (draft.teachers || []).filter(t => t.category === "শিক্ষক").length} জন</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-purple-900 shadow-2xs dark:bg-slate-800 dark:text-purple-300">
+                  <Shield size={13} className="text-purple-700" />
+                  <span>প্রশাসন (Administration):</span>
+                  <span className="font-bold text-purple-700 dark:text-purple-400">{liveStaffStats?.admin ?? (draft.teachers || []).filter(t => t.category === "প্রশাসন").length} জন</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-teal-900 shadow-2xs dark:bg-slate-800 dark:text-teal-300">
+                  <HeartHandshake size={13} className="text-teal-700" />
+                  <span>কর্মচারীবৃন্দ (Staff & Support):</span>
+                  <span className="font-bold text-teal-700 dark:text-teal-400">{liveStaffStats?.support ?? (draft.teachers || []).filter(t => t.category === "কর্মচারী").length} জন</span>
+                </span>
               </div>
             </div>
 

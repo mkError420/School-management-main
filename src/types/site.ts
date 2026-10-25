@@ -182,6 +182,8 @@ export interface SchoolWebsiteContent {
   gallery: SchoolGalleryItem[];
   coCurricular: SchoolCoCurricularItem[];
   teachers: SchoolTeacherMember[];
+  dynamicStaffDirectory?: boolean;
+  syncStaffWithDirectory?: boolean;
 
   // 8. Study Corner
   studyCornerTitle: string;
@@ -638,6 +640,7 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
       category: "কর্মচারী",
     },
   ],
+  dynamicStaffDirectory: true,
 
   studyCornerTitle: "Study Corner — জ্ঞান অন্বেষণের কেন্দ্র",
   studyCornerTitleEn: "Study Corner — Center of Knowledge & Learning",

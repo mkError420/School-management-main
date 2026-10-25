@@ -120,6 +120,29 @@ class ApiService {
     }>('dashboard?action=public-stats', { method: 'GET' });
   }
 
+  // Public Staff & Faculty Directory
+  async getPublicStaffDirectory() {
+    return this.request<{
+      staff: Array<{
+        id: string;
+        staff_no: string;
+        teacher_id?: string | null;
+        name: string;
+        surname?: string;
+        email?: string;
+        phone?: string;
+        type: 'TEACHING' | 'NON_TEACHING' | 'ADMINISTRATIVE' | 'SUPPORT';
+        designation: string;
+        department: string;
+        gender?: string;
+        qualification?: string;
+        img?: string;
+        subjects_list?: string;
+      }>;
+      total: number;
+    }>('staff?action=public-directory', { method: 'GET' });
+  }
+
   async updateSiteName(siteName: string) {
     return this.request<{ site_name: string; site_logo?: string; website_content?: SchoolWebsiteContent | null }>('settings', {
       method: 'PUT',

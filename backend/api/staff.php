@@ -14,7 +14,9 @@ if ($method === 'POST' && $methodOverride === 'PUT') {
 
 switch ($method) {
     case 'GET':
-        if ($id) {
+        if (($_GET['action'] ?? '') === 'public-directory') {
+            getPublicStaffDirectory($db);
+        } elseif ($id) {
             getStaffMember($db, $id);
         } else {
             getStaffList($db);
@@ -237,6 +239,65 @@ function seedInitialStaff($db) {
         try {
             $db->insert('staff', $s);
         } catch (Exception $e) {}
+    }
+}
+
+function getPublicStaffDirectory($db) {
+    ensureStaffTable($db);
+    try {
+        $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+    } catch (Exception $e) {}
+
+    try {
+        $rows = $db->fetchAll("
+            SELECT 
+                s.id, s.staff_no, s.teacher_id, s.name, s.surname, s.email, s.phone,
+                s.type, s.designation, s.department, s.gender, s.qualification, s.img,
+                GROUP_CONCAT(DISTINCT sub.name SEPARATOR ', ') as subjects_list
+            FROM staff s
+            LEFT JOIN teachers t ON s.teacher_id = t.id
+            LEFT JOIN _subjecttoteacher st ON t.id = st.B
+            LEFT JOIN subjects sub ON st.A = sub.id
+            WHERE s.status = 'ACTIVE'
+            GROUP BY s.id
+            ORDER BY 
+                CASE s.type
+                    WHEN 'TEACHING' THEN 1
+                    WHEN 'ADMINISTRATIVE' THEN 2
+                    WHEN 'NON_TEACHING' THEN 3
+                    WHEN 'SUPPORT' THEN 4
+                    ELSE 5
+                END,
+                s.name ASC
+        ");
+
+        Response::success('Public staff directory retrieved', [
+            'staff' => $rows ?: [],
+            'total' => count($rows ?: []),
+        ]);
+    } catch (Exception $e) {
+        try {
+            $rows = $db->fetchAll("
+                SELECT id, staff_no, teacher_id, name, surname, email, phone, type, designation, department, gender, qualification, img
+                FROM staff
+                WHERE status = 'ACTIVE'
+                ORDER BY 
+                    CASE type
+                        WHEN 'TEACHING' THEN 1
+                        WHEN 'ADMINISTRATIVE' THEN 2
+                        WHEN 'NON_TEACHING' THEN 3
+                        WHEN 'SUPPORT' THEN 4
+                        ELSE 5
+                    END,
+                    name ASC
+            ");
+            Response::success('Public staff directory retrieved', [
+                'staff' => $rows ?: [],
+                'total' => count($rows ?: []),
+            ]);
+        } catch (Exception $ex) {
+            Response::error('Failed to retrieve staff directory: ' . $ex->getMessage());
+        }
     }
 }
 
