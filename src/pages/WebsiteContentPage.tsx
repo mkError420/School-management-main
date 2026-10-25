@@ -122,38 +122,98 @@ const WebsiteContentPage: React.FC = () => {
   } | null>(null);
   const jsonInputRef = useRef<HTMLInputElement>(null);
 
+  const mapStaffArrayToTeachers = useCallback((rawStaff: any[]): SchoolTeacherMember[] => {
+    return rawStaff.map((s, idx) => {
+      const firstName = (s.name || "").trim();
+      const surName = (s.surname || "").trim();
+      const fullNameEn = surName ? `${firstName} ${surName}` : firstName;
+      const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
+
+      const isTeaching = s.type === "TEACHING";
+      const isAdmin = s.type === "ADMINISTRATIVE";
+      const category: "শিক্ষক" | "প্রশাসন" | "কর্মচারী" = isTeaching
+        ? "শিক্ষক"
+        : isAdmin
+          ? "প্রশাসন"
+          : "কর্মচারী";
+
+      const desigEn = s.designation || (isTeaching ? "Academic Teacher" : isAdmin ? "Administrative Officer" : "Staff Member");
+      const desigBn = translateEnToBn(desigEn) || desigEn;
+
+      const subjectRaw = s.subjects_list || (Array.isArray(s.subjects) ? s.subjects.join(", ") : s.subjects) || s.department || (isTeaching ? "General" : "Operations");
+      const subjectEn = String(subjectRaw);
+      const subjectBn = translateEnToBn(subjectEn) || subjectEn;
+
+      const qualEn = s.qualification || (isTeaching ? "B.Ed / M.Ed" : "Diploma / Graduate");
+      const qualBn = translateEnToBn(qualEn) || qualEn;
+
+      return {
+        id: s.id ? `stf_${s.id}` : `t_sync_${idx + 1}`,
+        name: fullNameBn,
+        nameEn: fullNameEn,
+        designation: desigBn,
+        designationEn: desigEn,
+        subject: subjectBn,
+        subjectEn: subjectEn,
+        qualification: qualBn,
+        qualificationEn: qualEn,
+        phone: s.phone || "",
+        email: s.email || "",
+        photo: s.img || "/images/avatar.png",
+        category,
+      };
+    });
+  }, []);
+
   const loadLiveStaffStats = useCallback(async () => {
+    let staff: any[] = [];
     try {
       const res = await api.getPublicStaffDirectory();
       if (res.success && Array.isArray(res.data?.staff)) {
-        const staff = res.data.staff;
-        setLiveStaffList(staff);
-        const total = staff.length;
-        const teaching = staff.filter((s: any) => s.type === "TEACHING").length;
-        const admin = staff.filter((s: any) => s.type === "ADMINISTRATIVE").length;
-        const support = staff.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
-        setLiveStaffStats({ total, teaching, admin, support });
-        return staff;
+        staff = res.data.staff;
       }
     } catch { }
 
-    try {
-      const stored = localStorage.getItem("mk_school_staff_list");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setLiveStaffList(parsed);
-          const total = parsed.length;
-          const teaching = parsed.filter((s: any) => s.type === "TEACHING").length;
-          const admin = parsed.filter((s: any) => s.type === "ADMINISTRATIVE").length;
-          const support = parsed.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
-          setLiveStaffStats({ total, teaching, admin, support });
-          return parsed;
+    if (staff.length === 0) {
+      try {
+        const stored = localStorage.getItem("mk_school_staff_list");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            staff = parsed;
+          }
         }
-      }
-    } catch { }
+      } catch { }
+    }
+
+    if (staff.length > 0) {
+      setLiveStaffList(staff);
+      const total = staff.length;
+      const teaching = staff.filter((s: any) => s.type === "TEACHING").length;
+      const admin = staff.filter((s: any) => s.type === "ADMINISTRATIVE").length;
+      const support = staff.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
+      setLiveStaffStats({ total, teaching, admin, support });
+
+      // If draft teachers are still the placeholder demo teachers (t1..t7), auto-sync with live staff
+      setDraft((prev) => {
+        const isDefaultPlaceholder =
+          !prev.teachers ||
+          prev.teachers.length === 0 ||
+          (prev.teachers.length === 7 && prev.teachers[0]?.id === "t1" && prev.teachers[6]?.id === "t7");
+        if (isDefaultPlaceholder) {
+          return {
+            ...prev,
+            teachers: mapStaffArrayToTeachers(staff),
+          };
+        }
+        return prev;
+      });
+
+      return staff;
+    }
+
     return [];
-  }, []);
+  }, [mapStaffArrayToTeachers]);
 
   useEffect(() => {
     void loadLiveStaffStats();
@@ -400,46 +460,7 @@ const WebsiteContentPage: React.FC = () => {
         return;
       }
 
-      const mappedTeachers: SchoolTeacherMember[] = rawStaff.map((s, idx) => {
-        const firstName = (s.name || "").trim();
-        const surName = (s.surname || "").trim();
-        const fullNameEn = surName ? `${firstName} ${surName}` : firstName;
-        const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
-
-        const isTeaching = s.type === "TEACHING";
-        const isAdmin = s.type === "ADMINISTRATIVE";
-        const category: "শিক্ষক" | "প্রশাসন" | "কর্মচারী" = isTeaching
-          ? "শিক্ষক"
-          : isAdmin
-            ? "প্রশাসন"
-            : "কর্মচারী";
-
-        const desigEn = s.designation || (isTeaching ? "Academic Teacher" : isAdmin ? "Administrative Officer" : "Staff Member");
-        const desigBn = translateEnToBn(desigEn) || desigEn;
-
-        const subjectRaw = s.subjects_list || (Array.isArray(s.subjects) ? s.subjects.join(", ") : s.subjects) || s.department || (isTeaching ? "General" : "Operations");
-        const subjectEn = String(subjectRaw);
-        const subjectBn = translateEnToBn(subjectEn) || subjectEn;
-
-        const qualEn = s.qualification || (isTeaching ? "B.Ed / M.Ed" : "Diploma / Graduate");
-        const qualBn = translateEnToBn(qualEn) || qualEn;
-
-        return {
-          id: s.id ? `stf_${s.id}` : `t_sync_${idx + 1}`,
-          name: fullNameBn,
-          nameEn: fullNameEn,
-          designation: desigBn,
-          designationEn: desigEn,
-          subject: subjectBn,
-          subjectEn: subjectEn,
-          qualification: qualBn,
-          qualificationEn: qualEn,
-          phone: s.phone || "",
-          email: s.email || "",
-          photo: s.img || "/images/avatar.png",
-          category,
-        };
-      });
+      const mappedTeachers = mapStaffArrayToTeachers(rawStaff);
 
       setDraft((prev) => ({
         ...prev,

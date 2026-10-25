@@ -103,26 +103,17 @@ export const TeachersListPage: React.FC = () => {
         };
       });
 
-      // Merge with custom configured teachers from content if not already present
-      const customList = Array.isArray(content.teachers) ? content.teachers : [];
-      const merged = [...liveMapped];
-      for (const custom of customList) {
-        const exists = merged.some(
-          (m) =>
-            (m.email && custom.email && m.email.toLowerCase() === custom.email.toLowerCase()) ||
-            (m.nameEn && custom.nameEn && m.nameEn.toLowerCase() === custom.nameEn.toLowerCase())
-        );
-        if (!exists) {
-          merged.push(custom);
-        }
-      }
-      return merged;
+      return liveMapped;
+    }
+
+    if (loadingLive && isLiveMode) {
+      return [];
     }
 
     return Array.isArray(content.teachers) && content.teachers.length > 0
       ? content.teachers
       : [];
-  }, [content.dynamicStaffDirectory, content.teachers, liveStaff]);
+  }, [content.dynamicStaffDirectory, content.teachers, liveStaff, loadingLive]);
 
   const categories = useMemo(() => {
     const totalAll = allTeachers.length;
@@ -192,7 +183,7 @@ export const TeachersListPage: React.FC = () => {
             </span>
           )}
           <span className="text-xs text-emerald-200 font-medium sm:ml-auto">
-            {t("মোট কর্মী:", "Total Members:")} <span className="font-bold text-white">{formatDigits(allTeachers.length)}</span> {t("জন", "members")}
+            {t("মোট কর্মী:", "Total Members:")} <span className="font-bold text-white">{loadingLive && content.dynamicStaffDirectory !== false ? "..." : formatDigits(allTeachers.length)}</span> {t("জন", "members")}
           </span>
         </div>
         <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
@@ -240,7 +231,22 @@ export const TeachersListPage: React.FC = () => {
       </div>
 
       {/* Teachers Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {loadingLive && content.dynamicStaffDirectory !== false ? (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-lg border border-gray-200 bg-white p-4 text-center shadow-xs"
+            >
+              <div className="mx-auto h-36 w-32 rounded-md bg-gray-200" />
+              <div className="mx-auto mt-3 h-4 w-28 rounded bg-gray-200" />
+              <div className="mx-auto mt-2 h-3 w-20 rounded bg-gray-200" />
+              <div className="mx-auto mt-2 h-3 w-32 rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {filteredTeachers.map((member) => (
           <div
             key={member.id}
@@ -328,6 +334,7 @@ export const TeachersListPage: React.FC = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
