@@ -44,11 +44,189 @@ interface ClassOption {
 }
 
 const DEFAULT_CLASSES: ClassOption[] = [
-  { id: 1, name: "Class 6", grade_id: 1, grade_level: 6 },
-  { id: 2, name: "Class 7", grade_id: 2, grade_level: 7 },
-  { id: 3, name: "Class 8", grade_id: 3, grade_level: 8 },
-  { id: 4, name: "Class 9", grade_id: 4, grade_level: 9 },
-  { id: 5, name: "Class 10", grade_id: 5, grade_level: 10 },
+  { id: 0, name: "Class Nursery", grade_id: 0, grade_level: 0 },
+  { id: 1, name: "Class Play Group", grade_id: 1, grade_level: 1 },
+  { id: 2, name: "Class KG", grade_id: 2, grade_level: 2 },
+  { id: 3, name: "Class 1", grade_id: 3, grade_level: 3 },
+  { id: 4, name: "Class 2", grade_id: 4, grade_level: 4 },
+  { id: 5, name: "Class 3", grade_id: 5, grade_level: 5 },
+  { id: 6, name: "Class 4", grade_id: 6, grade_level: 6 },
+  { id: 7, name: "Class 5", grade_id: 7, grade_level: 7 },
+  { id: 8, name: "Class 6", grade_id: 8, grade_level: 8 },
+  { id: 9, name: "Class 7", grade_id: 9, grade_level: 9 },
+  { id: 10, name: "Class 8", grade_id: 10, grade_level: 10 },
+  { id: 11, name: "Class 9", grade_id: 11, grade_level: 11 },
+  { id: 12, name: "Class 10", grade_id: 12, grade_level: 12 },
+  { id: 13, name: "Class 11", grade_id: 13, grade_level: 13 },
+  { id: 14, name: "Class 12", grade_id: 14, grade_level: 14 },
+];
+
+const CLASS_SEAT_CAPACITY = [
+  {
+    classBn: "নার্সারি",
+    classEn: "Class Nursery",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "50",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও মৌখিক সাক্ষাৎকার",
+    processEn: "Direct Application & Oral Interview",
+  },
+  {
+    classBn: "প্লে গ্রুপ",
+    classEn: "Class Play Group",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "50",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও সাক্ষাৎকার",
+    processEn: "Direct Application & Interview",
+  },
+  {
+    classBn: "কেজি",
+    classEn: "Class KG",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "60",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও মেধা যাচাই",
+    processEn: "Direct Application & Assessment",
+  },
+  {
+    classBn: "১ম শ্রেণি",
+    classEn: "Class 1",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "80",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও লটারি",
+    processEn: "Online Application & Lottery",
+  },
+  {
+    classBn: "২য় শ্রেণি",
+    classEn: "Class 2",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "40",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    classBn: "৩য় শ্রেণি",
+    classEn: "Class 3",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "40",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    classBn: "৪র্থ শ্রেণি",
+    classEn: "Class 4",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "35",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    classBn: "৫ম শ্রেণি",
+    classEn: "Class 5",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "35",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও মূল্যায়ন পরীক্ষা",
+    processEn: "Subject to Vacancy & Assessment Test",
+  },
+  {
+    classBn: "৬ষ্ঠ শ্রেণি",
+    classEn: "Class 6",
+    sectionsBn: "ক, খ ও গ শাখা",
+    sectionsEn: "Sections A, B & C",
+    seats: "120",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও সরকারি লটারি",
+    processEn: "Online Application & Govt Lottery",
+  },
+  {
+    classBn: "৭ম শ্রেণি",
+    classEn: "Class 7",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "30",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে",
+    processEn: "Subject to Vacancy",
+  },
+  {
+    classBn: "৮ম শ্রেণি",
+    classEn: "Class 8",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "25",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে",
+    processEn: "Subject to Vacancy",
+  },
+  {
+    classBn: "৯ম শ্রেণি",
+    classEn: "Class 9",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "90",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও মেধা তালিকা",
+    processEn: "Online Application & Merit List",
+  },
+  {
+    classBn: "১০ম শ্রেণি",
+    classEn: "Class 10",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "20",
+    suffixBn: "জন (টিসি সাপেক্ষে)",
+    suffixEn: "Seats (TC basis)",
+    processBn: "বোর্ড ছাড়পত্র ও আসন শূন্য সাপেক্ষে",
+    processEn: "Subject to Board Clearance & Vacancy",
+  },
+  {
+    classBn: "একাদশ শ্রেণি (Class 11)",
+    classEn: "Class 11 (HSC)",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "150",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "কেন্দ্রীয় একাদশ ভর্তি সিস্টেম (XI Class Admission) ও অনলাইন মেধা",
+    processEn: "Central XI Class Admission System & Online Merit",
+  },
+  {
+    classBn: "দ্বাদশ শ্রেণি (Class 12)",
+    classEn: "Class 12 (HSC)",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "20",
+    suffixBn: "জন (টিসি সাপেক্ষে)",
+    suffixEn: "Seats (TC basis)",
+    processBn: "শিক্ষা বোর্ড টিসি সাপেক্ষে ভর্তি",
+    processEn: "Subject to Education Board TC & Approval",
+  },
 ];
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
@@ -135,8 +313,8 @@ export const AdmissionPage: React.FC = () => {
 
   const requiredDocuments = [
     {
-      bn: "অনলাইনে পূরণকৃত মূল আবেদনপত্রের প্রিন্ট কপি",
-      en: "Printed copy of the online application form",
+      bn: "অনলাইনে আবেদনের সময় ব্যাবহার কৃত ফোন নম্বর",
+      en: "Phone number used during online application",
     },
     {
       bn: "অনলাইন ভেরিফাইড ডিজিটাল জন্ম নিবন্ধন সনদের সত্যায়িত কপি",
@@ -436,8 +614,8 @@ export const AdmissionPage: React.FC = () => {
             </h1>
             <p className="mt-1.5 text-xs text-emerald-100 sm:text-sm max-w-2xl leading-relaxed">
               {t(
-                "বিদ্যালয়ের ৬ষ্ঠ থেকে ১০ম শ্রেণিতে নতুন ভর্তির জন্য সরাসরি অনলাইনে আবেদন ফরম পূরণ করুন অথবা জমাকৃত আবেদনের বর্তমান অবস্থা যাচাই করুন।",
-                "Apply online directly for admission to Classes 6 through 10 or track your existing application status in real-time."
+                "বিদ্যালয়ের নার্সারি থেকে ১২শ শ্রেণিতে নতুন ভর্তির জন্য সরাসরি অনলাইনে আবেদন ফরম পূরণ করুন অথবা জমাকৃত আবেদনের বর্তমান অবস্থা যাচাই করুন।",
+                "Apply online directly for admission from Nursery to Class 12 or track your existing application status in real-time."
               )}
             </p>
           </div>
@@ -1048,20 +1226,6 @@ export const AdmissionPage: React.FC = () => {
                       <li>{t("ভর্তি সম্পন্নকরণ: আসন সংখ্যা পূরণ সাপেক্ষে দ্রুততম সময়ে ভর্তি নিশ্চিত করা হবে।", "Enrollment: Finalized upon administrative verification of eligibility.")}</li>
                     </ul>
                   </div>
-
-                  {content.admissionFormUrl && (
-                    <div className="pt-1">
-                      <a
-                        href={content.admissionFormUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                      >
-                        <ExternalLink size={14} />
-                        <span>{t("সরকারি কেন্দ্রীয় ভর্তি পোর্টাল (GSA)", "Official Central Admission Portal")}</span>
-                      </a>
-                    </div>
-                  )}
                 </div>
               </section>
 
@@ -1086,30 +1250,16 @@ export const AdmissionPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
-                        <tr>
-                          <td className="border p-2.5 font-bold">{t("৬ষ্ঠ শ্রেণি", "Class 6")}</td>
-                          <td className="border p-2.5">{t("ক, খ ও গ শাখা", "Sections A, B & C")}</td>
-                          <td className="border p-2.5 font-bold text-[#006a4e]">{formatDigits("120")} {t("জন", "Seats")}</td>
-                          <td className="border p-2.5">{t("অনলাইন আবেদন ও লটারি", "Online Application & Lottery")}</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2.5 font-bold">{t("৭ম শ্রেণি", "Class 7")}</td>
-                          <td className="border p-2.5">{t("ক ও খ শাখা", "Sections A & B")}</td>
-                          <td className="border p-2.5 font-bold text-[#006a4e]">{formatDigits("30")} {t("জন (আসন সাপেক্ষে)", "Seats (Vacancy basis)")}</td>
-                          <td className="border p-2.5">{t("আসন শূন্য থাকা সাপেক্ষে", "Subject to Vacancy")}</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2.5 font-bold">{t("৮ম শ্রেণি", "Class 8")}</td>
-                          <td className="border p-2.5">{t("ক ও খ শাখা", "Sections A & B")}</td>
-                          <td className="border p-2.5 font-bold text-[#006a4e]">{formatDigits("25")} {t("জন (আসন সাপেক্ষে)", "Seats (Vacancy basis)")}</td>
-                          <td className="border p-2.5">{t("আসন শূন্য থাকা সাপেক্ষে", "Subject to Vacancy")}</td>
-                        </tr>
-                        <tr>
-                          <td className="border p-2.5 font-bold">{t("৯ম শ্রেণি", "Class 9")}</td>
-                          <td className="border p-2.5">{t("বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা", "Science, Humanities & Business")}</td>
-                          <td className="border p-2.5 font-bold text-[#006a4e]">{formatDigits("60")} {t("জন", "Seats")}</td>
-                          <td className="border p-2.5">{t("অনলাইন আবেদন ও মেধা তালিকা", "Online Application & Merit")}</td>
-                        </tr>
+                        {CLASS_SEAT_CAPACITY.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-emerald-50/40 transition-colors odd:bg-white even:bg-[#fafcfa]">
+                            <td className="border p-2.5 font-bold text-gray-900">{t(item.classBn, item.classEn)}</td>
+                            <td className="border p-2.5 text-gray-700">{t(item.sectionsBn, item.sectionsEn)}</td>
+                            <td className="border p-2.5 font-bold text-[#006a4e]">
+                              {formatDigits(item.seats)} {t(item.suffixBn, item.suffixEn)}
+                            </td>
+                            <td className="border p-2.5 text-gray-700">{t(item.processBn, item.processEn)}</td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
