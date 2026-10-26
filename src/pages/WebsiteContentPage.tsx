@@ -4895,8 +4895,8 @@ const WebsiteContentPage: React.FC = () => {
                         type="button"
                         onClick={() => setGalleryCategoryFilter(cat)}
                         className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${galleryCategoryFilter === cat
-                            ? "bg-[#006a4e] text-white shadow-xs"
-                            : "bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300"
+                          ? "bg-[#006a4e] text-white shadow-xs"
+                          : "bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300"
                           }`}
                       >
                         <span>{cat}</span>
@@ -5387,7 +5387,7 @@ const WebsiteContentPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  {/*   <button
                     type="button"
                     onClick={resetCodeOfConductToDefault}
                     title="ডিফল্ট ৩টি নিয়ম ও নীতিমালায় ফিরিয়ে আনুন"
@@ -5395,7 +5395,7 @@ const WebsiteContentPage: React.FC = () => {
                   >
                     <RefreshCw size={13} />
                     <span className="hidden sm:inline">ডিফল্ট নিয়মাবলী আনুন</span>
-                  </button>
+                  </button> */}
 
                   <button
                     type="button"
