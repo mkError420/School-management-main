@@ -539,6 +539,16 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  async submitAdmissionApplication(data: FormData | Record<string, any>) {
+    return this.create('admissions', data);
+  }
+
+  async trackAdmission(query: string) {
+    return this.request<{ admission: any }>(`admissions?action=track&query=${encodeURIComponent(query.trim())}`, {
+      method: 'GET',
+    });
+  }
 }
 
 export const api = new ApiService();

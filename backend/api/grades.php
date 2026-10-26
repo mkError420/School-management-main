@@ -36,7 +36,7 @@ switch ($method) {
 }
 
 function getGrades($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::optionalAuth();
     
     $grades = $db->fetchAll(
         "SELECT g.*, 

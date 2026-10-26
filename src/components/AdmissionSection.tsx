@@ -220,6 +220,16 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     setCurrentPage(1);
   }, [statusFilter, gradeFilter, search]);
 
+  useEffect(() => {
+    const handleAdmissionsUpdated = () => {
+      void loadAdmissions(true);
+    };
+    window.addEventListener("school-admissions-updated", handleAdmissionsUpdated);
+    return () => {
+      window.removeEventListener("school-admissions-updated", handleAdmissionsUpdated);
+    };
+  }, [loadAdmissions]);
+
   // Load Classes, Grades & Parents for selection
   useEffect(() => {
     Promise.all([

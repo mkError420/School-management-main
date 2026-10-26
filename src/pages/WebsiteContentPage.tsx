@@ -4169,6 +4169,27 @@ const WebsiteContentPage: React.FC = () => {
                       className={inputClass}
                     />
                   </label>
+                  <p className="mt-1 text-[11px] text-gray-500">
+                    ওয়েবসাইটে আবেদনকারীরা সরাসরি অনলাইন ফরম পূরণ করতে পারেন। জমাকৃত সকল আবেদন প্রশাসনিক ড্যাশবোর্ডে জমা হয়।
+                  </p>
+                </div>
+
+                <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3.5 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-bold text-[#006a4e] block">
+                      Student Admissions & Enrollment শাখা
+                    </span>
+                    <span className="text-[11px] text-gray-600">
+                      ওয়েবসাইট থেকে জমা হওয়া আবেদনপত্র দেখতে ও অনুমোদন করতে ড্যাশবোর্ডের ভর্তি শাখায় যান।
+                    </span>
+                  </div>
+                  <Link
+                    to="/admissions"
+                    className="inline-flex items-center gap-1 rounded-md bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00503a] shadow-xs"
+                  >
+                    <span>Admissions শাখায় যান</span>
+                    <ExternalLink size={12} />
+                  </Link>
                 </div>
               </div>
             </div>

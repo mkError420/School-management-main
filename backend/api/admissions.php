@@ -16,7 +16,10 @@ if ($method === 'POST' && $methodOverride === 'PUT') {
 
 switch ($method) {
     case 'GET':
-        if ($id) {
+        $action = $_GET['action'] ?? '';
+        if ($action === 'track' || $action === 'status-check') {
+            trackAdmissionApplication($db);
+        } elseif ($id) {
             getAdmission($db, $id);
         } else {
             getAdmissions($db);
@@ -441,7 +444,8 @@ function getAdmission($db, $id) {
 }
 
 function createAdmission($db) {
-    AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
+    $user = AuthMiddleware::optionalAuth();
+    $isAdmin = $user && in_array($user['role'] ?? '', ['admin', 'super_admin'], true);
 
     // Support both JSON and multipart/form-data (when photo is attached)
     $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
@@ -449,7 +453,7 @@ function createAdmission($db) {
 
     $firstName = trim($input['first_name'] ?? $input['name'] ?? '');
     $lastName = trim($input['last_name'] ?? $input['surname'] ?? '');
-    $roll = trim($input['roll'] ?? '');
+    $roll = $isAdmin ? trim($input['roll'] ?? '') : '';
     $sex = strtoupper($input['sex'] ?? $input['gender'] ?? 'MALE');
     $gender = ($sex === 'FEMALE') ? 'FEMALE' : 'MALE';
 
@@ -458,12 +462,13 @@ function createAdmission($db) {
     }
 
     $appNo = 'ADM-' . date('Y') . '-' . str_pad(rand(100, 9999), 4, '0', STR_PAD_LEFT);
-    $status = !empty($input['status']) ? strtoupper($input['status']) : 'PENDING';
+    // Non-admins (public website applicants) are strictly placed in PENDING status
+    $status = $isAdmin ? (!empty($input['status']) ? strtoupper($input['status']) : 'PENDING') : 'PENDING';
 
     $parentId = !empty($input['parent_id']) ? $input['parent_id'] : null;
-    $parentName = $input['parent_name'] ?? null;
-    $parentPhone = $input['parent_phone'] ?? null;
-    $parentEmail = $input['parent_email'] ?? null;
+    $parentName = trim($input['parent_name'] ?? '');
+    $parentPhone = trim($input['parent_phone'] ?? '');
+    $parentEmail = trim($input['parent_email'] ?? '');
 
     if ($parentId) {
         $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$parentId]);
@@ -550,6 +555,34 @@ function createAdmission($db) {
     } catch (Exception $e) {
         Response::error('Failed to create admission: ' . $e->getMessage());
     }
+}
+
+function trackAdmissionApplication($db) {
+    $query = trim($_GET['query'] ?? $_GET['app_no'] ?? $_GET['application_no'] ?? $_GET['phone'] ?? '');
+    if (empty($query)) {
+        Response::error('Application number or phone number is required');
+    }
+
+    $admission = $db->fetchOne(
+        "SELECT a.id, a.application_no, a.first_name, a.last_name, a.email, a.phone,
+                a.gender, a.date_of_birth, a.blood_type, a.address, a.status, a.applied_date,
+                a.parent_name, a.parent_phone, a.parent_email, a.previous_school, a.notes, a.created_at,
+                c.name as class_name, g.level as grade_level,
+                s.roll as enrolled_roll, s.id as enrolled_student_id
+         FROM admissions a
+         LEFT JOIN classes c ON a.class_id = c.id
+         LEFT JOIN grades g ON a.grade_id = g.id
+         LEFT JOIN students s ON a.enrolled_student_id = s.id
+         WHERE a.application_no = ? OR a.phone = ? OR a.parent_phone = ?
+         ORDER BY a.id DESC LIMIT 1",
+        [$query, $query, $query]
+    );
+
+    if (!$admission) {
+        Response::notFound('No admission application found with the provided details');
+    }
+
+    Response::success('Admission application status retrieved', ['admission' => $admission]);
 }
 
 function updateAdmission($db, $id) {
