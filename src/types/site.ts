@@ -71,6 +71,16 @@ export interface SchoolTickerItem {
   priority?: "urgent" | "important" | "normal";
 }
 
+export interface SchoolCodeOfConductRule {
+  id: string;
+  title: string;
+  titleEn?: string;
+  description: string;
+  descriptionEn?: string;
+  badge?: string;
+  badgeEn?: string;
+}
+
 export interface SchoolWebsiteContent {
   // 1. Basic Identification & Government Details
   schoolName: string;
@@ -215,6 +225,13 @@ export interface SchoolWebsiteContent {
   tickerIncludeNotices?: boolean;
   tickerLabel?: string;
   tickerLabelEn?: string;
+
+  // 10. Student Code of Conduct & Dress Code
+  codeOfConductTitle?: string;
+  codeOfConductTitleEn?: string;
+  codeOfConductSubtitle?: string;
+  codeOfConductSubtitleEn?: string;
+  codeOfConductRules?: SchoolCodeOfConductRule[];
 }
 
 export interface StudyCornerBook {
@@ -731,4 +748,39 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   tickerIncludeNotices: true,
   tickerLabel: "জরুরি নোটিশ:",
   tickerLabelEn: "Urgent Notice:",
+
+  // 10. Student Code of Conduct & Dress Code
+  codeOfConductTitle: "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা",
+  codeOfConductTitleEn: "Student Code of Conduct & Dress Code",
+  codeOfConductSubtitle: "বিদ্যালয়ের সুশৃঙ্খল ও আদর্শ শিক্ষণ পরিবেশ নিশ্চিত করতে শিক্ষার্থীদের জন্য আচরণবিধি ও পোশাক সংক্রান্ত নির্দেশিকা",
+  codeOfConductSubtitleEn: "Guidelines on student conduct and dress code to ensure a disciplined and optimal learning environment",
+  codeOfConductRules: [
+    {
+      id: "conduct_1",
+      title: "১. ইউনিফর্ম ও ড্রেসকোড:",
+      titleEn: "1. Uniform & Dress Code:",
+      description: "সাদা শার্ট, নেভি ব্লু প্যান্ট/সালোয়ার, নির্ধারিত বিদ্যালয় মনোগ্রাম সম্বলিত ব্যাজ ও কালো জুতা পরিধান বাধ্যতামূলক।",
+      descriptionEn: "White shirt, navy blue pants/salwar, school monogram badge, and black shoes are mandatory.",
+      badge: "পোশাক নীতিমালা",
+      badgeEn: "Dress Code",
+    },
+    {
+      id: "conduct_2",
+      title: "২. ক্লাসে উপস্থিতি:",
+      titleEn: "2. Attendance Policy:",
+      description: "সকল শিক্ষার্থীকে সকাল ৮:৫০ মিনিটের মধ্যে ক্যাম্পাসে উপস্থিত হতে হবে। ন্যূনতম ৮০% উপস্থিতি বাধ্যতামূলক।",
+      descriptionEn: "All students must arrive at the campus by 8:50 AM. A minimum of 80% attendance is compulsory.",
+      badge: "উপস্থিতি",
+      badgeEn: "Attendance",
+    },
+    {
+      id: "conduct_3",
+      title: "৩. মোবাইল ফোন নিষেধাজ্ঞা:",
+      titleEn: "3. Mobile Phone Policy:",
+      description: "শ্রেণিকক্ষে শিক্ষার্থীদের স্মার্টফোন বা কোনো ইলেকট্রনিক গ্যাজেট আনা সম্পূর্ণ নিষিদ্ধ।",
+      descriptionEn: "Bringing smartphones or electronic gadgets into classrooms is strictly prohibited.",
+      badge: "শৃঙ্খলা বিধি",
+      badgeEn: "Discipline",
+    },
+  ],
 };

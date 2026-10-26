@@ -66,6 +66,7 @@ import type {
   SchoolQuickLink,
   SchoolTeacherMember,
   SchoolTickerItem,
+  SchoolCodeOfConductRule,
   StudyCornerBook,
   StudyCornerResource,
   StudyCornerStat,
@@ -91,7 +92,8 @@ type ContentTab =
   | "admission"
   | "gallery"
   | "study_co"
-  | "links";
+  | "links"
+  | "conduct";
 
 type EditLangMode = "bn" | "en" | "dual";
 
@@ -1190,6 +1192,106 @@ const WebsiteContentPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Code of Conduct & Dress Code Handlers
+  const addCodeOfConductRule = () => {
+    const nextIndex = (draft.codeOfConductRules || []).length + 1;
+    const newRule: SchoolCodeOfConductRule = {
+      id: "conduct_" + Date.now(),
+      title: `${nextIndex}. `,
+      titleEn: `${nextIndex}. `,
+      description: "",
+      descriptionEn: "",
+      badge: "আচরণবিধি",
+      badgeEn: "Conduct Rule",
+    };
+    setDraft((prev) => ({
+      ...prev,
+      codeOfConductRules: [...(prev.codeOfConductRules || []), newRule],
+    }));
+  };
+
+  const removeCodeOfConductRule = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      codeOfConductRules: (prev.codeOfConductRules || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateCodeOfConductRule = (index: number, field: keyof SchoolCodeOfConductRule, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      codeOfConductRules: (prev.codeOfConductRules || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const moveCodeOfConductRule = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.codeOfConductRules || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, codeOfConductRules: list };
+    });
+  };
+
+  const translateCodeOfConductRule = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      codeOfConductRules: (prev.codeOfConductRules || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          titleEn: item.titleEn || translateBnToEn(item.title),
+          descriptionEn: item.descriptionEn || translateBnToEn(item.description),
+          badgeEn: item.badgeEn || translateBnToEn(item.badge || ""),
+        };
+      }),
+    }));
+  };
+
+  const resetCodeOfConductToDefault = () => {
+    setDraft((prev) => ({
+      ...prev,
+      codeOfConductTitle: "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা",
+      codeOfConductTitleEn: "Student Code of Conduct & Dress Code",
+      codeOfConductSubtitle: "বিদ্যালয়ের সুশৃঙ্খল ও আদর্শ শিক্ষণ পরিবেশ নিশ্চিত করতে শিক্ষার্থীদের জন্য আচরণবিধি ও পোশাক সংক্রান্ত নির্দেশিকা",
+      codeOfConductSubtitleEn: "Guidelines on student conduct and dress code to ensure a disciplined and optimal learning environment",
+      codeOfConductRules: [
+        {
+          id: "conduct_1",
+          title: "১. ইউনিফর্ম ও ড্রেসকোড:",
+          titleEn: "1. Uniform & Dress Code:",
+          description: "সাদা শার্ট, নেভি ব্লু প্যান্ট/সালোয়ার, নির্ধারিত বিদ্যালয় মনোগ্রাম সম্বলিত ব্যাজ ও কালো জুতা পরিধান বাধ্যতামূলক।",
+          descriptionEn: "White shirt, navy blue pants/salwar, school monogram badge, and black shoes are mandatory.",
+          badge: "পোশাক নীতিমালা",
+          badgeEn: "Dress Code",
+        },
+        {
+          id: "conduct_2",
+          title: "২. ক্লাসে উপস্থিতি:",
+          titleEn: "2. Attendance Policy:",
+          description: "সকল শিক্ষার্থীকে সকাল ৮:৫০ মিনিটের মধ্যে ক্যাম্পাসে উপস্থিত হতে হবে। ন্যূনতম ৮০% উপস্থিতি বাধ্যতামূলক।",
+          descriptionEn: "All students must arrive at the campus by 8:50 AM. A minimum of 80% attendance is compulsory.",
+          badge: "উপস্থিতি",
+          badgeEn: "Attendance",
+        },
+        {
+          id: "conduct_3",
+          title: "৩. মোবাইল ফোন নিষেধাজ্ঞা:",
+          titleEn: "3. Mobile Phone Policy:",
+          description: "শ্রেণিকক্ষে শিক্ষার্থীদের স্মার্টফোন বা কোনো ইলেকট্রনিক গ্যাজেট আনা সম্পূর্ণ নিষিদ্ধ।",
+          descriptionEn: "Bringing smartphones or electronic gadgets into classrooms is strictly prohibited.",
+          badge: "শৃঙ্খলা বিধি",
+          badgeEn: "Discipline",
+        },
+      ],
+    }));
+  };
+
 
   // Form Submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1248,6 +1350,12 @@ const WebsiteContentPage: React.FC = () => {
     { id: "gallery", label: "১০. ফটো গ্যালারি", icon: ImageIcon, badgeCount: (draft.gallery || []).length },
     { id: "study_co", label: "১১. স্টাডি কর্নার", icon: BookOpen },
     { id: "links", label: "১২. সরকারি লিঙ্ক", icon: LinkIcon, badgeCount: (draft.quickLinks || []).length },
+    {
+      id: "conduct",
+      label: "১৩. শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা",
+      icon: Shield,
+      badgeCount: (draft.codeOfConductRules || []).length,
+    },
   ];
 
   return (
@@ -4494,6 +4602,369 @@ const WebsiteContentPage: React.FC = () => {
               ))}
             </div>
           </section>
+        )}
+
+        {/* TAB 13: CODE OF CONDUCT & DRESS CODE */}
+        {activeTab === "conduct" && (
+          <div className="space-y-6">
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Shield size={16} className="text-[#006a4e]" />
+                    <span>১৩. শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা (Code of Conduct & Dress Code)</span>
+                  </h2>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    একাডেমিক পেজের "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা" সেকশনের টাইটেল, ভূমিকা এবং প্রতিটি নিয়মাবলী সরাসরি এখান থেকে পরিচালনা করুন।
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetCodeOfConductToDefault}
+                    title="ডিফল্ট ৩টি নিয়ম ও নীতিমালায় ফিরিয়ে আনুন"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                  >
+                    <RefreshCw size={13} />
+                    <span className="hidden sm:inline">ডিফল্ট নিয়মাবলী আনুন</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={addCodeOfConductRule}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                  >
+                    <Plus size={14} />
+                    <span>নতুন নিয়ম যোগ করুন</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Section Heading & Subtitle Configuration */}
+              <div className="mt-5 rounded-lg border border-emerald-100 bg-[#f8fbf9] p-4 dark:border-emerald-950/40 dark:bg-slate-800/60">
+                <div className="mb-3 flex items-center justify-between border-b border-emerald-100 pb-2 dark:border-slate-700">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400 flex items-center gap-1.5">
+                    <Layers size={13} />
+                    <span>সেকশন শিরোনাম ও ভূমিকা পরিচিতি (Section Title & Subtitle)</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (draft.codeOfConductTitle) {
+                        updateField("codeOfConductTitleEn", translateBnToEn(draft.codeOfConductTitle));
+                      }
+                      if (draft.codeOfConductSubtitle) {
+                        updateField("codeOfConductSubtitleEn", translateBnToEn(draft.codeOfConductSubtitle));
+                      }
+                    }}
+                    title="শিরোনাম ও ভূমিকা ইংরেজিতে অনুবাদ করুন"
+                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-semibold text-[#006a4e] hover:bg-emerald-100 dark:text-emerald-300 dark:hover:bg-slate-700"
+                  >
+                    <Sparkles size={12} />
+                    <span>ইংরেজি অনুবাদ</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      সেকশন প্রধান শিরোনাম (বাংলা)
+                      <input
+                        type="text"
+                        value={draft.codeOfConductTitle || ""}
+                        onChange={(e) => updateField("codeOfConductTitle", e.target.value)}
+                        placeholder="যেমন: শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা"
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Section Main Title (English)
+                      <input
+                        type="text"
+                        value={draft.codeOfConductTitleEn || ""}
+                        onChange={(e) => updateField("codeOfConductTitleEn", e.target.value)}
+                        placeholder="e.g. Student Code of Conduct & Dress Code"
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      সংক্ষিপ্ত ভূমিকা বা নির্দেশনা (বাংলা - ঐচ্ছিক)
+                      <input
+                        type="text"
+                        value={draft.codeOfConductSubtitle || ""}
+                        onChange={(e) => updateField("codeOfConductSubtitle", e.target.value)}
+                        placeholder="যেমন: বিদ্যালয়ের সার্বিক শৃঙ্খলা ও নিয়মানুবর্তিতা রক্ষার্থে..."
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Brief Subtitle or Notice (English - Optional)
+                      <input
+                        type="text"
+                        value={draft.codeOfConductSubtitleEn || ""}
+                        onChange={(e) => updateField("codeOfConductSubtitleEn", e.target.value)}
+                        placeholder="e.g. Guidelines to uphold campus discipline and academic integrity..."
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Rules List */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <span>নীতিমালা ও আচরণবিধির তালিকা ({draft.codeOfConductRules?.length || 0} টি নিয়ম)</span>
+                  </h3>
+                  <span className="text-[11px] text-gray-500">
+                    তীর চিহ্নে ক্লিক করে নিয়মের ক্রম পরিবর্তন এবং অনুবাদ আইকন দিয়ে ইংরেজিতে রূপান্তর করতে পারেন
+                  </span>
+                </div>
+
+                {(!draft.codeOfConductRules || draft.codeOfConductRules.length === 0) ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-slate-700">
+                    <Shield size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      বর্তমানে কোনো আচরণবিধি বা নীতিমালা যুক্ত নেই
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1 mb-4">
+                      নতুন নিয়ম যোগ করুন অথবা ডিফল্ট নীতিমালা ফিরিয়ে আনুন।
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={resetCodeOfConductToDefault}
+                        className="rounded-md border border-gray-300 bg-white px-3.5 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200"
+                      >
+                        ডিফল্ট ৩টি নিয়ম লোড করুন
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addCodeOfConductRule}
+                        className="rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#00503a]"
+                      >
+                        + নতুন নিয়ম তৈরি করুন
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {draft.codeOfConductRules.map((rule, index) => (
+                      <div
+                        key={rule.id || index}
+                        className="rounded-lg border border-gray-200 bg-[#fcfdfd] p-4.5 transition hover:border-emerald-300 hover:shadow-2xs dark:border-slate-700 dark:bg-slate-800/70"
+                      >
+                        {/* Item Card Header */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-2.5 dark:border-slate-700">
+                          <div className="flex items-center gap-2">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                              {index + 1}
+                            </span>
+                            <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                              {rule.title || `নিয়ম #${index + 1}`}
+                            </span>
+                            {rule.badge && (
+                              <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-[#006a4e] border border-emerald-200 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                                {rule.badge}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveCodeOfConductRule(index, "up")}
+                              disabled={index === 0}
+                              title="উপরে নিন"
+                              className="rounded p-1.5 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                            >
+                              <ArrowUp size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveCodeOfConductRule(index, "down")}
+                              disabled={index === (draft.codeOfConductRules?.length || 0) - 1}
+                              title="নিচে নিন"
+                              className="rounded p-1.5 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                            >
+                              <ArrowDown size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => translateCodeOfConductRule(index)}
+                              title="ইংরেজিতে অনুবাদ করুন"
+                              className="rounded p-1.5 text-[#006a4e] hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                            >
+                              <Sparkles size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeCodeOfConductRule(index)}
+                              title="নিয়মটি মুছে ফেলুন"
+                              className="rounded p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Fields */}
+                        <div className="mt-3.5 space-y-3">
+                          {/* Title & Badge Row */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                নিয়মের শিরোনাম (বাংলা)
+                                <input
+                                  type="text"
+                                  value={rule.title}
+                                  onChange={(e) => updateCodeOfConductRule(index, "title", e.target.value)}
+                                  placeholder="যেমন: ১. ইউনিফর্ম ও ড্রেসকোড:"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Rule Title (English)
+                                <input
+                                  type="text"
+                                  value={rule.titleEn || ""}
+                                  onChange={(e) => updateCodeOfConductRule(index, "titleEn", e.target.value)}
+                                  placeholder="e.g. 1. Uniform & Dress Code:"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                ক্যাটাগরি / ব্যাজ (বাংলা - ঐচ্ছিক)
+                                <input
+                                  type="text"
+                                  value={rule.badge || ""}
+                                  onChange={(e) => updateCodeOfConductRule(index, "badge", e.target.value)}
+                                  placeholder="যেমন: পোশাক নীতিমালা / উপস্থিতি / শৃঙ্খলা"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Category / Badge (English - Optional)
+                                <input
+                                  type="text"
+                                  value={rule.badgeEn || ""}
+                                  onChange={(e) => updateCodeOfConductRule(index, "badgeEn", e.target.value)}
+                                  placeholder="e.g. Dress Code / Attendance / Discipline"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+                          </div>
+
+                          {/* Description Textarea */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                নীতিমালার বিস্তারিত বিবরণ (বাংলা)
+                                <textarea
+                                  rows={3}
+                                  value={rule.description}
+                                  onChange={(e) => updateCodeOfConductRule(index, "description", e.target.value)}
+                                  placeholder="সাদা শার্ট, নেভি ব্লু প্যান্ট/সালোয়ার, নির্ধারিত বিদ্যালয় মনোগ্রাম সম্বলিত ব্যাজ ও কালো জুতা পরিধান বাধ্যতামূলক।"
+                                  className={textareaClass}
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Policy Description (English)
+                                <textarea
+                                  rows={3}
+                                  value={rule.descriptionEn || ""}
+                                  onChange={(e) => updateCodeOfConductRule(index, "descriptionEn", e.target.value)}
+                                  placeholder="White shirt, navy blue pants/salwar, school monogram badge, and black shoes are mandatory."
+                                  className={textareaClass}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Public Page Live Preview */}
+            <div className="rounded-lg border border-[#cde2d4] bg-[#f7faf8] p-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-[#dde5df] pb-2.5 mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400 flex items-center gap-1.5">
+                  <Eye size={14} />
+                  <span>লাইভ ওয়েবসাইট প্রিভিউ (Academics Page Preview)</span>
+                </span>
+                <a
+                  href="/academics"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-[#006a4e] hover:underline flex items-center gap-1"
+                >
+                  <span>Academics পেজ দেখুন</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
+
+              <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs dark:border-slate-700 dark:bg-slate-800">
+                <h3 className="text-base font-bold text-[#005a40] border-b pb-2.5 flex items-center gap-2 dark:text-emerald-300">
+                  <Shield size={16} />
+                  <span>{draft.codeOfConductTitle || "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা"}</span>
+                </h3>
+                {draft.codeOfConductSubtitle && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {draft.codeOfConductSubtitle}
+                  </p>
+                )}
+
+                <div className="mt-4 space-y-3 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                  {(draft.codeOfConductRules || []).map((rule, idx) => (
+                    <div key={rule.id || idx} className="rounded-md border border-gray-100 bg-[#f9fbf9] p-3.5 dark:border-slate-700 dark:bg-slate-800/80">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="font-bold text-gray-900 dark:text-white">
+                          {rule.title || `নিয়ম ${idx + 1}`}
+                        </p>
+                        {rule.badge && (
+                          <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-[#006a4e] dark:bg-emerald-950 dark:text-emerald-300">
+                            {rule.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300">
+                        {rule.description || "কোনো বিবরণ প্রদান করা হয়নি।"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
         )}
 
         {/* Sticky Action Footer */}

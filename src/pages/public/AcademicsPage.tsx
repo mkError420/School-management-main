@@ -107,7 +107,7 @@ export const AcademicsPage: React.FC = () => {
           setLessons(parsed);
         }
       }
-    } catch {}
+    } catch { }
 
     const fetchData = async () => {
       try {
@@ -122,7 +122,7 @@ export const AcademicsPage: React.FC = () => {
           setLessons(lessonsRes.data.lessons);
           try {
             localStorage.setItem("school_custom_lessons", JSON.stringify(lessonsRes.data.lessons));
-          } catch {}
+          } catch { }
         } else {
           setLessons((prev) => (prev.length > 0 ? prev : DEFAULT_SCHEDULE_LESSONS));
         }
@@ -303,14 +303,14 @@ export const AcademicsPage: React.FC = () => {
                   <Printer size={13} />
                   <span className="hidden sm:inline">{t("প্রিন্ট", "Print")}</span>
                 </button>
-                <Link
+                {/*                 <Link
                   to="/class-schedule"
                   className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1 text-xs font-bold text-white shadow-2xs hover:bg-[#00503a]"
                   title={t("ড্যাশবোর্ড রুটিন পেজ", "Dashboard Schedule")}
                 >
                   <GraduationCap size={13} />
                   <span className="hidden sm:inline">{t("ড্যাশবোর্ড", "Dashboard")}</span>
-                </Link>
+                </Link> */}
               </div>
             </div>
 
@@ -329,11 +329,10 @@ export const AcademicsPage: React.FC = () => {
                         key={day.key}
                         type="button"
                         onClick={() => setSelectedDay(day.key)}
-                        className={`rounded-md px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
-                          isSelected
-                            ? "bg-[#006a4e] text-white shadow-xs"
-                            : "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:text-[#006a4e]"
-                        }`}
+                        className={`rounded-md px-3 py-1.5 text-xs font-bold transition shadow-2xs ${isSelected
+                          ? "bg-[#006a4e] text-white shadow-xs"
+                          : "bg-white text-gray-700 border border-gray-200 hover:bg-emerald-50 hover:text-[#006a4e]"
+                          }`}
                       >
                         {lang === "bn" ? day.bn : day.en}
                       </button>
@@ -496,7 +495,6 @@ export const AcademicsPage: React.FC = () => {
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-3 text-[11px] text-gray-500">
               <span className="flex items-center gap-1">
-                <Sparkles size={12} className="text-amber-600" />
                 <span>{t("প্রশাসনিক ড্যাশবোর্ডে ক্লাস শিডিউল হালনাগাদ হলে তা ওয়েবসাইটে সরাসরি দৃশ্যমান হয়।", "Updates made in the dashboard class-schedule appear live on the website.")}</span>
               </span>
               <Link
@@ -512,43 +510,79 @@ export const AcademicsPage: React.FC = () => {
           {/* Student Code of Conduct */}
           <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
             <h3 className="text-lg font-bold text-[#005a40] border-b pb-3 flex items-center gap-2">
-              <span>{t("শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা", "Student Code of Conduct & Dress Code")}</span>
+              <ShieldAlert size={18} className="text-[#006a4e]" />
+              <span>
+                {t(
+                  content.codeOfConductTitle || "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা",
+                  content.codeOfConductTitleEn || "Student Code of Conduct & Dress Code"
+                )}
+              </span>
             </h3>
 
+            {Boolean(content.codeOfConductSubtitle || content.codeOfConductSubtitleEn) && (
+              <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+                {t(content.codeOfConductSubtitle, content.codeOfConductSubtitleEn)}
+              </p>
+            )}
+
             <div className="mt-4 space-y-3 text-xs leading-relaxed text-gray-700">
-              <div className="rounded-md border border-gray-100 bg-[#f9fbf9] p-3.5">
-                <p className="font-bold text-gray-900 mb-1">
-                  {t("১. ইউনিফর্ম ও ড্রেসকোড:", "1. Uniform & Dress Code:")}
-                </p>
-                <p>
-                  {t(
-                    "সাদা শার্ট, নেভি ব্লু প্যান্ট/সালোয়ার, নির্ধারিত বিদ্যালয় মনোগ্রাম সম্বলিত ব্যাজ ও কালো জুতা পরিধান বাধ্যতামূলক।",
-                    "White shirt, navy blue pants/salwar, school monogram badge, and black shoes are mandatory."
-                  )}
-                </p>
-              </div>
-              <div className="rounded-md border border-gray-100 bg-[#f9fbf9] p-3.5">
-                <p className="font-bold text-gray-900 mb-1">
-                  {t("২. ক্লাসে উপস্থিতি:", "2. Attendance Policy:")}
-                </p>
-                <p>
-                  {t(
-                    "সকল শিক্ষার্থীকে সকাল ৮:৫০ মিনিটের মধ্যে ক্যাম্পাসে উপস্থিত হতে হবে। ন্যূনতম ৮০% উপস্থিতি বাধ্যতামূলক।",
-                    "All students must arrive at the campus by 8:50 AM. A minimum of 80% attendance is compulsory."
-                  )}
-                </p>
-              </div>
-              <div className="rounded-md border border-gray-100 bg-[#f9fbf9] p-3.5">
-                <p className="font-bold text-gray-900 mb-1">
-                  {t("৩. মোবাইল ফোন নিষেধাজ্ঞা:", "3. Mobile Phone Policy:")}
-                </p>
-                <p>
-                  {t(
-                    "শ্রেণিকক্ষে শিক্ষার্থীদের স্মার্টফোন বা কোনো ইলেকট্রনিক গ্যাজেট আনা সম্পূর্ণ নিষিদ্ধ।",
-                    "Bringing smartphones or electronic gadgets into classrooms is strictly prohibited."
-                  )}
-                </p>
-              </div>
+              {(content.codeOfConductRules && content.codeOfConductRules.length > 0
+                ? content.codeOfConductRules
+                : [
+                    {
+                      id: "conduct_1",
+                      title: "১. ইউনিফর্ম ও ড্রেসকোড:",
+                      titleEn: "1. Uniform & Dress Code:",
+                      description:
+                        "সাদা শার্ট, নেভি ব্লু প্যান্ট/সালোয়ার, নির্ধারিত বিদ্যালয় মনোগ্রাম সম্বলিত ব্যাজ ও কালো জুতা পরিধান বাধ্যতামূলক।",
+                      descriptionEn:
+                        "White shirt, navy blue pants/salwar, school monogram badge, and black shoes are mandatory.",
+                      badge: "পোশাক নীতিমালা",
+                      badgeEn: "Dress Code",
+                    },
+                    {
+                      id: "conduct_2",
+                      title: "২. ক্লাসে উপস্থিতি:",
+                      titleEn: "2. Attendance Policy:",
+                      description:
+                        "সকল শিক্ষার্থীকে সকাল ৮:৫০ মিনিটের মধ্যে ক্যাম্পাসে উপস্থিত হতে হবে। ন্যূনতম ৮০% উপস্থিতি বাধ্যতামূলক।",
+                      descriptionEn:
+                        "All students must arrive at the campus by 8:50 AM. A minimum of 80% attendance is compulsory.",
+                      badge: "উপস্থিতি",
+                      badgeEn: "Attendance",
+                    },
+                    {
+                      id: "conduct_3",
+                      title: "৩. মোবাইল ফোন নিষেধাজ্ঞা:",
+                      titleEn: "3. Mobile Phone Policy:",
+                      description:
+                        "শ্রেণিকক্ষে শিক্ষার্থীদের স্মার্টফোন বা কোনো ইলেকট্রনিক গ্যাজেট আনা সম্পূর্ণ নিষিদ্ধ।",
+                      descriptionEn:
+                        "Bringing smartphones or electronic gadgets into classrooms is strictly prohibited.",
+                      badge: "শৃঙ্খলা বিধি",
+                      badgeEn: "Discipline",
+                    },
+                  ]
+              ).map((rule, idx) => (
+                <div
+                  key={rule.id || idx}
+                  className="rounded-md border border-gray-100 bg-[#f9fbf9] p-3.5 transition hover:border-[#cbe0d3]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
+                    <p className="font-bold text-gray-900">
+                      {t(rule.title, rule.titleEn)}
+                    </p>
+                    {(rule.badge || rule.badgeEn) && (
+                      <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-[#006a4e] border border-emerald-100">
+                        {t(rule.badge, rule.badgeEn)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">
+                    {t(rule.description, rule.descriptionEn)}
+                  </p>
+                </div>
+              ))}
             </div>
           </section>
         </div>

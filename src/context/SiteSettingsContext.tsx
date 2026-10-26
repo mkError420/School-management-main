@@ -222,6 +222,11 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     tickerIncludeNotices: incoming.tickerIncludeNotices !== undefined ? incoming.tickerIncludeNotices : true,
     tickerLabel: incoming.tickerLabel !== undefined ? incoming.tickerLabel : (DEFAULT_WEBSITE_CONTENT.tickerLabel || "জরুরি নোটিশ:"),
     tickerLabelEn: incoming.tickerLabelEn !== undefined ? incoming.tickerLabelEn : (DEFAULT_WEBSITE_CONTENT.tickerLabelEn || "Urgent Notice:"),
+    codeOfConductTitle: cleanStr(incoming.codeOfConductTitle, DEFAULT_WEBSITE_CONTENT.codeOfConductTitle || "শিক্ষার্থীদের আচরণবিধি ও পোশাক নীতিমালা"),
+    codeOfConductTitleEn: cleanStr(incoming.codeOfConductTitleEn, DEFAULT_WEBSITE_CONTENT.codeOfConductTitleEn || "Student Code of Conduct & Dress Code"),
+    codeOfConductSubtitle: incoming.codeOfConductSubtitle !== undefined ? cleanStr(incoming.codeOfConductSubtitle, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitle || ""),
+    codeOfConductSubtitleEn: incoming.codeOfConductSubtitleEn !== undefined ? cleanStr(incoming.codeOfConductSubtitleEn, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitleEn || ""),
+    codeOfConductRules: cleanList(incoming.codeOfConductRules, DEFAULT_WEBSITE_CONTENT.codeOfConductRules || []),
   };
 };
 

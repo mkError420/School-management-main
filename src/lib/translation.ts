@@ -584,6 +584,21 @@ export const autoTranslateWebsiteContent = async (
     if (result.tickerLabel && !result.tickerLabelEn) {
       result.tickerLabelEn = translateBnToEn(result.tickerLabel);
     }
+
+    if (result.codeOfConductTitle && !result.codeOfConductTitleEn) {
+      result.codeOfConductTitleEn = translateBnToEn(result.codeOfConductTitle);
+    }
+    if (result.codeOfConductSubtitle && !result.codeOfConductSubtitleEn) {
+      result.codeOfConductSubtitleEn = translateBnToEn(result.codeOfConductSubtitle);
+    }
+    if (result.codeOfConductRules) {
+      result.codeOfConductRules = result.codeOfConductRules.map((r) => ({
+        ...r,
+        titleEn: r.titleEn || translateBnToEn(r.title),
+        descriptionEn: r.descriptionEn || translateBnToEn(r.description),
+        badgeEn: r.badgeEn || translateBnToEn(r.badge || ""),
+      }));
+    }
   }
 
   return result;
