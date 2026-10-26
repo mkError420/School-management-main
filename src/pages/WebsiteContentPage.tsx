@@ -33,6 +33,7 @@ import {
   Link as LinkIcon,
   Loader2,
   Monitor,
+  Pencil,
   Plus,
   Radio,
   RefreshCw,
@@ -74,7 +75,7 @@ import type {
   StudyCornerLink,
   StudyCornerTip,
 } from "@/types/site";
-import { DEFAULT_ADMISSION_SEAT_MATRIX } from "@/types/site";
+import { DEFAULT_ADMISSION_SEAT_MATRIX, DEFAULT_WEBSITE_CONTENT } from "@/types/site";
 import {
   autoTranslateWebsiteContent,
   translateBnToEn,
@@ -112,6 +113,19 @@ const WebsiteContentPage: React.FC = () => {
   const [noticeSearch, setNoticeSearch] = useState("");
   const [downloadSearch, setDownloadSearch] = useState("");
   const [admissionSeatSearch, setAdmissionSeatSearch] = useState("");
+  const [gallerySearch, setGallerySearch] = useState("");
+  const [galleryCategoryFilter, setGalleryCategoryFilter] = useState("সকল");
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [editingGalleryIndex, setEditingGalleryIndex] = useState<number | null>(null);
+  const [isSavingGalleryPhoto, setIsSavingGalleryPhoto] = useState(false);
+  const [galleryForm, setGalleryForm] = useState<SchoolGalleryItem>({
+    id: "",
+    title: "",
+    titleEn: "",
+    category: "ক্যাম্পাস",
+    categoryEn: "Campus",
+    imageUrl: "",
+  });
   const [showDirectPageLinks, setShowDirectPageLinks] = useState(false);
   const [syncingStaff, setSyncingStaff] = useState(false);
   const [liveStaffList, setLiveStaffList] = useState<any[]>([]);
@@ -659,18 +673,6 @@ const WebsiteContentPage: React.FC = () => {
     });
   };
 
-  const moveGalleryItem = (index: number, direction: "up" | "down") => {
-    setDraft((prev) => {
-      const list = [...(prev.gallery || [])];
-      const target = direction === "up" ? index - 1 : index + 1;
-      if (target < 0 || target >= list.length) return prev;
-      const temp = list[index];
-      list[index] = list[target];
-      list[target] = temp;
-      return { ...prev, gallery: list };
-    });
-  };
-
   const moveNotice = (index: number, direction: "up" | "down") => {
     setDraft((prev) => {
       const list = [...(prev.notices || [])];
@@ -913,30 +915,147 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   // Gallery handlers
-  const addGalleryItem = () => {
-    const newItem: SchoolGalleryItem = {
+  const handleOpenAddGalleryModal = () => {
+    setEditingGalleryIndex(null);
+    setGalleryForm({
       id: "g_" + Date.now(),
       title: "",
       titleEn: "",
       category: "ক্যাম্পাস",
       categoryEn: "Campus",
-      imageUrl: "/images/bgimage.jpg",
+      imageUrl: "",
+    });
+    setIsGalleryModalOpen(true);
+  };
+
+  const handleOpenEditGalleryModal = (index: number) => {
+    const item = (draft.gallery || [])[index];
+    if (!item) return;
+    setEditingGalleryIndex(index);
+    setGalleryForm({
+      id: item.id || "g_" + Date.now(),
+      title: item.title || "",
+      titleEn: item.titleEn || "",
+      category: item.category || "ক্যাম্পাস",
+      categoryEn: item.categoryEn || "Campus",
+      imageUrl: item.imageUrl || "",
+    });
+    setIsGalleryModalOpen(true);
+  };
+
+  const handleCloseGalleryModal = () => {
+    setIsGalleryModalOpen(false);
+    setEditingGalleryIndex(null);
+    setIsSavingGalleryPhoto(false);
+  };
+
+  const handleSaveGalleryModal = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!galleryForm.title.trim()) {
+      setFeedback({ type: "error", message: "ছবির শিরোনাম (বাংলায়) পূরণ করা বাধ্যতামূলক।" });
+      return;
+    }
+    if (!galleryForm.imageUrl.trim()) {
+      setFeedback({ type: "error", message: "গ্যালারির জন্য ছবি আপলোড করুন অথবা ছবির লিঙ্ক প্রদান করুন।" });
+      return;
+    }
+
+    setIsSavingGalleryPhoto(true);
+
+    const titleEnVal = galleryForm.titleEn?.trim() || translateBnToEn(galleryForm.title);
+    const categoryEnVal = galleryForm.categoryEn?.trim() || translateBnToEn(galleryForm.category);
+
+    const photoToSave: SchoolGalleryItem = {
+      ...galleryForm,
+      id: galleryForm.id || "g_" + Date.now(),
+      title: galleryForm.title.trim(),
+      titleEn: titleEnVal,
+      category: galleryForm.category.trim() || "ক্যাম্পাস",
+      categoryEn: categoryEnVal || "Campus",
+      imageUrl: galleryForm.imageUrl.trim(),
     };
-    setDraft((prev) => ({ ...prev, gallery: [newItem, ...(prev.gallery || [])] }));
+
+    let nextGallery: SchoolGalleryItem[];
+    if (editingGalleryIndex !== null && editingGalleryIndex >= 0) {
+      nextGallery = (draft.gallery || []).map((p, idx) => (idx === editingGalleryIndex ? photoToSave : p));
+    } else {
+      nextGallery = [photoToSave, ...(draft.gallery || [])];
+    }
+
+    const nextDraft: SchoolWebsiteContent = {
+      ...draft,
+      gallery: nextGallery,
+    };
+
+    setDraft(nextDraft);
+
+    try {
+      const res = await saveWebsiteContent(nextDraft);
+      if (res.success) {
+        setFeedback({
+          type: "success",
+          message:
+            editingGalleryIndex !== null
+              ? "গ্যালারির ছবিটি সফলভাবে আপডেট ও ডাটাবেজে সংরক্ষিত হয়েছে!"
+              : "নতুন ছবিটি সফলভাবে গ্যালারিতে যুক্ত ও ডাটাবেজে সংরক্ষিত হয়েছে! লাইভ ওয়েবসাইটে সরাসরি দেখতে পারেন।",
+        });
+        handleCloseGalleryModal();
+      } else {
+        setFeedback({
+          type: "error",
+          message: res.message || "গ্যালারির ছবি ডাটাবেজে সংরক্ষণ করা যায়নি।",
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: "ডাটাবেজে সংরক্ষণ করতে সমস্যা হয়েছে: " + (err?.message || "নেটওয়ার্ক ত্রুটি"),
+      });
+    } finally {
+      setIsSavingGalleryPhoto(false);
+    }
   };
 
-  const removeGalleryItem = (index: number) => {
-    setDraft((prev) => ({
-      ...prev,
-      gallery: (prev.gallery || []).filter((_, i) => i !== index),
-    }));
+  const handleDeleteGalleryItem = async (index: number) => {
+    const photo = (draft.gallery || [])[index];
+    const confirmMsg = `আপনি কি নিশ্চিত যে "${photo?.title || "এই ছবি"}" গ্যালারি থেকে মুছে ফেলতে চান?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    const nextGallery = (draft.gallery || []).filter((_, i) => i !== index);
+    const nextDraft: SchoolWebsiteContent = {
+      ...draft,
+      gallery: nextGallery,
+    };
+    setDraft(nextDraft);
+
+    try {
+      const res = await saveWebsiteContent(nextDraft);
+      if (res.success) {
+        setFeedback({
+          type: "success",
+          message: "ছবিটি সফলভাবে গ্যালারি ও ডাটাবেজ থেকে মুছে ফেলা হয়েছে।",
+        });
+      }
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: "মুছতে সমস্যা হয়েছে: " + (err?.message || ""),
+      });
+    }
   };
 
-  const updateGalleryItem = (index: number, field: keyof SchoolGalleryItem, value: string) => {
-    setDraft((prev) => ({
-      ...prev,
-      gallery: (prev.gallery || []).map((item, i) => (i === index ? { ...item, [field]: value } : item)),
-    }));
+  const moveGalleryItem = async (index: number, direction: "up" | "down") => {
+    const list = [...(draft.gallery || [])];
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= list.length) return;
+    const temp = list[index];
+    list[index] = list[target];
+    list[target] = temp;
+    const nextDraft = { ...draft, gallery: list };
+    setDraft(nextDraft);
+    try {
+      await saveWebsiteContent(nextDraft);
+    } catch { }
   };
 
   const translateGalleryItem = (index: number) => {
@@ -950,6 +1069,40 @@ const WebsiteContentPage: React.FC = () => {
           categoryEn: item.categoryEn || translateBnToEn(item.category),
         };
       }),
+    }));
+  };
+
+  const handleResetGalleryToDefault = async () => {
+    if (window.confirm("আপনি কি গ্যালারির পূর্বনির্ধারিত ডিফল্ট ছবিগুলো পুনরায় লোড করতে চান?")) {
+      const nextDraft = {
+        ...draft,
+        gallery: DEFAULT_WEBSITE_CONTENT.gallery,
+      };
+      setDraft(nextDraft);
+      try {
+        const res = await saveWebsiteContent(nextDraft);
+        if (res.success) {
+          setFeedback({
+            type: "success",
+            message: "ডিফল্ট গ্যালারির ছবিগুলো সফলভাবে লোড ও ডাটাবেজে সংরক্ষিত হয়েছে।",
+          });
+        }
+      } catch (err: any) {
+        setFeedback({
+          type: "error",
+          message: "রিস্টোর করতে সমস্যা হয়েছে: " + (err?.message || ""),
+        });
+      }
+    }
+  };
+
+  // Legacy alias for compatibility
+  const addGalleryItem = handleOpenAddGalleryModal;
+  const removeGalleryItem = handleDeleteGalleryItem;
+  const updateGalleryItem = (index: number, field: keyof SchoolGalleryItem, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      gallery: (prev.gallery || []).map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     }));
   };
 
@@ -4668,136 +4821,259 @@ const WebsiteContentPage: React.FC = () => {
 
         {/* TAB 10: GALLERY */}
         {activeTab === "gallery" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <ImageIcon size={16} className="text-[#006a4e]" />
-                  <span>১০. ফটো গ্যালারি ব্যবস্থাপনা (দ্বিভাষিক) ({draft.gallery.length} টি ছবি)</span>
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  বিদ্যালয় ক্যাম্পাস, সাংস্কৃতিক অনুষ্ঠান ও ক্রীড়া প্রতিযোগিতার ছবি আপলোড করুন ও সাজান।
-                </p>
+          <div className="space-y-6">
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <ImageIcon size={16} className="text-[#006a4e]" />
+                    <span>১০. ফটো গ্যালারি ব্যবস্থাপনা (দ্বিভাষিক)</span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                      {(draft.gallery || []).length} টি ছবি
+                    </span>
+                  </h2>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    বিদ্যালয় ক্যাম্পাস, সাংস্কৃতিক অনুষ্ঠান, বিজ্ঞান মেলা ও ক্রীড়া প্রতিযোগিতার ছবি আপলোড করুন ও সাজান। এটি লাইভ ওয়েবসাইটের{" "}
+                    <Link to="/gallery" target="_blank" className="text-[#006a4e] underline font-medium">/gallery</Link>{" "}
+                    পেজ ও প্রচ্ছদ (Home) পেজের গ্যালারি সেকশনে সরাসরি প্রদর্শিত হয়।
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResetGalleryToDefault}
+                    title="ডিফল্ট গ্যালারির ছবিগুলো রিস্টোর করুন"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                  >
+                    <RefreshCw size={13} />
+                    <span>ডিফল্ট ছবি রিস্টোর</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenAddGalleryModal}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] transition"
+                  >
+                    <Plus size={14} />
+                    <span>নতুন ছবি যোগ করুন</span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={addGalleryItem}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-              >
-                <Plus size={14} />
-                <span>নতুন ছবি যোগ করুন</span>
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {(draft.gallery || []).map((photo, index) => (
-                <div
-                  key={photo.id || index}
-                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                      ছবি #{index + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => moveGalleryItem(index, "up")}
-                        disabled={index === 0}
-                        title="উপরে নিন"
-                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                      >
-                        <ArrowUp size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveGalleryItem(index, "down")}
-                        disabled={index === (draft.gallery || []).length - 1}
-                        title="নিচে নিন"
-                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                      >
-                        <ArrowDown size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => translateGalleryItem(index)}
-                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
-                      >
-                        <Sparkles size={12} />
-                        <span>অনুবাদ</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeGalleryItem(index)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
-                      >
-                        <Trash2 size={13} />
-                        <span>মুছুন</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 space-y-3">
-                    {/* Image Upload Field */}
-                    <ImageUploadField
-                      label="গ্যালারির ছবি (Gallery Image)"
-                      value={photo.imageUrl}
-                      onChange={(url) => updateGalleryItem(index, "imageUrl", url)}
-                      aspectRatio="video"
-                      helperText="ডিভাইস থেকে ছবি আপলোড করুন অথবা ফটো লিঙ্ক প্রদান করুন।"
-                      presets={[
-                        { label: "Campus View", url: "/images/bgimage.jpg" },
-                        { label: "Sports Day", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800" },
-                        { label: "Classroom", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800" },
-                      ]}
-                    />
-
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                        ছবির শিরোনাম (বাংলায়)
-                        <input
-                          type="text"
-                          value={photo.title}
-                          onChange={(e) => updateGalleryItem(index, "title", e.target.value)}
-                          className={inputClass}
-                        />
-                      </label>
-
-                      <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
-                        Photo Title (English)
-                        <input
-                          type="text"
-                          value={photo.titleEn || ""}
-                          onChange={(e) => updateGalleryItem(index, "titleEn", e.target.value)}
-                          placeholder="e.g. Main Academic Building"
-                          className={inputClass}
-                        />
-                      </label>
-
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 sm:col-span-2">
-                        ক্যাটাগরি (Category)
-                        <select
-                          value={photo.category || "ক্যাম্পাস"}
-                          onChange={(e) => {
-                            updateGalleryItem(index, "category", e.target.value);
-                            updateGalleryItem(index, "categoryEn", translateBnToEn(e.target.value));
-                          }}
-                          className={inputClass}
-                        >
-                          <option value="ক্যাম্পাস">ক্যাম্পাস (Campus)</option>
-                          <option value="অনুষ্ঠান">অনুষ্ঠান (Events)</option>
-                          <option value="ক্রীড়া">ক্রীড়া (Sports)</option>
-                          <option value="পুরস্কার">পুরস্কার (Awards)</option>
-                          <option value="অন্যান্য">অন্যান্য (Other)</option>
-                        </select>
-                      </label>
-                    </div>
-                  </div>
+              {/* Search & Category Filter Toolbar */}
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative max-w-sm flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={gallerySearch}
+                    onChange={(e) => setGallerySearch(e.target.value)}
+                    placeholder="ছবি খুঁজুন (শিরোনাম বা ক্যাটাগরি)..."
+                    className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-9 pr-8 text-xs text-black outline-none focus:border-[#006a4e] focus:ring-1 focus:ring-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                  {gallerySearch && (
+                    <button
+                      type="button"
+                      onClick={() => setGallerySearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
-              ))}
+
+                {/* Category Pills Filter */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {["সকল", "ক্যাম্পাস", "ল্যাব", "সমাবেশ", "ক্রীড়া", "বিজ্ঞান মেলা", "জাতীয় দিবস", "অন্যান্য"].map((cat) => {
+                    const count = cat === "সকল"
+                      ? (draft.gallery || []).length
+                      : (draft.gallery || []).filter((p) => (p.category || "").includes(cat)).length;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setGalleryCategoryFilter(cat)}
+                        className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${galleryCategoryFilter === cat
+                            ? "bg-[#006a4e] text-white shadow-xs"
+                            : "bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300"
+                          }`}
+                      >
+                        <span>{cat}</span>
+                        <span className={`text-[10px] rounded-full px-1 ${galleryCategoryFilter === cat ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600 dark:bg-slate-700 dark:text-gray-300"}`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Photo Cards Grid */}
+              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+                {(draft.gallery || [])
+                  .map((photo, originalIndex) => ({ photo, originalIndex }))
+                  .filter(({ photo }) => {
+                    if (galleryCategoryFilter !== "সকল" && !(photo.category || "").includes(galleryCategoryFilter)) {
+                      return false;
+                    }
+                    if (!gallerySearch.trim()) return true;
+                    const q = gallerySearch.toLowerCase();
+                    return (
+                      (photo.title || "").toLowerCase().includes(q) ||
+                      (photo.titleEn || "").toLowerCase().includes(q) ||
+                      (photo.category || "").toLowerCase().includes(q) ||
+                      (photo.categoryEn || "").toLowerCase().includes(q)
+                    );
+                  })
+                  .map(({ photo, originalIndex }) => (
+                    <div
+                      key={photo.id || originalIndex}
+                      className="group flex flex-col justify-between overflow-hidden rounded-lg border border-gray-200 bg-[#fbfdfc] shadow-2xs transition hover:border-[#006a4e] hover:shadow-md dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      <div>
+                        {/* Thumbnail */}
+                        <div className="relative aspect-4/3 w-full overflow-hidden bg-gray-100 dark:bg-slate-900">
+                          <img
+                            src={photo.imageUrl || "/images/bgimage.jpg"}
+                            alt={photo.title}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.src = "/images/bgimage.jpg";
+                            }}
+                          />
+                          <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5">
+                            <span className="rounded bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-xs">
+                              #{originalIndex + 1}
+                            </span>
+                            <span className="rounded bg-[#006a4e] px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs">
+                              {photo.category || "ক্যাম্পাস"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Title Info */}
+                        <div className="p-3.5 space-y-1">
+                          <h4 className="text-xs font-bold text-gray-900 line-clamp-2 dark:text-white">
+                            {photo.title || "নামবিহীন ছবি"}
+                          </h4>
+                          {photo.titleEn && (
+                            <p className="text-[11px] text-gray-500 line-clamp-1 dark:text-gray-400">
+                              {photo.titleEn}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div className="border-t border-gray-100 bg-gray-50/70 p-2.5 flex items-center justify-between dark:border-slate-700 dark:bg-slate-800/80">
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveGalleryItem(originalIndex, "up")}
+                            disabled={originalIndex === 0}
+                            title="উপরে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveGalleryItem(originalIndex, "down")}
+                            disabled={originalIndex === (draft.gallery || []).length - 1}
+                            title="নিচে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => translateGalleryItem(originalIndex)}
+                            title="ইংরেজিতে অনুবাদ করুন"
+                            className="rounded p-1 text-[#006a4e] hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          >
+                            <Sparkles size={13} />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditGalleryModal(originalIndex)}
+                            className="inline-flex items-center gap-1 rounded bg-white px-2 py-1 text-xs font-bold text-[#006a4e] border border-emerald-300 shadow-2xs hover:bg-emerald-50 dark:bg-slate-700 dark:border-slate-600 dark:text-emerald-300"
+                          >
+                            <Pencil size={12} />
+                            <span>এডিট</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGalleryItem(originalIndex)}
+                            className="inline-flex items-center gap-1 rounded bg-white px-2 py-1 text-xs font-bold text-red-600 border border-red-200 shadow-2xs hover:bg-red-50 dark:bg-slate-700 dark:border-slate-600 dark:text-red-400"
+                          >
+                            <Trash2 size={12} />
+                            <span>মুছুন</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                {(draft.gallery || []).length === 0 && (
+                  <div className="col-span-full rounded-lg border-2 border-dashed border-gray-200 p-8 text-center dark:border-slate-800">
+                    <ImageIcon size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                      গ্যালারিতে বর্তমানে কোনো ছবি যুক্ত করা নেই।
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddGalleryModal}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                    >
+                      <Plus size={14} />
+                      <span>প্রথম ছবি যোগ করুন</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Live Gallery Page Preview */}
+            <div className="rounded-lg border border-[#cde2d4] bg-[#f7faf8] p-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-[#dde5df] pb-2.5 mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400 flex items-center gap-1.5">
+                  <Eye size={14} />
+                  <span>লাইভ ওয়েবসাইট প্রিভিউ (Gallery Page Live Preview)</span>
+                </span>
+                <Link
+                  to="/gallery"
+                  target="_blank"
+                  className="text-xs font-semibold text-[#006a4e] hover:underline flex items-center gap-1 dark:text-emerald-400"
+                >
+                  <span>গ্যালারি পেজে সরাসরি দেখুন (/gallery)</span>
+                  <ExternalLink size={12} />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                {(draft.gallery || []).slice(0, 6).map((item, idx) => (
+                  <div key={item.id || idx} className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-2xs">
+                    <img
+                      src={item.imageUrl || "/images/bgimage.jpg"}
+                      alt={item.title}
+                      className="aspect-4/3 w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/bgimage.jpg";
+                      }}
+                    />
+                    <div className="p-1.5 text-[11px] truncate font-medium text-gray-800">
+                      {item.title}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </section>
+          </div>
         )}
 
         {/* TAB 11: STUDY CORNER */}
@@ -5503,6 +5779,280 @@ const WebsiteContentPage: React.FC = () => {
           </div>
         </footer>
       </form>
+
+      {/* GALLERY PHOTO ADD / EDIT MODAL */}
+      {isGalleryModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSavingGalleryPhoto) {
+              handleCloseGalleryModal();
+            }
+          }}
+        >
+          <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    {editingGalleryIndex !== null ? "ফটো গ্যালারি ছবি সম্পাদনা করুন" : "নতুন ফটো গ্যালারি ছবি যোগ করুন"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    ছবি আপলোড করুন, বাংলা ও ইংরেজি শিরোনাম দিন। সেভ করার সাথে সাথে লাইভ ডাটাবেজ আপডেট হবে।
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseGalleryModal}
+                disabled={isSavingGalleryPhoto}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-800 dark:hover:text-gray-200 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleSaveGalleryModal} className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+              {/* Photo Upload via ImageUploadField */}
+              <div>
+                <ImageUploadField
+                  label="ছবির ফাইল আপলোড অথবা লিঙ্ক দিন (Upload Photo or Paste URL) *"
+                  value={galleryForm.imageUrl}
+                  onChange={(url) => setGalleryForm((prev) => ({ ...prev, imageUrl: url }))}
+                  aspectRatio="video"
+                  uploadEndpoint="notice"
+                  helperText="ছবি আপলোড করতে ড্র্যাগ ও ড্রপ করুন, অথবা আপনার কম্পিউটার থেকে ব্রাউজ করে নির্বাচন করুন (JPG, PNG, WebP)। সার্ভারে সরাসরি আপলোড হবে।"
+                  presets={[
+                    { label: "Campus Building", url: "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&q=80&w=1200" },
+                    { label: "Science Lab", url: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=1200" },
+                    { label: "Assembly / Students", url: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=1200" },
+                    { label: "Sports & Field", url: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&q=80&w=1200" },
+                    { label: "Library / Study", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1200" },
+                    { label: "Computer Lab", url: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=1200" },
+                  ]}
+                />
+              </div>
+
+              {/* Title Bengali */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                  ছবির শিরোনাম (বাংলায়) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={galleryForm.title}
+                  onChange={(e) => setGalleryForm((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="যেমন: বার্ষিক বিজ্ঞান মেলা ও পুরষ্কার বিতরণী ২০২৬"
+                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e] focus:ring-1 focus:ring-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Title English with Auto Translate */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                    Photo Title (English)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (galleryForm.title) {
+                        const translated = translateBnToEn(galleryForm.title);
+                        setGalleryForm((prev) => ({ ...prev, titleEn: translated }));
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-900 dark:text-emerald-400"
+                    title="বাংলা শিরোনাম থেকে স্বয়ংক্রিয় ইংরেজি অনুবাদ করুন"
+                  >
+                    <Sparkles size={11} />
+                    <span>অটো ট্রান্সলেট</span>
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={galleryForm.titleEn || ""}
+                  onChange={(e) => setGalleryForm((prev) => ({ ...prev, titleEn: e.target.value }))}
+                  placeholder="e.g. Annual Science Fair & Award Ceremony 2026"
+                  className="mt-1 w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-xs text-black outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              {/* Category Selection & Custom */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                    ক্যাটাগরি / বিভাগ (বাংলা)
+                  </label>
+                  <select
+                    value={
+                      ["ক্যাম্পাস", "ল্যাব", "সমাবেশ", "ক্রীড়া", "বিজ্ঞান মেলা", "জাতীয় দিবস", "সাংস্কৃতিক অনুষ্ঠান", "পুরস্কার বিতরণী"].includes(galleryForm.category)
+                        ? galleryForm.category
+                        : "অন্যান্য"
+                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const catEnMap: Record<string, string> = {
+                        "ক্যাম্পাস": "Campus",
+                        "ল্যাব": "Lab",
+                        "সমাবেশ": "Assembly",
+                        "ক্রীড়া": "Sports",
+                        "বিজ্ঞান মেলা": "Science Fair",
+                        "জাতীয় দিবস": "National Day",
+                        "সাংস্কৃতিক অনুষ্ঠান": "Cultural Program",
+                        "পুরস্কার বিতরণী": "Award Ceremony",
+                        "অন্যান্য": "Other",
+                      };
+                      if (val === "অন্যান্য") {
+                        setGalleryForm((prev) => ({
+                          ...prev,
+                          category: "অন্যান্য",
+                          categoryEn: prev.categoryEn || "Other",
+                        }));
+                      } else {
+                        setGalleryForm((prev) => ({
+                          ...prev,
+                          category: val,
+                          categoryEn: catEnMap[val] || val,
+                        }));
+                      }
+                    }}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e] focus:ring-1 focus:ring-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="ক্যাম্পাস">ক্যাম্পাস (Campus)</option>
+                    <option value="ল্যাব">ল্যাব ও পাঠাগার (Lab & Library)</option>
+                    <option value="সমাবেশ">দৈনিক সমাবেশ (Assembly)</option>
+                    <option value="ক্রীড়া">খেলাধুলা ও ক্রীড়া (Sports)</option>
+                    <option value="বিজ্ঞান মেলা">বিজ্ঞান মেলা (Science Fair)</option>
+                    <option value="জাতীয় দিবস">জাতীয় দিবস (National Day)</option>
+                    <option value="সাংস্কৃতিক অনুষ্ঠান">সাংস্কৃতিক অনুষ্ঠান (Cultural Program)</option>
+                    <option value="পুরস্কার বিতরণী">পুরস্কার বিতরণী (Award Ceremony)</option>
+                    <option value="অন্যান্য">অন্যান্য (Custom / Other)</option>
+                  </select>
+
+                  {/* If custom category */}
+                  {!["ক্যাম্পাস", "ল্যাব", "সমাবেশ", "ক্রীড়া", "বিজ্ঞান মেলা", "জাতীয় দিবস", "সাংস্কৃতিক অনুষ্ঠান", "পুরস্কার বিতরণী"].includes(galleryForm.category) && (
+                    <input
+                      type="text"
+                      value={galleryForm.category === "অন্যান্য" ? "" : galleryForm.category}
+                      onChange={(e) => setGalleryForm((prev) => ({ ...prev, category: e.target.value }))}
+                      placeholder="কাস্টম ক্যাটাগরির নাম লিখুন..."
+                      className="mt-2 w-full rounded-md border border-emerald-300 bg-emerald-50/50 px-3 py-1.5 text-xs text-black outline-none focus:border-[#006a4e] dark:border-emerald-800 dark:bg-slate-800 dark:text-white"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Category (English)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (galleryForm.category) {
+                          const translated = translateBnToEn(galleryForm.category);
+                          setGalleryForm((prev) => ({ ...prev, categoryEn: translated }));
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-900 dark:text-emerald-400"
+                    >
+                      <Sparkles size={11} />
+                      <span>অনুবাদ</span>
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={galleryForm.categoryEn || ""}
+                    onChange={(e) => setGalleryForm((prev) => ({ ...prev, categoryEn: e.target.value }))}
+                    placeholder="e.g. Campus, Sports, Science Fair"
+                    className="mt-1 w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-xs text-black outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Preview Box */}
+              {galleryForm.imageUrl && (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+                  <div className="mb-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                    <span>লাইভ প্রিভিউ (ওয়েবসাইটে যেমন দেখাবে)</span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold">
+                      {galleryForm.category || "ক্যাম্পাস"}
+                    </span>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xs dark:border-slate-700 dark:bg-slate-900">
+                    <div className="relative aspect-video w-full overflow-hidden bg-gray-100 dark:bg-slate-800">
+                      <img
+                        src={galleryForm.imageUrl}
+                        alt={galleryForm.title || "Preview"}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src =
+                            "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&q=80&w=1200";
+                        }}
+                      />
+                    </div>
+                    <div className="p-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-white text-xs">
+                        {galleryForm.title || "ছবির শিরোনাম এখানে প্রদর্শিত হবে"}
+                      </h4>
+                      {galleryForm.titleEn && (
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                          {galleryForm.titleEn}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Modal Footer Actions */}
+              <div className="flex items-center justify-between border-t pt-4 dark:border-slate-800">
+                <span className="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                  <Database size={13} className="text-[#006a4e]" />
+                  <span>ডাটাবেজের সাথে সরাসরি কানেক্টেড</span>
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCloseGalleryModal}
+                    disabled={isSavingGalleryPhoto}
+                    className="rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition"
+                  >
+                    বাতিল (Cancel)
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isSavingGalleryPhoto}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] transition disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingGalleryPhoto ? (
+                      <>
+                        <Loader2 size={13} className="animate-spin" />
+                        <span>ডাটাবেজে সংরক্ষণ হচ্ছে...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save size={13} />
+                        <span>
+                          {editingGalleryIndex !== null ? "আপডেট সংরক্ষণ করুন" : "ছবি যুক্ত ও সেভ করুন"}
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

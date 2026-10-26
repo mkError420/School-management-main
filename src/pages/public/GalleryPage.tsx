@@ -14,29 +14,74 @@ export const GalleryPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>("সকল");
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
 
-  const categories = [
-    { key: "সকল", labelBn: "সকল", labelEn: "All" },
-    { key: "ক্যাম্পাস", labelBn: "ক্যাম্পাস", labelEn: "Campus" },
-    { key: "ল্যাব", labelBn: "ল্যাব", labelEn: "Labs" },
-    { key: "সমাবেশ", labelBn: "সমাবেশ", labelEn: "Assembly" },
-    { key: "ক্রীড়া", labelBn: "ক্রীড়া", labelEn: "Sports" },
-    { key: "বিজ্ঞান মেলা", labelBn: "বিজ্ঞান মেলা", labelEn: "Science Fair" },
-    { key: "জাতীয় দিবস", labelBn: "জাতীয় দিবস", labelEn: "National Days" },
-  ];
+  // Dynamic Categories from content.gallery
+  const categories = useMemo(() => {
+    const list = Array.isArray(content.gallery) ? content.gallery : [];
+    const catMap = new Map<string, { labelBn: string; labelEn: string }>();
+
+    // Baseline categories
+    catMap.set("সকল", { labelBn: "সকল", labelEn: "All" });
+    catMap.set("ক্যাম্পাস", { labelBn: "ক্যাম্পাস", labelEn: "Campus" });
+    catMap.set("ল্যাব", { labelBn: "ল্যাব", labelEn: "Labs" });
+    catMap.set("সমাবেশ", { labelBn: "সমাবেশ", labelEn: "Assembly" });
+    catMap.set("ক্রীড়া", { labelBn: "ক্রীড়া", labelEn: "Sports" });
+    catMap.set("বিজ্ঞান মেলা", { labelBn: "বিজ্ঞান মেলা", labelEn: "Science Fair" });
+    catMap.set("জাতীয় দিবস", { labelBn: "জাতীয় দিবস", labelEn: "National Days" });
+
+    // Extract all dynamic categories present in content.gallery
+    list.forEach((item) => {
+      const bn = (item.category || "").trim();
+      const en = (item.categoryEn || "").trim();
+      if (bn && !catMap.has(bn)) {
+        catMap.set(bn, { labelBn: bn, labelEn: en || bn });
+      }
+    });
+
+    const result: Array<{ key: string; labelBn: string; labelEn: string; count: number }> = [];
+    catMap.forEach((val, key) => {
+      let count = 0;
+      if (key === "সকল") {
+        count = list.length;
+      } else {
+        count = list.filter((p) => {
+          const itemCatBn = (p.category || "").trim().toLowerCase();
+          const itemCatEn = (p.categoryEn || "").trim().toLowerCase();
+          const target = key.toLowerCase();
+          return (
+            itemCatBn === target ||
+            itemCatEn === target ||
+            itemCatBn.includes(target) ||
+            itemCatEn.includes(target)
+          );
+        }).length;
+      }
+
+      // Show "সকল", or any category that has at least 1 photo
+      if (key === "সকল" || count > 0) {
+        result.push({ key, labelBn: val.labelBn, labelEn: val.labelEn, count });
+      }
+    });
+
+    return result;
+  }, [content.gallery]);
 
   const filteredPhotos = useMemo(() => {
     const list = Array.isArray(content.gallery) ? content.gallery : [];
     if (activeCategory === "সকল") return list;
     return list.filter((item) => {
+      const catBn = (item.category || "").trim().toLowerCase();
+      const catEn = (item.categoryEn || "").trim().toLowerCase();
+      const act = activeCategory.trim().toLowerCase();
       return (
-        item.category === activeCategory ||
-        item.categoryEn?.toLowerCase() === activeCategory.toLowerCase() ||
-        (activeCategory === "ক্যাম্পাস" && (item.category?.includes("ক্যাম্পাস") || item.categoryEn?.toLowerCase().includes("campus"))) ||
-        (activeCategory === "ল্যাব" && (item.category?.includes("ল্যাব") || item.categoryEn?.toLowerCase().includes("lab"))) ||
-        (activeCategory === "সমাবেশ" && (item.category?.includes("সমাবেশ") || item.categoryEn?.toLowerCase().includes("assembly"))) ||
-        (activeCategory === "ক্রীড়া" && (item.category?.includes("ক্রীড়া") || item.categoryEn?.toLowerCase().includes("sport"))) ||
-        (activeCategory === "বিজ্ঞান মেলা" && (item.category?.includes("বিজ্ঞান") || item.categoryEn?.toLowerCase().includes("science"))) ||
-        (activeCategory === "জাতীয় দিবস" && (item.category?.includes("দিবস") || item.categoryEn?.toLowerCase().includes("national")))
+        catBn === act ||
+        catEn === act ||
+        catBn.includes(act) ||
+        (act === "campus" && (catBn.includes("ক্যাম্পাস") || catEn.includes("campus"))) ||
+        (act === "labs" && (catBn.includes("ল্যাব") || catEn.includes("lab"))) ||
+        (act === "assembly" && (catBn.includes("সমাবেশ") || catEn.includes("assembly"))) ||
+        (act === "sports" && (catBn.includes("ক্রীড়া") || catEn.includes("sport"))) ||
+        (act === "science fair" && (catBn.includes("বিজ্ঞান") || catEn.includes("science"))) ||
+        (act === "national days" && (catBn.includes("দিবস") || catEn.includes("national")))
       );
     });
   }, [content.gallery, activeCategory]);
@@ -65,7 +110,7 @@ export const GalleryPage: React.FC = () => {
           {t(
             "ক্যাম্পাস প্রাঙ্গণ, ল্যাব, ক্রীড়া প্রতিযোগিতা ও বিভিন্ন জাতীয় দিবসের খণ্ডচিত্র",
             "Moments captured from campus grounds, laboratories, sports meets, and national day celebrations"
-          )}
+          )} ({formatDigits((content.gallery || []).length)} {t("টি ছবি", "Photos")})
         </p>
       </div>
 
@@ -76,13 +121,20 @@ export const GalleryPage: React.FC = () => {
             key={cat.key}
             type="button"
             onClick={() => setActiveCategory(cat.key)}
-            className={`rounded-md px-3.5 py-1.5 text-xs font-bold transition ${
+            className={`inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs font-bold transition ${
               activeCategory === cat.key
                 ? "bg-[#006a4e] text-white shadow-xs"
                 : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
             }`}
           >
-            {t(cat.labelBn, cat.labelEn)}
+            <span>{t(cat.labelBn, cat.labelEn)}</span>
+            <span
+              className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                activeCategory === cat.key ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {formatDigits(cat.count)}
+            </span>
           </button>
         ))}
       </div>
