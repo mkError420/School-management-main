@@ -76,6 +76,7 @@ export const AdmissionPage: React.FC = () => {
     parent_name: "",
     parent_phone: "",
     parent_email: "",
+    parent_nid: "",
     notes: "",
   });
 
@@ -196,11 +197,30 @@ export const AdmissionPage: React.FC = () => {
       return;
     }
 
+    // Student photo is mandatory
+    if (!selectedPhoto) {
+      setFormError(
+        lang === "en"
+          ? "Student photo is mandatory. Please upload a student photo."
+          : "শিক্ষার্থীর পাসপোর্ট সাইজ ছবি আপলোড করা আবশ্যক।"
+      );
+      return;
+    }
+
     if (!formData.parent_name.trim() || !formData.parent_phone.trim()) {
       setFormError(
         lang === "en"
           ? "Parent/Guardian name and phone number are required."
           : "অভিভাবকের নাম এবং মোবাইল নম্বর প্রদান করা আবশ্যক।"
+      );
+      return;
+    }
+
+    if (!formData.parent_nid.trim()) {
+      setFormError(
+        lang === "en"
+          ? "Parent's NID number is mandatory."
+          : "অভিভাবকের জাতীয় পরিচয়পত্র (NID) নম্বর প্রদান করা আবশ্যক।"
       );
       return;
     }
@@ -236,6 +256,7 @@ export const AdmissionPage: React.FC = () => {
         parent_name: formData.parent_name.trim(),
         parent_phone: formData.parent_phone.trim(),
         parent_email: formData.parent_email.trim() || null,
+        parent_nid: formData.parent_nid.trim(),
         notes: formData.notes.trim() || "Submitted online via Public Website Admission Form",
         status: "PENDING",
       };
@@ -275,6 +296,7 @@ export const AdmissionPage: React.FC = () => {
           parent_name: "",
           parent_phone: "",
           parent_email: "",
+          parent_nid: "",
           notes: "",
         });
         setSelectedPhoto(null);
@@ -557,6 +579,13 @@ export const AdmissionPage: React.FC = () => {
                     </div>
 
                     <div>
+                      <span className="text-gray-500 font-medium">{t("অভিভাবকের এনআইডি:", "Parent NID Number:")}</span>
+                      <p className="font-semibold text-gray-800 mt-0.5 font-mono">
+                        {submittedAdmission.parent_nid || formData.parent_nid || "N/A"}
+                      </p>
+                    </div>
+
+                    <div>
                       <span className="text-gray-500 font-medium">{t("অভিভাবকের মোবাইল:", "Guardian Phone:")}</span>
                       <p className="font-semibold text-gray-800 mt-0.5 font-mono">
                         {submittedAdmission.parent_phone || submittedAdmission.phone || "N/A"}
@@ -782,24 +811,37 @@ export const AdmissionPage: React.FC = () => {
 
                         {/* Photo Upload */}
                         <div className="flex flex-col gap-2 text-xs font-semibold text-gray-700 sm:col-span-2">
-                          <span>{t("শিক্ষার্থীর ছবি (পাসপোর্ট সাইজ - ঐচ্ছিক)", "Student Photo (Passport Size - Optional)")}</span>
-                          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-gray-300 bg-gray-50/70 p-3">
+                          <div className="flex items-center justify-between">
+                            <span>{t("শিক্ষার্থীর পাসপোর্ট সাইজ ছবি *", "Student Photo (Passport Size) *")}</span>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                              selectedPhoto
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-red-100 text-red-600"
+                            }`}>
+                              {selectedPhoto ? t("ছবি নির্বাচিত", "Photo selected") : t("বাধ্যতামূলক *", "Mandatory *")}
+                            </span>
+                          </div>
+                          <div className={`flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-3 transition ${
+                            selectedPhoto
+                              ? "border-emerald-300 bg-emerald-50/40"
+                              : "border-red-300 bg-red-50/20"
+                          }`}>
                             {photoPreview ? (
                               <img
                                 src={photoPreview}
                                 alt="Student Preview"
-                                className="h-16 w-16 rounded-lg border border-gray-200 object-cover shadow-xs"
+                                className="h-20 w-20 rounded-xl border border-gray-200 object-cover shadow-sm ring-2 ring-emerald-500/40"
                               />
                             ) : (
-                              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400 text-[10px]">
-                                {t("ছবি নেই", "No photo")}
+                              <div className="flex h-20 w-20 flex-col items-center justify-center rounded-xl bg-white border border-dashed border-red-300 text-red-500 text-[10px] font-bold text-center p-1">
+                                {t("ছবি আবশ্যক *", "Photo Required *")}
                               </div>
                             )}
 
                             <div className="flex-1 min-w-[200px]">
                               <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] hover:bg-emerald-100 transition shadow-2xs">
                                 <Upload size={13} />
-                                <span>{t("ছবি আপলোড করুন", "Upload Photo")}</span>
+                                <span>{photoPreview ? t("ছবি পরিবর্তন করুন *", "Change Photo *") : t("ছবি আপলোড করুন *", "Upload Photo *")}</span>
                                 <input
                                   type="file"
                                   accept="image/jpeg,image/png,image/webp"
@@ -808,7 +850,8 @@ export const AdmissionPage: React.FC = () => {
                                 />
                               </label>
                               <p className="mt-1 text-[11px] text-gray-500 font-normal">
-                                {t("JPG, PNG বা WebP · সর্বোচ্চ ৫ মেগাবাইট", "JPG, PNG, or WebP · Max 5 MB")}
+                                {t("JPG, PNG বা WebP · সর্বোচ্চ ৫ মেগাবাইট · ", "JPG, PNG, or WebP · Max 5 MB · ")}
+                                <strong className="text-red-600 font-semibold">{t("বাধ্যতামূলক", "Mandatory")}</strong>
                               </p>
                               {selectedPhoto && (
                                 <button
@@ -817,7 +860,7 @@ export const AdmissionPage: React.FC = () => {
                                     setSelectedPhoto(null);
                                     setPhotoPreview(null);
                                   }}
-                                  className="text-[11px] text-red-600 hover:underline mt-1 font-normal"
+                                  className="text-[11px] text-red-600 hover:underline mt-1 font-normal block"
                                 >
                                   {t("ছবি বাতিল করুন", "Remove photo")}
                                 </button>
@@ -862,6 +905,19 @@ export const AdmissionPage: React.FC = () => {
                             placeholder="+880 1..."
                             value={formData.parent_phone}
                             onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
+                            className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
+                          />
+                        </label>
+
+                        {/* Parent NID */}
+                        <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
+                          <span>{t("অভিভাবকের জাতীয় পরিচয়পত্র (NID) নম্বর *", "Parents NID number *")}</span>
+                          <input
+                            type="text"
+                            required
+                            placeholder={t("যেমন: 19851234567890...", "e.g. 19851234567890...")}
+                            value={formData.parent_nid}
+                            onChange={(e) => setFormData({ ...formData, parent_nid: e.target.value })}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
                           />
                         </label>
@@ -1139,8 +1195,11 @@ export const AdmissionPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <span className="text-gray-500 font-medium">{t("অভিভাবক:", "Guardian:")}</span>
-                        <p className="font-semibold text-gray-800 mt-0.5">{trackResult.parent_name || "N/A"}</p>
+                        <span className="text-gray-500 font-medium">{t("অভিভাবক ও এনআইডি:", "Guardian & NID:")}</span>
+                        <p className="font-semibold text-gray-800 mt-0.5">
+                          {trackResult.parent_name || "N/A"}
+                          {trackResult.parent_nid ? ` (NID: ${trackResult.parent_nid})` : ""}
+                        </p>
                       </div>
 
                       <div>

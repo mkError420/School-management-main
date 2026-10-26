@@ -579,16 +579,16 @@ function trackAdmissionApplication($db) {
     $admission = $db->fetchOne(
         "SELECT a.id, a.application_no, a.first_name, a.last_name, a.email, a.phone,
                 a.gender, a.date_of_birth, a.blood_type, a.address, a.status, a.applied_date,
-                a.parent_name, a.parent_phone, a.parent_email, a.previous_school, a.notes, a.created_at,
+                a.parent_name, a.parent_phone, a.parent_email, a.parent_nid, a.previous_school, a.notes, a.created_at,
                 c.name as class_name, g.level as grade_level,
                 s.roll as enrolled_roll, s.id as enrolled_student_id
          FROM admissions a
          LEFT JOIN classes c ON a.class_id = c.id
          LEFT JOIN grades g ON a.grade_id = g.id
          LEFT JOIN students s ON a.enrolled_student_id = s.id
-         WHERE a.application_no = ? OR a.phone = ? OR a.parent_phone = ?
+         WHERE a.application_no = ? OR a.phone = ? OR a.parent_phone = ? OR a.parent_nid = ?
          ORDER BY a.id DESC LIMIT 1",
-        [$query, $query, $query]
+        [$query, $query, $query, $query]
     );
 
     if (!$admission) {
