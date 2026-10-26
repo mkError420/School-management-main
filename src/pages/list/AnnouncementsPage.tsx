@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAccessRole } from "@/context/AuthContext";
@@ -27,6 +27,7 @@ import {
   ArrowUpDown,
   FileCode,
   CheckCircle,
+  Plus,
 } from "lucide-react";
 
 export interface AnnouncementItem {
@@ -406,7 +407,21 @@ const AnnouncementsPage: React.FC = () => {
               <FormModal
                 table="announcement"
                 type="create"
-                onSuccess={() => fetchAnnouncements(true)}
+                onSuccess={() => {
+                  setPage(1);
+                  void fetchAnnouncements(true);
+                  window.dispatchEvent(new Event("school-announcements-updated"));
+                }}
+                trigger={
+                  <button
+                    type="button"
+                    title="Create new announcement"
+                    className="flex items-center gap-2 rounded-xl bg-[#D32F45] hover:bg-[#b82639] active:scale-95 text-white px-3.5 py-2.5 text-xs font-semibold shadow-xs hover:shadow-md transition cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Create Announcement</span>
+                  </button>
+                }
               />
             </div>
           )}
@@ -636,7 +651,21 @@ const AnnouncementsPage: React.FC = () => {
               <FormModal
                 table="announcement"
                 type="create"
-                onSuccess={() => fetchAnnouncements(true)}
+                onSuccess={() => {
+                  setPage(1);
+                  void fetchAnnouncements(true);
+                  window.dispatchEvent(new Event("school-announcements-updated"));
+                }}
+                trigger={
+                  <button
+                    type="button"
+                    title="Create new announcement"
+                    className="flex items-center gap-2 rounded-xl bg-[#D32F45] hover:bg-[#b82639] active:scale-95 text-white px-5 py-2.5 text-xs sm:text-sm font-semibold shadow-md shadow-red-500/20 transition cursor-pointer"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Create Announcement</span>
+                  </button>
+                }
               />
             </div>
           )}

@@ -241,6 +241,8 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         initialValues[field.name] = data?.assignment_id ? "assignment" : "exam";
       } else if (entity === "result" && field.name === "assessment_id") {
         initialValues[field.name] = String(data?.assignment_id || data?.exam_id || "");
+      } else if (field.name === "date" && type === "create" && !data?.date) {
+        initialValues[field.name] = new Date().toISOString().slice(0, 10);
       } else {
         initialValues[field.name] = field.type === "checkbox"
           ? Boolean(data?.[field.name])
@@ -253,7 +255,7 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
     setRoutineFile(null);
     setRoutinePreview(null);
     setRemoveAttachment(false);
-  }, [data, entity, fields]);
+  }, [data, entity, fields, type]);
 
   // Build image preview URL for newly-selected routine file
   useEffect(() => {
@@ -365,6 +367,9 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         setError(response.message || `Unable to ${type} ${entity}.`);
         return;
       }
+      if (entity === "announcement") {
+        window.dispatchEvent(new Event("school-announcements-updated"));
+      }
       onSuccess?.();
     } catch (submitError: unknown) {
       setError(submitError instanceof Error ? submitError.message : `Unable to ${type} ${entity}.`);
@@ -458,13 +463,13 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
 
           // ── PDF / Image upload widget (exam routines) ──────────────────────
           if (field.type === "pdf-image") {
-            const existingAttachmentName = data?.attachment_original_name as string | undefined;
+            const existingAttachmentName = (data?.attachment_original_name || data?.document_attachment || (typeof data?.attachment_url === "string" ? data.attachment_url.split("/").pop()?.split("?")[0] : "")) as string | undefined;
             const existingAttachmentMime = data?.attachment_mime_type as string | undefined;
             const existingAttachmentUrl  = data?.attachment_url as string | undefined;
             const hasExisting = !removeAttachment && !!existingAttachmentName && !routineFile;
             const isPdf = routineFile
               ? routineFile.type === 'application/pdf'
-              : existingAttachmentMime === 'application/pdf';
+              : existingAttachmentMime === 'application/pdf' || existingAttachmentName?.toLowerCase().endsWith('.pdf');
 
             const formatBytes = (bytes: number) => {
               if (bytes < 1024) return `${bytes} B`;

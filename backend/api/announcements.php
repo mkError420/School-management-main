@@ -56,20 +56,20 @@ switch ($method) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ensureAnnouncementSchema($db) {
     $columnsToAdd = [
-        'document_attachment'      => 'VARCHAR(500) NULL AFTER class_id',
-        'attachment_original_name' => 'VARCHAR(255) NULL AFTER document_attachment',
-        'attachment_mime_type'     => 'VARCHAR(127) NULL AFTER attachment_original_name',
-        'attachment_size'          => 'INT UNSIGNED NULL AFTER attachment_mime_type',
+        'document_attachment'      => 'VARCHAR(500) NULL',
+        'attachment_original_name' => 'VARCHAR(255) NULL',
+        'attachment_mime_type'     => 'VARCHAR(127) NULL',
+        'attachment_size'          => 'INT UNSIGNED NULL',
         'updated_at'               => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
     ];
     foreach ($columnsToAdd as $col => $definition) {
-        $exists = $db->fetchAll("SHOW COLUMNS FROM `announcements` LIKE '{$col}'");
-        if (!$exists) {
-            try {
+        try {
+            $exists = $db->fetchAll("SHOW COLUMNS FROM `announcements` LIKE '{$col}'");
+            if (empty($exists)) {
                 $db->query("ALTER TABLE `announcements` ADD COLUMN `{$col}` {$definition}");
-            } catch (Exception $e) {
-                // Column may already exist
             }
+        } catch (Exception $e) {
+            // Column may already exist or ALTER not allowed
         }
     }
 
@@ -89,6 +89,16 @@ function getUploadDir() {
     $dir = __DIR__ . '/../uploads/';
     if (!is_dir($dir)) {
         @mkdir($dir, 0755, true);
+    }
+    if (!is_dir($dir)) {
+        $root = dirname(__DIR__, 2);
+        $alt = $root . '/public/uploads/';
+        if (!is_dir($alt)) {
+            @mkdir($alt, 0755, true);
+        }
+        if (is_dir($alt)) {
+            return $alt;
+        }
     }
     return $dir;
 }
@@ -439,22 +449,35 @@ function createAnnouncement($db) {
     $isMultipart = !empty($_POST) || !empty($_FILES);
     $input = $isMultipart ? $_POST : json_decode(file_get_contents('php://input'), true);
     
-    if (empty($input['title']) || empty($input['date'])) {
-        Response::error('Title and date are required');
+    if (empty($input['title'])) {
+        Response::error('Announcement title is required');
     }
 
     $uploadInfo = handleAnnouncementDocumentUpload();
+    $publishDate = !empty($input['date']) ? $input['date'] : date('Y-m-d');
     
     $announcementData = [
         'title'                    => $input['title'],
         'description'              => $input['description'] ?? '',
-        'date'                     => $input['date'],
+        'date'                     => $publishDate,
         'class_id'                 => !empty($input['class_id']) ? $input['class_id'] : null,
         'document_attachment'      => $uploadInfo['storage_name'] ?? null,
         'attachment_original_name' => $uploadInfo['original_name'] ?? null,
         'attachment_mime_type'     => $uploadInfo['mime_type'] ?? null,
         'attachment_size'          => $uploadInfo['file_size'] ?? null,
     ];
+
+    // Protect against missing DB columns if database migration hasn't been executed
+    try {
+        $existingCols = [];
+        $cols = $db->fetchAll("SHOW COLUMNS FROM `announcements`");
+        foreach ($cols as $c) {
+            $existingCols[] = $c['Field'] ?? $c['field'] ?? '';
+        }
+        if (!empty($existingCols)) {
+            $announcementData = array_intersect_key($announcementData, array_flip($existingCols));
+        }
+    } catch (Exception $e) {}
 
     $announcementId = $db->insert('announcements', $announcementData);
 
@@ -504,6 +527,18 @@ function updateAnnouncement($db, $id) {
     if (empty($data)) {
         Response::error('No fields provided to update');
     }
+
+    // Filter to existing columns in DB
+    try {
+        $existingCols = [];
+        $cols = $db->fetchAll("SHOW COLUMNS FROM `announcements`");
+        foreach ($cols as $c) {
+            $existingCols[] = $c['Field'] ?? $c['field'] ?? '';
+        }
+        if (!empty($existingCols)) {
+            $data = array_intersect_key($data, array_flip($existingCols));
+        }
+    } catch (Exception $e) {}
     
     $db->update('announcements', $data, 'id = ?', [$id]);
 

@@ -19,6 +19,7 @@ interface FormModalProps {
   data?: any;
   id?: number | string;
   onSuccess?: () => void;
+  trigger?: React.ReactNode;
 }
 
 const resourceMap: Record<TableType, string> = {
@@ -42,7 +43,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess }) => {
+const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess, trigger }) => {
   const [open, setOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,13 +124,19 @@ const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess 
 
   return (
     <>
-      <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor} transition shadow-sm text-white`}
-        onClick={() => setOpen(true)}
-        title={`${type} ${table}`}
-      >
-        <Image src={`/${type}.png`} alt={type} width={14} height={14} />
-      </button>
+      {trigger ? (
+        <span onClick={() => setOpen(true)} className="inline-flex cursor-pointer">
+          {trigger}
+        </span>
+      ) : (
+        <button
+          className={`${size} flex items-center justify-center rounded-full ${bgColor} transition shadow-sm text-white`}
+          onClick={() => setOpen(true)}
+          title={`${type} ${table}`}
+        >
+          <Image src={`/${type}.png`} alt={type} width={14} height={14} />
+        </button>
+      )}
 
       {open && (
         <div
