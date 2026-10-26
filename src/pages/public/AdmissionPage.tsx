@@ -238,6 +238,14 @@ export const AdmissionPage: React.FC = () => {
   const [classesList, setClassesList] = useState<ClassOption[]>(DEFAULT_CLASSES);
   const [loadingClasses, setLoadingClasses] = useState<boolean>(true);
 
+  // Dynamic Class-wise Available Seats from Website Content
+  const seatCapacityList = useMemo(() => {
+    if (content.admissionSeatMatrix && content.admissionSeatMatrix.length > 0) {
+      return content.admissionSeatMatrix;
+    }
+    return CLASS_SEAT_CAPACITY;
+  }, [content.admissionSeatMatrix]);
+
   // Form State
   const [formData, setFormData] = useState({
     first_name: "",
@@ -1250,12 +1258,12 @@ export const AdmissionPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
-                        {CLASS_SEAT_CAPACITY.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-emerald-50/40 transition-colors odd:bg-white even:bg-[#fafcfa]">
+                        {seatCapacityList.map((item, idx) => (
+                          <tr key={(item as any).id || idx} className="hover:bg-emerald-50/40 transition-colors odd:bg-white even:bg-[#fafcfa]">
                             <td className="border p-2.5 font-bold text-gray-900">{t(item.classBn, item.classEn)}</td>
                             <td className="border p-2.5 text-gray-700">{t(item.sectionsBn, item.sectionsEn)}</td>
-                            <td className="border p-2.5 font-bold text-[#006a4e]">
-                              {formatDigits(item.seats)} {t(item.suffixBn, item.suffixEn)}
+                            <td className="border p-2.5 font-bold text-[#006a4e] whitespace-nowrap">
+                              {formatDigits(item.seats)} {t(item.suffixBn || "জন", item.suffixEn || "Seats")}
                             </td>
                             <td className="border p-2.5 text-gray-700">{t(item.processBn, item.processEn)}</td>
                           </tr>

@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { resolveLogoUrl, useSiteSettings } from "@/context/SiteSettingsContext";
 
 const demoAccounts = [
-  { label: "Super Admin", username: "admin", password: "admin123", icon: ShieldCheck },
+  { label: "Admin", username: "admin", password: "admin123", icon: ShieldCheck },
   { label: "Teacher", username: "johndoe", password: "teacher123", icon: GraduationCap },
   { label: "Student", username: "johnconnor", password: "student123", icon: GraduationCap },
   { label: "Parent", username: "sarahconnor", password: "parent123", icon: UsersRound },
@@ -62,11 +62,10 @@ const SignInPage: React.FC = () => {
           <header className="mb-7">
             <div className="flex items-center gap-3.5">
               <div
-                className={`flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden p-1.5 transition-all shadow-xs ${
-                  isDefaultLogo
-                    ? "bg-[#707E94] shadow-sm"
-                    : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm"
-                }`}
+                className={`flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden p-1.5 transition-all shadow-xs ${isDefaultLogo
+                  ? "bg-[#707E94] shadow-sm"
+                  : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm"
+                  }`}
               >
                 <img
                   src={logoUrl}

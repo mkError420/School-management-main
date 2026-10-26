@@ -67,12 +67,14 @@ import type {
   SchoolTeacherMember,
   SchoolTickerItem,
   SchoolCodeOfConductRule,
+  AdmissionSeatCapacityItem,
   StudyCornerBook,
   StudyCornerResource,
   StudyCornerStat,
   StudyCornerLink,
   StudyCornerTip,
 } from "@/types/site";
+import { DEFAULT_ADMISSION_SEAT_MATRIX } from "@/types/site";
 import {
   autoTranslateWebsiteContent,
   translateBnToEn,
@@ -109,6 +111,7 @@ const WebsiteContentPage: React.FC = () => {
   const [teacherSearch, setTeacherSearch] = useState("");
   const [noticeSearch, setNoticeSearch] = useState("");
   const [downloadSearch, setDownloadSearch] = useState("");
+  const [admissionSeatSearch, setAdmissionSeatSearch] = useState("");
   const [showDirectPageLinks, setShowDirectPageLinks] = useState(false);
   const [syncingStaff, setSyncingStaff] = useState(false);
   const [liveStaffList, setLiveStaffList] = useState<any[]>([]);
@@ -1292,6 +1295,88 @@ const WebsiteContentPage: React.FC = () => {
     }));
   };
 
+  // Admission Seat Matrix Handlers
+  const addAdmissionSeatItem = () => {
+    const currentList = draft.admissionSeatMatrix || [];
+    const nextNum = currentList.length + 1;
+    const newItem: AdmissionSeatCapacityItem = {
+      id: "seat_" + Date.now(),
+      classBn: `নতুন শ্রেণি ${nextNum}`,
+      classEn: `Class ${nextNum}`,
+      sectionsBn: "ক ও খ শাখা",
+      sectionsEn: "Sections A & B",
+      seats: "50",
+      suffixBn: "জন",
+      suffixEn: "Seats",
+      processBn: "অনলাইন আবেদন ও মেধা তালিকা",
+      processEn: "Online Application & Merit List",
+    };
+    setDraft((prev) => ({
+      ...prev,
+      admissionSeatMatrix: [...(prev.admissionSeatMatrix || []), newItem],
+    }));
+  };
+
+  const removeAdmissionSeatItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      admissionSeatMatrix: (prev.admissionSeatMatrix || []).filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateAdmissionSeatItem = (
+    index: number,
+    field: keyof AdmissionSeatCapacityItem,
+    value: string
+  ) => {
+    setDraft((prev) => ({
+      ...prev,
+      admissionSeatMatrix: (prev.admissionSeatMatrix || []).map((item, i) =>
+        i === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const moveAdmissionSeatItem = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const list = [...(prev.admissionSeatMatrix || [])];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= list.length) return prev;
+      const temp = list[index];
+      list[index] = list[target];
+      list[target] = temp;
+      return { ...prev, admissionSeatMatrix: list };
+    });
+  };
+
+  const translateAdmissionSeatItem = (index: number) => {
+    setDraft((prev) => ({
+      ...prev,
+      admissionSeatMatrix: (prev.admissionSeatMatrix || []).map((item, i) => {
+        if (i !== index) return item;
+        return {
+          ...item,
+          classEn: item.classEn || translateBnToEn(item.classBn),
+          sectionsEn: item.sectionsEn || translateBnToEn(item.sectionsBn),
+          suffixEn: item.suffixEn || translateBnToEn(item.suffixBn || "জন"),
+          processEn: item.processEn || translateBnToEn(item.processBn),
+        };
+      }),
+    }));
+  };
+
+  const resetAdmissionSeatMatrixToDefault = () => {
+    if (window.confirm("আপনি কি শ্রেণিভিত্তিক আসন তালিকার ডিফল্ট ১৫টি শ্রেণি ও তথ্য পুনরায় লোড করতে চান?")) {
+      setDraft((prev) => ({
+        ...prev,
+        admissionSeatMatrix: DEFAULT_ADMISSION_SEAT_MATRIX,
+      }));
+      setFeedback({
+        type: "success",
+        message: "শ্রেণিভিত্তিক আসন বিন্যাস তালিকায় ডিফল্ট ১৫টি শ্রেণি সফলভাবে লোড হয়েছে।",
+      });
+    }
+  };
 
   // Form Submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1346,7 +1431,12 @@ const WebsiteContentPage: React.FC = () => {
     { id: "statistics", label: "৬. পরিসংখ্যান ও সাফল্য", icon: Award },
     { id: "notices", label: "৭. নোটিশ বোর্ড", icon: Bell, badgeCount: (draft.notices || []).length },
     { id: "downloads", label: "৮. ডাউনলোড ও রুটিন", icon: Download, badgeCount: (draft.downloads || []).length },
-    { id: "admission", label: "৯. ভর্তি তথ্য ও আসন", icon: BookOpen },
+    {
+      id: "admission",
+      label: "৯. ভর্তি তথ্য ও আসন",
+      icon: BookOpen,
+      badgeCount: (draft.admissionSeatMatrix || []).length,
+    },
     { id: "gallery", label: "১০. ফটো গ্যালারি", icon: ImageIcon, badgeCount: (draft.gallery || []).length },
     { id: "study_co", label: "১১. স্টাডি কর্নার", icon: BookOpen },
     { id: "links", label: "১২. সরকারি লিঙ্ক", icon: LinkIcon, badgeCount: (draft.quickLinks || []).length },
@@ -4089,104 +4179,491 @@ const WebsiteContentPage: React.FC = () => {
           </section>
         )}
 
-        {/* TAB 9: ADMISSION INFO */}
+        {/* TAB 9: ADMISSION INFO & CLASS SEATS */}
         {activeTab === "admission" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <BookOpen size={16} className="text-[#006a4e]" />
-                ৯. অনলাইন ভর্তি তথ্য ও নীতিমালা (দ্বিভাষিক)
-              </span>
-              <button
-                type="button"
-                onClick={handleTranslateCurrentTab}
-                className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
-              >
-                <Sparkles size={11} />
-                <span>অনুবাদ সিঙ্ক</span>
-              </button>
-            </h2>
+          <div className="space-y-6">
+            {/* 1. General Admission Guidelines & URLs */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="border-b pb-3 text-sm font-bold text-gray-900 dark:text-white flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <BookOpen size={16} className="text-[#006a4e]" />
+                  ৯. অনলাইন ভর্তি তথ্য ও নীতিমালা (দ্বিভাষিক)
+                </span>
+                <button
+                  type="button"
+                  onClick={handleTranslateCurrentTab}
+                  className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                >
+                  <Sparkles size={11} />
+                  <span>অনুবাদ সিঙ্ক</span>
+                </button>
+              </h2>
 
-            <div className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  ভর্তি নির্দেশিকা (বাংলায়)
-                  <textarea
-                    rows={4}
-                    value={draft.admissionGuidelines}
-                    onChange={(e) => updateField("admissionGuidelines", e.target.value)}
-                    className={textareaClass}
-                  />
-                </label>
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      ভর্তি নির্দেশিকা (বাংলায়)
+                      <textarea
+                        rows={4}
+                        value={draft.admissionGuidelines}
+                        onChange={(e) => updateField("admissionGuidelines", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
 
-                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Admission Guidelines (English)
-                  <textarea
-                    rows={4}
-                    value={draft.admissionGuidelinesEn || ""}
-                    onChange={(e) => updateField("admissionGuidelinesEn", e.target.value)}
-                    className={textareaClass}
-                  />
-                </label>
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Admission Guidelines (English)
+                      <textarea
+                        rows={4}
+                        value={draft.admissionGuidelinesEn || ""}
+                        onChange={(e) => updateField("admissionGuidelinesEn", e.target.value)}
+                        className={textareaClass}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {(editLangMode === "bn" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      শ্রেণিভিত্তিক আসন সংক্ষিপ্ত বিবরণ (বাংলায় সারসংক্ষেপ)
+                      <input
+                        type="text"
+                        value={draft.admissionSeats}
+                        onChange={(e) => updateField("admissionSeats", e.target.value)}
+                        placeholder="যেমন: ৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন · ৯ম শ্রেণি: ৬০ আসন"
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+
+                  {(editLangMode === "en" || editLangMode === "dual") && (
+                    <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Admission Seats Summary (English)
+                      <input
+                        type="text"
+                        value={draft.admissionSeatsEn || ""}
+                        onChange={(e) => updateField("admissionSeatsEn", e.target.value)}
+                        placeholder="e.g. Class 6: 120 seats · Class 7: 30 seats · Class 9: 60 seats"
+                        className={inputClass}
+                      />
+                    </label>
+                  )}
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      অনলাইন ভর্তি আবেদন লিংক (Online Admission Application URL)
+                      <input
+                        type="text"
+                        value={draft.admissionFormUrl || ""}
+                        onChange={(e) => updateField("admissionFormUrl", e.target.value)}
+                        placeholder="https://gsa.teletalk.com.bd অথবা /admission"
+                        className={inputClass}
+                      />
+                    </label>
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      ওয়েবসাইটে আবেদনকারীরা সরাসরি অনলাইন ফরম পূরণ করতে পারেন। জমাকৃত সকল আবেদন প্রশাসনিক ড্যাশবোর্ডে জমা হয়।
+                    </p>
+                  </div>
+
+                  <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3.5 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-bold text-[#006a4e] block">
+                        Student Admissions & Enrollment শাখা
+                      </span>
+                      <span className="text-[11px] text-gray-600">
+                        ওয়েবসাইট থেকে জমা হওয়া আবেদনপত্র দেখতে ও অনুমোদন করতে ড্যাশবোর্ডের ভর্তি শাখায় যান।
+                      </span>
+                    </div>
+                    <Link
+                      to="/admissions"
+                      className="inline-flex items-center gap-1 rounded-md bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00503a] shadow-xs"
+                    >
+                      <span>Admissions শাখায় যান</span>
+                      <ExternalLink size={12} />
+                    </Link>
+                  </div>
+                </div>
               </div>
+            </section>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  শ্রেণিভিত্তিক আসন সংখ্যা (বাংলায়)
-                  <input
-                    type="text"
-                    value={draft.admissionSeats}
-                    onChange={(e) => updateField("admissionSeats", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
-
-                <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
-                  Admission Seats (English)
-                  <input
-                    type="text"
-                    value={draft.admissionSeatsEn || ""}
-                    onChange={(e) => updateField("admissionSeatsEn", e.target.value)}
-                    className={inputClass}
-                  />
-                </label>
-
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    অনলাইন ভর্তি আবেদন লিংক (Online Admission Application URL)
-                    <input
-                      type="text"
-                      value={draft.admissionFormUrl || ""}
-                      onChange={(e) => updateField("admissionFormUrl", e.target.value)}
-                      placeholder="https://gsa.teletalk.com.bd অথবা /admission"
-                      className={inputClass}
-                    />
-                  </label>
-                  <p className="mt-1 text-[11px] text-gray-500">
-                    ওয়েবসাইটে আবেদনকারীরা সরাসরি অনলাইন ফরম পূরণ করতে পারেন। জমাকৃত সকল আবেদন প্রশাসনিক ড্যাশবোর্ডে জমা হয়।
+            {/* 2. Dynamic Class-wise Available Seats Matrix Management */}
+            <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Users size={16} className="text-[#006a4e]" />
+                    <span>শ্রেণিভিত্তিক আসন সংখ্যা ও ভর্তি প্রক্রিয়া তালিকা (Class-wise Available Seats Table)</span>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                      {(draft.admissionSeatMatrix || []).length} টি শ্রেণি
+                    </span>
+                  </h2>
+                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                    ওয়েবসাইটের <Link to="/admission" target="_blank" className="text-[#006a4e] underline font-medium">/admission</Link> পেজে প্রদর্শিত 'Class-wise Available Seats' টেবিলটি এখান থেকেই সরাসরি নিয়ন্ত্রিত হয়। প্রতিটি শ্রেণির নাম, শাখা, মোট আসন সংখ্যা ও প্রক্রিয়া বাংলায় এবং ইংরেজিতে এডিট করুন।
                   </p>
                 </div>
 
-                <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3.5 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="text-xs font-bold text-[#006a4e] block">
-                      Student Admissions & Enrollment শাখা
-                    </span>
-                    <span className="text-[11px] text-gray-600">
-                      ওয়েবসাইট থেকে জমা হওয়া আবেদনপত্র দেখতে ও অনুমোদন করতে ড্যাশবোর্ডের ভর্তি শাখায় যান।
-                    </span>
-                  </div>
-                  <Link
-                    to="/admissions"
-                    className="inline-flex items-center gap-1 rounded-md bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00503a] shadow-xs"
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetAdmissionSeatMatrixToDefault}
+                    title="ডিফল্ট ১৫টি শ্রেণির তালিকা পুনরায় লোড করুন"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
                   >
-                    <span>Admissions শাখায় যান</span>
-                    <ExternalLink size={12} />
-                  </Link>
+                    <RefreshCw size={13} />
+                    <span>ডিফল্ট ১৫টি শ্রেণি লোড করুন</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={addAdmissionSeatItem}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                  >
+                    <Plus size={14} />
+                    <span>+ নতুন শ্রেণি যোগ করুন</span>
+                  </button>
                 </div>
               </div>
+
+              {/* Search Filter for Classes */}
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative max-w-sm flex-1">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={admissionSeatSearch}
+                    onChange={(e) => setAdmissionSeatSearch(e.target.value)}
+                    placeholder="শ্রেণি খুঁজুন (যেমন: নার্সারি, ৬ষ্ঠ, Class 9)..."
+                    className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-9 pr-8 text-xs text-black outline-none focus:border-[#006a4e] focus:ring-1 focus:ring-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                  {admissionSeatSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setAdmissionSeatSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-[11px] text-gray-500">
+                  মোট <b>{(draft.admissionSeatMatrix || []).length}</b> টি শ্রেণির আসন তথ্য সংজ্ঞায়িত
+                </div>
+              </div>
+
+              {/* Class Cards List */}
+              <div className="mt-4 space-y-3.5">
+                {(draft.admissionSeatMatrix || []).length === 0 ? (
+                  <div className="rounded-lg border-2 border-dashed border-gray-200 p-8 text-center dark:border-slate-800">
+                    <Users size={32} className="mx-auto text-gray-400 mb-2" />
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                      বর্তমানে কোনো শ্রেণির আসন তথ্য তালিকাভুক্ত নেই।
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      নিচের বাটনে ক্লিক করে ডিফল্ট ১৫টি শ্রেণির তথ্য এক ক্লিকেই রিস্টোর করতে পারেন।
+                    </p>
+                    <button
+                      type="button"
+                      onClick={resetAdmissionSeatMatrixToDefault}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                    >
+                      <RefreshCw size={13} />
+                      <span>ডিফল্ট ১৫টি শ্রেণি লোড করুন</span>
+                    </button>
+                  </div>
+                ) : (
+                  (draft.admissionSeatMatrix || [])
+                    .map((item, originalIndex) => ({ item, originalIndex }))
+                    .filter(({ item }) => {
+                      if (!admissionSeatSearch.trim()) return true;
+                      const q = admissionSeatSearch.toLowerCase();
+                      return (
+                        (item.classBn || "").toLowerCase().includes(q) ||
+                        (item.classEn || "").toLowerCase().includes(q) ||
+                        (item.sectionsBn || "").toLowerCase().includes(q) ||
+                        (item.sectionsEn || "").toLowerCase().includes(q) ||
+                        (item.processBn || "").toLowerCase().includes(q) ||
+                        (item.processEn || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map(({ item, originalIndex }) => (
+                      <div
+                        key={item.id || originalIndex}
+                        className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 shadow-2xs transition-all hover:border-emerald-300 dark:border-slate-700 dark:bg-slate-800"
+                      >
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-2.5 dark:border-slate-700">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                              শ্রেণি #{originalIndex + 1}
+                            </span>
+                            <span className="text-xs font-bold text-gray-900 dark:text-white">
+                              {item.classBn || "নতুন শ্রেণি"}
+                            </span>
+                            {item.classEn && (
+                              <span className="text-xs text-blue-700 dark:text-blue-300">
+                                ({item.classEn})
+                              </span>
+                            )}
+                            <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-[#006a4e] dark:border-slate-600 dark:bg-slate-700 dark:text-emerald-300">
+                              আসন: {item.seats || "০"} {item.suffixBn || "জন"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => moveAdmissionSeatItem(originalIndex, "up")}
+                              disabled={originalIndex === 0}
+                              title="উপরে নিন"
+                              className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                            >
+                              <ArrowUp size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveAdmissionSeatItem(originalIndex, "down")}
+                              disabled={originalIndex === (draft.admissionSeatMatrix || []).length - 1}
+                              title="নিচে নিন"
+                              className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                            >
+                              <ArrowDown size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => translateAdmissionSeatItem(originalIndex)}
+                              title="ইংরেজিতে অনুবাদ করুন"
+                              className="rounded p-1 text-[#006a4e] hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                            >
+                              <Sparkles size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeAdmissionSeatItem(originalIndex)}
+                              title="শ্রেণিটি তালিকা থেকে মুছে ফেলুন"
+                              className="rounded p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Input Fields */}
+                        <div className="mt-3.5 space-y-3">
+                          {/* Row 1: Class Name BN & EN */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                শ্রেণির নাম (বাংলায়) *
+                                <input
+                                  type="text"
+                                  value={item.classBn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "classBn", e.target.value)}
+                                  placeholder="যেমন: নার্সারি, কেজি, ৬ষ্ঠ শ্রেণি, একাদশ শ্রেণি"
+                                  className={inputClass}
+                                  required
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Class Name (English) *
+                                <input
+                                  type="text"
+                                  value={item.classEn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "classEn", e.target.value)}
+                                  placeholder="e.g. Class Nursery, Class KG, Class 6, Class 11 (HSC)"
+                                  className={inputClass}
+                                  required
+                                />
+                              </label>
+                            )}
+                          </div>
+
+                          {/* Row 2: Sections BN & EN */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                শাখা / গ্রুপ (বাংলায়)
+                                <input
+                                  type="text"
+                                  value={item.sectionsBn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "sectionsBn", e.target.value)}
+                                  placeholder="যেমন: ক ও খ শাখা অথবা বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Sections / Streams (English)
+                                <input
+                                  type="text"
+                                  value={item.sectionsEn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "sectionsEn", e.target.value)}
+                                  placeholder="e.g. Sections A & B or Science, Humanities & Business"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+                          </div>
+
+                          {/* Row 3: Seats & Suffix (Total seats, Unit note) */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div>
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                মোট আসন সংখ্যা (Total Seats) *
+                                <input
+                                  type="text"
+                                  value={item.seats}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "seats", e.target.value)}
+                                  placeholder="যেমন: 50, 60, 120"
+                                  className={inputClass}
+                                  required
+                                />
+                              </label>
+                            </div>
+
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <div>
+                                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                  আসন একক / মন্তব্য (বাংলা)
+                                  <input
+                                    type="text"
+                                    value={item.suffixBn || ""}
+                                    onChange={(e) => updateAdmissionSeatItem(originalIndex, "suffixBn", e.target.value)}
+                                    placeholder="যেমন: জন, জন (আসন সাপেক্ষে), জন (টিসি সাপেক্ষে)"
+                                    className={inputClass}
+                                  />
+                                </label>
+                              </div>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <div>
+                                <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                  Seat Suffix / Condition (English)
+                                  <input
+                                    type="text"
+                                    value={item.suffixEn || ""}
+                                    onChange={(e) => updateAdmissionSeatItem(originalIndex, "suffixEn", e.target.value)}
+                                    placeholder="e.g. Seats, Seats (Vacancy basis), Seats (TC basis)"
+                                    className={inputClass}
+                                  />
+                                </label>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 4: Admission Process BN & EN */}
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            {(editLangMode === "bn" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                ভর্তির প্রক্রিয়া ও শর্ত (বাংলায়)
+                                <input
+                                  type="text"
+                                  value={item.processBn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "processBn", e.target.value)}
+                                  placeholder="যেমন: অনলাইন আবেদন ও সরকারি লটারি / সরাসরি আবেদন ও মৌখিক সাক্ষাৎকার"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+
+                            {(editLangMode === "en" || editLangMode === "dual") && (
+                              <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                Admission Process & Eligibility (English)
+                                <input
+                                  type="text"
+                                  value={item.processEn}
+                                  onChange={(e) => updateAdmissionSeatItem(originalIndex, "processEn", e.target.value)}
+                                  placeholder="e.g. Online Application & Govt Lottery / Direct Application & Oral Interview"
+                                  className={inputClass}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </section>
+
+            {/* 3. Live Admission Page Preview */}
+            <div className="rounded-lg border border-[#cde2d4] bg-[#f7faf8] p-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between border-b border-[#dde5df] pb-2.5 mb-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#006a4e] dark:text-emerald-400 flex items-center gap-1.5">
+                  <Eye size={14} />
+                  <span>লাইভ ওয়েবসাইট প্রিভিউ (Admission Page - Class-wise Available Seats Table Preview)</span>
+                </span>
+                <Link
+                  to="/admission"
+                  target="_blank"
+                  className="text-xs font-semibold text-[#006a4e] hover:underline flex items-center gap-1 dark:text-emerald-400"
+                >
+                  <span>Admission পেজে লাইভ দেখুন</span>
+                  <ExternalLink size={12} />
+                </Link>
+              </div>
+
+              <section className="rounded-xl border border-[#dde5df] bg-white p-5 shadow-xs dark:border-slate-700 dark:bg-slate-800">
+                <h3 className="text-base font-bold text-[#005a40] border-b pb-3 flex items-center gap-2 dark:text-emerald-300">
+                  <Users size={18} />
+                  <span>শ্রেণিভিত্তিক আসন বিন্যাস (Class-wise Available Seats)</span>
+                </h3>
+
+                <div className="mt-4">
+                  <p className="text-xs text-gray-600 mb-3 dark:text-gray-300">
+                    {draft.admissionSeats || "শ্রেণিভিত্তিক আসন বিন্যাস ও তথ্য"}
+                  </p>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left border-collapse border border-gray-200 dark:border-slate-700">
+                      <thead>
+                        <tr className="bg-[#006a4e] text-white">
+                          <th className="border p-2.5 dark:border-slate-600">শ্রেণি (Class)</th>
+                          <th className="border p-2.5 dark:border-slate-600">শাখা (Sections)</th>
+                          <th className="border p-2.5 dark:border-slate-600">মোট আসন (Total Seats)</th>
+                          <th className="border p-2.5 dark:border-slate-600">ভর্তির প্রক্রিয়া (Admission Process)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
+                        {(draft.admissionSeatMatrix && draft.admissionSeatMatrix.length > 0
+                          ? draft.admissionSeatMatrix
+                          : DEFAULT_ADMISSION_SEAT_MATRIX
+                        ).map((item, idx) => (
+                          <tr
+                            key={item.id || idx}
+                            className="hover:bg-emerald-50/40 transition-colors odd:bg-white even:bg-[#fafcfa] dark:odd:bg-slate-800 dark:even:bg-slate-850 dark:hover:bg-slate-700"
+                          >
+                            <td className="border p-2.5 font-bold text-gray-900 dark:border-slate-700 dark:text-white">
+                              {item.classBn} {item.classEn && <span className="font-normal text-gray-500 text-[11px]">({item.classEn})</span>}
+                            </td>
+                            <td className="border p-2.5 text-gray-700 dark:border-slate-700 dark:text-gray-300">
+                              {item.sectionsBn}
+                            </td>
+                            <td className="border p-2.5 font-bold text-[#006a4e] whitespace-nowrap dark:border-slate-700 dark:text-emerald-400">
+                              {item.seats} {item.suffixBn || "জন"}
+                            </td>
+                            <td className="border p-2.5 text-gray-700 dark:border-slate-700 dark:text-gray-300">
+                              {item.processBn}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
             </div>
-          </section>
+          </div>
         )}
 
         {/* TAB 10: GALLERY */}

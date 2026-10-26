@@ -227,6 +227,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     codeOfConductSubtitle: incoming.codeOfConductSubtitle !== undefined ? cleanStr(incoming.codeOfConductSubtitle, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitle || ""),
     codeOfConductSubtitleEn: incoming.codeOfConductSubtitleEn !== undefined ? cleanStr(incoming.codeOfConductSubtitleEn, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitleEn || ""),
     codeOfConductRules: cleanList(incoming.codeOfConductRules, DEFAULT_WEBSITE_CONTENT.codeOfConductRules || []),
+    admissionSeatMatrix: cleanList(incoming.admissionSeatMatrix, DEFAULT_WEBSITE_CONTENT.admissionSeatMatrix || []),
   };
 };
 

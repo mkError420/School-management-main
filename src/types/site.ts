@@ -184,6 +184,7 @@ export interface SchoolWebsiteContent {
   admissionSeats: string;
   admissionSeatsEn?: string;
   admissionFormUrl: string;
+  admissionSeatMatrix?: AdmissionSeatCapacityItem[];
 
   // 7. Dynamic Lists
   notices: SchoolNotice[];
@@ -233,6 +234,202 @@ export interface SchoolWebsiteContent {
   codeOfConductSubtitleEn?: string;
   codeOfConductRules?: SchoolCodeOfConductRule[];
 }
+
+export interface AdmissionSeatCapacityItem {
+  id: string;
+  classBn: string;
+  classEn: string;
+  sectionsBn: string;
+  sectionsEn: string;
+  seats: string;
+  suffixBn?: string;
+  suffixEn?: string;
+  processBn: string;
+  processEn: string;
+}
+
+export const DEFAULT_ADMISSION_SEAT_MATRIX: AdmissionSeatCapacityItem[] = [
+  {
+    id: "seat_nursery",
+    classBn: "নার্সারি",
+    classEn: "Class Nursery",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "50",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও মৌখিক সাক্ষাৎকার",
+    processEn: "Direct Application & Oral Interview",
+  },
+  {
+    id: "seat_play",
+    classBn: "প্লে গ্রুপ",
+    classEn: "Class Play Group",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "50",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও সাক্ষাৎকার",
+    processEn: "Direct Application & Interview",
+  },
+  {
+    id: "seat_kg",
+    classBn: "কেজি",
+    classEn: "Class KG",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "60",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "সরাসরি আবেদন ও মেধা যাচাই",
+    processEn: "Direct Application & Assessment",
+  },
+  {
+    id: "seat_1",
+    classBn: "১ম শ্রেণি",
+    classEn: "Class 1",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "80",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও লটারি",
+    processEn: "Online Application & Lottery",
+  },
+  {
+    id: "seat_2",
+    classBn: "২য় শ্রেণি",
+    classEn: "Class 2",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "40",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    id: "seat_3",
+    classBn: "৩য় শ্রেণি",
+    classEn: "Class 3",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "40",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    id: "seat_4",
+    classBn: "৪র্থ শ্রেণি",
+    classEn: "Class 4",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "35",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও ভর্তি পরীক্ষা",
+    processEn: "Subject to Vacancy & Admission Test",
+  },
+  {
+    id: "seat_5",
+    classBn: "৫ম শ্রেণি",
+    classEn: "Class 5",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "35",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে ও মূল্যায়ন পরীক্ষা",
+    processEn: "Subject to Vacancy & Assessment Test",
+  },
+  {
+    id: "seat_6",
+    classBn: "৬ষ্ঠ শ্রেণি",
+    classEn: "Class 6",
+    sectionsBn: "ক, খ ও গ শাখা",
+    sectionsEn: "Sections A, B & C",
+    seats: "120",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও সরকারি লটারি",
+    processEn: "Online Application & Govt Lottery",
+  },
+  {
+    id: "seat_7",
+    classBn: "৭ম শ্রেণি",
+    classEn: "Class 7",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "30",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে",
+    processEn: "Subject to Vacancy",
+  },
+  {
+    id: "seat_8",
+    classBn: "৮ম শ্রেণি",
+    classEn: "Class 8",
+    sectionsBn: "ক ও খ শাখা",
+    sectionsEn: "Sections A & B",
+    seats: "25",
+    suffixBn: "জন (আসন সাপেক্ষে)",
+    suffixEn: "Seats (Vacancy basis)",
+    processBn: "আসন শূন্য থাকা সাপেক্ষে",
+    processEn: "Subject to Vacancy",
+  },
+  {
+    id: "seat_9",
+    classBn: "৯ম শ্রেণি",
+    classEn: "Class 9",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "90",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "অনলাইন আবেদন ও মেধা তালিকা",
+    processEn: "Online Application & Merit List",
+  },
+  {
+    id: "seat_10",
+    classBn: "১০ম শ্রেণি",
+    classEn: "Class 10",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "20",
+    suffixBn: "জন (টিসি সাপেক্ষে)",
+    suffixEn: "Seats (TC basis)",
+    processBn: "বোর্ড ছাড়পত্র ও আসন শূন্য সাপেক্ষে",
+    processEn: "Subject to Board Clearance & Vacancy",
+  },
+  {
+    id: "seat_11",
+    classBn: "একাদশ শ্রেণি (Class 11)",
+    classEn: "Class 11 (HSC)",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "150",
+    suffixBn: "জন",
+    suffixEn: "Seats",
+    processBn: "কেন্দ্রীয় একাদশ ভর্তি সিস্টেম (XI Class Admission) ও অনলাইন মেধা",
+    processEn: "Central XI Class Admission System & Online Merit",
+  },
+  {
+    id: "seat_12",
+    classBn: "দ্বাদশ শ্রেণি (Class 12)",
+    classEn: "Class 12 (HSC)",
+    sectionsBn: "বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা",
+    sectionsEn: "Science, Humanities & Business",
+    seats: "20",
+    suffixBn: "জন (টিসি সাপেক্ষে)",
+    suffixEn: "Seats (TC basis)",
+    processBn: "শিক্ষা বোর্ড টিসি সাপেক্ষে ভর্তি",
+    processEn: "Subject to Education Board TC & Approval",
+  },
+];
 
 export interface StudyCornerBook {
   title: string;
@@ -368,6 +565,7 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   admissionSeats: "৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন · ৮ম শ্রেণি: ২৫ আসন · ৯ম শ্রেণি: ৬০ আসন",
   admissionSeatsEn: "Class 6: 120 seats · Class 7: 30 seats · Class 8: 25 seats · Class 9: 60 seats",
   admissionFormUrl: "https://gsa.teletalk.com.bd",
+  admissionSeatMatrix: DEFAULT_ADMISSION_SEAT_MATRIX,
 
   notices: [
     {
