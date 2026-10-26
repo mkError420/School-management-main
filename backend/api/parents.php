@@ -2,6 +2,7 @@
 
 $db = Database::getInstance();
 ensureParentImgColumn($db);
+ensureParentNidColumn($db);
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
@@ -52,6 +53,18 @@ function ensureParentImgColumn($db) {
         }
     } catch (Exception $e) {
         // Non-fatal: if the table doesn't exist yet it will be created with the schema
+    }
+}
+
+// Ensure the nid column exists in parents table
+function ensureParentNidColumn($db) {
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM parents LIKE 'nid'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE parents ADD COLUMN nid VARCHAR(50) NULL AFTER phone");
+        }
+    } catch (Exception $e) {
+        // Non-fatal
     }
 }
 
@@ -255,6 +268,7 @@ function createParent($db) {
             'surname'  => $input['surname'],
             'email'    => $input['email'] ?? null,
             'phone'    => $input['phone'],
+            'nid'      => $input['nid'] ?? null,
             'address'  => $input['address'],
             'img'      => $uploadedImage ?? ($input['img'] ?? null),
         ]);
@@ -289,7 +303,7 @@ function updateParent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['name', 'surname', 'email', 'phone', 'address', 'img'];
+    $allowedFields = ['name', 'surname', 'email', 'phone', 'nid', 'address', 'img'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];

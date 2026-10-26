@@ -113,6 +113,12 @@ function ensureAdmissionsTable($db) {
             $db->query("ALTER TABLE admissions ADD COLUMN img VARCHAR(255) NULL AFTER password");
         }
     } catch (Exception $e) {}
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'parent_nid'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN parent_nid VARCHAR(50) NULL AFTER parent_id");
+        }
+    } catch (Exception $e) {}
 
     // Also ensure roll column exists on students table
     try {
@@ -348,7 +354,9 @@ function getAdmissions($db) {
                    COALESCE(a.username, s.username) as username,
                    COALESCE(a.img, s.img) as img,
                    c.name as class_name, g.level as grade_level,
-                   p.name as linked_parent_name, p.surname as linked_parent_surname
+                   p.name as linked_parent_name, p.surname as linked_parent_surname,
+                   p.nid as linked_parent_nid,
+                   COALESCE(a.parent_nid, p.nid) as parent_nid
             FROM admissions a
             LEFT JOIN classes c ON a.class_id = c.id
             LEFT JOIN grades g ON a.grade_id = g.id
@@ -469,13 +477,17 @@ function createAdmission($db) {
     $parentName = trim($input['parent_name'] ?? '');
     $parentPhone = trim($input['parent_phone'] ?? '');
     $parentEmail = trim($input['parent_email'] ?? '');
+    $parentNid = trim($input['parent_nid'] ?? $input['nid'] ?? '');
 
     if ($parentId) {
-        $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$parentId]);
+        $parent = $db->fetchOne("SELECT name, surname, phone, email, nid FROM parents WHERE id = ?", [$parentId]);
         if ($parent) {
             $parentName = trim(($parent['name'] ?? '') . ' ' . ($parent['surname'] ?? ''));
             $parentPhone = $parent['phone'] ?? $parentPhone;
             $parentEmail = $parent['email'] ?? $parentEmail;
+            if (empty($parentNid) && !empty($parent['nid'])) {
+                $parentNid = $parent['nid'];
+            }
         }
     }
 
@@ -529,6 +541,7 @@ function createAdmission($db) {
         'parent_phone' => $parentPhone,
         'parent_email' => $parentEmail,
         'parent_id' => $parentId,
+        'parent_nid' => !empty($parentNid) ? $parentNid : null,
         'previous_school' => $input['previous_school'] ?? null,
         'status' => $status,
         'notes' => $input['notes'] ?? null,
@@ -550,7 +563,7 @@ function createAdmission($db) {
             }
         }
 
-        $created = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
+        $created = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname, p.nid as linked_parent_nid, COALESCE(a.parent_nid, p.nid) as parent_nid FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
         Response::success('Admission application created successfully', $created, 201);
     } catch (Exception $e) {
         Response::error('Failed to create admission: ' . $e->getMessage());
@@ -600,7 +613,7 @@ function updateAdmission($db, $id) {
     // Remove _method override key from input so it doesn't get written to DB
     unset($input['_method']);
 
-    $allowed = ['roll', 'username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'previous_school', 'status', 'notes', 'applied_date'];
+    $allowed = ['roll', 'username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'parent_nid', 'previous_school', 'status', 'notes', 'applied_date'];
 
     $data = [];
     foreach ($allowed as $f) {
@@ -639,11 +652,14 @@ function updateAdmission($db, $id) {
     }
 
     if (!empty($data['parent_id'])) {
-        $parent = $db->fetchOne("SELECT name, surname, phone, email FROM parents WHERE id = ?", [$data['parent_id']]);
+        $parent = $db->fetchOne("SELECT name, surname, phone, email, nid FROM parents WHERE id = ?", [$data['parent_id']]);
         if ($parent) {
             $data['parent_name'] = trim(($parent['name'] ?? '') . ' ' . ($parent['surname'] ?? ''));
             $data['parent_phone'] = $parent['phone'] ?? ($data['parent_phone'] ?? null);
             $data['parent_email'] = $parent['email'] ?? ($data['parent_email'] ?? null);
+            if (empty($data['parent_nid']) && !empty($parent['nid'])) {
+                $data['parent_nid'] = $parent['nid'];
+            }
         }
     }
 

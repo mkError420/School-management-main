@@ -54,8 +54,10 @@ export interface AdmissionItem {
   parent_phone?: string;
   parent_email?: string;
   parent_id?: string;
+  parent_nid?: string;
   linked_parent_name?: string;
   linked_parent_surname?: string;
+  linked_parent_nid?: string;
   previous_school?: string;
   status: "PENDING" | "APPROVED" | "WAITLISTED" | "REJECTED";
   notes?: string;
@@ -88,6 +90,7 @@ const emptyAdmissionForm = {
   date_of_birth: "",
   img: "",
   parent_id: "",
+  parent_nid: "",
   class_id: "",
   grade_id: "",
   status: "PENDING" as "PENDING" | "APPROVED" | "WAITLISTED" | "REJECTED",
@@ -102,6 +105,7 @@ const emptyParentForm = {
   surname: "",
   email: "",
   phone: "",
+  nid: "",
   address: "",
 };
 
@@ -147,7 +151,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   // Options
   const [classes, setClasses] = useState<Array<{ id: string | number; name: string; grade_id?: number }>>([]);
   const [grades, setGrades] = useState<Array<{ id: string | number; level: number }>>([]);
-  const [parents, setParents] = useState<Array<{ id: string | number; name: string; surname: string }>>([]);
+  const [parents, setParents] = useState<Array<{ id: string | number; name: string; surname: string; nid?: string }>>([]);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -164,7 +168,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const [changingStatusId, setChangingStatusId] = useState<number | null>(null);
 
   // Inline parent creation
-  const [parentMode, setParentMode] = useState<"existing" | "new">("existing");
+  const [parentMode, setParentMode] = useState<"existing" | "new">("new");
   const [parentForm, setParentForm] = useState(emptyParentForm);
   const [selectedParentImage, setSelectedParentImage] = useState<File | null>(null);
   const [parentImagePreview, setParentImagePreview] = useState<string | null>(null);
@@ -301,12 +305,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       grade_id: String(defaultClass?.grade_id || grades[0]?.id || "1"),
       class_id: String(defaultClass?.id || ""),
       parent_id: String(parents[0]?.id || ""),
+      parent_nid: (parents[0] as any)?.nid || "",
       blood_type: "AB+",
       sex: "FEMALE",
     });
     setSelectedImage(null);
     setImagePreview(null);
-    setParentMode("existing");
+    setParentMode("new");
     setParentForm(emptyParentForm);
     setSelectedParentImage(null);
     setParentImagePreview(null);
@@ -331,6 +336,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       date_of_birth: item.date_of_birth || "",
       img: item.img || "",
       parent_id: String(item.parent_id || (parents[0]?.id ? String(parents[0].id) : "")),
+      parent_nid: item.parent_nid || (item as any).linked_parent_nid || "",
       class_id: String(item.class_id || (classes[0]?.id ? String(classes[0].id) : "")),
       grade_id: String(item.grade_id || (grades[0]?.id ? String(grades[0].id) : "")),
       status: item.status || "PENDING",
@@ -364,8 +370,18 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     if (!formData.address.trim()) { setFormError("Address is required."); return; }
     if (!formData.blood_type.trim()) { setFormError("Blood type is required."); return; }
 
-    if (parentMode === "existing" && !formData.parent_id) {
-      setFormError("Please select an existing parent or create a new one."); return;
+    // Student photo is mandatory
+    if (!selectedImage && !formData.img.trim()) {
+      setFormError("Student photo is mandatory. Please upload a student photo."); return;
+    }
+
+    if (parentMode === "existing") {
+      if (!formData.parent_id) {
+        setFormError("Please select an existing parent or create a new one."); return;
+      }
+      if (!formData.parent_nid?.trim()) {
+        setFormError("Parent's NID number is mandatory."); return;
+      }
     }
     if (parentMode === "new") {
       if (!parentForm.name.trim() || !parentForm.surname.trim()) {
@@ -376,6 +392,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         setFormError("Parent password is required (minimum 6 characters)."); return;
       }
       if (!parentForm.phone.trim()) { setFormError("Parent phone number is required."); return; }
+      if (!parentForm.nid.trim()) { setFormError("Parent's NID number is mandatory."); return; }
       if (!parentForm.address.trim()) { setFormError("Parent address is required."); return; }
     }
 
@@ -395,6 +412,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           pfd.append("surname", parentForm.surname.trim());
           if (parentForm.email.trim()) pfd.append("email", parentForm.email.trim());
           pfd.append("phone", parentForm.phone.trim());
+          pfd.append("nid", parentForm.nid.trim());
           pfd.append("address", parentForm.address.trim());
           pfd.append("img", selectedParentImage, selectedParentImage.name);
           parentRes = await api.create("parents", pfd);
@@ -406,6 +424,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             surname: parentForm.surname.trim(),
             email: parentForm.email.trim() || null,
             phone: parentForm.phone.trim(),
+            nid: parentForm.nid.trim(),
             address: parentForm.address.trim(),
           });
         }
@@ -439,6 +458,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         gender: formData.sex,
         date_of_birth: formData.date_of_birth || null,
         parent_id: resolvedParentId,
+        parent_nid: parentMode === "new" ? parentForm.nid.trim() : (formData.parent_nid?.trim() || null),
         class_id: formData.class_id,
         grade_id: formData.grade_id || classes.find((c) => String(c.id) === String(formData.class_id))?.grade_id || grades[0]?.id || 1,
         status: formData.status,
@@ -469,7 +489,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         setCreateModalOpen(false);
         setSelectedImage(null);
         setImagePreview(null);
-        setParentMode("existing");
+        setParentMode("new");
         setParentForm(emptyParentForm);
         setSelectedParentImage(null);
         setParentImagePreview(null);
@@ -865,7 +885,10 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     <p className="font-medium text-gray-800 dark:text-gray-200 truncate max-w-[140px]">
                       {item.parent_name || item.linked_parent_name || "—"}
                     </p>
-                    <p className="text-[11px] text-gray-400">{item.parent_phone || "No phone"}</p>
+                    <p className="text-[11px] text-gray-400">
+                      {item.parent_phone || "No phone"}
+                      {(item.parent_nid || item.linked_parent_nid) ? ` · NID: ${item.parent_nid || item.linked_parent_nid}` : ""}
+                    </p>
                   </td>
 
                   {/* Date */}
@@ -1307,17 +1330,32 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
                 {/* Photo Upload */}
                 <div className="flex flex-col gap-2 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
-                  <span className="font-medium">Photo</span>
-                  <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Student Photo *</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      selectedImage || formData.img
+                        ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300"
+                        : "bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400"
+                    }`}>
+                      {selectedImage || formData.img ? "Photo selected" : "Mandatory *"}
+                    </span>
+                  </div>
+                  <div className={`flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-3 transition ${
+                    selectedImage || formData.img
+                      ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-950/20"
+                      : "border-red-300 dark:border-red-700/60 bg-red-50/20 dark:bg-red-950/10"
+                  }`}>
                     {imagePreview ? (
-                      <img src={imagePreview} alt="Student photo preview" className="h-20 w-20 rounded-xl border border-gray-200 dark:border-gray-700 object-cover shadow-sm" />
+                      <img src={imagePreview} alt="Student photo preview" className="h-20 w-20 rounded-xl border border-gray-200 dark:border-gray-700 object-cover shadow-sm ring-2 ring-emerald-500/40" />
                     ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-xs text-gray-400 dark:text-gray-500">No photo</div>
+                      <div className="flex h-20 w-20 flex-col items-center justify-center rounded-xl bg-white dark:bg-gray-700 border border-dashed border-red-300 dark:border-red-600 text-[11px] font-semibold text-red-500 dark:text-red-400 text-center p-1">
+                        Photo Required *
+                      </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <label className="flex cursor-pointer items-center gap-2 w-fit rounded-lg border border-sky-200 dark:border-sky-700 bg-sky-50 dark:bg-sky-900/30 px-3 py-2 text-xs font-semibold text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-900/50 transition">
                         <Upload size={13} />
-                        <span>Choose photo</span>
+                        <span>{imagePreview ? "Change student photo *" : "Choose student photo *"}</span>
                         <input
                           type="file"
                           accept="image/jpeg,image/png,image/webp"
@@ -1337,7 +1375,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           }}
                         />
                       </label>
-                      <p className="mt-1.5 text-xs text-gray-400">JPG, PNG, or WebP · max 5 MB</p>
+                      <p className="mt-1.5 text-xs text-gray-400">JPG, PNG, or WebP · max 5 MB · <strong className="text-red-500 font-semibold">Mandatory</strong></p>
                       {selectedImage && (
                         <button type="button" onClick={() => { setSelectedImage(null); setImagePreview(editItem?.img || null); }} className="mt-1 text-xs text-red-500 hover:text-red-700 transition">
                           Remove selected photo
@@ -1361,34 +1399,62 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-xs font-semibold">
                       <button
                         type="button"
-                        onClick={() => setParentMode("existing")}
-                        className={`px-3 py-1.5 transition ${parentMode === "existing" ? "bg-[#D32F45] text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
-                      >
-                        Select existing
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setParentMode("new")}
                         className={`px-3 py-1.5 flex items-center gap-1.5 transition ${parentMode === "new" ? "bg-[#D32F45] text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
                       >
-                        <UserPlus2 size={12} /> Create new
+                        <UserPlus2 size={12} /> Create new Parent
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setParentMode("existing")}
+                        className={`px-3 py-1.5 transition ${parentMode === "existing" ? "bg-[#D32F45] text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"}`}
+                      >
+                        Select existing Parent
+                      </button>
+
                     </div>
                   )}
                 </div>
 
                 {(parentMode === "existing" || editItem) && (
-                  <select
-                    required={parentMode === "existing" || Boolean(editItem)}
-                    value={formData.parent_id}
-                    onChange={(e) => setFormData({ ...formData, parent_id: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
-                  >
-                    <option value="">Select parent</option>
-                    {parents.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} {p.surname}</option>
-                    ))}
-                  </select>
+                  <div className="space-y-3">
+                    <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                      <span>Select Parent *</span>
+                      <select
+                        required={parentMode === "existing" || Boolean(editItem)}
+                        value={formData.parent_id}
+                        onChange={(e) => {
+                          const pid = e.target.value;
+                          const p = parents.find((item) => String(item.id) === String(pid));
+                          setFormData({
+                            ...formData,
+                            parent_id: pid,
+                            parent_nid: (p as any)?.nid || formData.parent_nid || "",
+                          });
+                        }}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                      >
+                        <option value="">Select parent</option>
+                        {parents.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} {p.surname} {(p as any)?.nid ? `(NID: ${(p as any).nid})` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
+                      <span>Parents NID number *</span>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Enter parent NID number"
+                        value={formData.parent_nid || ""}
+                        onChange={(e) => setFormData({ ...formData, parent_nid: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition"
+                      />
+                    </label>
+                  </div>
                 )}
 
                 {parentMode === "new" && !editItem && (
@@ -1402,8 +1468,9 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         { label: "Last name *", field: "surname", type: "text", required: true },
                         { label: "Username *", field: "username", type: "text", required: true },
                         { label: "Password * (min 6 chars)", field: "password", type: "password", required: true },
-                        { label: "Email", field: "email", type: "email", required: false },
                         { label: "Phone *", field: "phone", type: "text", required: true },
+                        { label: "Parents NID number *", field: "nid", type: "text", required: true },
+                        { label: "Email", field: "email", type: "email", required: false },
                       ].map(({ label, field, type, required }) => (
                         <label key={field} className="flex flex-col gap-1 text-xs text-gray-700 dark:text-gray-300">
                           <span>{label}</span>
@@ -1432,9 +1499,8 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                                   setParentForm({ ...parentForm, [field]: val });
                                 }
                               }}
-                              className={`w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${
-                                field === "password" ? "pr-8" : ""
-                              }`}
+                              className={`w-full rounded-md border border-gray-300 dark:border-gray-600 px-2.5 py-1.5 text-xs outline-none focus:border-[#707E94] bg-white dark:bg-gray-800 text-gray-900 dark:text-white ${field === "password" ? "pr-8" : ""
+                                }`}
                             />
                             {field === "password" && (
                               <button
@@ -1626,6 +1692,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   {detailsItem.parent_phone && <span className="flex items-center gap-1"><Phone size={12} />{detailsItem.parent_phone}</span>}
                   {detailsItem.parent_email && <span className="flex items-center gap-1"><Mail size={12} />{detailsItem.parent_email}</span>}
                 </div>
+                {(detailsItem.parent_nid || (detailsItem as any).linked_parent_nid) && (
+                  <p className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                    <span className="font-semibold text-gray-500">NID:</span> {detailsItem.parent_nid || (detailsItem as any).linked_parent_nid}
+                  </p>
+                )}
                 {detailsItem.address && <p className="text-gray-400">Address: {detailsItem.address}</p>}
               </div>
 

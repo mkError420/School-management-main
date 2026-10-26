@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS parents (
     surname VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
     phone VARCHAR(255) UNIQUE NOT NULL,
+    nid VARCHAR(50) NULL,
     address TEXT NOT NULL,
     img VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -261,6 +262,7 @@ CREATE TABLE IF NOT EXISTS admissions (
     parent_phone VARCHAR(50),
     parent_email VARCHAR(255),
     parent_id VARCHAR(255),
+    parent_nid VARCHAR(50) NULL,
     previous_school VARCHAR(255),
     status ENUM('PENDING', 'APPROVED', 'WAITLISTED', 'REJECTED') NOT NULL DEFAULT 'PENDING',
     notes TEXT,
