@@ -318,7 +318,7 @@ const WebsiteContentPage: React.FC = () => {
           try {
             rawStaff = JSON.parse(stored);
             setLiveStaffList(rawStaff);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -1522,7 +1522,7 @@ const WebsiteContentPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] disabled:opacity-60"
             title="বাংলা থেকে সমস্ত ফিল্ড ও নোটিশ ইংরেজিতে স্বয়ংক্রিয় অনুবাদ করুন"
           >
-            {translating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} className="text-amber-300" />}
+            {translating ? <Loader2 size={13} className="animate-spin" /> : null}
             <span>সম্পূর্ণ ওয়েবসাইট স্বয়ংক্রিয় ইংরেজি অনুবাদ (Auto-Translate to English)</span>
           </button>
 
@@ -1532,7 +1532,6 @@ const WebsiteContentPage: React.FC = () => {
             onClick={handleTranslateCurrentTab}
             className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-white px-3 py-1.5 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-50 dark:bg-slate-800 dark:text-emerald-300 dark:hover:bg-slate-700"
           >
-            <Wand2 size={13} />
             <span>বর্তমান সেকশন অনুবাদ</span>
           </button>
 
@@ -2235,7 +2234,6 @@ const WebsiteContentPage: React.FC = () => {
                             onClick={() => translateTickerItem(index)}
                             className="inline-flex items-center gap-1 text-xs font-semibold text-[#006a4e] hover:underline dark:text-emerald-400"
                           >
-                            <Sparkles size={12} />
                             <span>অনুবাদ</span>
                           </button>
 
@@ -2360,8 +2358,7 @@ const WebsiteContentPage: React.FC = () => {
                 onClick={handleTranslateCurrentTab}
                 className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
               >
-                <Sparkles size={11} />
-                <span>এই সেকশন অটো-অনুবাদ</span>
+                <span>বর্তমান সেকশন অনুবাদ</span>
               </button>
             </h2>
 
@@ -2669,7 +2666,6 @@ const WebsiteContentPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                   title="বাণী ও পদবী স্বয়ংক্রিয় ইংরেজি অনুবাদ করুন"
                 >
-                  <Sparkles size={13} />
                   <span>বাণী ও পদবী অনুবাদ</span>
                 </button>
               </div>
@@ -3238,7 +3234,6 @@ const WebsiteContentPage: React.FC = () => {
                   }}
                   className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] shadow-2xs hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                 >
-                  <Sparkles size={13} />
                   <span>সকল শিক্ষক তথ্য ইংরেজি অনুবাদ</span>
                 </button>
 
@@ -3595,7 +3590,6 @@ const WebsiteContentPage: React.FC = () => {
                 }}
                 className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
               >
-                <Sparkles size={12} />
                 <span>ইংরেজি সংখ্যায় রূপান্তর</span>
               </button>
             </h2>
@@ -3754,7 +3748,6 @@ const WebsiteContentPage: React.FC = () => {
                   }}
                   className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                 >
-                  <Sparkles size={13} />
                   <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
                 </button>
 
@@ -5019,7 +5012,6 @@ const WebsiteContentPage: React.FC = () => {
               onClick={() => handleAutoTranslateAll("en")}
               className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-4 py-2.5 text-xs font-bold text-[#006a4e] hover:bg-emerald-100"
             >
-              <Sparkles size={14} />
               <span>ইংরেজি অনুবাদ সিঙ্ক</span>
             </button>
 

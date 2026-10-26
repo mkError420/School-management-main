@@ -50,10 +50,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
     aspectRatio === "square"
       ? "w-24 h-24 sm:w-28 sm:h-28"
       : aspectRatio === "portrait"
-      ? "w-24 h-32 sm:w-28 sm:h-36"
-      : aspectRatio === "banner"
-      ? "w-full max-w-sm h-28 sm:h-32"
-      : "w-36 h-24 sm:w-44 sm:h-28";
+        ? "w-24 h-32 sm:w-28 sm:h-36"
+        : aspectRatio === "banner"
+          ? "w-full max-w-sm h-28 sm:h-32"
+          : "w-36 h-24 sm:w-44 sm:h-28";
 
   const handleFileProcess = async (file: File) => {
     setUploadError(null);
@@ -178,11 +178,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 rounded-lg border p-2.5 transition ${
-          isDragOver
-            ? "border-[#006a4e] bg-emerald-50/70 dark:border-emerald-500 dark:bg-emerald-950/30"
-            : "border-gray-200 bg-white hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800"
-        }`}
+        className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 rounded-lg border p-2.5 transition ${isDragOver
+          ? "border-[#006a4e] bg-emerald-50/70 dark:border-emerald-500 dark:bg-emerald-950/30"
+          : "border-gray-200 bg-white hover:border-gray-300 dark:border-slate-700 dark:bg-slate-800"
+          }`}
       >
         {/* Hidden File Input */}
         <input
@@ -285,7 +284,6 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
           {presets.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               <span className="text-[10px] font-semibold text-gray-500 flex items-center gap-0.5">
-                <Sparkles size={10} className="text-amber-500" />
                 নমুনা ছবি:
               </span>
               {presets.map((preset, idx) => (
@@ -296,11 +294,10 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                     onChange(preset.url);
                     setImgError(false);
                   }}
-                  className={`rounded-md border px-2 py-0.5 text-[10px] font-medium transition ${
-                    value === preset.url
-                      ? "border-[#006a4e] bg-emerald-50 text-[#006a4e] font-bold dark:border-emerald-500 dark:bg-emerald-950/40"
-                      : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300"
-                  }`}
+                  className={`rounded-md border px-2 py-0.5 text-[10px] font-medium transition ${value === preset.url
+                    ? "border-[#006a4e] bg-emerald-50 text-[#006a4e] font-bold dark:border-emerald-500 dark:bg-emerald-950/40"
+                    : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300"
+                    }`}
                 >
                   {value === preset.url && <Check size={10} className="inline mr-0.5" />}
                   {preset.label}
