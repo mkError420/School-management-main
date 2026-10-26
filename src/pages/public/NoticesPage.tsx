@@ -28,17 +28,24 @@ export const NoticesPage: React.FC = () => {
     try {
       const res = await api.getAll("announcements", { page: 1, limit: 100 });
       if (res.success && Array.isArray(res.data?.announcements) && res.data.announcements.length > 0) {
-        const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => ({
-          id: String(item.id),
-          title: item.title,
-          titleEn: item.title,
-          date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
-          category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
-          categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
-          content: item.description || "",
-          contentEn: item.description || "",
-          fileUrl: item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#"),
-        }));
+        const token = api.getToken();
+        const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => {
+          let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
+          if (attachUrl && token && !attachUrl.includes("token=")) {
+            attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+          }
+          return {
+            id: String(item.id),
+            title: item.title,
+            titleEn: item.title,
+            date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+            category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
+            categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
+            content: item.description || "",
+            contentEn: item.description || "",
+            fileUrl: attachUrl || "#",
+          };
+        });
         setDbNotices(mapped);
       }
     } catch {

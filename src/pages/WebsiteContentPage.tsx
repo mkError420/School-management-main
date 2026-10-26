@@ -275,10 +275,14 @@ const WebsiteContentPage: React.FC = () => {
       });
       return;
     }
+    const token = api.getToken();
     const converted: SchoolNotice[] = dbAnnouncements.map((item) => {
       const targetText = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ";
       const targetTextEn = item.class_name ? `Class: ${item.class_name}` : "General";
-      const attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#");
+      let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#");
+      if (attachUrl && attachUrl !== "#" && token && !attachUrl.includes("token=")) {
+        attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+      }
       return {
         id: `db_${item.id}`,
         title: item.title,
@@ -4140,11 +4144,10 @@ const WebsiteContentPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setNoticeViewMode("live_announcements")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                    noticeViewMode === "live_announcements"
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${noticeViewMode === "live_announcements"
                       ? "bg-[#006a4e] text-white shadow-xs"
                       : "text-gray-600 hover:text-black dark:text-gray-300"
-                  }`}
+                    }`}
                 >
                   <Bell size={13} />
                   <span>ডাটাবেজ লাইভ ঘোষণা তালিকা ({dbAnnouncements.length})</span>
@@ -4152,11 +4155,10 @@ const WebsiteContentPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setNoticeViewMode("draft_notices")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                    noticeViewMode === "draft_notices"
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${noticeViewMode === "draft_notices"
                       ? "bg-[#006a4e] text-white shadow-xs"
                       : "text-gray-600 hover:text-black dark:text-gray-300"
-                  }`}
+                    }`}
                 >
                   <FileText size={13} />
                   <span>কাস্টম ড্রাফট নোটিশ ({draft.notices.length})</span>
@@ -4231,7 +4233,11 @@ const WebsiteContentPage: React.FC = () => {
                       })
                       .map((item) => {
                         const targetBadge = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ (School-Wide)";
-                        const fileUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
+                        const token = api.getToken();
+                        let fileUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
+                        if (fileUrl && token && !fileUrl.includes("token=")) {
+                          fileUrl += `${fileUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+                        }
                         const hasFile = Boolean(fileUrl);
 
                         return (
@@ -4408,173 +4414,173 @@ const WebsiteContentPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-4">
-              {draft.notices.map((notice, index) => (
-                <div
-                  key={notice.id || index}
-                  className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
-                >
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                      নোটিশ #{index + 1}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => moveNotice(index, "up")}
-                        disabled={index === 0}
-                        title="উপরে নিন"
-                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                      >
-                        <ArrowUp size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveNotice(index, "down")}
-                        disabled={index === draft.notices.length - 1}
-                        title="নিচে নিন"
-                        className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                      >
-                        <ArrowDown size={13} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => translateNoticeItem(index)}
-                        className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
-                      >
-                        <Sparkles size={12} />
-                        <span>ইংরেজি অনুবাদ</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeNotice(index)}
-                        className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
-                      >
-                        <Trash2 size={13} />
-                        <span>মুছুন</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      নোটিশের শিরোনাম (বাংলায়) *
-                      <input
-                        type="text"
-                        value={notice.title}
-                        onChange={(e) => updateNotice(index, "title", e.target.value)}
-                        className={inputClass}
-                        required
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Notice Title (English) *
-                      <input
-                        type="text"
-                        value={notice.titleEn || ""}
-                        onChange={(e) => updateNotice(index, "titleEn", e.target.value)}
-                        placeholder="e.g. Admission Notice 2026"
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      তারিখ (Date)
-                      <input
-                        type="date"
-                        value={notice.date}
-                        onChange={(e) => updateNotice(index, "date", e.target.value)}
-                        className={inputClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      ক্যাটাগরি
-                      <select
-                        value={notice.category}
-                        onChange={(e) => {
-                          updateNotice(index, "category", e.target.value);
-                          updateNotice(index, "categoryEn", translateBnToEn(e.target.value));
-                        }}
-                        className={inputClass}
-                      >
-                        <option value="সাধারণ">সাধারণ (General)</option>
-                        <option value="ভর্তি">ভর্তি (Admission)</option>
-                        <option value="পরীক্ষা">পরীক্ষা (Examination)</option>
-                        <option value="একাডেমিক">একাডেমিক (Academic)</option>
-                      </select>
-                    </label>
-
-                    {/* Notice Attachment Upload & URL */}
-                    <div className="sm:col-span-2 rounded-md border border-gray-200 bg-gray-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-800/40">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                            নোটিশের সংযুক্তি / বিজ্ঞপ্তি ফাইল (Attachment File / PDF / Image)
-                          </label>
-                          <span className="text-[11px] text-gray-500">
-                            পিডিএফ বা ছবি ফাইল আপলোড করুন অথবা সরাসরি ফাইল লিংক দিন
-                          </span>
+                  {draft.notices.map((notice, index) => (
+                    <div
+                      key={notice.id || index}
+                      className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
+                    >
+                      <div className="flex items-center justify-between border-b pb-2">
+                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                          নোটিশ #{index + 1}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => moveNotice(index, "up")}
+                            disabled={index === 0}
+                            title="উপরে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowUp size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveNotice(index, "down")}
+                            disabled={index === draft.notices.length - 1}
+                            title="নিচে নিন"
+                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
+                          >
+                            <ArrowDown size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => translateNoticeItem(index)}
+                            className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
+                          >
+                            <Sparkles size={12} />
+                            <span>ইংরেজি অনুবাদ</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeNotice(index)}
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
+                          >
+                            <Trash2 size={13} />
+                            <span>মুছুন</span>
+                          </button>
                         </div>
-                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs border border-gray-300 hover:bg-gray-100 dark:bg-slate-700 dark:text-gray-200 dark:border-slate-600">
-                          <Upload size={13} className="text-[#006a4e] dark:text-emerald-400" />
-                          <span>{uploadingNoticeIndex === index ? "আপলোড হচ্ছে..." : "ফাইল নির্বাচন ও আপলোড"}</span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          নোটিশের শিরোনাম (বাংলায়) *
                           <input
-                            type="file"
-                            accept=".pdf,image/*"
-                            className="hidden"
+                            type="text"
+                            value={notice.title}
+                            onChange={(e) => updateNotice(index, "title", e.target.value)}
+                            className={inputClass}
+                            required
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                          Notice Title (English) *
+                          <input
+                            type="text"
+                            value={notice.titleEn || ""}
+                            onChange={(e) => updateNotice(index, "titleEn", e.target.value)}
+                            placeholder="e.g. Admission Notice 2026"
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          তারিখ (Date)
+                          <input
+                            type="date"
+                            value={notice.date}
+                            onChange={(e) => updateNotice(index, "date", e.target.value)}
+                            className={inputClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          ক্যাটাগরি
+                          <select
+                            value={notice.category}
                             onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleNoticeFileUpload(index, f);
+                              updateNotice(index, "category", e.target.value);
+                              updateNotice(index, "categoryEn", translateBnToEn(e.target.value));
                             }}
+                            className={inputClass}
+                          >
+                            <option value="সাধারণ">সাধারণ (General)</option>
+                            <option value="ভর্তি">ভর্তি (Admission)</option>
+                            <option value="পরীক্ষা">পরীক্ষা (Examination)</option>
+                            <option value="একাডেমিক">একাডেমিক (Academic)</option>
+                          </select>
+                        </label>
+
+                        {/* Notice Attachment Upload & URL */}
+                        <div className="sm:col-span-2 rounded-md border border-gray-200 bg-gray-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-800/40">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                নোটিশের সংযুক্তি / বিজ্ঞপ্তি ফাইল (Attachment File / PDF / Image)
+                              </label>
+                              <span className="text-[11px] text-gray-500">
+                                পিডিএফ বা ছবি ফাইল আপলোড করুন অথবা সরাসরি ফাইল লিংক দিন
+                              </span>
+                            </div>
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs border border-gray-300 hover:bg-gray-100 dark:bg-slate-700 dark:text-gray-200 dark:border-slate-600">
+                              <Upload size={13} className="text-[#006a4e] dark:text-emerald-400" />
+                              <span>{uploadingNoticeIndex === index ? "আপলোড হচ্ছে..." : "ফাইল নির্বাচন ও আপলোড"}</span>
+                              <input
+                                type="file"
+                                accept=".pdf,image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleNoticeFileUpload(index, f);
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <input
+                            type="text"
+                            value={notice.fileUrl || ""}
+                            onChange={(e) => updateNotice(index, "fileUrl", e.target.value)}
+                            placeholder="https://... অথবা /uploads/notices/... অথবা আপলোড করুন"
+                            className={`${inputClass} mt-1`}
+                          />
+                          {noticeUploadError?.index === index && (
+                            <p className="mt-1 text-[11px] text-red-600">{noticeUploadError.message}</p>
+                          )}
+                        </div>
+
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          বিস্তারিত বিবরণ (বাংলায়)
+                          <textarea
+                            rows={2}
+                            value={notice.content || ""}
+                            onChange={(e) => updateNotice(index, "content", e.target.value)}
+                            className={textareaClass}
+                          />
+                        </label>
+
+                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                          Notice Content (English)
+                          <textarea
+                            rows={2}
+                            value={notice.contentEn || ""}
+                            onChange={(e) => updateNotice(index, "contentEn", e.target.value)}
+                            className={textareaClass}
                           />
                         </label>
                       </div>
-                      <input
-                        type="text"
-                        value={notice.fileUrl || ""}
-                        onChange={(e) => updateNotice(index, "fileUrl", e.target.value)}
-                        placeholder="https://... অথবা /uploads/notices/... অথবা আপলোড করুন"
-                        className={`${inputClass} mt-1`}
-                      />
-                      {noticeUploadError?.index === index && (
-                        <p className="mt-1 text-[11px] text-red-600">{noticeUploadError.message}</p>
-                      )}
                     </div>
+                  ))}
 
-                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                      বিস্তারিত বিবরণ (বাংলায়)
-                      <textarea
-                        rows={2}
-                        value={notice.content || ""}
-                        onChange={(e) => updateNotice(index, "content", e.target.value)}
-                        className={textareaClass}
-                      />
-                    </label>
-
-                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                      Notice Content (English)
-                      <textarea
-                        rows={2}
-                        value={notice.contentEn || ""}
-                        onChange={(e) => updateNotice(index, "contentEn", e.target.value)}
-                        className={textareaClass}
-                      />
-                    </label>
-                  </div>
+                  {draft.notices.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500 dark:border-slate-700">
+                      কোনো কাস্টম ড্রাফট নোটিশ নেই। আপনি উপরের 'নতুন নোটিশ যোগ করুন' বাটন অথবা 'লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন' বাটন ব্যবহার করতে পারেন।
+                    </div>
+                  )}
                 </div>
-              ))}
-
-              {draft.notices.length === 0 && (
-                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500 dark:border-slate-700">
-                  কোনো কাস্টম ড্রাফট নোটিশ নেই। আপনি উপরের 'নতুন নোটিশ যোগ করুন' বাটন অথবা 'লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন' বাটন ব্যবহার করতে পারেন।
-                </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+          </section>
         )}
-      </section>
-    )}
 
         {/* TAB 8: DOWNLOADS */}
         {activeTab === "downloads" && (

@@ -190,7 +190,6 @@ function deleteAttachmentFile($storageName) {
 }
 
 function downloadAnnouncementAttachment($db, $id) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
     ensureAnnouncementSchema($db);
 
     if (!$id) {
@@ -199,9 +198,13 @@ function downloadAnnouncementAttachment($db, $id) {
         exit;
     }
 
-    $visibility = AuthMiddleware::isAdmin($user)
-        ? ['sql' => '1=1', 'params' => []]
-        : announcementVisibility($user);
+    // Allow public website visitors and direct browser/iframe links
+    $user = AuthMiddleware::optionalAuth();
+
+    $visibility = ['sql' => '1=1', 'params' => []];
+    if ($user && !AuthMiddleware::isAdmin($user)) {
+        $visibility = announcementVisibility($user);
+    }
 
     $announcement = $db->fetchOne(
         "SELECT a.document_attachment, a.attachment_original_name, a.attachment_mime_type, a.class_id
@@ -312,7 +315,7 @@ function markAllAnnouncementsRead($db) {
 }
 
 function getAnnouncements($db) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::optionalAuth();
     ensureAnnouncementSchema($db);
     
     $page = intval($_GET['page'] ?? 1);
@@ -323,15 +326,17 @@ function getAnnouncements($db) {
     
     $offset = ($page - 1) * $limit;
     
+    $userId = $user ? $user['user_id'] : 0;
+    
     $sql = "SELECT a.*, c.name as class_name,
                    CASE WHEN ar.id IS NOT NULL THEN 1 ELSE 0 END as is_read
             FROM announcements a 
             LEFT JOIN classes c ON a.class_id = c.id 
             LEFT JOIN announcement_reads ar ON ar.announcement_id = a.id AND ar.user_id = ?
             WHERE 1=1";
-    $params = [$user['user_id']];
+    $params = [$userId];
 
-    if (!AuthMiddleware::isAdmin($user)) {
+    if ($user && !AuthMiddleware::isAdmin($user)) {
         $visibility = announcementVisibility($user);
         $sql .= " AND " . $visibility['sql'];
         $params = array_merge($params, $visibility['params']);
@@ -376,7 +381,7 @@ function getAnnouncements($db) {
     
     Response::success('Announcements retrieved successfully', [
         'announcements' => $announcements,
-        'unread_count'  => calculateUnreadAnnouncementsCount($db, $user),
+        'unread_count'  => $user ? calculateUnreadAnnouncementsCount($db, $user) : 0,
         'pagination' => [
             'page' => $page,
             'limit' => $limit,
@@ -387,12 +392,13 @@ function getAnnouncements($db) {
 }
 
 function getAnnouncement($db, $id) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'teacher', 'student', 'parent']);
+    $user = AuthMiddleware::optionalAuth();
     ensureAnnouncementSchema($db);
 
-    $visibility = AuthMiddleware::isAdmin($user)
-        ? ['sql' => '1=1', 'params' => []]
-        : announcementVisibility($user);
+    $visibility = ['sql' => '1=1', 'params' => []];
+    if ($user && !AuthMiddleware::isAdmin($user)) {
+        $visibility = announcementVisibility($user);
+    }
     
     $announcement = $db->fetchOne(
         "SELECT a.*, c.name as class_name 
@@ -406,11 +412,13 @@ function getAnnouncement($db, $id) {
         Response::notFound('Announcement not found');
     }
 
-    // Auto mark announcement as read for the user
-    $db->query(
-        "INSERT IGNORE INTO announcement_reads (announcement_id, user_id) VALUES (?, ?)",
-        [$id, $user['user_id']]
-    );
+    // Auto mark announcement as read for the user if logged in
+    if ($user) {
+        $db->query(
+            "INSERT IGNORE INTO announcement_reads (announcement_id, user_id) VALUES (?, ?)",
+            [$id, $user['user_id']]
+        );
+    }
 
     $announcement['attachment_url'] = !empty($announcement['document_attachment'])
         ? '/backend/api/announcements?action=attachment&id=' . $announcement['id']
