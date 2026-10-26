@@ -5396,7 +5396,6 @@ const WebsiteContentPage: React.FC = () => {
                     <RefreshCw size={13} />
                     <span className="hidden sm:inline">ডিফল্ট নিয়মাবলী আনুন</span>
                   </button> */}
-
                   <button
                     type="button"
                     onClick={addCodeOfConductRule}

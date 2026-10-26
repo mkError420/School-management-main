@@ -17,7 +17,6 @@ import {
   HeartHandshake,
   Image as ImageIcon,
   PhoneCall,
-  Printer,
   School,
   Search,
   Share2,
@@ -895,18 +894,10 @@ export const HomePage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    <Printer size={13} />
-                    <span>{lang === "bn" ? "প্রিন্ট করুন" : "Print"}</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setSelectedNotice(null)}
-                    className="rounded bg-[#006a4e] px-4 py-1.5 font-bold text-white hover:bg-[#00503a]"
+                    className="rounded bg-[#006a4e] px-5 py-1.5 font-bold text-white hover:bg-[#00503a] transition shadow-xs"
                   >
-                    {lang === "bn" ? "ঠিক আছে" : "OK"}
+                    {lang === "bn" ? "ঠিক আছে" : "Close"}
                   </button>
                 </div>
               </div>

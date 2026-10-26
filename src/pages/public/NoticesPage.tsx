@@ -9,7 +9,6 @@ import {
   FileText,
   Home,
   Image as ImageIcon,
-  Printer,
   Search,
   X,
 } from "lucide-react";
@@ -341,16 +340,8 @@ export const NoticesPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    <Printer size={13} />
-                    <span>{t("প্রিন্ট করুন", "Print")}</span>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setSelectedNotice(null)}
-                    className="rounded bg-[#006a4e] px-4 py-1.5 font-bold text-white hover:bg-[#00503a]"
+                    className="rounded bg-[#006a4e] px-5 py-1.5 font-bold text-white hover:bg-[#00503a] transition shadow-xs"
                   >
                     {t("ঠিক আছে", "Close")}
                   </button>
