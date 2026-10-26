@@ -193,10 +193,10 @@ export const HomePage: React.FC = () => {
 
             {/* Stats Grid */}
             <div className="mt-6 border-t border-[#eaf1ec] pt-5">
-              <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
+              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
                 {lang === "bn" ? "এক নজরে বিদ্যালয়ের পরিসংখ্যান" : "School Statistics at a Glance"}
               </h4>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+              <div className="grid grid-cols-3 gap-2 sm:gap-2.5 md:grid-cols-6">
                 {[
                   {
                     label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
@@ -259,13 +259,13 @@ export const HomePage: React.FC = () => {
                   return (
                     <div
                       key={i}
-                      className="rounded-lg border border-[#e2ece5] bg-white p-3 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
+                      className="rounded-lg border border-[#e2ece5] bg-white p-2 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs sm:p-2.5"
                     >
-                      <span className={`mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full ${stat.color}`}>
-                        {Icon && <Icon size={16} />}
+                      <span className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full sm:h-7 sm:w-7 ${stat.color}`}>
+                        {Icon && <Icon size={13} className="sm:h-3.5 sm:w-3.5" />}
                       </span>
-                      <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                      <p className="text-[11px] font-medium text-gray-600">{stat.label}</p>
+                      <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base">{stat.value}</p>
+                      <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate">{stat.label}</p>
                     </div>
                   );
                 })}
@@ -637,7 +637,7 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
           {/* Head Teacher Card */}
-          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+          <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
             <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
               <h4 className="text-sm font-bold">
                 {lang === "bn" ? "প্রধান শিক্ষকের বাণী" : "Headmaster's Message"}
@@ -680,7 +680,7 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Assistant Headmaster Card */}
-          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+          <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
             <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
               <h4 className="text-sm font-bold">
                 {lang === "bn" ? "সহকারী প্রধান শিক্ষকের বাণী" : "Assistant Headmaster's Message"}
