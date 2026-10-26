@@ -7,6 +7,7 @@ import {
   BookOpen,
   Calendar,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Compass,
   Download,
@@ -203,8 +204,8 @@ export const HomePage: React.FC = () => {
                       liveCounts && typeof liveCounts.students === "number"
                         ? formatDigits(liveCounts.students.toLocaleString())
                         : lang === "bn"
-                        ? (content.studentCount || "১,৫০০+")
-                        : (content.studentCountEn || "1,500+"),
+                          ? (content.studentCount || "১,৫০০+")
+                          : (content.studentCountEn || "1,500+"),
                     icon: Users,
                     color: "text-[#006a4e] bg-emerald-50",
                   },
@@ -214,8 +215,8 @@ export const HomePage: React.FC = () => {
                       liveCounts && typeof liveCounts.teachers === "number"
                         ? formatDigits(liveCounts.teachers.toLocaleString())
                         : lang === "bn"
-                        ? (content.teacherCount || "৫২")
-                        : (content.teacherCountEn || "52"),
+                          ? (content.teacherCount || "৫২")
+                          : (content.teacherCountEn || "52"),
                     icon: GraduationCap,
                     color: "text-blue-700 bg-blue-50",
                   },
@@ -225,8 +226,8 @@ export const HomePage: React.FC = () => {
                       liveCounts && typeof liveCounts.staff === "number"
                         ? formatDigits(liveCounts.staff.toLocaleString())
                         : lang === "bn"
-                        ? (content.staffCount || "১৬")
-                        : (content.staffCountEn || "16"),
+                          ? (content.staffCount || "১৬")
+                          : (content.staffCountEn || "16"),
                     icon: HeartHandshake,
                     color: "text-teal-700 bg-teal-50",
                   },
@@ -236,8 +237,8 @@ export const HomePage: React.FC = () => {
                       liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
                         ? formatDigits(liveCounts.classes.toLocaleString())
                         : lang === "bn"
-                        ? (content.classCount || "২৪")
-                        : (content.classCountEn || "24"),
+                          ? (content.classCount || "২৪")
+                          : (content.classCountEn || "24"),
                     icon: BookOpen,
                     color: "text-amber-700 bg-amber-50",
                   },
@@ -369,16 +370,17 @@ export const HomePage: React.FC = () => {
                 return (
                   <article
                     key={notice.id || index}
-                    className="group flex flex-col gap-3 rounded-lg border border-[#e5eee8] bg-white p-3.5 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+                    onClick={() => setSelectedNotice(notice)}
+                    className="group flex flex-col gap-3 rounded-lg border border-[#e5eee8] bg-white p-3.5 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-sm sm:flex-row sm:items-center sm:justify-between cursor-pointer"
                   >
-                    <div className="flex items-start gap-3.5">
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
                       <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs">
                         <span className="text-base font-bold leading-none">{day}</span>
                         <span className="mt-0.5 text-[10px] font-semibold uppercase">{month}</span>
                         <span className="text-[9px] text-emerald-200">{year}</span>
                       </div>
 
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
                             {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
@@ -403,15 +405,8 @@ export const HomePage: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedNotice(notice)}
-                        className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#00503a]"
-                      >
-                        <Eye size={13} />
-                        <span>{lang === "bn" ? "বিস্তারিত" : "Details"}</span>
-                      </button>
+                    <div className="flex shrink-0 items-center text-gray-400 group-hover:text-[#006a4e] transition self-end sm:self-center">
+                      <ChevronRight size={18} className="transition group-hover:translate-x-0.5" />
                     </div>
                   </article>
                 );
@@ -826,10 +821,14 @@ export const HomePage: React.FC = () => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
+          onClick={() => setSelectedNotice(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs overflow-y-auto"
         >
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl my-auto"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
               <div className="flex items-center gap-2">
                 <div>
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
@@ -866,21 +865,81 @@ export const HomePage: React.FC = () => {
               {/* Attachment Display (Image or PDF) */}
               {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
                 <div className="mt-4">
-                  <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
-                    <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
-                      <FileText size={14} />
-                      <span>{lang === "bn" ? "সংযুক্ত নোটিশ পত্র" : "Attached Notice Document"}</span>
-                    </span>
-                    <a
-                      href={selectedNotice.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#00503a]"
-                    >
-                      <Download size={12} />
-                      <span>{lang === "bn" ? "ডাউনলোড ও দেখুন" : "View & Download"}</span>
-                    </a>
-                  </div>
+                  {selectedNotice.fileUrl.startsWith("data:image/") ||
+                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
+                          <ImageIcon size={14} />
+                          <span>{lang === "bn" ? "সংযুক্ত নোটিশ পত্র (ছবি):" : "Attached Notice Document (Image):"}</span>
+                        </span>
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
+                        >
+                          <Download size={12} />
+                          <span>{lang === "bn" ? "ডাউনলোড করুন" : "Download"}</span>
+                        </a>
+                      </div>
+                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
+                        <img
+                          src={selectedNotice.fileUrl}
+                          alt={t(selectedNotice.title, selectedNotice.titleEn)}
+                          className="max-h-[380px] w-full object-contain bg-gray-50 p-1"
+                        />
+                      </div>
+                    </div>
+                  ) : selectedNotice.fileUrl.startsWith("data:application/pdf") ||
+                    /\.pdf(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50/60 p-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-red-600 text-white font-bold text-xs shadow-2xs">
+                            PDF
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-900">
+                              {lang === "bn" ? "অফিসিয়াল নোটিশ পত্র (PDF)" : "Official Notice Document (PDF)"}
+                            </p>
+                            <p className="text-[11px] text-gray-600">
+                              {lang === "bn"
+                                ? "মূল নোটিশের পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন"
+                                : "Click the button below to view or download the official PDF notice file"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <a
+                          href={selectedNotice.fileUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
+                        >
+                          <FileText size={14} />
+                          <span>{lang === "bn" ? "পিডিএফ দেখুন ও ডাউনলোড" : "View & Download PDF"}</span>
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-800">
+                        <ExternalLink size={14} className="text-blue-600 shrink-0" />
+                        <span>{lang === "bn" ? "সংযুক্ত ফাইল বা ওয়েব লিঙ্ক" : "Attached File or Link"}</span>
+                      </div>
+                      <a
+                        href={selectedNotice.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                      >
+                        <Download size={13} />
+                        <span>{lang === "bn" ? "ফাইল খুলুন" : "Open File"}</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 

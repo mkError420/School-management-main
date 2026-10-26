@@ -3,9 +3,9 @@ import { Link } from "react-router-dom";
 import {
   Bell,
   Calendar,
+  ChevronRight,
   Download,
   ExternalLink,
-  Eye,
   FileText,
   Home,
   Image as ImageIcon,
@@ -120,16 +120,17 @@ export const NoticesPage: React.FC = () => {
           return (
             <article
               key={notice.id || index}
-              className="group flex flex-col gap-4 rounded-lg border border-[#e5eee8] bg-white p-4 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
+              onClick={() => setSelectedNotice(notice)}
+              className="group flex flex-col gap-4 rounded-lg border border-[#e5eee8] bg-white p-4 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-sm sm:flex-row sm:items-center sm:justify-between cursor-pointer"
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-4 min-w-0 flex-1">
                 <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs">
                   <span className="text-lg font-bold leading-none">{formatDigits(day)}</span>
                   <span className="mt-0.5 text-xs font-semibold uppercase">{month}</span>
                   <span className="text-[10px] text-emerald-200">{formatDigits(year)}</span>
                 </div>
 
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
                       {t(notice.category, notice.categoryEn) || t("সাধারণ", "General")}
@@ -176,15 +177,8 @@ export const NoticesPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
-                <button
-                  type="button"
-                  onClick={() => setSelectedNotice(notice)}
-                  className="inline-flex items-center gap-1.5 rounded bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
-                >
-                  <Eye size={14} />
-                  <span>{t("বিস্তারিত পড়ুন", "View Details")}</span>
-                </button>
+              <div className="flex shrink-0 items-center text-gray-400 group-hover:text-[#006a4e] transition self-end sm:self-center">
+                <ChevronRight size={18} className="transition group-hover:translate-x-0.5" />
               </div>
             </article>
           );
@@ -202,10 +196,14 @@ export const NoticesPage: React.FC = () => {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
+          onClick={() => setSelectedNotice(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs overflow-y-auto"
         >
-          <div className="relative w-full max-w-2xl rounded-lg border border-emerald-700 bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl my-auto"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
               <div className="flex items-center gap-2">
                 <div>
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
