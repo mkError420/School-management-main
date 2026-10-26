@@ -87,6 +87,23 @@ export const AdmissionPage: React.FC = () => {
   const [submittedAdmission, setSubmittedAdmission] = useState<any | null>(null);
   const [copiedAppNo, setCopiedAppNo] = useState<boolean>(false);
 
+  // Bengali / Bangla Unicode range: U+0980 - U+09FF
+  const BANGLA_REGEX = /[\u0980-\u09FF]/;
+
+  const handleEnglishChange = (field: keyof typeof formData, value: string) => {
+    if (BANGLA_REGEX.test(value)) {
+      setFormError(
+        lang === "en"
+          ? "Bangla text is not accepted in this form. Please type in English only."
+          : "এই ফর্মে বাংলা বর্ণ গ্রহণযোগ্য নয়। অনুগ্রহ করে শুধুমাত্র ইংরেজিতে লিখুন (English only)।"
+      );
+      const cleanValue = value.replace(/[\u0980-\u09FF]/g, "");
+      setFormData((prev) => ({ ...prev, [field]: cleanValue }));
+      return;
+    }
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
   // Tracking State
   const [trackQuery, setTrackQuery] = useState<string>("");
   const [trackingLoading, setTrackingLoading] = useState<boolean>(false);
@@ -177,6 +194,31 @@ export const AdmissionPage: React.FC = () => {
   const handleSubmitApplication = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+
+    // Reject any Bangla characters in any field
+    const textFieldsToCheck = [
+      { name: lang === "en" ? "First Name" : "প্রথম নাম", value: formData.first_name },
+      { name: lang === "en" ? "Last Name" : "শেষ নাম", value: formData.last_name },
+      { name: lang === "en" ? "Student Email" : "ইমেইল", value: formData.email },
+      { name: lang === "en" ? "Student Phone" : "ফোন নম্বর", value: formData.phone },
+      { name: lang === "en" ? "Present Address" : "বর্তমান ঠিকানা", value: formData.address },
+      { name: lang === "en" ? "Previous School" : "পূর্ববর্তী বিদ্যালয়", value: formData.previous_school },
+      { name: lang === "en" ? "Parent Name" : "অভিভাবকের নাম", value: formData.parent_name },
+      { name: lang === "en" ? "Parent Phone" : "অভিভাবকের মোবাইল", value: formData.parent_phone },
+      { name: lang === "en" ? "Parent NID" : "অভিভাবকের এনআইডি", value: formData.parent_nid },
+      { name: lang === "en" ? "Parent Email" : "অভিভাবকের ইমেইল", value: formData.parent_email },
+      { name: lang === "en" ? "Remarks / Notes" : "মন্তব্য", value: formData.notes },
+    ];
+
+    const banglaField = textFieldsToCheck.find((f) => BANGLA_REGEX.test(f.value));
+    if (banglaField) {
+      setFormError(
+        lang === "en"
+          ? `Bangla text is not allowed in ${banglaField.name}. Please enter in English only.`
+          : `${banglaField.name}-এ বাংলা গ্রহণযোগ্য নয়। অনুগ্রহ করে শুধুমাত্র ইংরেজিতে লিখুন (English only)।`
+      );
+      return;
+    }
 
     // Validation
     if (!formData.first_name.trim() || !formData.last_name.trim()) {
@@ -387,7 +429,6 @@ export const AdmissionPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#eab308] px-3 py-1 text-xs font-bold text-gray-950 shadow-xs">
-              <Sparkles size={13} />
               <span>{t("ভর্তি সেশন ২০২৬", "Admission Session 2026/27")}</span>
             </span>
             <h1 className="mt-3 text-2xl font-bold sm:text-3xl tracking-tight">
@@ -624,15 +665,17 @@ export const AdmissionPage: React.FC = () => {
                 /* THE APPLICATION FORM */
                 <section className="rounded-xl border border-[#dde5df] bg-white p-6 md:p-8 shadow-xs">
                   <div className="border-b border-gray-100 pb-4 mb-6">
-                    <h2 className="text-lg font-bold text-[#005a40] flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-[#005a40] flex flex-wrap items-center gap-2">
                       <UserPlus size={20} />
                       <span>{t("অনলাইন শিক্ষার্থী ভর্তি আবেদনপত্র", "Student Online Admission Application Form")}</span>
-                      <span className="text-red-600 font-bold text-xs">(অবশ্যই ইংলিশে পূরণ করবেন)</span>
+                      <span className="text-red-700 bg-red-100 border border-red-300 font-bold text-xs px-2.5 py-0.5 rounded-md">
+                        {t("শুধুমাত্র ইংরেজিতে পূরণ করুন — বাংলা বর্ণ গ্রহণযোগ্য নয়", "English Only — Bangla not accepted")}
+                      </span>
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                       {t(
-                        "বিদ্যালয়ে ভর্তির জন্য নিচের তথ্যাদি সতর্কতার সাথে পূরণ করুন। লাল তারকা (*) চিহ্নিত ফিল্ডগুলো আবশ্যক।",
-                        "Please fill out the form carefully. Fields marked with an asterisk (*) are mandatory."
+                        "বিদ্যালয়ে ভর্তির জন্য নিচের তথ্যাদি সতর্কতার সাথে শুধুমাত্র ইংরেজিতে পূরণ করুন। বাংলা অক্ষর গ্রহণযোগ্য নয়। লাল তারকা (*) চিহ্নিত ফিল্ডগুলো আবশ্যক।",
+                        "Please fill out all fields in English only. Bangla text will not be accepted. Fields marked with an asterisk (*) are mandatory."
                       )}
                     </p>
                   </div>
@@ -659,26 +702,26 @@ export const AdmissionPage: React.FC = () => {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {/* First Name */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
-                          <span>{t("প্রথম নাম (First Name) *", "First Name *")}</span>
+                          <span>{t("প্রথম নাম (First Name in English) *", "First Name (in English) *")}</span>
                           <input
                             type="text"
                             required
-                            placeholder={t("যেমন: মোঃ তানভীর", "e.g. Tanvir")}
+                            placeholder="e.g. Tanvir (in English)"
                             value={formData.first_name}
-                            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                            onChange={(e) => handleEnglishChange("first_name", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
 
                         {/* Last Name */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
-                          <span>{t("শেষ নাম / পদবি (Last Name) *", "Last Name *")}</span>
+                          <span>{t("শেষ নাম / পদবি (Last Name in English) *", "Last Name (in English) *")}</span>
                           <input
                             type="text"
                             required
-                            placeholder={t("যেমন: আহমেদ", "e.g. Ahmed")}
+                            placeholder="e.g. Ahmed (in English)"
                             value={formData.last_name}
-                            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                            onChange={(e) => handleEnglishChange("last_name", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
@@ -764,7 +807,7 @@ export const AdmissionPage: React.FC = () => {
                             type="email"
                             placeholder="student@example.com"
                             value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            onChange={(e) => handleEnglishChange("email", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
@@ -779,32 +822,32 @@ export const AdmissionPage: React.FC = () => {
                             type="tel"
                             placeholder="+880 1..."
                             value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
+                            onChange={(e) => handleEnglishChange("phone", e.target.value)}
+                            className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
                           />
                         </label>
 
                         {/* Present Address */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700 sm:col-span-2">
-                          <span>{t("বর্তমান ঠিকানা (Present Address) *", "Present Address *")}</span>
+                          <span>{t("বর্তমান ঠিকানা (Present Address in English) *", "Present Address (in English) *")}</span>
                           <textarea
                             required
                             rows={2}
-                            placeholder={t("গ্রাম/রাস্তা, পোস্ট অফিস, থানা, জেলা...", "Village/Street, Post Office, Police Station, District...")}
+                            placeholder={t("Village/Road, Post Office, Thana, District (in English)...", "Village/Road, Post Office, Thana, District (in English)...")}
                             value={formData.address}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            onChange={(e) => handleEnglishChange("address", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 resize-none"
                           />
                         </label>
 
                         {/* Previous School */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700 sm:col-span-2">
-                          <span>{t("পূর্ববর্তী বিদ্যালয়ের নাম ও বিবরণ (ঐচ্ছিক)", "Previous School Attended (Optional)")}</span>
+                          <span>{t("পূর্ববর্তী বিদ্যালয়ের নাম (Previous School in English)", "Previous School Attended (in English)")}</span>
                           <input
                             type="text"
-                            placeholder={t("আগে যে স্কুলে পড়াশোনা করেছে...", "Name of previous school or primary school...")}
+                            placeholder={t("Previous school name (in English)...", "Previous school name (in English)...")}
                             value={formData.previous_school}
-                            onChange={(e) => setFormData({ ...formData, previous_school: e.target.value })}
+                            onChange={(e) => handleEnglishChange("previous_school", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
@@ -813,19 +856,17 @@ export const AdmissionPage: React.FC = () => {
                         <div className="flex flex-col gap-2 text-xs font-semibold text-gray-700 sm:col-span-2">
                           <div className="flex items-center justify-between">
                             <span>{t("শিক্ষার্থীর পাসপোর্ট সাইজ ছবি *", "Student Photo (Passport Size) *")}</span>
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                              selectedPhoto
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-red-100 text-red-600"
-                            }`}>
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${selectedPhoto
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-600"
+                              }`}>
                               {selectedPhoto ? t("ছবি নির্বাচিত", "Photo selected") : t("বাধ্যতামূলক *", "Mandatory *")}
                             </span>
                           </div>
-                          <div className={`flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-3 transition ${
-                            selectedPhoto
-                              ? "border-emerald-300 bg-emerald-50/40"
-                              : "border-red-300 bg-red-50/20"
-                          }`}>
+                          <div className={`flex flex-wrap items-center gap-4 rounded-xl border border-dashed p-3 transition ${selectedPhoto
+                            ? "border-emerald-300 bg-emerald-50/40"
+                            : "border-red-300 bg-red-50/20"
+                            }`}>
                             {photoPreview ? (
                               <img
                                 src={photoPreview}
@@ -885,13 +926,13 @@ export const AdmissionPage: React.FC = () => {
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {/* Parent Name */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
-                          <span>{t("পিতা / অভিভাবকের পূর্ণ নাম *", "Parent / Guardian Full Name *")}</span>
+                          <span>{t("পিতা / অভিভাবকের পূর্ণ নাম (Parent Name in English) *", "Parent / Guardian Full Name (in English) *")}</span>
                           <input
                             type="text"
                             required
-                            placeholder={t("যেমন: মোঃ রফিকুল ইসলাম", "e.g. Rafiqul Islam")}
+                            placeholder="e.g. Rafiqul Islam (in English)"
                             value={formData.parent_name}
-                            onChange={(e) => setFormData({ ...formData, parent_name: e.target.value })}
+                            onChange={(e) => handleEnglishChange("parent_name", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
@@ -904,7 +945,7 @@ export const AdmissionPage: React.FC = () => {
                             required
                             placeholder="+880 1..."
                             value={formData.parent_phone}
-                            onChange={(e) => setFormData({ ...formData, parent_phone: e.target.value })}
+                            onChange={(e) => handleEnglishChange("parent_phone", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
                           />
                         </label>
@@ -915,9 +956,9 @@ export const AdmissionPage: React.FC = () => {
                           <input
                             type="text"
                             required
-                            placeholder={t("যেমন: 19851234567890...", "e.g. 19851234567890...")}
+                            placeholder="e.g. 19851234567890..."
                             value={formData.parent_nid}
-                            onChange={(e) => setFormData({ ...formData, parent_nid: e.target.value })}
+                            onChange={(e) => handleEnglishChange("parent_nid", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
                           />
                         </label>
@@ -932,19 +973,19 @@ export const AdmissionPage: React.FC = () => {
                             type="email"
                             placeholder="guardian@example.com"
                             value={formData.parent_email}
-                            onChange={(e) => setFormData({ ...formData, parent_email: e.target.value })}
+                            onChange={(e) => handleEnglishChange("parent_email", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
 
                         {/* Additional Remarks / Quota */}
-                        <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
-                          <span>{t("বিশেষ কোটা বা মন্তব্য (ঐচ্ছিক)", "Special Quota or Remarks (Optional)")}</span>
+                        <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700 sm:col-span-2">
+                          <span>{t("বিশেষ কোটা বা মন্তব্য (ঐচ্ছিক - ইংরেজিতে)", "Special Quota or Remarks (Optional - in English)")}</span>
                           <input
                             type="text"
-                            placeholder={t("যেমন: মুক্তিযোদ্ধা কোটা / ক্যাচমেন্ট কোটা", "e.g. Quota or special requests")}
+                            placeholder={t("e.g. Quota or special requests (in English)...", "e.g. Quota or special requests (in English)...")}
                             value={formData.notes}
-                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            onChange={(e) => handleEnglishChange("notes", e.target.value)}
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20"
                           />
                         </label>
