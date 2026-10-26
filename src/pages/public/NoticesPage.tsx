@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Bell,
@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { api } from "@/lib/api";
 import type { SchoolNotice } from "@/types/site";
 
 export const NoticesPage: React.FC = () => {
@@ -20,6 +21,42 @@ export const NoticesPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>("সকল");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
+  const [dbNotices, setDbNotices] = useState<SchoolNotice[]>([]);
+
+  // Fetch live announcements from database (All Announcements section)
+  const fetchLiveNotices = useCallback(async () => {
+    try {
+      const res = await api.getAll("announcements", { page: 1, limit: 100 });
+      if (res.success && Array.isArray(res.data?.announcements) && res.data.announcements.length > 0) {
+        const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => ({
+          id: String(item.id),
+          title: item.title,
+          titleEn: item.title,
+          date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+          category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
+          categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
+          content: item.description || "",
+          contentEn: item.description || "",
+          fileUrl: item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#"),
+        }));
+        setDbNotices(mapped);
+      }
+    } catch {
+      // Fallback silently to websiteContent.notices
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchLiveNotices();
+
+    const handleUpdated = () => {
+      void fetchLiveNotices();
+    };
+    window.addEventListener("school-announcements-updated", handleUpdated);
+    return () => {
+      window.removeEventListener("school-announcements-updated", handleUpdated);
+    };
+  }, [fetchLiveNotices]);
 
   const categories = [
     { key: "সকল", labelBn: "সকল", labelEn: "All" },
@@ -30,14 +67,16 @@ export const NoticesPage: React.FC = () => {
   ];
 
   const filteredNotices = useMemo(() => {
-    const list = Array.isArray(content.notices) ? content.notices : [];
+    // Priority: Live DB Announcements > Website Content Notices
+    const list = dbNotices.length > 0 ? dbNotices : (Array.isArray(content.notices) ? content.notices : []);
     return list.filter((item) => {
       const matchCat =
         activeCategory === "সকল" ||
         item.category?.toLowerCase() === activeCategory.toLowerCase() ||
         (activeCategory === "ভর্তি" && (item.category?.includes("ভর্তি") || item.category?.toLowerCase().includes("admission") || item.categoryEn?.toLowerCase().includes("admission"))) ||
         (activeCategory === "পরীক্ষা" && (item.category?.includes("পরীক্ষা") || item.category?.toLowerCase().includes("exam") || item.categoryEn?.toLowerCase().includes("exam"))) ||
-        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.category?.toLowerCase().includes("academic") || item.categoryEn?.toLowerCase().includes("academic")));
+        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.category?.toLowerCase().includes("academic") || item.categoryEn?.toLowerCase().includes("academic"))) ||
+        (activeCategory === "সাধারণ" && (item.category?.includes("সাধারণ") || item.category?.toLowerCase().includes("general") || item.categoryEn?.toLowerCase().includes("general")));
 
       const search = searchTerm.trim().toLowerCase();
       const matchSearch =
@@ -48,7 +87,7 @@ export const NoticesPage: React.FC = () => {
         item.contentEn?.toLowerCase().includes(search);
       return matchCat && matchSearch;
     });
-  }, [content.notices, activeCategory, searchTerm]);
+  }, [dbNotices, content.notices, activeCategory, searchTerm]);
 
   return (
     <div className="space-y-8">

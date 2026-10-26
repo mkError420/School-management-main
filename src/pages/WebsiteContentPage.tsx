@@ -58,6 +58,8 @@ import {
 import { api } from "@/lib/api";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import FormModal from "@/components/FormModal";
+import type { AnnouncementItem } from "@/pages/list/AnnouncementsPage";
 import type {
   SchoolWebsiteContent,
   SchoolNotice,
@@ -111,6 +113,11 @@ const WebsiteContentPage: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [teacherSearch, setTeacherSearch] = useState("");
   const [noticeSearch, setNoticeSearch] = useState("");
+  const [dbAnnouncements, setDbAnnouncements] = useState<AnnouncementItem[]>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(false);
+  const [noticeViewMode, setNoticeViewMode] = useState<"live_announcements" | "draft_notices">("live_announcements");
+  const [announcementSearch, setAnnouncementSearch] = useState<string>("");
+  const [announcementClassFilter, setAnnouncementClassFilter] = useState<string>("all");
   const [downloadSearch, setDownloadSearch] = useState("");
   const [admissionSeatSearch, setAdmissionSeatSearch] = useState("");
   const [gallerySearch, setGallerySearch] = useState("");
@@ -232,6 +239,69 @@ const WebsiteContentPage: React.FC = () => {
   useEffect(() => {
     void loadLiveStaffStats();
   }, [loadLiveStaffStats]);
+
+  // Dynamic Live Announcements from Database (All Announcements section)
+  const loadLiveAnnouncements = useCallback(async () => {
+    setLoadingAnnouncements(true);
+    try {
+      const res = await api.getAll("announcements", { page: 1, limit: 100 });
+      if (res.success && Array.isArray(res.data?.announcements)) {
+        setDbAnnouncements(res.data.announcements);
+      }
+    } catch (err) {
+      console.error("Failed to load live announcements:", err);
+    } finally {
+      setLoadingAnnouncements(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLiveAnnouncements();
+
+    const handleUpdated = () => {
+      void loadLiveAnnouncements();
+    };
+    window.addEventListener("school-announcements-updated", handleUpdated);
+    return () => {
+      window.removeEventListener("school-announcements-updated", handleUpdated);
+    };
+  }, [loadLiveAnnouncements]);
+
+  const syncDbAnnouncementsToDraft = () => {
+    if (dbAnnouncements.length === 0) {
+      setFeedback({
+        type: "error",
+        message: "সিঙ্ক করার জন্য ডাটাবেজে কোনো ঘোষণা পাওয়া যায়নি।",
+      });
+      return;
+    }
+    const converted: SchoolNotice[] = dbAnnouncements.map((item) => {
+      const targetText = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ";
+      const targetTextEn = item.class_name ? `Class: ${item.class_name}` : "General";
+      const attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#");
+      return {
+        id: `db_${item.id}`,
+        title: item.title,
+        titleEn: translateBnToEn(item.title) || item.title,
+        date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+        category: targetText,
+        categoryEn: targetTextEn,
+        content: item.description || "",
+        contentEn: item.description ? (translateBnToEn(item.description) || item.description) : "",
+        fileUrl: attachUrl,
+      };
+    });
+
+    setDraft((prev) => ({
+      ...prev,
+      notices: converted,
+    }));
+
+    setFeedback({
+      type: "success",
+      message: `All Announcements সেকশন থেকে ${converted.length}টি লাইভ ঘোষণা সফলভাবে ড্রাফট নোটিশ সেটিংসে সিঙ্ক করা হয়েছে!`,
+    });
+  };
 
   // Leadership Selection & Dynamic Sync Handlers from Staff Directory
   const handleSelectPrincipalFromStaff = (staffId: string) => {
@@ -1582,7 +1652,7 @@ const WebsiteContentPage: React.FC = () => {
       badgeCount: (draft.teachers || []).length,
     },
     { id: "statistics", label: "৬. পরিসংখ্যান ও সাফল্য", icon: Award },
-    { id: "notices", label: "৭. নোটিশ বোর্ড", icon: Bell, badgeCount: (draft.notices || []).length },
+    { id: "notices", label: "৭. নোটিশ বোর্ড (ঘোষণা)", icon: Bell, badgeCount: dbAnnouncements.length > 0 ? dbAnnouncements.length : (draft.notices || []).length },
     { id: "downloads", label: "৮. ডাউনলোড ও রুটিন", icon: Download, badgeCount: (draft.downloads || []).length },
     {
       id: "admission",
@@ -3963,49 +4033,381 @@ const WebsiteContentPage: React.FC = () => {
 
         {/* TAB 7: NOTICES */}
         {activeTab === "notices" && (
-          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+          <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 space-y-5">
+            {/* Top Section Header */}
+            <div className="flex flex-col gap-4 border-b pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
               <div>
-                <h2 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Bell size={16} className="text-[#da291c]" />
-                  <span>৭. নোটিশ বোর্ড ব্যবস্থাপনা ({draft.notices.length} টি নোটিশ — দ্বিভাষিক)</span>
-                </h2>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  নোটিশের শিরোনাম, ক্যাটাগরি, সংযুক্তি ও বিস্তারিত বিবরণ বাংলা এবং ইংরেজি উভয় ভাষায় লিখুন অথবা অটো-অনুবাদ ব্যবহার করুন।
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#da291c] text-white">
+                    <Bell size={16} />
+                  </span>
+                  <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                    ৭. নোটিশ বোর্ড ও ঘোষণা ব্যবস্থাপনা (All Announcements)
+                  </h2>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    লাইভ ডাটাবেজ সিঙ্ক
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  সফটওয়্যারের "All Announcements" সেকশনের সাথে সরাসরি ও ডায়নামিকভাবে সংযুক্ত। এখানে তৈরি বা পরিবর্তন করা যেকোনো নোটিশ লাইভ ওয়েবসাইট এবং স্টুডেন্ট/টিচার পোর্টালে সরাসরি দৃশ্যমান হবে।
                 </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void loadLiveAnnouncements()}
+                  disabled={loadingAnnouncements}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-xs hover:bg-gray-50 disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200"
+                  title="লাইভ ঘোষণা রিফ্রেশ করুন"
+                >
+                  <RefreshCw size={13} className={loadingAnnouncements ? "animate-spin text-[#006a4e]" : ""} />
+                  <span>রিফ্রেশ</span>
+                </button>
+
+                <Link
+                  to="/list/announcements"
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200"
+                  title="মূল All Announcements পেজে যান"
+                >
+                  <ExternalLink size={13} className="text-[#006a4e]" />
+                  <span>All Announcements পেজ</span>
+                </Link>
+
+                <FormModal
+                  table="announcement"
+                  type="create"
+                  trigger={
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] transition"
+                    >
+                      <Plus size={14} />
+                      <span>+ নতুন ঘোষণা প্রকাশ করুন</span>
+                    </button>
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-lg border border-gray-200 bg-emerald-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">মোট লাইভ ঘোষণা</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-[#006a4e] dark:text-emerald-400">{dbAnnouncements.length}</span>
+                  <span className="text-[10px] text-gray-500">টি নোটিশ</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-blue-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">সাধারণ (সকলের জন্য)</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-blue-700 dark:text-blue-400">
+                    {dbAnnouncements.filter((a) => !a.class_id || a.class_id === "school_wide").length}
+                  </span>
+                  <span className="text-[10px] text-gray-500">টি নোটিশ</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-purple-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">নির্দিষ্ট শ্রেণির ঘোষণা</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-purple-700 dark:text-purple-400">
+                    {dbAnnouncements.filter((a) => a.class_id && a.class_id !== "school_wide").length}
+                  </span>
+                  <span className="text-[10px] text-gray-500">টি নোটিশ</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-amber-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/60">
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">সংযুক্তি ফাইলসহ</div>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-xl font-bold text-amber-700 dark:text-amber-400">
+                    {dbAnnouncements.filter((a) => !!(a.document_attachment || a.attachment_url)).length}
+                  </span>
+                  <span className="text-[10px] text-gray-500">টি ফাইল</span>
+                </div>
+              </div>
+            </div>
+
+            {/* View Mode Switcher and Sync to Draft */}
+            <div className="flex flex-col gap-3 rounded-md bg-gray-50 p-2.5 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-800/50">
+              <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setNoticeViewMode("live_announcements")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                    noticeViewMode === "live_announcements"
+                      ? "bg-[#006a4e] text-white shadow-xs"
+                      : "text-gray-600 hover:text-black dark:text-gray-300"
+                  }`}
+                >
+                  <Bell size={13} />
+                  <span>ডাটাবেজ লাইভ ঘোষণা তালিকা ({dbAnnouncements.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNoticeViewMode("draft_notices")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                    noticeViewMode === "draft_notices"
+                      ? "bg-[#006a4e] text-white shadow-xs"
+                      : "text-gray-600 hover:text-black dark:text-gray-300"
+                  }`}
+                >
+                  <FileText size={13} />
+                  <span>কাস্টম ড্রাফট নোটিশ ({draft.notices.length})</span>
+                </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setDraft((prev) => ({
-                      ...prev,
-                      notices: (prev.notices || []).map((n) => ({
-                        ...n,
-                        titleEn: n.titleEn || translateBnToEn(n.title),
-                        categoryEn: n.categoryEn || translateBnToEn(n.category),
-                        contentEn: n.contentEn || translateBnToEn(n.content || ""),
-                      })),
-                    }));
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  onClick={syncDbAnnouncementsToDraft}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-3 py-1.5 text-xs font-bold text-[#006a4e] hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                  title="ডাটাবেজের লাইভ ঘোষণাগুলো ড্রাফট সেটিংসে কপি করুন"
                 >
-                  <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={addNotice}
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                >
-                  <Plus size={14} />
-                  <span>নতুন নোটিশ যোগ করুন</span>
+                  <Database size={13} />
+                  <span>লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন</span>
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 space-y-4">
+            {/* TAB CONTENT: 1. LIVE ANNOUNCEMENTS FROM DATABASE */}
+            {noticeViewMode === "live_announcements" && (
+              <div className="space-y-4">
+                {/* Search & Class Filter */}
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={announcementSearch}
+                      onChange={(e) => setAnnouncementSearch(e.target.value)}
+                      placeholder="ঘোষণার শিরোনাম বা বিবরণ লিখে খুঁজুন..."
+                      className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-xs focus:border-[#006a4e] focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">ফিল্টার:</span>
+                    <select
+                      value={announcementClassFilter}
+                      onChange={(e) => setAnnouncementClassFilter(e.target.value)}
+                      className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#006a4e] focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    >
+                      <option value="all">সকল ঘোষণা</option>
+                      <option value="school_wide">সাধারণ (School-Wide)</option>
+                      <option value="class_specific">শ্রেণিভিত্তিক ঘোষণা</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Announcement Cards List */}
+                {loadingAnnouncements && (
+                  <div className="flex items-center justify-center py-12 text-sm text-gray-500">
+                    <Loader2 size={18} className="animate-spin text-[#006a4e] mr-2" />
+                    লাইভ ঘোষণা লোড হচ্ছে...
+                  </div>
+                )}
+
+                {!loadingAnnouncements && (
+                  <div className="space-y-3">
+                    {dbAnnouncements
+                      .filter((item) => {
+                        const q = announcementSearch.trim().toLowerCase();
+                        const matchesSearch =
+                          !q ||
+                          (item.title && item.title.toLowerCase().includes(q)) ||
+                          (item.description && item.description.toLowerCase().includes(q));
+                        const matchesClass =
+                          announcementClassFilter === "all" ||
+                          (announcementClassFilter === "school_wide" && (!item.class_id || item.class_id === "school_wide")) ||
+                          (announcementClassFilter === "class_specific" && item.class_id && item.class_id !== "school_wide");
+                        return matchesSearch && matchesClass;
+                      })
+                      .map((item) => {
+                        const targetBadge = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ (School-Wide)";
+                        const fileUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
+                        const hasFile = Boolean(fileUrl);
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
+                          >
+                            <div className="flex flex-col gap-2 border-b pb-2 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-2 py-0.5 text-xs font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                                  <Calendar size={12} />
+                                  <span>{item.date ? String(item.date).slice(0, 10) : "তারিখ নেই"}</span>
+                                </span>
+
+                                <span className="rounded bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                                  {targetBadge}
+                                </span>
+
+                                <span className="rounded bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-slate-700 dark:text-gray-300">
+                                  ID: #{item.id}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {hasFile && (
+                                  <a
+                                    href={fileUrl!}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
+                                    title="সংযুক্তি ফাইল দেখুন বা ডাউনলোড করুন"
+                                  >
+                                    <Download size={12} className="text-[#006a4e]" />
+                                    <span>সংযুক্তি</span>
+                                  </a>
+                                )}
+
+                                <Link
+                                  to="/notices"
+                                  target="_blank"
+                                  className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-700 dark:text-gray-200"
+                                  title="ওয়েবসাইটে দেখুন"
+                                >
+                                  <Eye size={12} className="text-[#006a4e]" />
+                                  <span>ওয়েবসাইট ভিউ</span>
+                                </Link>
+
+                                <FormModal
+                                  table="announcement"
+                                  type="update"
+                                  data={item}
+                                  trigger={
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 rounded bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/60 dark:text-blue-300"
+                                    >
+                                      <Pencil size={12} />
+                                      <span>এডিট</span>
+                                    </button>
+                                  }
+                                />
+
+                                <FormModal
+                                  table="announcement"
+                                  type="delete"
+                                  id={item.id}
+                                  trigger={
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 rounded bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 dark:bg-red-950/60 dark:text-red-300"
+                                    >
+                                      <Trash2 size={12} />
+                                      <span>মুছুন</span>
+                                    </button>
+                                  }
+                                />
+                              </div>
+                            </div>
+
+                            <div className="mt-2.5">
+                              <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                                {item.title}
+                              </h4>
+                              {item.description && (
+                                <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 whitespace-pre-line line-clamp-3">
+                                  {item.description}
+                                </p>
+                              )}
+                              {hasFile && (
+                                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#006a4e] dark:text-emerald-400">
+                                  <FileText size={13} />
+                                  <span>
+                                    সংযুক্তি ফাইল: {item.attachment_original_name || "ডকুমেন্ট / নোটিশ ফাইল"}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                    {dbAnnouncements.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center dark:border-slate-700">
+                        <Bell size={32} className="mx-auto text-gray-400" />
+                        <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          ডাটাবেজে বর্তমানে কোনো ঘোষণা নেই
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          "নতুন ঘোষণা প্রকাশ করুন" বাটনে ক্লিক করে নোটিশ তৈরি করুন।
+                        </p>
+                        <div className="mt-3">
+                          <FormModal
+                            table="announcement"
+                            type="create"
+                            trigger={
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                              >
+                                <Plus size={14} />
+                                <span>প্রথম ঘোষণা তৈরি করুন</span>
+                              </button>
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB CONTENT: 2. CUSTOM DRAFT NOTICES */}
+            {noticeViewMode === "draft_notices" && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 dark:border-slate-800">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                      কাস্টম ড্রাফট নোটিশ এডিটর ({draft.notices.length} টি নোটিশ)
+                    </h3>
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      ওয়েবসাইট সেটিংসে সংরক্ষিত কাস্টম নোটিশসমূহ। আপনি এগুলো সরাসরি সম্পাদনা করতে পারেন অথবা উপরের 'সিঙ্ক' বাটন চেপে লাইভ ঘোষণাগুলো এখানে নিয়ে আসতে পারেন।
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDraft((prev) => ({
+                          ...prev,
+                          notices: (prev.notices || []).map((n) => ({
+                            ...n,
+                            titleEn: n.titleEn || translateBnToEn(n.title),
+                            categoryEn: n.categoryEn || translateBnToEn(n.category),
+                            contentEn: n.contentEn || translateBnToEn(n.content || ""),
+                          })),
+                        }));
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-[#006a4e] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    >
+                      <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={addNotice}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                    >
+                      <Plus size={14} />
+                      <span>নতুন নোটিশ যোগ করুন</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
               {draft.notices.map((notice, index) => (
                 <div
                   key={notice.id || index}
@@ -4162,9 +4564,17 @@ const WebsiteContentPage: React.FC = () => {
                   </div>
                 </div>
               ))}
+
+              {draft.notices.length === 0 && (
+                <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500 dark:border-slate-700">
+                  কোনো কাস্টম ড্রাফট নোটিশ নেই। আপনি উপরের 'নতুন নোটিশ যোগ করুন' বাটন অথবা 'লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন' বাটন ব্যবহার করতে পারেন।
+                </div>
+              )}
             </div>
-          </section>
+          </div>
         )}
+      </section>
+    )}
 
         {/* TAB 8: DOWNLOADS */}
         {activeTab === "downloads" && (

@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { api } from "@/lib/api";
 import type { SchoolNotice, SchoolGalleryItem } from "@/types/site";
 
 const EMERGENCY_HOTLINES = [
@@ -43,6 +44,44 @@ export const HomePage: React.FC = () => {
   const [noticeSearch, setNoticeSearch] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
+  const [dbNotices, setDbNotices] = useState<SchoolNotice[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchLiveNotices = async () => {
+      try {
+        const res = await api.getAll("announcements", { page: 1, limit: 100 });
+        if (active && res.success && Array.isArray(res.data?.announcements) && res.data.announcements.length > 0) {
+          const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => ({
+            id: String(item.id),
+            title: item.title,
+            titleEn: item.title,
+            date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+            category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
+            categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
+            content: item.description || "",
+            contentEn: item.description || "",
+            fileUrl: item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#"),
+          }));
+          setDbNotices(mapped);
+        }
+      } catch { }
+    };
+    void fetchLiveNotices();
+
+    const handleUpdated = () => {
+      void fetchLiveNotices();
+    };
+    window.addEventListener("school-announcements-updated", handleUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("school-announcements-updated", handleUpdated);
+    };
+  }, []);
+
+  const effectiveNotices = useMemo(() => {
+    return dbNotices.length > 0 ? dbNotices : (Array.isArray(content.notices) ? content.notices : []);
+  }, [dbNotices, content.notices]);
 
   useEffect(() => {
     if (!liveCounts) {
@@ -57,7 +96,7 @@ export const HomePage: React.FC = () => {
   }, [lang]);
 
   const filteredNotices = useMemo(() => {
-    const list = Array.isArray(content.notices) ? content.notices : [];
+    const list = effectiveNotices;
     return list.filter((item) => {
       const isAll = activeNoticeCategory === "সকল" || activeNoticeCategory === "All";
       const cat = (item.category || "").toLowerCase();
@@ -418,7 +457,7 @@ export const HomePage: React.FC = () => {
                 to="/notices"
                 className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] px-4 py-2 text-xs font-bold text-[#006a4e] hover:bg-emerald-50"
               >
-                <span>{lang === "bn" ? `সকল নোটিশ আর্কাইভ দেখুন (${formatDigits(content.notices?.length || 0)})` : `View All Notices Archive (${formatDigits(content.notices?.length || 0)})`}</span>
+                <span>{lang === "bn" ? `সকল নোটিশ আর্কাইভ দেখুন (${formatDigits(effectiveNotices.length)})` : `View All Notices Archive (${formatDigits(effectiveNotices.length)})`}</span>
                 <ArrowRight size={14} />
               </Link>
             </div>
