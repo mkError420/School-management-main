@@ -826,7 +826,7 @@ export const HomePage: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl my-auto"
+            className="relative w-full max-w-3xl sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl my-auto"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
               <div className="flex items-center gap-2">
@@ -862,65 +862,118 @@ export const HomePage: React.FC = () => {
                     : "All students, teachers, and guardians are hereby notified to adhere to the aforementioned notice. Please contact school administration for further details.")}
               </div>
 
-              {/* Attachment Display (Image or PDF) */}
+              {/* Attachment Display (Direct Document Open on Popup) */}
               {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
-                <div className="mt-4">
+                <div className="mt-5">
                   {selectedNotice.fileUrl.startsWith("data:image/") ||
                   /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
-                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3.5">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="rounded-lg border border-emerald-300 bg-emerald-50/40 p-3 sm:p-4 shadow-2xs">
+                      <div className="flex items-center justify-between mb-2.5">
                         <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
-                          <ImageIcon size={14} />
+                          <ImageIcon size={15} />
                           <span>{lang === "bn" ? "সংযুক্ত নোটিশ পত্র (ছবি):" : "Attached Notice Document (Image):"}</span>
                         </span>
-                        <a
-                          href={selectedNotice.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          download
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-[#006a4e] hover:underline"
-                        >
-                          <Download size={12} />
-                          <span>{lang === "bn" ? "ডাউনলোড করুন" : "Download"}</span>
-                        </a>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={selectedNotice.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 border border-gray-300 shadow-2xs hover:bg-gray-50"
+                          >
+                            <ExternalLink size={12} />
+                            <span>{lang === "bn" ? "পূর্ণাঙ্গ ভিউ" : "Full View"}</span>
+                          </a>
+                          <a
+                            href={selectedNotice.fileUrl}
+                            download
+                            className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-[#00503a]"
+                          >
+                            <Download size={12} />
+                            <span>{lang === "bn" ? "ডাউনলোড" : "Download"}</span>
+                          </a>
+                        </div>
                       </div>
-                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white">
+                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-inner">
                         <img
                           src={selectedNotice.fileUrl}
                           alt={t(selectedNotice.title, selectedNotice.titleEn)}
-                          className="max-h-[380px] w-full object-contain bg-gray-50 p-1"
+                          className="max-h-[520px] w-full object-contain bg-gray-50 p-2"
                         />
                       </div>
                     </div>
                   ) : selectedNotice.fileUrl.startsWith("data:application/pdf") ||
                     /\.pdf(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
-                    <div className="rounded-lg border border-red-200 bg-red-50/60 p-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-red-600 text-white font-bold text-xs shadow-2xs">
+                    <div className="rounded-lg border border-red-300 bg-red-50/40 shadow-xs overflow-hidden">
+                      {/* Document Toolbar Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-200 bg-red-100/70 px-3.5 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-[10px] font-bold text-white shadow-2xs">
                             PDF
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-gray-900">
-                              {lang === "bn" ? "অফিসিয়াল নোটিশ পত্র (PDF)" : "Official Notice Document (PDF)"}
-                            </p>
-                            <p className="text-[11px] text-gray-600">
-                              {lang === "bn"
-                                ? "মূল নোটিশের পিডিএফ ফাইলটি দেখতে বা ডাউনলোড করতে নিচের বাটনে চাপ দিন"
-                                : "Click the button below to view or download the official PDF notice file"}
-                            </p>
-                          </div>
+                          </span>
+                          <span className="text-xs font-bold text-gray-900">
+                            {lang === "bn" ? "অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)" : "Official Notice Document (PDF)"}
+                          </span>
                         </div>
 
-                        <a
-                          href={selectedNotice.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center justify-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 shrink-0"
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={selectedNotice.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-2xs hover:bg-gray-100"
+                            title={lang === "bn" ? "নতুন ট্যাবে বড় করে দেখুন" : "Open Full in New Tab"}
+                          >
+                            <ExternalLink size={12} />
+                            <span>{lang === "bn" ? "পূর্ণাঙ্গ ভিউ" : "Full View"}</span>
+                          </a>
+                          <a
+                            href={selectedNotice.fileUrl}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-[11px] font-bold text-white shadow-xs transition hover:bg-red-700"
+                            title={lang === "bn" ? "পিডিএফ ডাউনলোড করুন" : "Download PDF"}
+                          >
+                            <Download size={12} />
+                            <span>{lang === "bn" ? "ডাউনলোড" : "Download"}</span>
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Embedded Document Viewer inside Popup */}
+                      <div className="relative w-full bg-gray-100">
+                        <object
+                          data={selectedNotice.fileUrl}
+                          type="application/pdf"
+                          className="h-[460px] sm:h-[560px] w-full"
                         >
-                          <FileText size={14} />
-                          <span>{lang === "bn" ? "পিডিএফ দেখুন ও ডাউনলোড" : "View & Download PDF"}</span>
-                        </a>
+                          <iframe
+                            src={selectedNotice.fileUrl}
+                            className="h-[460px] sm:h-[560px] w-full border-0"
+                            title={t(selectedNotice.title, selectedNotice.titleEn)}
+                          >
+                            <div className="flex flex-col items-center justify-center p-8 text-center bg-white">
+                              <FileText size={36} className="text-red-500 mb-2" />
+                              <p className="text-xs font-semibold text-gray-700 mb-1">
+                                {lang === "bn" ? "পিডিএফ ডকুমেন্ট" : "PDF Document"}
+                              </p>
+                              <p className="text-[11px] text-gray-500 mb-3">
+                                {lang === "bn"
+                                  ? "সরাসরি দেখতে নিচের বাটনে ক্লিক করুন"
+                                  : "Click below to view the PDF file"}
+                              </p>
+                              <a
+                                href={selectedNotice.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-700"
+                              >
+                                <ExternalLink size={13} />
+                                <span>{lang === "bn" ? "পিডিএফ ফাইলটি দেখুন" : "View PDF File"}</span>
+                              </a>
+                            </div>
+                          </iframe>
+                        </object>
                       </div>
                     </div>
                   ) : (
