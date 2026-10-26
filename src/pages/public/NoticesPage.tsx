@@ -242,133 +242,103 @@ export const NoticesPage: React.FC = () => {
                   )}
               </div>
 
-              {/* Attachment Display (Direct Document Open on Popup) */}
+              {/* Attachment Display (Same as Download Corner: Routine & Syllabus) */}
               {selectedNotice.fileUrl && selectedNotice.fileUrl !== "#" && selectedNotice.fileUrl.trim() !== "" && (
-                <div className="mt-5">
-                  {selectedNotice.fileUrl.startsWith("data:image/") ||
-                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
-                    <div className="rounded-lg border border-emerald-300 bg-emerald-50/40 p-3 sm:p-4 shadow-2xs">
-                      <div className="flex items-center justify-between mb-2.5">
-                        <span className="text-xs font-bold text-[#006a4e] flex items-center gap-1.5">
-                          <ImageIcon size={15} />
-                          <span>{t("সংযুক্ত নোটিশ পত্র (ছবি):", "Attached Notice Document (Image):")}</span>
+                <div className="mt-5 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-[#e4ede7] bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] hover:shadow-2xs">
+                    <div className="flex items-start gap-3.5">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-red-50 text-red-700">
+                        {selectedNotice.fileUrl.startsWith("data:image/") ||
+                        /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                          <ImageIcon size={22} />
+                        ) : (
+                          <FileText size={22} />
+                        )}
+                      </div>
+                      <div>
+                        <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                          {t(selectedNotice.category, selectedNotice.categoryEn) || t("নোটিশ সংযুক্তি", "Notice Attachment")}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={selectedNotice.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 border border-gray-300 shadow-2xs hover:bg-gray-50"
-                          >
-                            <ExternalLink size={12} />
-                            <span>{t("পূর্ণাঙ্গ ভিউ", "Full View")}</span>
-                          </a>
-                          <a
-                            href={selectedNotice.fileUrl}
-                            download
-                            className="inline-flex items-center gap-1 rounded bg-[#006a4e] px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-[#00503a]"
-                          >
-                            <Download size={12} />
-                            <span>{t("ডাউনলোড", "Download")}</span>
-                          </a>
-                        </div>
-                      </div>
-                      <div className="overflow-hidden rounded-md border border-gray-200 bg-white shadow-inner">
-                        <img
-                          src={selectedNotice.fileUrl}
-                          alt={t(selectedNotice.title, selectedNotice.titleEn)}
-                          className="max-h-[520px] w-full object-contain bg-gray-50 p-2"
-                        />
+                        <h4 className="mt-1 text-sm font-bold text-gray-900">
+                          {t(selectedNotice.title, selectedNotice.titleEn)}
+                        </h4>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          {t("প্রকাশের তারিখ:", "Published:")} {formatDigits(selectedNotice.date || "")}
+                        </p>
                       </div>
                     </div>
-                  ) : selectedNotice.fileUrl.startsWith("data:application/pdf") ||
-                    /\.pdf(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
-                    <div className="rounded-lg border border-red-300 bg-red-50/40 shadow-xs overflow-hidden">
-                      {/* Document Toolbar Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-red-200 bg-red-100/70 px-3.5 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="flex h-6 w-6 items-center justify-center rounded bg-red-600 text-[10px] font-bold text-white shadow-2xs">
-                            PDF
-                          </span>
-                          <span className="text-xs font-bold text-gray-900">
-                            {t("অফিসিয়াল নোটিশ পত্র (PDF ডকুমেন্ট)", "Official Notice Document (PDF)")}
-                          </span>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <a
-                            href={selectedNotice.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-gray-700 shadow-2xs hover:bg-gray-100"
-                            title={t("নতুন ট্যাবে বড় করে দেখুন", "Open Full in New Tab")}
-                          >
-                            <ExternalLink size={12} />
-                            <span>{t("পূর্ণাঙ্গ ভিউ", "Full View")}</span>
-                          </a>
-                          <a
-                            href={selectedNotice.fileUrl}
-                            download
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded bg-red-600 px-3 py-1 text-[11px] font-bold text-white shadow-xs transition hover:bg-red-700"
-                            title={t("পিডিএফ ডাউনলোড করুন", "Download PDF")}
-                          >
-                            <Download size={12} />
-                            <span>{t("ডাউনলোড", "Download")}</span>
-                          </a>
-                        </div>
-                      </div>
-
-                      {/* Embedded Document Viewer inside Popup */}
-                      <div className="relative w-full bg-gray-100">
-                        <object
-                          data={selectedNotice.fileUrl}
-                          type="application/pdf"
-                          className="h-[460px] sm:h-[560px] w-full"
-                        >
-                          <iframe
-                            src={selectedNotice.fileUrl}
-                            className="h-[460px] sm:h-[560px] w-full border-0"
-                            title={t(selectedNotice.title, selectedNotice.titleEn)}
-                          >
-                            <div className="flex flex-col items-center justify-center p-8 text-center bg-white">
-                              <FileText size={36} className="text-red-500 mb-2" />
-                              <p className="text-xs font-semibold text-gray-700 mb-1">
-                                {t("পিডিএফ ডকুমেন্ট", "PDF Document")}
-                              </p>
-                              <p className="text-[11px] text-gray-500 mb-3">
-                                {t("সরাসরি দেখতে নিচের বাটনে ক্লিক করুন", "Click below to view the PDF file")}
-                              </p>
-                              <a
-                                href={selectedNotice.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-red-700"
-                              >
-                                <ExternalLink size={13} />
-                                <span>{t("পিডিএফ ফাইলটি দেখুন", "View PDF File")}</span>
-                              </a>
-                            </div>
-                          </iframe>
-                        </object>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3.5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 text-xs text-gray-800">
-                        <ExternalLink size={14} className="text-blue-600 shrink-0" />
-                        <span>{t("সংযুক্ত ফাইল বা ওয়েব লিঙ্ক", "Attached File or Link")}</span>
-                      </div>
+                    <div className="flex items-center gap-2 shrink-0">
                       <a
                         href={selectedNotice.fileUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1 rounded bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+                        className="inline-flex items-center justify-center gap-1 rounded border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50"
+                        title={t("নতুন ট্যাবে বড় করে দেখুন", "Open Full in New Tab")}
                       >
-                        <Download size={13} />
-                        <span>{t("ফাইল খুলুন", "Open File")}</span>
+                        <ExternalLink size={13} />
+                        <span>{t("পূর্ণাঙ্গ ভিউ", "Full View")}</span>
                       </a>
+                      <a
+                        href={selectedNotice.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        className="inline-flex items-center justify-center gap-1.5 rounded bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
+                      >
+                        <Download size={14} />
+                        <span>
+                          {selectedNotice.fileUrl.startsWith("data:image/") ||
+                          /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl)
+                            ? t("ফাইল / ছবি ডাউনলোড", "Download File / Image")
+                            : t("পিডিএফ ডাউনলোড", "Download PDF")}
+                        </span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Embedded Document on Display */}
+                  {selectedNotice.fileUrl.startsWith("data:image/") ||
+                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-2 shadow-inner">
+                      <img
+                        src={selectedNotice.fileUrl}
+                        alt={t(selectedNotice.title, selectedNotice.titleEn)}
+                        className="max-h-[520px] w-full object-contain mx-auto"
+                      />
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-100 shadow-inner">
+                      <object
+                        data={selectedNotice.fileUrl}
+                        type="application/pdf"
+                        className="h-[460px] sm:h-[560px] w-full"
+                      >
+                        <iframe
+                          src={selectedNotice.fileUrl}
+                          className="h-[460px] sm:h-[560px] w-full border-0"
+                          title={t(selectedNotice.title, selectedNotice.titleEn)}
+                        >
+                          <div className="flex flex-col items-center justify-center p-8 text-center bg-white">
+                            <FileText size={36} className="text-red-500 mb-2" />
+                            <p className="text-xs font-semibold text-gray-700 mb-1">
+                              {t("পিডিএফ ডকুমেন্ট", "PDF Document")}
+                            </p>
+                            <p className="text-[11px] text-gray-500 mb-3">
+                              {t("সরাসরি দেখতে নিচের বাটনে ক্লিক করুন", "Click below to view the PDF file")}
+                            </p>
+                            <a
+                              href={selectedNotice.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                            >
+                              <ExternalLink size={13} />
+                              <span>{t("পিডিএফ ফাইলটি দেখুন", "View PDF File")}</span>
+                            </a>
+                          </div>
+                        </iframe>
+                      </object>
                     </div>
                   )}
                 </div>
