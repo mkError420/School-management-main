@@ -13,6 +13,8 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Clock,
   Compass,
@@ -110,6 +112,15 @@ const WebsiteContentPage: React.FC = () => {
   const [translating, setTranslating] = useState(false);
   const [editLangMode, setEditLangMode] = useState<EditLangMode>("dual");
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+  const [isSecondSidebarCollapsed, setIsSecondSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("subsidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [sectionSearchQuery, setSectionSearchQuery] = useState<string>("");
+  const [isMobileSectionDrawerOpen, setIsMobileSectionDrawerOpen] = useState<boolean>(false);
   const [teacherSearch, setTeacherSearch] = useState("");
   const [dbAnnouncements, setDbAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(false);
@@ -1524,8 +1535,259 @@ const WebsiteContentPage: React.FC = () => {
     },
   ];
 
+  const handleToggleSecondSidebar = () => {
+    setIsSecondSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("subsidebar_collapsed", String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const filteredTabs = useMemo(() => {
+    const q = sectionSearchQuery.trim().toLowerCase();
+    if (!q) return tabs;
+    return tabs.filter(
+      (t) =>
+        t.label.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q)
+    );
+  }, [tabs, sectionSearchQuery]);
+
+  const currentTabObj = tabs.find((t) => t.id === activeTab) || tabs[0];
+
   return (
-    <div className="mx-auto w-full max-w-6xl p-4 md:p-6 font-sans">
+    <div className="flex flex-col lg:flex-row min-h-full w-full font-sans bg-gray-50/50 dark:bg-[#0b1220]">
+      {/* ─── DESKTOP SECOND SIDEBAR MENU (Docked next to main sidebar) ─── */}
+      <aside
+        aria-label="Website Content Sections"
+        className={`hidden lg:flex flex-col shrink-0 border-r border-gray-200 dark:border-slate-800 bg-white dark:bg-[#111827] sticky top-0 h-[calc(100vh-57px)] sm:h-[calc(100vh-65px)] transition-all duration-300 ease-in-out z-20 select-none ${
+          isSecondSidebarCollapsed ? "w-18" : "w-64 xl:w-72"
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="flex items-center justify-between p-3.5 border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-[#111827]">
+          {!isSecondSidebarCollapsed ? (
+            <>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300 shrink-0 shadow-2xs">
+                  <Layers size={16} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                    ওয়েবসাইট সেকশন
+                  </h2>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+                    ১৩টি কনটেন্ট মডিউল
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleSecondSidebar}
+                title="মেনু সংক্ষেপ করুন"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-slate-800 transition shrink-0"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : (
+            <div className="w-full flex justify-center">
+              <button
+                type="button"
+                onClick={handleToggleSecondSidebar}
+                title="মেনু প্রসারিত করুন"
+                className="p-1.5 rounded-xl text-gray-500 hover:text-[#006a4e] hover:bg-emerald-50 dark:text-gray-400 dark:hover:text-emerald-400 dark:hover:bg-slate-800 transition"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Search Bar (When Expanded) */}
+        {!isSecondSidebarCollapsed && (
+          <div className="p-2.5 border-b border-gray-100 dark:border-slate-800/80">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={sectionSearchQuery}
+                onChange={(e) => setSectionSearchQuery(e.target.value)}
+                placeholder="সেকশন খুঁজুন..."
+                className="w-full rounded-lg border border-gray-200 bg-gray-50/80 pl-8 pr-7 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:border-emerald-600 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200"
+              />
+              {sectionSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSectionSearchQuery("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Section Navigation Items */}
+        <div className="flex-1 overflow-y-auto px-2 py-2.5 space-y-1 custom-scrollbar">
+          {filteredTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                title={tab.label}
+                className={`w-full group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold transition-all duration-150 ${
+                  isSecondSidebarCollapsed ? "justify-center px-1" : "text-left"
+                } ${
+                  isActive
+                    ? "bg-[#006a4e] text-white shadow-xs font-bold ring-1 ring-emerald-600/30"
+                    : "text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-slate-800 dark:hover:text-white"
+                }`}
+              >
+                <div
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-gray-100 text-gray-600 group-hover:bg-white group-hover:text-[#006a4e] dark:bg-slate-800 dark:text-gray-300 dark:group-hover:bg-slate-700 dark:group-hover:text-emerald-400 shadow-2xs"
+                  }`}
+                >
+                  <Icon size={14} />
+                </div>
+
+                {!isSecondSidebarCollapsed && (
+                  <div className="flex flex-1 items-center justify-between min-w-0">
+                    <span className="truncate">{tab.label}</span>
+                    {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
+                      <span
+                        className={`ml-1.5 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                          isActive
+                            ? "bg-white/25 text-white"
+                            : "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
+                        }`}
+                      >
+                        {tab.badgeCount}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Collapsed Badge Indicator Pip */}
+                {isSecondSidebarCollapsed && tab.badgeCount !== undefined && tab.badgeCount > 0 && (
+                  <span
+                    className={`absolute top-1 right-1 h-2 w-2 rounded-full ${
+                      isActive ? "bg-white ring-1 ring-[#006a4e]" : "bg-emerald-600 ring-1 ring-white"
+                    }`}
+                  />
+                )}
+              </button>
+            );
+          })}
+
+          {filteredTabs.length === 0 && (
+            <div className="p-4 text-center text-xs text-gray-400">
+              কোনো সেকশন পাওয়া যায়নি
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Footer */}
+        {!isSecondSidebarCollapsed ? (
+          <div className="p-3 border-t border-gray-100 dark:border-slate-800 bg-gray-50/70 dark:bg-slate-900/60">
+            <div className="flex items-center justify-between text-[11px] mb-2 font-medium">
+              <span className="text-gray-500 dark:text-gray-400">ডাটাবেজ অবস্থা:</span>
+              {isDirty ? (
+                <span className="flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400">
+                  <AlertCircle size={11} className="animate-pulse" />
+                  <span>অসংরক্ষিত</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                  <span>সিঙ্কড</span>
+                </span>
+              )}
+            </div>
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-gray-200 bg-white py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-emerald-50 hover:text-[#006a4e] hover:border-emerald-300 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 dark:hover:bg-slate-700 transition"
+            >
+              <span>ওয়েবসাইট লাইভ ভিউ</span>
+              <ExternalLink size={12} />
+            </a>
+          </div>
+        ) : (
+          <div className="p-2 border-t border-gray-100 dark:border-slate-800 flex justify-center">
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              title="ওয়েবসাইট লাইভ ভিউ"
+              className="p-2 rounded-xl text-gray-500 hover:text-[#006a4e] hover:bg-emerald-50 dark:hover:bg-slate-800 transition"
+            >
+              <ExternalLink size={16} />
+            </a>
+          </div>
+        )}
+      </aside>
+
+      {/* ─── MAIN CONTENT PANE (Right Side) ─── */}
+      <div className="flex-1 min-w-0 p-4 md:p-6 lg:p-8 xl:p-10">
+        <div className="mx-auto w-full max-w-5xl xl:max-w-6xl">
+          {/* Mobile Section Selector (< lg) */}
+          <div className="lg:hidden mb-5 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-xs dark:border-slate-800 dark:bg-[#111827]">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300 shrink-0">
+                  {React.createElement(currentTabObj.icon, { size: 14 })}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase text-gray-400">বর্তমান সেকশন</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                    {currentTabObj.label}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileSectionDrawerOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#00503a] shrink-0"
+              >
+                <Layers size={13} />
+                <span>মেনু (১৩)</span>
+              </button>
+            </div>
+
+            {/* Quick Horizontal Scroll Pills on Mobile */}
+            <div className="mt-3 flex overflow-x-auto gap-1.5 pb-1 custom-scrollbar">
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
+                      isActive
+                        ? "bg-[#006a4e] text-white shadow-2xs font-bold"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-800 dark:text-gray-300"
+                    }`}
+                  >
+                    {tab.label.split(". ")[0]}. {tab.label.split(". ")[1]?.split(" ")[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
 
       {/* Top Header */}
@@ -1718,37 +1980,6 @@ const WebsiteContentPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="mb-6 flex overflow-x-auto rounded-lg border border-gray-200 bg-white p-1.5 shadow-xs dark:border-slate-800 dark:bg-slate-900 custom-scrollbar">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition ${isActive
-                ? "bg-[#006a4e] text-white shadow-xs"
-                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800"
-                }`}
-            >
-              <Icon size={14} />
-              <span>{tab.label}</span>
-              {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-100 text-gray-700 dark:bg-slate-800 dark:text-gray-300"
-                    }`}
-                >
-                  {tab.badgeCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Feedback Toast */}
       {feedback && (
@@ -6093,6 +6324,89 @@ const WebsiteContentPage: React.FC = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+        </div>
+      </div>
+
+      {/* ─── MOBILE SECTION DRAWER / MODAL ─── */}
+      {isMobileSectionDrawerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-xs lg:hidden animate-in fade-in duration-200"
+          onClick={() => setIsMobileSectionDrawerOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-t-3xl sm:rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#111827] max-h-[85vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <Layers size={16} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                    ওয়েবসাইট সেকশন মেনু
+                  </h3>
+                  <p className="text-[11px] text-gray-500">১৩টি কনটেন্ট বিভাগের তালিকা</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileSectionDrawerOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-slate-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto py-3 space-y-1.5 custom-scrollbar">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setIsMobileSectionDrawerOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition ${
+                      isActive
+                        ? "bg-[#006a4e] text-white shadow-xs font-bold"
+                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${
+                          isActive
+                            ? "bg-white/20 text-white"
+                            : "bg-gray-100 text-gray-600 dark:bg-slate-800 dark:text-gray-300"
+                        }`}
+                      >
+                        <Icon size={14} />
+                      </div>
+                      <span className="truncate">{tab.label}</span>
+                    </div>
+                    {tab.badgeCount !== undefined && tab.badgeCount > 0 && (
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          isActive
+                            ? "bg-white/25 text-white"
+                            : "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300"
+                        }`}
+                      >
+                        {tab.badgeCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
