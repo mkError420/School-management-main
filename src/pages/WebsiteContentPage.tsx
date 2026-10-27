@@ -62,7 +62,6 @@ import FormModal from "@/components/FormModal";
 import type { AnnouncementItem } from "@/pages/list/AnnouncementsPage";
 import type {
   SchoolWebsiteContent,
-  SchoolNotice,
   SchoolDownloadItem,
   SchoolGalleryItem,
   SchoolCoCurricularItem,
@@ -112,12 +111,11 @@ const WebsiteContentPage: React.FC = () => {
   const [editLangMode, setEditLangMode] = useState<EditLangMode>("dual");
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
   const [teacherSearch, setTeacherSearch] = useState("");
-  const [noticeSearch, setNoticeSearch] = useState("");
   const [dbAnnouncements, setDbAnnouncements] = useState<AnnouncementItem[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState<boolean>(false);
-  const [noticeViewMode, setNoticeViewMode] = useState<"live_announcements" | "draft_notices">("live_announcements");
   const [announcementSearch, setAnnouncementSearch] = useState<string>("");
   const [announcementClassFilter, setAnnouncementClassFilter] = useState<string>("all");
+  const [announcementCategoryFilter, setAnnouncementCategoryFilter] = useState<string>("all");
   const [downloadSearch, setDownloadSearch] = useState("");
   const [admissionSeatSearch, setAdmissionSeatSearch] = useState("");
   const [gallerySearch, setGallerySearch] = useState("");
@@ -267,45 +265,7 @@ const WebsiteContentPage: React.FC = () => {
     };
   }, [loadLiveAnnouncements]);
 
-  const syncDbAnnouncementsToDraft = () => {
-    if (dbAnnouncements.length === 0) {
-      setFeedback({
-        type: "error",
-        message: "সিঙ্ক করার জন্য ডাটাবেজে কোনো ঘোষণা পাওয়া যায়নি।",
-      });
-      return;
-    }
-    const token = api.getToken();
-    const converted: SchoolNotice[] = dbAnnouncements.map((item) => {
-      const targetText = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ";
-      const targetTextEn = item.class_name ? `Class: ${item.class_name}` : "General";
-      let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : "#");
-      if (attachUrl && attachUrl !== "#" && token && !attachUrl.includes("token=")) {
-        attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
-      }
-      return {
-        id: `db_${item.id}`,
-        title: item.title,
-        titleEn: translateBnToEn(item.title) || item.title,
-        date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
-        category: targetText,
-        categoryEn: targetTextEn,
-        content: item.description || "",
-        contentEn: item.description ? (translateBnToEn(item.description) || item.description) : "",
-        fileUrl: attachUrl,
-      };
-    });
 
-    setDraft((prev) => ({
-      ...prev,
-      notices: converted,
-    }));
-
-    setFeedback({
-      type: "success",
-      message: `All Announcements সেকশন থেকে ${converted.length}টি লাইভ ঘোষণা সফলভাবে ড্রাফট নোটিশ সেটিংসে সিঙ্ক করা হয়েছে!`,
-    });
-  };
 
   // Leadership Selection & Dynamic Sync Handlers from Staff Directory
   const handleSelectPrincipalFromStaff = (staffId: string) => {
@@ -747,17 +707,7 @@ const WebsiteContentPage: React.FC = () => {
     });
   };
 
-  const moveNotice = (index: number, direction: "up" | "down") => {
-    setDraft((prev) => {
-      const list = [...(prev.notices || [])];
-      const target = direction === "up" ? index - 1 : index + 1;
-      if (target < 0 || target >= list.length) return prev;
-      const temp = list[index];
-      list[index] = list[target];
-      list[target] = temp;
-      return { ...prev, notices: list };
-    });
-  };
+
 
   const moveDownloadItem = (index: number, direction: "up" | "down") => {
     setDraft((prev) => {
@@ -785,108 +735,7 @@ const WebsiteContentPage: React.FC = () => {
 
 
 
-  // Notice handlers
-  const addNotice = () => {
-    const newNotice: SchoolNotice = {
-      id: "n_" + Date.now(),
-      title: "",
-      titleEn: "",
-      date: new Date().toISOString().slice(0, 10),
-      category: "সাধারণ",
-      categoryEn: "General",
-      content: "",
-      contentEn: "",
-      fileUrl: "#",
-    };
-    setDraft((prev) => ({ ...prev, notices: [newNotice, ...prev.notices] }));
-  };
 
-  const removeNotice = (index: number) => {
-    setDraft((prev) => ({
-      ...prev,
-      notices: prev.notices.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateNotice = (index: number, field: keyof SchoolNotice, value: string) => {
-    setDraft((prev) => ({
-      ...prev,
-      notices: prev.notices.map((n, i) => (i === index ? { ...n, [field]: value } : n)),
-    }));
-  };
-
-  const translateNoticeItem = (index: number) => {
-    setDraft((prev) => ({
-      ...prev,
-      notices: prev.notices.map((n, i) => {
-        if (i !== index) return n;
-        return {
-          ...n,
-          titleEn: n.titleEn || translateBnToEn(n.title),
-          categoryEn: n.categoryEn || translateBnToEn(n.category),
-          contentEn: n.contentEn || translateBnToEn(n.content || ""),
-        };
-      }),
-    }));
-  };
-
-  const [uploadingNoticeIndex, setUploadingNoticeIndex] = useState<number | null>(null);
-  const [noticeUploadError, setNoticeUploadError] = useState<{ index: number; message: string } | null>(null);
-
-  const handleNoticeFileUpload = async (index: number, file: File) => {
-    if (file.size > 10 * 1024 * 1024) {
-      setNoticeUploadError({ index, message: "ফাইলের সাইজ ১০ MB এর বেশি হতে পারবে না।" });
-      return;
-    }
-    const validTypes = [
-      "application/pdf",
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-      "image/svg+xml",
-    ];
-    const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const isAllowed =
-      validTypes.includes(file.type) ||
-      ["pdf", "jpg", "jpeg", "png", "webp", "svg"].includes(ext);
-
-    if (!isAllowed) {
-      setNoticeUploadError({
-        index,
-        message: "শুধুমাত্র পিডিএফ (PDF) অথবা ছবি (JPG, PNG, WebP) ফাইল আপলোড করা যাবে।",
-      });
-      return;
-    }
-
-    setNoticeUploadError(null);
-    setUploadingNoticeIndex(index);
-
-    try {
-      const response = await api.uploadNoticeFile(file);
-      if (response.success && response.data?.file_url) {
-        updateNotice(index, "fileUrl", response.data.file_url);
-        setUploadingNoticeIndex(null);
-        return;
-      }
-    } catch { }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      if (result) {
-        updateNotice(index, "fileUrl", result);
-      }
-      setUploadingNoticeIndex(null);
-    };
-    reader.onerror = () => {
-      setNoticeUploadError({
-        index,
-        message: "ফাইল পড়তে ব্যর্থ হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।",
-      });
-      setUploadingNoticeIndex(null);
-    };
-    reader.readAsDataURL(file);
-  };
 
   // Download item handlers
   const addDownloadItem = () => {
@@ -1656,7 +1505,7 @@ const WebsiteContentPage: React.FC = () => {
       badgeCount: (draft.teachers || []).length,
     },
     { id: "statistics", label: "৬. পরিসংখ্যান ও সাফল্য", icon: Award },
-    { id: "notices", label: "৭. নোটিশ বোর্ড (ঘোষণা)", icon: Bell, badgeCount: dbAnnouncements.length > 0 ? dbAnnouncements.length : (draft.notices || []).length },
+    { id: "notices", label: "৭. নোটিশ বোর্ড (ঘোষণা)", icon: Bell, badgeCount: dbAnnouncements.length },
     { id: "downloads", label: "৮. ডাউনলোড ও রুটিন", icon: Download, badgeCount: (draft.downloads || []).length },
     {
       id: "admission",
@@ -4138,49 +3987,8 @@ const WebsiteContentPage: React.FC = () => {
               </div>
             </div>
 
-            {/* View Mode Switcher and Sync to Draft */}
-            <div className="flex flex-col gap-3 rounded-md bg-gray-50 p-2.5 sm:flex-row sm:items-center sm:justify-between dark:bg-slate-800/50">
-              <div className="inline-flex rounded-lg border border-gray-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setNoticeViewMode("live_announcements")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${noticeViewMode === "live_announcements"
-                      ? "bg-[#006a4e] text-white shadow-xs"
-                      : "text-gray-600 hover:text-black dark:text-gray-300"
-                    }`}
-                >
-                  <Bell size={13} />
-                  <span>ডাটাবেজ লাইভ ঘোষণা তালিকা ({dbAnnouncements.length})</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNoticeViewMode("draft_notices")}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${noticeViewMode === "draft_notices"
-                      ? "bg-[#006a4e] text-white shadow-xs"
-                      : "text-gray-600 hover:text-black dark:text-gray-300"
-                    }`}
-                >
-                  <FileText size={13} />
-                  <span>কাস্টম ড্রাফট নোটিশ ({draft.notices.length})</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={syncDbAnnouncementsToDraft}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-[#006a4e] bg-emerald-50 px-3 py-1.5 text-xs font-bold text-[#006a4e] hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                  title="ডাটাবেজের লাইভ ঘোষণাগুলো ড্রাফট সেটিংসে কপি করুন"
-                >
-                  <Database size={13} />
-                  <span>লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন</span>
-                </button>
-              </div>
-            </div>
-
-            {/* TAB CONTENT: 1. LIVE ANNOUNCEMENTS FROM DATABASE */}
-            {noticeViewMode === "live_announcements" && (
-              <div className="space-y-4">
+            {/* Live Announcements List From Database */}
+            <div className="space-y-4">
                 {/* Search & Class Filter */}
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="relative flex-1">
@@ -4194,14 +4002,28 @@ const WebsiteContentPage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">ফিল্টার:</span>
+                    <select
+                      value={announcementCategoryFilter}
+                      onChange={(e) => setAnnouncementCategoryFilter(e.target.value)}
+                      className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#006a4e] focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      title="ক্যাটেগরি অনুযায়ী ফিল্টার করুন"
+                    >
+                      <option value="all">সকল ক্যাটেগরি</option>
+                      <option value="Admission">Admission (ভর্তি)</option>
+                      <option value="Examination">Examination (পরীক্ষা)</option>
+                      <option value="Academic">Academic (একাডেমিক)</option>
+                      <option value="General">General (সাধারণ)</option>
+                    </select>
+
                     <select
                       value={announcementClassFilter}
                       onChange={(e) => setAnnouncementClassFilter(e.target.value)}
                       className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs focus:border-[#006a4e] focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      title="শ্রেণি অনুযায়ী ফিল্টার করুন"
                     >
-                      <option value="all">সকল ঘোষণা</option>
+                      <option value="all">সকল শ্রেণি</option>
                       <option value="school_wide">সাধারণ (School-Wide)</option>
                       <option value="class_specific">শ্রেণিভিত্তিক ঘোষণা</option>
                     </select>
@@ -4229,7 +4051,11 @@ const WebsiteContentPage: React.FC = () => {
                           announcementClassFilter === "all" ||
                           (announcementClassFilter === "school_wide" && (!item.class_id || item.class_id === "school_wide")) ||
                           (announcementClassFilter === "class_specific" && item.class_id && item.class_id !== "school_wide");
-                        return matchesSearch && matchesClass;
+                        const matchesCategory =
+                          announcementCategoryFilter === "all" ||
+                          (item.category && item.category.toLowerCase() === announcementCategoryFilter.toLowerCase()) ||
+                          (!item.category && announcementCategoryFilter.toLowerCase() === "general");
+                        return matchesSearch && matchesClass && matchesCategory;
                       })
                       .map((item) => {
                         const targetBadge = item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ (School-Wide)";
@@ -4239,6 +4065,7 @@ const WebsiteContentPage: React.FC = () => {
                           fileUrl += `${fileUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
                         }
                         const hasFile = Boolean(fileUrl);
+                        const cat = item.category || "General";
 
                         return (
                           <div
@@ -4252,7 +4079,19 @@ const WebsiteContentPage: React.FC = () => {
                                   <span>{item.date ? String(item.date).slice(0, 10) : "তারিখ নেই"}</span>
                                 </span>
 
-                                <span className="rounded bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
+                                <span className={`rounded px-2 py-0.5 text-[11px] font-semibold ${
+                                  cat.toLowerCase() === "admission"
+                                    ? "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300"
+                                    : cat.toLowerCase() === "examination"
+                                    ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                                    : cat.toLowerCase() === "academic"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
+                                    : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                }`}>
+                                  {cat}
+                                </span>
+
+                                <span className="rounded bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800 dark:bg-sky-950/60 dark:text-sky-300">
                                   {targetBadge}
                                 </span>
 
@@ -4368,217 +4207,6 @@ const WebsiteContentPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            )}
-
-            {/* TAB CONTENT: 2. CUSTOM DRAFT NOTICES */}
-            {noticeViewMode === "draft_notices" && (
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3 dark:border-slate-800">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">
-                      কাস্টম ড্রাফট নোটিশ এডিটর ({draft.notices.length} টি নোটিশ)
-                    </h3>
-                    <p className="mt-0.5 text-xs text-gray-500">
-                      ওয়েবসাইট সেটিংসে সংরক্ষিত কাস্টম নোটিশসমূহ। আপনি এগুলো সরাসরি সম্পাদনা করতে পারেন অথবা উপরের 'সিঙ্ক' বাটন চেপে লাইভ ঘোষণাগুলো এখানে নিয়ে আসতে পারেন।
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDraft((prev) => ({
-                          ...prev,
-                          notices: (prev.notices || []).map((n) => ({
-                            ...n,
-                            titleEn: n.titleEn || translateBnToEn(n.title),
-                            categoryEn: n.categoryEn || translateBnToEn(n.category),
-                            contentEn: n.contentEn || translateBnToEn(n.content || ""),
-                          })),
-                        }));
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-[#006a4e] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    >
-                      <span>সকল নোটিশ ইংরেজি অনুবাদ</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={addNotice}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
-                    >
-                      <Plus size={14} />
-                      <span>নতুন নোটিশ যোগ করুন</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  {draft.notices.map((notice, index) => (
-                    <div
-                      key={notice.id || index}
-                      className="rounded-lg border border-gray-200 bg-[#fbfdfc] p-4 transition hover:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800"
-                    >
-                      <div className="flex items-center justify-between border-b pb-2">
-                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
-                          নোটিশ #{index + 1}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => moveNotice(index, "up")}
-                            disabled={index === 0}
-                            title="উপরে নিন"
-                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                          >
-                            <ArrowUp size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveNotice(index, "down")}
-                            disabled={index === draft.notices.length - 1}
-                            title="নিচে নিন"
-                            className="rounded p-1 text-gray-500 hover:bg-gray-200 hover:text-black disabled:opacity-30 dark:hover:bg-slate-700 dark:hover:text-white"
-                          >
-                            <ArrowDown size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => translateNoticeItem(index)}
-                            className="text-xs text-[#006a4e] hover:underline flex items-center gap-1 ml-1 dark:text-emerald-400"
-                          >
-                            <Sparkles size={12} />
-                            <span>ইংরেজি অনুবাদ</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeNotice(index)}
-                            className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1 ml-1"
-                          >
-                            <Trash2 size={13} />
-                            <span>মুছুন</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                          নোটিশের শিরোনাম (বাংলায়) *
-                          <input
-                            type="text"
-                            value={notice.title}
-                            onChange={(e) => updateNotice(index, "title", e.target.value)}
-                            className={inputClass}
-                            required
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                          Notice Title (English) *
-                          <input
-                            type="text"
-                            value={notice.titleEn || ""}
-                            onChange={(e) => updateNotice(index, "titleEn", e.target.value)}
-                            placeholder="e.g. Admission Notice 2026"
-                            className={inputClass}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                          তারিখ (Date)
-                          <input
-                            type="date"
-                            value={notice.date}
-                            onChange={(e) => updateNotice(index, "date", e.target.value)}
-                            className={inputClass}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                          ক্যাটাগরি
-                          <select
-                            value={notice.category}
-                            onChange={(e) => {
-                              updateNotice(index, "category", e.target.value);
-                              updateNotice(index, "categoryEn", translateBnToEn(e.target.value));
-                            }}
-                            className={inputClass}
-                          >
-                            <option value="সাধারণ">সাধারণ (General)</option>
-                            <option value="ভর্তি">ভর্তি (Admission)</option>
-                            <option value="পরীক্ষা">পরীক্ষা (Examination)</option>
-                            <option value="একাডেমিক">একাডেমিক (Academic)</option>
-                          </select>
-                        </label>
-
-                        {/* Notice Attachment Upload & URL */}
-                        <div className="sm:col-span-2 rounded-md border border-gray-200 bg-gray-50/60 p-2.5 dark:border-slate-700 dark:bg-slate-800/40">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                নোটিশের সংযুক্তি / বিজ্ঞপ্তি ফাইল (Attachment File / PDF / Image)
-                              </label>
-                              <span className="text-[11px] text-gray-500">
-                                পিডিএফ বা ছবি ফাইল আপলোড করুন অথবা সরাসরি ফাইল লিংক দিন
-                              </span>
-                            </div>
-                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs border border-gray-300 hover:bg-gray-100 dark:bg-slate-700 dark:text-gray-200 dark:border-slate-600">
-                              <Upload size={13} className="text-[#006a4e] dark:text-emerald-400" />
-                              <span>{uploadingNoticeIndex === index ? "আপলোড হচ্ছে..." : "ফাইল নির্বাচন ও আপলোড"}</span>
-                              <input
-                                type="file"
-                                accept=".pdf,image/*"
-                                className="hidden"
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) handleNoticeFileUpload(index, f);
-                                }}
-                              />
-                            </label>
-                          </div>
-                          <input
-                            type="text"
-                            value={notice.fileUrl || ""}
-                            onChange={(e) => updateNotice(index, "fileUrl", e.target.value)}
-                            placeholder="https://... অথবা /uploads/notices/... অথবা আপলোড করুন"
-                            className={`${inputClass} mt-1`}
-                          />
-                          {noticeUploadError?.index === index && (
-                            <p className="mt-1 text-[11px] text-red-600">{noticeUploadError.message}</p>
-                          )}
-                        </div>
-
-                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-                          বিস্তারিত বিবরণ (বাংলায়)
-                          <textarea
-                            rows={2}
-                            value={notice.content || ""}
-                            onChange={(e) => updateNotice(index, "content", e.target.value)}
-                            className={textareaClass}
-                          />
-                        </label>
-
-                        <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                          Notice Content (English)
-                          <textarea
-                            rows={2}
-                            value={notice.contentEn || ""}
-                            onChange={(e) => updateNotice(index, "contentEn", e.target.value)}
-                            className={textareaClass}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-
-                  {draft.notices.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-xs text-gray-500 dark:border-slate-700">
-                      কোনো কাস্টম ড্রাফট নোটিশ নেই। আপনি উপরের 'নতুন নোটিশ যোগ করুন' বাটন অথবা 'লাইভ ঘোষণা ড্রাফট সেটিংসে সিঙ্ক করুন' বাটন ব্যবহার করতে পারেন।
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </section>
         )}
 

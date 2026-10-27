@@ -17,6 +17,7 @@ import {
   GraduationCap,
   HeartHandshake,
   Image as ImageIcon,
+  Loader2,
   PhoneCall,
   School,
   Search,
@@ -28,6 +29,20 @@ import {
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
 import type { SchoolNotice, SchoolGalleryItem } from "@/types/site";
+
+const normalizeNoticeCategory = (rawCat?: string | null) => {
+  const c = (rawCat || "").trim().toLowerCase();
+  if (c === "admission" || c === "ভর্তি") {
+    return { bn: "ভর্তি", en: "Admission" };
+  }
+  if (c === "examination" || c === "exam" || c === "পরীক্ষা") {
+    return { bn: "পরীক্ষা", en: "Examination" };
+  }
+  if (c === "academic" || c === "একাডেমিক") {
+    return { bn: "একাডেমিক", en: "Academic" };
+  }
+  return { bn: "সাধারণ", en: "General" };
+};
 
 const EMERGENCY_HOTLINES = [
   { number: "৯৯৯", enNumber: "999", title: "জাতীয় জরুরি সেবা", titleEn: "National Emergency Service", desc: "পুলিশ, অ্যাম্বুলেন্স, ফায়ার সার্ভিস", descEn: "Police, Ambulance, Fire Service" },
@@ -45,26 +60,30 @@ export const HomePage: React.FC = () => {
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
   const [dbNotices, setDbNotices] = useState<SchoolNotice[]>([]);
+  const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
 
   useEffect(() => {
     let active = true;
     const fetchLiveNotices = async () => {
       try {
+        setLoadingNotices(true);
         const res = await api.getAll("announcements", { page: 1, limit: 100 });
-        if (active && res.success && Array.isArray(res.data?.announcements) && res.data.announcements.length > 0) {
+        if (active && res.success && Array.isArray(res.data?.announcements)) {
           const token = api.getToken();
           const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => {
             let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
             if (attachUrl && token && !attachUrl.includes("token=")) {
               attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
             }
+            const catInfo = normalizeNoticeCategory(item.category);
             return {
               id: String(item.id),
               title: item.title,
               titleEn: item.title,
               date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
-              category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
-              categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
+              category: catInfo.bn,
+              categoryEn: catInfo.en,
+              className: item.class_name ? String(item.class_name) : undefined,
               content: item.description || "",
               contentEn: item.description || "",
               fileUrl: attachUrl || "#",
@@ -73,6 +92,9 @@ export const HomePage: React.FC = () => {
           setDbNotices(mapped);
         }
       } catch { }
+      finally {
+        if (active) setLoadingNotices(false);
+      }
     };
     void fetchLiveNotices();
 
@@ -87,8 +109,8 @@ export const HomePage: React.FC = () => {
   }, []);
 
   const effectiveNotices = useMemo(() => {
-    return dbNotices.length > 0 ? dbNotices : (Array.isArray(content.notices) ? content.notices : []);
-  }, [dbNotices, content.notices]);
+    return dbNotices;
+  }, [dbNotices]);
 
   useEffect(() => {
     if (!liveCounts) {
@@ -126,7 +148,7 @@ export const HomePage: React.FC = () => {
 
       return matchesCategory && (!noticeSearch.trim() || titleMatch || contentMatch);
     });
-  }, [content.notices, activeNoticeCategory, noticeSearch]);
+  }, [effectiveNotices, activeNoticeCategory, noticeSearch]);
 
   return (
     <div className="space-y-8 font-sans">
@@ -407,7 +429,14 @@ export const HomePage: React.FC = () => {
             </div>
 
             <div className="mt-4 space-y-3">
-              {filteredNotices.slice(0, 4).map((notice, index) => {
+              {loadingNotices && (
+                <div className="flex items-center justify-center py-10 text-xs text-gray-500">
+                  <Loader2 size={16} className="mr-2 animate-spin text-[#006a4e]" />
+                  <span>{lang === "bn" ? "নোটিশ লোড হচ্ছে..." : "Loading notices..."}</span>
+                </div>
+              )}
+
+              {!loadingNotices && filteredNotices.slice(0, 4).map((notice, index) => {
                 const noticeDate = notice.date ? new Date(notice.date) : new Date();
                 const day = formatDigits(noticeDate.getDate());
                 const month = noticeDate.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { month: "short" });
@@ -428,9 +457,22 @@ export const HomePage: React.FC = () => {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                            notice.categoryEn === "Admission"
+                              ? "bg-purple-100 text-purple-800"
+                              : notice.categoryEn === "Examination"
+                              ? "bg-amber-100 text-amber-900"
+                              : notice.categoryEn === "Academic"
+                              ? "bg-blue-100 text-blue-900"
+                              : "bg-emerald-100 text-emerald-900"
+                          }`}>
                             {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
                           </span>
+                          {notice.className && (
+                            <span className="rounded bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[10px] font-medium text-teal-800">
+                              {t(`শ্রেণি: ${notice.className}`, `Class: ${notice.className}`)}
+                            </span>
+                          )}
                           <span className="text-[11px] text-gray-500">{formatDigits(notice.date)}</span>
 
                           {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
@@ -457,6 +499,12 @@ export const HomePage: React.FC = () => {
                   </article>
                 );
               })}
+
+              {!loadingNotices && filteredNotices.length === 0 && (
+                <div className="rounded-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-500">
+                  {lang === "bn" ? "কোনো নোটিশ পাওয়া যায়নি।" : "No notices found."}
+                </div>
+              )}
             </div>
 
             <div className="mt-4 border-t border-gray-100 pt-3 text-center">

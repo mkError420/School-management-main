@@ -5,6 +5,7 @@ export interface SchoolNotice {
   date: string;
   category: string;
   categoryEn?: string;
+  className?: string;
   content?: string;
   contentEn?: string;
   fileUrl?: string;
@@ -567,52 +568,7 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   admissionFormUrl: "https://gsa.teletalk.com.bd",
   admissionSeatMatrix: DEFAULT_ADMISSION_SEAT_MATRIX,
 
-  notices: [
-    {
-      id: "n1",
-      title: "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে সরকারি নিয়মে ভর্তি বিজ্ঞপ্তি",
-      titleEn: "Admission Notice for Classes 6 to 9 under Government Regulations for Academic Year 2026",
-      date: "2026-10-15",
-      category: "ভর্তি",
-      categoryEn: "Admission",
-      content: "মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তরের (মাউশি) নীতিমালা অনুযায়ী ২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণির শিক্ষার্থীদের কেন্দ্রীয় ডিজিটাল লটারির মাধ্যমে ভর্তি আবেদন অনলাইনে শুরু হয়েছে। আগ্রহী অভিভাবক ও শিক্ষার্থীদের নির্ধারিত সময়ের মধ্যে আবেদন সম্পন্ন করার জন্য অনুরোধ করা যাচ্ছে।",
-      contentEn: "Online applications for admission to Classes 6 through 9 via the central digital lottery system have commenced per DSHE directives. Guardians and applicants are requested to submit applications prior to the official deadline.",
-      fileUrl: "#",
-    },
-    {
-      id: "n2",
-      title: "বার্ষিক পরীক্ষা ২০২৬ এর বিস্তারিত সময়সূচী ও আসন বিন্যাস প্রকাশ",
-      titleEn: "Publication of Annual Examination 2026 Detailed Routine and Seating Arrangement",
-      date: "2026-10-12",
-      category: "পরীক্ষা",
-      categoryEn: "Examination",
-      content: "সকল শ্রেণির শিক্ষার্থীদের জানানো যাচ্ছে যে, ২০২৬ সালের বার্ষিক পরীক্ষা আগামী ১লা নভেম্বর থেকে অনুষ্ঠিত হবে। বিস্তারিত পরীক্ষার রুটিন ও নির্দেশিকা নিচে ডাউনলোড সেকশনে পাওয়া যাবে।",
-      contentEn: "All students are hereby notified that the Annual Examination 2026 will commence from November 1st. Detailed routine and examination guidelines are downloadable below.",
-      fileUrl: "#",
-    },
-    {
-      id: "n3",
-      title: "অভিভাবক সমাবেশ ও ত্রৈমাসিক মূল্যায়ন সংক্রান্ত জরুরি বিজ্ঞপ্তি",
-      titleEn: "Urgent Notice Regarding Parents Meeting & Quarterly Assessment",
-      date: "2026-10-08",
-      category: "একাডেমিক",
-      categoryEn: "Academic",
-      content: "শিক্ষার্থীদের প্রথম সাময়িক পরীক্ষার ফলাফল পর্যালোচনা এবং শিক্ষণ অগ্রগতি নিয়ে আগামী ২০ অক্টোবর বিদ্যালয় মিলনায়তনে অভিভাবক সমাবেশ অনুষ্ঠিত হবে। সকল অভিভাবকের উপস্থিতি কাম্য।",
-      contentEn: "A parents assembly will be held on October 20th in the school auditorium to review academic progress and first term assessment results. All guardians are cordially requested to attend.",
-      fileUrl: "#",
-    },
-    {
-      id: "n4",
-      title: "জাতীয় দিবস উদযাপন ও রচনা প্রতিযোগিতা সংক্রান্ত নোটিশ",
-      titleEn: "Notice on National Day Observance and Essay Competition",
-      date: "2026-10-05",
-      category: "সাধারণ",
-      categoryEn: "General",
-      content: "আসন্ন জাতীয় দিবস উপলক্ষে বিদ্যালয় প্রাঙ্গণে কবিতা আবৃত্তি, চিত্রাঙ্কন এবং রচনা প্রতিযোগিতার আয়োজন করা হয়েছে। আগ্রহী শিক্ষার্থীদের নিজ নিজ শ্রেণি শিক্ষকের নিকট নাম লিপিবদ্ধ করার নির্দেশ দেওয়া হলো।",
-      contentEn: "Poetry recitation, art, and essay competitions have been scheduled on campus for National Day. Interested students must register with their respective class teachers.",
-      fileUrl: "#",
-    },
-  ],
+  notices: [],
 
   quickLinks: [
     { label: "মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)", labelEn: "Directorate of Secondary & Higher Education (DSHE)", url: "https://dshe.gov.bd" },

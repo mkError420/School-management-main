@@ -27,6 +27,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { useSiteSettings, resolveLogoUrl } from "@/context/SiteSettingsContext";
+import { api } from "@/lib/api";
 import type { SchoolNotice } from "@/types/site";
 import { SmartBdBadge } from "@/components/government/GovtEmblem";
 
@@ -38,7 +39,66 @@ export const PublicWebsiteLayout: React.FC = () => {
   const [showAnthemModal, setShowAnthemModal] = useState<boolean>(false);
   const [isPlayingAnthem, setIsPlayingAnthem] = useState<boolean>(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [liveNotices, setLiveNotices] = useState<SchoolNotice[]>([]);
   const location = useLocation();
+
+  // Helper to normalize announcement category
+  const normalizeNoticeCategory = (rawCat?: string | null) => {
+    const c = (rawCat || "").trim().toLowerCase();
+    if (c === "admission" || c === "ভর্তি") {
+      return { bn: "ভর্তি", en: "Admission" };
+    }
+    if (c === "examination" || c === "exam" || c === "পরীক্ষা") {
+      return { bn: "পরীক্ষা", en: "Examination" };
+    }
+    if (c === "academic" || c === "একাডেমিক") {
+      return { bn: "একাডেমিক", en: "Academic" };
+    }
+    return { bn: "সাধারণ", en: "General" };
+  };
+
+  // Fetch live announcements for notice ticker
+  useEffect(() => {
+    let active = true;
+    const fetchLiveNotices = async () => {
+      try {
+        const res = await api.getAll("announcements", { page: 1, limit: 10 });
+        if (active && res.success && Array.isArray(res.data?.announcements)) {
+          const token = api.getToken();
+          const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => {
+            let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
+            if (attachUrl && token && !attachUrl.includes("token=")) {
+              attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+            }
+            const catInfo = normalizeNoticeCategory(item.category);
+            return {
+              id: String(item.id),
+              title: item.title,
+              titleEn: item.title,
+              date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
+              category: catInfo.bn,
+              categoryEn: catInfo.en,
+              className: item.class_name ? String(item.class_name) : undefined,
+              content: item.description || "",
+              contentEn: item.description || "",
+              fileUrl: attachUrl || "#",
+            };
+          });
+          setLiveNotices(mapped);
+        }
+      } catch {}
+    };
+    void fetchLiveNotices();
+
+    const handleUpdated = () => {
+      void fetchLiveNotices();
+    };
+    window.addEventListener("school-announcements-updated", handleUpdated);
+    return () => {
+      active = false;
+      window.removeEventListener("school-announcements-updated", handleUpdated);
+    };
+  }, []);
 
   // Ensure public website is always in light mode and immune to dashboard dark mode
   useEffect(() => {
@@ -171,7 +231,7 @@ export const PublicWebsiteLayout: React.FC = () => {
 
     // 3. Notices (if tickerIncludeNotices is enabled, default true)
     if (content.tickerIncludeNotices !== false) {
-      (content.notices || []).slice(0, 5).forEach((n, i) => {
+      liveNotices.slice(0, 5).forEach((n, i) => {
         items.push({
           id: `notice_${n.id ?? i}`,
           type: "notice",
@@ -186,7 +246,7 @@ export const PublicWebsiteLayout: React.FC = () => {
     }
 
     return items;
-  }, [content.tickerItems, content.breakingNews, content.notices, content.tickerIncludeNotices]);
+  }, [content.tickerItems, content.breakingNews, liveNotices, content.tickerIncludeNotices]);
 
   // Duration scales with speed setting and number of items
   const tickerDuration = useMemo(() => {

@@ -35,6 +35,7 @@ export interface AnnouncementItem {
   title: string;
   description?: string | null;
   date: string;
+  category?: string | null;
   class_id?: number | string | null;
   class_name?: string | null;
   document_attachment?: string | null;
@@ -72,6 +73,7 @@ const AnnouncementsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState<string>(() => searchParams.get("search") || "");
   const [selectedClass, setSelectedClass] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [attachmentFilter, setAttachmentFilter] = useState<string>("all"); // 'all', 'with_attachment', 'images', 'documents'
   const [sortBy, setSortBy] = useState<"newest" | "oldest">("newest");
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -123,6 +125,10 @@ const AnnouncementsPage: React.FC = () => {
         params.class_id = selectedClass;
       }
 
+      if (selectedCategory !== "all") {
+        params.category = selectedCategory;
+      }
+
       if (attachmentFilter === "with_attachment") {
         params.has_attachment = "1";
       }
@@ -172,7 +178,7 @@ const AnnouncementsPage: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [page, limit, search, selectedClass, attachmentFilter, sortBy]);
+  }, [page, limit, search, selectedClass, selectedCategory, attachmentFilter, sortBy]);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -190,7 +196,7 @@ const AnnouncementsPage: React.FC = () => {
   // Reset page when search or class filter changes
   useEffect(() => {
     setPage(1);
-  }, [search, selectedClass, attachmentFilter, sortBy]);
+  }, [search, selectedClass, selectedCategory, attachmentFilter, sortBy]);
 
   // Key metrics calculation
   const metrics = useMemo(() => {
@@ -552,6 +558,20 @@ const AnnouncementsPage: React.FC = () => {
               </select>
             </div>
 
+            {/* Category Filter */}
+            <select
+              aria-label="Filter by category"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 outline-none focus:border-[#707E94] focus:ring-1 focus:ring-[#707E94]/30"
+            >
+              <option value="all">All Categories</option>
+              <option value="Admission">Admission</option>
+              <option value="Examination">Examination</option>
+              <option value="Academic">Academic</option>
+              <option value="General">General</option>
+            </select>
+
             {/* Attachment Filter */}
             <select
               aria-label="Filter by attachment type"
@@ -678,7 +698,7 @@ const AnnouncementsPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700/60 bg-gray-50/70 dark:bg-gray-900/40 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                   <th className="py-3.5 px-4 sm:px-6">Announcement & Details</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">Target Audience</th>
+                  <th className="py-3.5 px-4 hidden sm:table-cell">Category & Audience</th>
                   <th className="py-3.5 px-4">Publish Date</th>
                   <th className="py-3.5 px-4">Document / Image</th>
                   <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
@@ -718,19 +738,32 @@ const AnnouncementsPage: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Target Class Audience */}
+                      {/* Target Class Audience & Category */}
                       <td className="py-4 px-4 hidden sm:table-cell whitespace-nowrap">
-                        {item.class_name ? (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                            {item.class_name}
+                        <div className="flex flex-col gap-1 items-start">
+                          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                            item.category === "Admission"
+                              ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300"
+                              : item.category === "Examination"
+                              ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
+                              : item.category === "Academic"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          }`}>
+                            {item.category || "General"}
                           </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/40 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:text-sky-300">
-                            <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
-                            School-Wide
-                          </span>
-                        )}
+                          {item.class_name ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/40 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              {item.class_name}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 dark:bg-sky-950/50 border border-sky-200 dark:border-sky-800/40 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                              School-Wide
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Date */}
@@ -882,16 +915,29 @@ const AnnouncementsPage: React.FC = () => {
 
                   <div>
                     {/* Header Chips */}
-                    <div className="flex items-center justify-between gap-2 mb-3">
-                      {item.class_name ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
-                          Class: {item.class_name}
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                          item.category === "Admission"
+                            ? "bg-purple-50 text-purple-700 border border-purple-200 dark:bg-purple-950/40 dark:text-purple-300"
+                            : item.category === "Examination"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300"
+                            : item.category === "Academic"
+                            ? "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        }`}>
+                          {item.category || "General"}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/50 px-2 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
-                          School-Wide Notice
-                        </span>
-                      )}
+                        {item.class_name ? (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                            Class: {item.class_name}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 dark:bg-sky-950/50 px-2 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+                            School-Wide
+                          </span>
+                        )}
+                      </div>
 
                       <span className="flex items-center gap-1 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
                         <Clock className="h-3 w-3" />
@@ -1047,7 +1093,18 @@ const AnnouncementsPage: React.FC = () => {
             </button>
 
             {/* Modal Header */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
+                selectedAnnouncement.category === "Admission"
+                  ? "bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300"
+                  : selectedAnnouncement.category === "Examination"
+                  ? "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300"
+                  : selectedAnnouncement.category === "Academic"
+                  ? "bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-300"
+                  : "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300"
+              }`}>
+                {selectedAnnouncement.category || "General"}
+              </span>
               {selectedAnnouncement.class_name ? (
                 <span className="rounded-md bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/40 px-2.5 py-0.5 text-xs font-bold text-amber-700 dark:text-amber-300">
                   Target: {selectedAnnouncement.class_name}

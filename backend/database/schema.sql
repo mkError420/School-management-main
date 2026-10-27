@@ -190,6 +190,7 @@ CREATE TABLE IF NOT EXISTS announcements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    category VARCHAR(100) NULL DEFAULT 'General',
     date DATE NOT NULL,
     class_id INT,
     document_attachment VARCHAR(500) NULL,

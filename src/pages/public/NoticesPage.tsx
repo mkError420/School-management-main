@@ -9,6 +9,7 @@ import {
   FileText,
   Home,
   Image as ImageIcon,
+  Loader2,
   Search,
   X,
 } from "lucide-react";
@@ -16,31 +17,49 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
 import type { SchoolNotice } from "@/types/site";
 
+const normalizeNoticeCategory = (rawCat?: string | null) => {
+  const c = (rawCat || "").trim().toLowerCase();
+  if (c === "admission" || c === "ভর্তি") {
+    return { bn: "ভর্তি", en: "Admission" };
+  }
+  if (c === "examination" || c === "exam" || c === "পরীক্ষা") {
+    return { bn: "পরীক্ষা", en: "Examination" };
+  }
+  if (c === "academic" || c === "একাডেমিক") {
+    return { bn: "একাডেমিক", en: "Academic" };
+  }
+  return { bn: "সাধারণ", en: "General" };
+};
+
 export const NoticesPage: React.FC = () => {
   const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
   const [activeCategory, setActiveCategory] = useState<string>("সকল");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
   const [dbNotices, setDbNotices] = useState<SchoolNotice[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   // Fetch live announcements from database (All Announcements section)
   const fetchLiveNotices = useCallback(async () => {
     try {
+      setLoading(true);
       const res = await api.getAll("announcements", { page: 1, limit: 100 });
-      if (res.success && Array.isArray(res.data?.announcements) && res.data.announcements.length > 0) {
+      if (res.success && Array.isArray(res.data?.announcements)) {
         const token = api.getToken();
         const mapped: SchoolNotice[] = res.data.announcements.map((item: any) => {
           let attachUrl = item.attachment_url || (item.document_attachment ? `/backend/api/announcements?action=attachment&id=${item.id}` : null);
           if (attachUrl && token && !attachUrl.includes("token=")) {
             attachUrl += `${attachUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
           }
+          const catInfo = normalizeNoticeCategory(item.category);
           return {
             id: String(item.id),
             title: item.title,
             titleEn: item.title,
             date: item.date ? String(item.date).slice(0, 10) : new Date().toISOString().slice(0, 10),
-            category: item.class_name ? `শ্রেণি: ${item.class_name}` : "সাধারণ",
-            categoryEn: item.class_name ? `Class: ${item.class_name}` : "General",
+            category: catInfo.bn,
+            categoryEn: catInfo.en,
+            className: item.class_name ? String(item.class_name) : undefined,
             content: item.description || "",
             contentEn: item.description || "",
             fileUrl: attachUrl || "#",
@@ -49,7 +68,9 @@ export const NoticesPage: React.FC = () => {
         setDbNotices(mapped);
       }
     } catch {
-      // Fallback silently to websiteContent.notices
+      // Ignore
+    } finally {
+      setLoading(false);
     }
   }, []);
 
@@ -68,22 +89,22 @@ export const NoticesPage: React.FC = () => {
   const categories = [
     { key: "সকল", labelBn: "সকল", labelEn: "All" },
     { key: "ভর্তি", labelBn: "ভর্তি", labelEn: "Admission" },
-    { key: "পরীক্ষা", labelBn: "পরীক্ষা", labelEn: "Exam" },
+    { key: "পরীক্ষা", labelBn: "পরীক্ষা", labelEn: "Examination" },
     { key: "একাডেমিক", labelBn: "একাডেমিক", labelEn: "Academic" },
     { key: "সাধারণ", labelBn: "সাধারণ", labelEn: "General" },
   ];
 
   const filteredNotices = useMemo(() => {
-    // Priority: Live DB Announcements > Website Content Notices
-    const list = dbNotices.length > 0 ? dbNotices : (Array.isArray(content.notices) ? content.notices : []);
+    // Only live notices from database
+    const list = dbNotices;
     return list.filter((item) => {
       const matchCat =
         activeCategory === "সকল" ||
         item.category?.toLowerCase() === activeCategory.toLowerCase() ||
-        (activeCategory === "ভর্তি" && (item.category?.includes("ভর্তি") || item.category?.toLowerCase().includes("admission") || item.categoryEn?.toLowerCase().includes("admission"))) ||
-        (activeCategory === "পরীক্ষা" && (item.category?.includes("পরীক্ষা") || item.category?.toLowerCase().includes("exam") || item.categoryEn?.toLowerCase().includes("exam"))) ||
-        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.category?.toLowerCase().includes("academic") || item.categoryEn?.toLowerCase().includes("academic"))) ||
-        (activeCategory === "সাধারণ" && (item.category?.includes("সাধারণ") || item.category?.toLowerCase().includes("general") || item.categoryEn?.toLowerCase().includes("general")));
+        (activeCategory === "ভর্তি" && (item.category?.includes("ভর্তি") || item.categoryEn?.toLowerCase() === "admission")) ||
+        (activeCategory === "পরীক্ষা" && (item.category?.includes("পরীক্ষা") || item.categoryEn?.toLowerCase() === "examination" || item.categoryEn?.toLowerCase() === "exam")) ||
+        (activeCategory === "একাডেমিক" && (item.category?.includes("একাডেমিক") || item.categoryEn?.toLowerCase() === "academic")) ||
+        (activeCategory === "সাধারণ" && (item.category?.includes("সাধারণ") || item.categoryEn?.toLowerCase() === "general"));
 
       const search = searchTerm.trim().toLowerCase();
       const matchSearch =
@@ -94,7 +115,7 @@ export const NoticesPage: React.FC = () => {
         item.contentEn?.toLowerCase().includes(search);
       return matchCat && matchSearch;
     });
-  }, [dbNotices, content.notices, activeCategory, searchTerm]);
+  }, [dbNotices, activeCategory, searchTerm]);
 
   return (
     <div className="space-y-8">
@@ -157,7 +178,14 @@ export const NoticesPage: React.FC = () => {
 
       {/* Notices List */}
       <div className="space-y-3.5">
-        {filteredNotices.map((notice, index) => {
+        {loading && (
+          <div className="flex items-center justify-center py-16 text-sm text-gray-500">
+            <Loader2 size={20} className="mr-2 animate-spin text-[#006a4e]" />
+            <span>{t("নোটিশ লোড হচ্ছে...", "Loading notices...")}</span>
+          </div>
+        )}
+
+        {!loading && filteredNotices.map((notice, index) => {
           const noticeDate = notice.date ? new Date(notice.date) : new Date();
           const day = noticeDate.getDate();
           const month = noticeDate.toLocaleDateString(lang === "en" ? "en-US" : "bn-BD", { month: "short" });
@@ -178,9 +206,22 @@ export const NoticesPage: React.FC = () => {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+                    <span className={`rounded px-2.5 py-0.5 text-xs font-bold ${
+                      notice.categoryEn === "Admission"
+                        ? "bg-purple-100 text-purple-800"
+                        : notice.categoryEn === "Examination"
+                        ? "bg-amber-100 text-amber-900"
+                        : notice.categoryEn === "Academic"
+                        ? "bg-blue-100 text-blue-900"
+                        : "bg-emerald-100 text-emerald-900"
+                    }`}>
                       {t(notice.category, notice.categoryEn) || t("সাধারণ", "General")}
                     </span>
+                    {notice.className && (
+                      <span className="rounded bg-teal-50 border border-teal-200 px-2 py-0.5 text-[11px] font-medium text-teal-800">
+                        {t(`শ্রেণি: ${notice.className}`, `Class: ${notice.className}`)}
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">
                       {t("তারিখ:", "Date:")} {formatDigits(notice.date)}
                     </span>
@@ -230,7 +271,7 @@ export const NoticesPage: React.FC = () => {
           );
         })}
 
-        {filteredNotices.length === 0 && (
+        {!loading && filteredNotices.length === 0 && (
           <div className="rounded-md border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500">
             {t("কোনো নোটিশ পাওয়া যায়নি।", "No notices found.")}
           </div>
@@ -250,16 +291,19 @@ export const NoticesPage: React.FC = () => {
             className="relative w-full max-w-3xl sm:max-w-4xl max-h-[92vh] overflow-y-auto rounded-lg border border-emerald-700 bg-white shadow-2xl my-auto"
           >
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-[#006a4e] p-4 text-white">
-              <div className="flex items-center gap-2">
-                <div>
-                  <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
-                    {t(selectedNotice.category, selectedNotice.categoryEn) || t("নোটিশ", "Notice")}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded bg-amber-400 px-2.5 py-0.5 text-[11px] font-bold text-gray-950">
+                    {t(selectedNotice.category, selectedNotice.categoryEn) || t("সাধারণ", "General")}
                   </span>
-                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">
+                  {selectedNotice.className && (
+                    <span className="rounded bg-white/20 border border-white/30 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      {t(`শ্রেণি: ${selectedNotice.className}`, `Class: ${selectedNotice.className}`)}
+                    </span>
+                  )}
+                  <h3 className="text-sm font-bold sm:text-base">
                     {t("সরকারি নোটিশ পত্র", "Official Notice Document")}
                   </h3>
                 </div>
-              </div>
               <button
                 type="button"
                 onClick={() => setSelectedNotice(null)}

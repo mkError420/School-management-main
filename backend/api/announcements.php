@@ -56,6 +56,7 @@ switch ($method) {
 // ─────────────────────────────────────────────────────────────────────────────
 function ensureAnnouncementSchema($db) {
     $columnsToAdd = [
+        'category'                 => "VARCHAR(100) NULL DEFAULT 'General'",
         'document_attachment'      => 'VARCHAR(500) NULL',
         'attachment_original_name' => 'VARCHAR(255) NULL',
         'attachment_mime_type'     => 'VARCHAR(127) NULL',
@@ -357,6 +358,13 @@ function getAnnouncements($db) {
         }
     }
 
+    $category = $_GET['category'] ?? '';
+    if (!empty($category) && $category !== 'all') {
+        $sql .= " AND (a.category = ? OR (a.category IS NULL AND ? = 'General'))";
+        $params[] = $category;
+        $params[] = $category;
+    }
+
     if ($hasAttachment === '1' || $hasAttachment === 'true') {
         $sql .= " AND a.document_attachment IS NOT NULL AND a.document_attachment != ''";
     }
@@ -463,10 +471,12 @@ function createAnnouncement($db) {
 
     $uploadInfo = handleAnnouncementDocumentUpload();
     $publishDate = !empty($input['date']) ? $input['date'] : date('Y-m-d');
+    $category = !empty($input['category']) ? trim($input['category']) : 'General';
     
     $announcementData = [
         'title'                    => $input['title'],
         'description'              => $input['description'] ?? '',
+        'category'                 => $category,
         'date'                     => $publishDate,
         'class_id'                 => !empty($input['class_id']) ? $input['class_id'] : null,
         'document_attachment'      => $uploadInfo['storage_name'] ?? null,
@@ -514,6 +524,7 @@ function updateAnnouncement($db, $id) {
     $data = [];
     if (isset($input['title'])) $data['title'] = $input['title'];
     if (isset($input['description'])) $data['description'] = $input['description'];
+    if (array_key_exists('category', $input)) $data['category'] = !empty($input['category']) ? trim($input['category']) : 'General';
     if (isset($input['date'])) $data['date'] = $input['date'];
     if (array_key_exists('class_id', $input)) $data['class_id'] = $input['class_id'] ?: null;
 

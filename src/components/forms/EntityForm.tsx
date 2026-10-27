@@ -152,6 +152,18 @@ const fieldsByEntity: Record<Entity, Field[]> = {
   announcement: [
     { name: "title", label: "Announcement Title", required: true, colSpan: 2, placeholder: "e.g. School Annual Sports Day Announcement" },
     { name: "description", label: "Description / Notice Details", type: "textarea", colSpan: 2, placeholder: "Provide comprehensive announcement details, schedule, or notes..." },
+    {
+      name: "category",
+      label: "Notice Category",
+      type: "select",
+      required: true,
+      options: [
+        { value: "Admission", label: "Admission" },
+        { value: "Examination", label: "Examination" },
+        { value: "Academic", label: "Academic" },
+        { value: "General", label: "General" },
+      ],
+    },
     { name: "date", label: "Announcement Date", type: "date", required: true },
     { name: "class_id", label: "Class (optional - leave blank for all)", type: "select", resource: "classes" },
     {
@@ -243,6 +255,8 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
         initialValues[field.name] = String(data?.assignment_id || data?.exam_id || "");
       } else if (field.name === "date" && type === "create" && !data?.date) {
         initialValues[field.name] = new Date().toISOString().slice(0, 10);
+      } else if (entity === "announcement" && field.name === "category" && !data?.category) {
+        initialValues[field.name] = "General";
       } else {
         initialValues[field.name] = field.type === "checkbox"
           ? Boolean(data?.[field.name])
