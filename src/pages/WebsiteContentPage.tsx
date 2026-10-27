@@ -129,6 +129,11 @@ const WebsiteContentPage: React.FC = () => {
   const [announcementCategoryFilter, setAnnouncementCategoryFilter] = useState<string>("all");
   const [downloadSearch, setDownloadSearch] = useState("");
   const [admissionSeatSearch, setAdmissionSeatSearch] = useState("");
+  const [isBannerSlideModalOpen, setIsBannerSlideModalOpen] = useState(false);
+  const [editingBannerSlideIndex, setEditingBannerSlideIndex] = useState<number | null>(null);
+  const [bannerSlideFormUrl, setBannerSlideFormUrl] = useState("");
+  const [isSavingBannerSlide, setIsSavingBannerSlide] = useState(false);
+  const [previewBannerSlide, setPreviewBannerSlide] = useState(0);
   const [gallerySearch, setGallerySearch] = useState("");
   const [galleryCategoryFilter, setGalleryCategoryFilter] = useState("সকল");
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
@@ -848,6 +853,122 @@ const WebsiteContentPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Banner Carousel Handlers
+  const currentBannerImages = useMemo(() => {
+    if (Array.isArray(draft.heroImages) && draft.heroImages.length > 0) {
+      return draft.heroImages;
+    }
+    return draft.heroImage ? [draft.heroImage] : ["/images/bgimage.jpg"];
+  }, [draft.heroImages, draft.heroImage]);
+
+  const handleOpenAddBannerSlideModal = () => {
+    setEditingBannerSlideIndex(null);
+    setBannerSlideFormUrl("");
+    setIsBannerSlideModalOpen(true);
+  };
+
+  const handleOpenEditBannerSlideModal = (index: number) => {
+    setEditingBannerSlideIndex(index);
+    setBannerSlideFormUrl(currentBannerImages[index] || "");
+    setIsBannerSlideModalOpen(true);
+  };
+
+  const handleCloseBannerSlideModal = () => {
+    setIsBannerSlideModalOpen(false);
+    setEditingBannerSlideIndex(null);
+    setBannerSlideFormUrl("");
+    setIsSavingBannerSlide(false);
+  };
+
+  const handleSaveBannerSlide = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const url = bannerSlideFormUrl.trim();
+    if (!url) {
+      alert("অনুগ্রহ করে একটি বৈধ ছবির লিঙ্ক দিন বা ডিভাইস থেকে আপলোড করুন।");
+      return;
+    }
+
+    let updatedImages: string[];
+    if (editingBannerSlideIndex !== null && editingBannerSlideIndex >= 0) {
+      updatedImages = currentBannerImages.map((img, i) => (i === editingBannerSlideIndex ? url : img));
+    } else {
+      updatedImages = [...currentBannerImages, url];
+    }
+
+    setDraft((prev) => ({
+      ...prev,
+      heroImages: updatedImages,
+      heroImage: updatedImages[0] || prev.heroImage || url,
+    }));
+
+    handleCloseBannerSlideModal();
+    setFeedback({
+      type: "success",
+      message: editingBannerSlideIndex !== null ? "ব্যানার স্লাইড সফলভাবে হালনাগাদ হয়েছে।" : "নতুন ব্যানার স্লাইড সফলভাবে যুক্ত হয়েছে। সংরক্ষণ ও প্রকাশ করুন বাটনে ক্লিক করে লাইভ করুন।",
+    });
+  };
+
+  const handleDeleteBannerSlide = (index: number) => {
+    if (currentBannerImages.length <= 1) {
+      alert("অন্তত একটি ব্যানার ছবি থাকা আবশ্যক। এটি মুছে ফেলা যাবে না।");
+      return;
+    }
+    if (!confirm("আপনি কি নিশ্চিতভাবে এই ব্যানার ছবিটি মুছে ফেলতে চান?")) return;
+
+    const updated = currentBannerImages.filter((_, i) => i !== index);
+    setDraft((prev) => ({
+      ...prev,
+      heroImages: updated,
+      heroImage: updated[0] || "/images/bgimage.jpg",
+    }));
+
+    if (previewBannerSlide >= updated.length) {
+      setPreviewBannerSlide(0);
+    }
+
+    setFeedback({
+      type: "info",
+      message: "ব্যানার স্লাইড মুছে ফেলা হয়েছে। নিচে 'সংরক্ষণ ও প্রকাশ করুন' বাটনে ক্লিক করে পরিবর্তন লাইভ করুন।",
+    });
+  };
+
+  const handleMoveBannerSlide = (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentBannerImages.length) return;
+
+    const updated = [...currentBannerImages];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+
+    setDraft((prev) => ({
+      ...prev,
+      heroImages: updated,
+      heroImage: updated[0] || prev.heroImage,
+    }));
+
+    setPreviewBannerSlide(targetIndex);
+  };
+
+  const handleRestoreDefaultBanners = () => {
+    const defaults = [
+      "/images/bgimage.jpg",
+      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400",
+      "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400",
+      "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400",
+    ];
+    setDraft((prev) => ({
+      ...prev,
+      heroImages: defaults,
+      heroImage: defaults[0],
+      heroOverlayOpacity: "light",
+      heroCarouselSpeed: 5000,
+    }));
+    setFeedback({
+      type: "success",
+      message: "ডিফল্ট ব্যানার স্লাইড ও হালকা ওভারলে সফলভাবে রিস্টোর হয়েছে।",
+    });
+  };
+
   // Gallery handlers
   const handleOpenAddGalleryModal = () => {
     setEditingGalleryIndex(null);
@@ -1507,7 +1628,12 @@ const WebsiteContentPage: React.FC = () => {
       icon: Radio,
       badgeCount: (draft.tickerItems || []).filter((i) => i.isActive !== false).length,
     },
-    { id: "hero_about", label: "৩. হোম ব্যানার ও ইতিহাস", icon: LayoutDashboard },
+    {
+      id: "hero_about",
+      label: "৩. হোম ব্যানার ও ইতিহাস",
+      icon: LayoutDashboard,
+      badgeCount: currentBannerImages.length,
+    },
     { id: "leadership", label: "৪. প্রশাসন ও বাণী (Leadership)", icon: GraduationCap },
     {
       id: "teachers",
@@ -2854,21 +2980,293 @@ const WebsiteContentPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Hero Image */}
-              <div className="pt-2">
-                <ImageUploadField
-                  label="হোম ব্যানার কভার ছবি (Home Hero Banner Image)"
-                  value={draft.heroImage}
-                  onChange={(url) => updateField("heroImage", url)}
-                  aspectRatio="banner"
-                  helperText="ওয়েবসাইটের হোমপেজের শীর্ষ ব্যানার ছবি। ডিভাইস থেকে আপলোড করুন বা লিংক দিন। প্রস্তাবিত অনুপাত ১৬:৯ বা ব্যানার।"
-                  presets={[
-                    { label: "Default Banner", url: "/images/bgimage.jpg" },
-                    { label: "School Campus", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400" },
-                    { label: "Academic Building", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400" },
-                    { label: "Students in Library", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400" },
-                  ]}
-                />
+              {/* ──────────────────────────────────────────────────────────
+                  DYNAMIC BANNER CAROUSEL & OVERLAY MANAGEMENT
+                  ────────────────────────────────────────────────────────── */}
+              <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-emerald-50/20 p-4 sm:p-5 shadow-xs dark:border-emerald-900/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/20">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-emerald-100 pb-3 dark:border-emerald-900/30">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <ImageIcon size={18} className="text-[#006a4e]" />
+                      <span>হোম ব্যানার ব্যাকগ্রাউন্ড ক্যারোসেল (Hero Banner Carousel System)</span>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-[#006a4e] dark:bg-emerald-950 dark:text-emerald-300">
+                        {currentBannerImages.length}টি স্লাইড
+                      </span>
+                    </h3>
+                    <p className="mt-0.5 text-xs text-gray-600 dark:text-gray-400">
+                      ওয়েবসাইট হোমপেজের শীর্ষে ব্যাকগ্রাউন্ড ছবিগুলো ক্যারোসেল আকারে স্বয়ংক্রিয়ভাবে পরিবর্তিত হবে। ওভারলে হালকা রাখা হয়েছে যাতে ছবিগুলো প্রাণবন্ত ও উজ্জ্বল দেখায়।
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRestoreDefaultBanners}
+                      className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                      title="ডিফল্ট ৪টি ব্যানার স্লাইড রিস্টোর করুন"
+                    >
+                      ডিফল্ট রিস্টোর
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleOpenAddBannerSlideModal}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#00523c] transition active:scale-95"
+                    >
+                      <Plus size={15} />
+                      <span>নতুন ব্যানার স্লাইড যোগ করুন</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Banner Carousel Settings (Overlay & Speed) */}
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 rounded-lg bg-white p-3.5 border border-emerald-100/80 dark:bg-slate-800/80 dark:border-slate-700">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-800 dark:text-gray-200">
+                      ব্যাকগ্রাউন্ড ওভারলে মাত্রা (Background Overlay Intensity)
+                    </label>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
+                      ওভারলে কমিয়ে ছবিগুলোকে স্পষ্ট ও উজ্জ্বল রাখুন।
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "light", label: "হালকা (Light)", desc: "সর্বোচ্চ উজ্জ্বল ও পরিষ্কার ছবি" },
+                        { id: "medium", label: "মাঝারি (Medium)", desc: "ভারসাম্যপূর্ণ" },
+                        { id: "dark", label: "গাঢ় (Dark)", desc: "লেখা বেশি স্পষ্ট" },
+                      ].map((opt) => {
+                        const isSelected = (draft.heroOverlayOpacity || "light") === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => updateField("heroOverlayOpacity", opt.id as any)}
+                            className={`rounded-md p-2 text-left border text-xs transition ${
+                              isSelected
+                                ? "border-[#006a4e] bg-emerald-50 text-[#006a4e] font-bold shadow-xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-600"
+                                : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>{opt.label}</span>
+                              {isSelected && <Check size={13} className="text-[#006a4e] dark:text-emerald-300" />}
+                            </div>
+                            <span className="block text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-800 dark:text-gray-200">
+                      স্লাইড পরিবর্তনের গতি (Auto-Slide Interval)
+                    </label>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">
+                      প্রতিটি স্লাইড কতক্ষণ পর পর স্বয়ংক্রিয়ভাবে পরিবর্তন হবে।
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { speed: 3000, label: "৩ সেকেন্ড" },
+                        { speed: 5000, label: "৫ সেকেন্ড" },
+                        { speed: 7000, label: "৭ সেকেন্ড" },
+                        { speed: 10000, label: "১০ সেকেন্ড" },
+                      ].map((s) => {
+                        const isSelected = (draft.heroCarouselSpeed || 5000) === s.speed;
+                        return (
+                          <button
+                            key={s.speed}
+                            type="button"
+                            onClick={() => updateField("heroCarouselSpeed", s.speed)}
+                            className={`rounded-md py-2 px-1 text-center border text-xs font-medium transition ${
+                              isSelected
+                                ? "border-[#006a4e] bg-emerald-50 text-[#006a4e] font-bold shadow-xs dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-600"
+                                : "border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid of Current Banner Carousel Slides */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                      বর্তমান ব্যানার স্লাইড তালিকা (ড্র্যাগ/আপ-ডাউন করে ক্রম পরিবর্তন করুন):
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      স্লাইড ১ ডিফল্ট প্রধান ব্যানার হিসেবে গণ্য হয়
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    {currentBannerImages.map((imgUrl, idx) => (
+                      <div
+                        key={`${imgUrl}-${idx}`}
+                        className={`group relative flex flex-col rounded-lg border bg-white p-2.5 shadow-xs transition hover:shadow-md dark:bg-slate-800 ${
+                          idx === 0
+                            ? "border-[#006a4e] ring-2 ring-[#006a4e]/20"
+                            : "border-gray-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {/* Slide Thumbnail */}
+                        <div className="relative aspect-video w-full overflow-hidden rounded-md bg-gray-100 dark:bg-slate-900">
+                          <img
+                            src={imgUrl}
+                            alt={`Banner Slide ${idx + 1}`}
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.src = "/images/bgimage.jpg";
+                            }}
+                          />
+                          <span className="absolute top-1.5 left-1.5 rounded bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-xs">
+                            #{idx + 1} {idx === 0 ? "(প্রধান ব্যানার)" : `(স্লাইড ${idx + 1})`}
+                          </span>
+                        </div>
+
+                        {/* Image URL preview */}
+                        <p className="mt-2 truncate text-[11px] text-gray-500 dark:text-gray-400 font-mono" title={imgUrl}>
+                          {imgUrl}
+                        </p>
+
+                        {/* Action buttons */}
+                        <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-2 dark:border-slate-700">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => handleMoveBannerSlide(idx, "up")}
+                              className="rounded p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-slate-700"
+                              title="বামে / পূর্বে সরান"
+                            >
+                              <ChevronLeft size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={idx === currentBannerImages.length - 1}
+                              onClick={() => handleMoveBannerSlide(idx, "down")}
+                              className="rounded p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-slate-700"
+                              title="ডানে / পরে সরান"
+                            >
+                              <ChevronRight size={15} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditBannerSlideModal(idx)}
+                              className="rounded p-1 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                              title="ছবি পরিবর্তন করুন"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={currentBannerImages.length <= 1}
+                              onClick={() => handleDeleteBannerSlide(idx)}
+                              className="rounded p-1 text-red-600 hover:bg-red-50 disabled:opacity-30 dark:text-red-400 dark:hover:bg-red-950/40"
+                              title="মুছে ফেলুন"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Interactive Live Banner Preview In Admin */}
+                <div className="mt-5 border-t border-emerald-100 pt-4 dark:border-slate-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-[#006a4e]" />
+                      লাইভ ব্যানার ক্যারোসেল প্রিভিউ (ড্যাশবোর্ড ইন্টারেক্টিভ ডিসপ্লে):
+                    </span>
+                    <span className="text-[11px] text-gray-500">
+                      স্লাইড {previewBannerSlide + 1} / {currentBannerImages.length}
+                    </span>
+                  </div>
+
+                  <div className="relative overflow-hidden rounded-xl border border-gray-300 bg-[#004d38] text-white shadow-md aspect-[21/9] sm:aspect-[24/9] max-h-72">
+                    {/* Background slide */}
+                    <img
+                      src={currentBannerImages[previewBannerSlide] || "/images/bgimage.jpg"}
+                      alt="Banner Preview"
+                      className="absolute inset-0 h-full w-full object-cover object-center transition-all duration-700"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/bgimage.jpg";
+                      }}
+                    />
+
+                    {/* Overlay preview based on heroOverlayOpacity */}
+                    <div
+                      className={`absolute inset-0 ${
+                        (draft.heroOverlayOpacity || "light") === "dark"
+                          ? "bg-gradient-to-r from-[#002217]/90 via-[#00281b]/70 to-[#001f14]/35"
+                          : (draft.heroOverlayOpacity || "light") === "medium"
+                          ? "bg-gradient-to-r from-[#002217]/80 via-[#00281b]/50 to-transparent"
+                          : "bg-gradient-to-r from-[#002217]/70 via-[#00281b]/35 to-transparent"
+                      }`}
+                    />
+
+                    {/* Preview Content */}
+                    <div className="relative z-10 flex h-full flex-col justify-center px-6 py-4 max-w-xl">
+                      <span className="w-fit rounded-full border border-white/20 bg-black/30 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-200 backdrop-blur-xs">
+                        গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত সরকারি মডেল বিদ্যাপীঠ
+                      </span>
+                      <h4 className="mt-2 text-base sm:text-xl font-extrabold leading-tight drop-shadow-md line-clamp-2">
+                        {draft.heroTitle || "ঐতিহ্যবাহী এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম"}
+                      </h4>
+                      <p className="mt-1 text-xs font-semibold text-amber-300 drop-shadow line-clamp-1">
+                        {draft.heroSubtitle || "জ্ঞান, চরিত্র ও দেশপ্রেমের চেতনায় আলোকিত সমৃদ্ধ আগামী"}
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="rounded bg-[#eab308] px-3 py-1 text-[10px] font-bold text-gray-950 shadow-xs">
+                          {draft.admissionBtnText || "ভর্তি তথ্য ও আবেদন"}
+                        </span>
+                        <span className="rounded border border-white/30 bg-black/30 px-3 py-1 text-[10px] font-semibold text-white">
+                          নোটিশ বোর্ড
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Preview controls */}
+                    {currentBannerImages.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewBannerSlide((prev) => (prev - 1 + currentBannerImages.length) % currentBannerImages.length)}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-xs hover:bg-black/70"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewBannerSlide((prev) => (prev + 1) % currentBannerImages.length)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-xs hover:bg-black/70"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                        <div className="absolute bottom-2 right-3 z-20 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 backdrop-blur-xs">
+                          {currentBannerImages.map((_, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setPreviewBannerSlide(i)}
+                              className={`h-1.5 rounded-full transition-all ${
+                                i === previewBannerSlide ? "w-4 bg-amber-400" : "w-1.5 bg-white/50"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* About Title & Description */}
@@ -6053,6 +6451,86 @@ const WebsiteContentPage: React.FC = () => {
           </div>
         </footer>
       </form>
+
+      {/* BANNER SLIDE ADD / EDIT MODAL */}
+      {isBannerSlideModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSavingBannerSlide) {
+              handleCloseBannerSlideModal();
+            }
+          }}
+        >
+          <div className="relative w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-[#006a4e] dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <ImageIcon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                    {editingBannerSlideIndex !== null ? `ব্যানার স্লাইড #${editingBannerSlideIndex + 1} সম্পাদনা করুন` : "নতুন ব্যানার স্লাইড ছবি যোগ করুন"}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    কম্পিউটার বা মোবাইল থেকে ছবি আপলোড করুন অথবা সরাসরি লিঙ্ক নির্বাচন করুন। প্রস্তাবিত অনুপাত ১৬:৯।
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseBannerSlideModal}
+                disabled={isSavingBannerSlide}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-slate-800 dark:hover:text-gray-200 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveBannerSlide} className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+              <ImageUploadField
+                label="ব্যানার ছবির ফাইল আপলোড অথবা লিঙ্ক দিন (Upload Banner Photo or Paste URL) *"
+                value={bannerSlideFormUrl}
+                onChange={(url) => setBannerSlideFormUrl(url)}
+                aspectRatio="banner"
+                uploadEndpoint="banner"
+                helperText="উচ্চমানের ল্যান্ডস্কেপ বা ব্যানার সাইজ ছবি দিন (JPG, PNG, WebP)। সার্ভারে সরাসরি আপলোড হবে।"
+                presets={[
+                  { label: "Default Banner", url: "/images/bgimage.jpg" },
+                  { label: "School Campus", url: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Academic Building", url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Students in Library", url: "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Science Lab", url: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Sports & Field", url: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Classroom", url: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&q=80&w=1400" },
+                  { label: "Computer Lab", url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1400" },
+                ]}
+              />
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 border-t pt-4 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={handleCloseBannerSlideModal}
+                  className="rounded-md border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100 dark:border-slate-700 dark:text-gray-300 dark:hover:bg-slate-800"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="submit"
+                  disabled={!bannerSlideFormUrl.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#00523c] disabled:opacity-50"
+                >
+                  <Check size={14} />
+                  <span>{editingBannerSlideIndex !== null ? "পরিবর্তন সংরক্ষণ করুন" : "ক্যারোসেলে যোগ করুন"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* GALLERY PHOTO ADD / EDIT MODAL */}
       {isGalleryModalOpen && (

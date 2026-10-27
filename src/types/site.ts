@@ -114,6 +114,9 @@ export interface SchoolWebsiteContent {
   heroDescription: string;
   heroDescriptionEn?: string;
   heroImage: string;
+  heroImages?: string[];
+  heroOverlayOpacity?: "light" | "medium" | "dark";
+  heroCarouselSpeed?: number;
   admissionBtnText: string;
   admissionBtnTextEn?: string;
   admissionBtnUrl: string;
@@ -499,6 +502,14 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   heroDescription: "সুশৃঙ্খল শিক্ষাদান, আদর্শ নৈতিক চরিত্র গঠন এবং যুগোপযোগী ডিজিটাল শিক্ষার সমন্বয়ে শিক্ষার্থীদের ভবিষ্যৎ বিনির্মাণে আমরা অঙ্গীকারাবদ্ধ।",
   heroDescriptionEn: "Committed to shaping students' future through disciplined teaching, moral character building, and state-of-the-art digital education.",
   heroImage: "/images/bgimage.jpg",
+  heroImages: [
+    "/images/bgimage.jpg",
+    "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400",
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400",
+    "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400",
+  ],
+  heroOverlayOpacity: "light",
+  heroCarouselSpeed: 5000,
   admissionBtnText: "অনলাইন ভর্তি তথ্য",
   admissionBtnTextEn: "Online Admission Info",
   admissionBtnUrl: "/admission",

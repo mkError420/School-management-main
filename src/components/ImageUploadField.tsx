@@ -22,7 +22,7 @@ export interface ImageUploadFieldProps {
   presets?: Array<{ label: string; url: string }>;
   disabled?: boolean;
   className?: string;
-  uploadEndpoint?: "notice" | "logo" | "general";
+  uploadEndpoint?: "notice" | "logo" | "general" | "banner";
 }
 
 export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
@@ -75,6 +75,8 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
       let uploadRes: any;
       if (uploadEndpoint === "logo") {
         uploadRes = await api.uploadSiteLogo(file);
+      } else if (uploadEndpoint === "banner") {
+        uploadRes = await api.uploadBannerImage(file);
       } else {
         uploadRes = await api.uploadNoticeFile(file);
       }

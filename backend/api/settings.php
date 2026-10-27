@@ -14,7 +14,7 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
-        } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-file' || !empty($_FILES['file']) || !empty($_FILES['notice_file'])) {
+        } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-file' || $action === 'upload-banner-image' || !empty($_FILES['file']) || !empty($_FILES['notice_file']) || !empty($_FILES['banner']) || !empty($_FILES['image'])) {
             uploadNoticeFile($db);
         } else {
             updateSiteSettings($db);
@@ -73,6 +73,22 @@ function getSiteSettings($db) {
                 if ($row['setting_key'] === 'website_content') {
                     $decoded = json_decode($row['setting_value'], true);
                     if (is_array($decoded)) {
+                        // Ensure hero carousel fields are populated
+                        if (empty($decoded['heroImages']) || !is_array($decoded['heroImages'])) {
+                            $singleHero = !empty($decoded['heroImage']) ? $decoded['heroImage'] : '/images/bgimage.jpg';
+                            $decoded['heroImages'] = [
+                                $singleHero,
+                                'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=1400',
+                                'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1400',
+                                'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=1400',
+                            ];
+                        }
+                        if (empty($decoded['heroOverlayOpacity'])) {
+                            $decoded['heroOverlayOpacity'] = 'light';
+                        }
+                        if (empty($decoded['heroCarouselSpeed'])) {
+                            $decoded['heroCarouselSpeed'] = 5000;
+                        }
                         $settings['website_content'] = $decoded;
                     }
                 } else {
@@ -181,6 +197,32 @@ function updateSiteSettings($db) {
                 }
             }
             unset($link);
+        }
+
+        // Ensure hero carousel fields are properly validated and synchronized
+        if (isset($websiteContent['heroImages']) && is_array($websiteContent['heroImages'])) {
+            $filteredImages = [];
+            foreach ($websiteContent['heroImages'] as $img) {
+                if (is_string($img) && trim($img) !== '') {
+                    $filteredImages[] = trim($img);
+                }
+            }
+            if (!empty($filteredImages)) {
+                $websiteContent['heroImages'] = $filteredImages;
+                $websiteContent['heroImage'] = $filteredImages[0];
+            }
+        } elseif (!empty($websiteContent['heroImage']) && is_string($websiteContent['heroImage'])) {
+            $websiteContent['heroImages'] = [trim($websiteContent['heroImage'])];
+        }
+
+        if (empty($websiteContent['heroOverlayOpacity']) || !in_array($websiteContent['heroOverlayOpacity'], ['light', 'medium', 'dark'])) {
+            $websiteContent['heroOverlayOpacity'] = 'light';
+        }
+
+        if (empty($websiteContent['heroCarouselSpeed']) || !is_numeric($websiteContent['heroCarouselSpeed'])) {
+            $websiteContent['heroCarouselSpeed'] = 5000;
+        } else {
+            $websiteContent['heroCarouselSpeed'] = (int)$websiteContent['heroCarouselSpeed'];
         }
 
         // Encode to UTF-8 JSON
@@ -334,7 +376,7 @@ function uploadNoticeFile($db) {
         Response::forbidden('Only an administrator can upload notice and website files');
     }
 
-    $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['notice_file']) ? 'notice_file' : null);
+    $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['notice_file']) ? 'notice_file' : (!empty($_FILES['banner']) ? 'banner' : (!empty($_FILES['image']) ? 'image' : null)));
     if (!$uploadKey || empty($_FILES[$uploadKey]) || $_FILES[$uploadKey]['error'] === UPLOAD_ERR_NO_FILE) {
         Response::error('Please choose an image or PDF file to upload');
     }
@@ -371,7 +413,7 @@ function uploadNoticeFile($db) {
         $mimeType = @mime_content_type($upload['tmp_name']);
     }
 
-    $origName = $upload['name'] ?? 'notice_file';
+    $origName = $upload['name'] ?? 'file';
     $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
 
     if ($ext === 'pdf' || strpos($mimeType, 'pdf') !== false) {
@@ -386,59 +428,64 @@ function uploadNoticeFile($db) {
         Response::error('Please choose a valid PDF document or image (JPG, PNG, WebP, SVG)');
     }
 
+    $action = $_GET['action'] ?? '';
+    $isBannerUpload = ($uploadKey === 'banner' || $action === 'upload-banner-image');
+    $subDir = $isBannerUpload ? 'banners' : 'notices';
+    $prefix = $isBannerUpload ? 'banner_' : 'notice_';
+
     $root = dirname(__DIR__, 2);
     $targetDirs = [];
-    if (is_dir($root . '/public/uploads/notices')) {
-        $targetDirs[] = $root . '/public/uploads/notices';
+    if (is_dir($root . '/public/uploads/' . $subDir)) {
+        $targetDirs[] = $root . '/public/uploads/' . $subDir;
     } elseif (is_dir($root . '/public')) {
-        @mkdir($root . '/public/uploads/notices', 0755, true);
-        if (is_dir($root . '/public/uploads/notices')) {
-            $targetDirs[] = $root . '/public/uploads/notices';
+        @mkdir($root . '/public/uploads/' . $subDir, 0755, true);
+        if (is_dir($root . '/public/uploads/' . $subDir)) {
+            $targetDirs[] = $root . '/public/uploads/' . $subDir;
         }
     }
 
-    if (is_dir($root . '/uploads/notices')) {
-        $targetDirs[] = $root . '/uploads/notices';
+    if (is_dir($root . '/uploads/' . $subDir)) {
+        $targetDirs[] = $root . '/uploads/' . $subDir;
     } else {
-        @mkdir($root . '/uploads/notices', 0755, true);
-        if (is_dir($root . '/uploads/notices')) {
-            $targetDirs[] = $root . '/uploads/notices';
+        @mkdir($root . '/uploads/' . $subDir, 0755, true);
+        if (is_dir($root . '/uploads/' . $subDir)) {
+            $targetDirs[] = $root . '/uploads/' . $subDir;
         }
     }
 
-    if (is_dir($root . '/dist/uploads/notices')) {
-        $targetDirs[] = $root . '/dist/uploads/notices';
+    if (is_dir($root . '/dist/uploads/' . $subDir)) {
+        $targetDirs[] = $root . '/dist/uploads/' . $subDir;
     } elseif (is_dir($root . '/dist')) {
-        @mkdir($root . '/dist/uploads/notices', 0755, true);
-        if (is_dir($root . '/dist/uploads/notices')) {
-            $targetDirs[] = $root . '/dist/uploads/notices';
+        @mkdir($root . '/dist/uploads/' . $subDir, 0755, true);
+        if (is_dir($root . '/dist/uploads/' . $subDir)) {
+            $targetDirs[] = $root . '/dist/uploads/' . $subDir;
         }
     }
 
     if (empty($targetDirs)) {
-        $targetDirs[] = $root . '/uploads/notices';
-        @mkdir($root . '/uploads/notices', 0755, true);
+        $targetDirs[] = $root . '/uploads/' . $subDir;
+        @mkdir($root . '/uploads/' . $subDir, 0755, true);
     }
 
     $cleanOrig = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', pathinfo($origName, PATHINFO_FILENAME));
     if (strlen($cleanOrig) > 30) {
         $cleanOrig = substr($cleanOrig, 0, 30);
     }
-    $fileName = 'notice_' . time() . '_' . bin2hex(random_bytes(3)) . ($cleanOrig ? '_' . $cleanOrig : '') . '.' . $extension;
+    $fileName = $prefix . time() . '_' . bin2hex(random_bytes(3)) . ($cleanOrig ? '_' . $cleanOrig : '') . '.' . $extension;
     $primaryDir = $targetDirs[0];
     $primaryPath = $primaryDir . '/' . $fileName;
 
     if (!move_uploaded_file($upload['tmp_name'], $primaryPath)) {
-        Response::serverError('Unable to save the uploaded notice file');
+        Response::serverError('Unable to save the uploaded file');
     }
 
     for ($i = 1; $i < count($targetDirs); $i++) {
         @copy($primaryPath, $targetDirs[$i] . '/' . $fileName);
     }
 
-    $fileUrl = '/uploads/notices/' . $fileName;
+    $fileUrl = '/uploads/' . $subDir . '/' . $fileName;
 
-    Response::success('Notice file uploaded successfully', [
+    Response::success('File uploaded successfully', [
         'file_url'      => $fileUrl,
         'original_name' => $origName,
         'extension'     => $extension,

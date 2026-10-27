@@ -182,6 +182,15 @@ class ApiService {
     });
   }
 
+  async uploadBannerImage(file: File) {
+    const formData = new FormData();
+    formData.append('banner', file);
+    return this.request<{ file_url: string; original_name?: string }>('settings?action=upload-banner-image', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async uploadDownloadFile(file: File) {
     const formData = new FormData();
     formData.append('file', file);

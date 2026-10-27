@@ -10,6 +10,8 @@ import {
   Calendar,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Compass,
   Download,
@@ -92,6 +94,53 @@ export const PublicSchoolWebsite: React.FC = () => {
     dateStrBn: "",
     dateStrEn: "",
   });
+
+  // Banner Carousel State
+  const bannerImages = useMemo(() => {
+    if (Array.isArray(content.heroImages) && content.heroImages.length > 0) {
+      const valid = content.heroImages.filter((img) => typeof img === "string" && img.trim().length > 0);
+      if (valid.length > 0) return valid;
+    }
+    return [content.heroImage || "/images/bgimage.jpg"];
+  }, [content.heroImages, content.heroImage]);
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
+
+  useEffect(() => {
+    if (currentSlide >= bannerImages.length) {
+      setCurrentSlide(0);
+    }
+  }, [bannerImages.length, currentSlide]);
+
+  useEffect(() => {
+    if (bannerImages.length <= 1 || isCarouselPaused) return;
+    const intervalTime = content.heroCarouselSpeed && content.heroCarouselSpeed >= 2000 ? content.heroCarouselSpeed : 5000;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
+    }, intervalTime);
+    return () => clearInterval(timer);
+  }, [bannerImages.length, isCarouselPaused, content.heroCarouselSpeed]);
+
+  const handlePrevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + bannerImages.length) % bannerImages.length);
+  };
+
+  const handleNextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % bannerImages.length);
+  };
+
+  const overlayGradientClass = useMemo(() => {
+    switch (content.heroOverlayOpacity) {
+      case "dark":
+        return "bg-gradient-to-r from-[#002217]/90 via-[#00281b]/70 to-[#001f14]/35";
+      case "medium":
+        return "bg-gradient-to-r from-[#002217]/80 via-[#00281b]/50 to-transparent";
+      case "light":
+      default:
+        return "bg-gradient-to-r from-[#002217]/70 via-[#00281b]/35 to-transparent";
+    }
+  }, [content.heroOverlayOpacity]);
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -546,37 +595,82 @@ export const PublicSchoolWebsite: React.FC = () => {
             ────────────────────────────────────────────────────────────────────────── */}
         <section
           id="home"
-          className="relative mb-8 overflow-hidden rounded-lg border border-[#cbe0d3] bg-[#004d38] text-white shadow-lg"
+          className="group relative mb-8 overflow-hidden rounded-xl border border-[#cbe0d3] bg-[#004d38] text-white shadow-xl transition-all"
+          onMouseEnter={() => setIsCarouselPaused(true)}
+          onMouseLeave={() => setIsCarouselPaused(false)}
+          aria-label="Home Banner Carousel"
         >
-          {/* Background School Campus Image with Overlay */}
-          <div className="absolute inset-0 z-0">
-            <img
-              src={content.heroImage || "/images/bgimage.jpg"}
-              alt="School Campus"
-              className="h-full w-full object-cover object-center opacity-30 mix-blend-luminosity"
-              onError={(e) => {
-                e.currentTarget.src = "/images/bgimage.jpg";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#003627] via-[#004d38]/90 to-transparent" />
+          {/* Background Images Carousel with Decreased Overlay */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            {bannerImages.map((imgUrl, idx) => {
+              const isActive = idx === currentSlide;
+              return (
+                <div
+                  key={`${imgUrl}-${idx}`}
+                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                    isActive ? "opacity-100 z-1" : "opacity-0 z-0 pointer-events-none"
+                  }`}
+                >
+                  <img
+                    src={imgUrl}
+                    alt={`School Campus Banner ${idx + 1}`}
+                    className="h-full w-full object-cover object-center transform transition-transform duration-7000 ease-out"
+                    style={{
+                      transform: isActive ? "scale(1.04)" : "scale(1.0)",
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/bgimage.jpg";
+                    }}
+                  />
+                </div>
+              );
+            })}
+
+            {/* Decreased Background Gradient Overlay */}
+            <div className={`absolute inset-0 z-2 ${overlayGradientClass} transition-colors duration-500`} />
+
+            {/* Bottom subtle dark shade for control clarity */}
+            <div className="absolute inset-x-0 bottom-0 h-24 z-2 bg-gradient-to-t from-black/40 via-black/10 to-transparent pointer-events-none" />
           </div>
+
+          {/* Carousel Previous / Next Arrow Controls */}
+          {bannerImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrevSlide}
+                aria-label="Previous Slide"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/25 shadow-lg transition-all hover:bg-black/70 hover:scale-110 active:scale-95 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextSlide}
+                aria-label="Next Slide"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md border border-white/25 shadow-lg transition-all hover:bg-black/70 hover:scale-110 active:scale-95 opacity-80 sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </>
+          )}
 
           <div className="relative z-10 px-5 py-12 sm:px-10 sm:py-16 md:max-w-3xl">
             {/* Government Seal Badge */}
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-xs">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/25 px-3 py-1 text-xs font-semibold text-emerald-200 backdrop-blur-sm shadow-sm">
               <BdGovEmblem size={16} />
               <span>গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত সরকারি মডেল বিদ্যাপীঠ</span>
             </div>
 
-            <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl">
+            <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
               {content.heroTitle || "ঐতিহ্যবাহী এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম"}
             </h2>
 
-            <p className="mt-3 text-sm font-semibold text-amber-300 sm:text-base">
+            <p className="mt-3 text-sm font-bold text-amber-300 sm:text-base drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
               {content.heroSubtitle || "জ্ঞান, চরিত্র ও দেশপ্রেমের চেতনায় আলোকিত সমৃদ্ধ আগামী"}
             </p>
 
-            <p className="mt-4 text-xs leading-relaxed text-white/90 sm:text-sm md:leading-6">
+            <p className="mt-4 text-xs leading-relaxed text-white/95 sm:text-sm md:leading-6 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
               {content.heroDescription ||
                 "সুশৃঙ্খল শিক্ষাদান, আদর্শ নৈতিক চরিত্র গঠন এবং যুগোপযোগী ডিজিটাল শিক্ষার সমন্বয়ে শিক্ষার্থীদের ভবিষ্যৎ বিনির্মাণে আমরা অঙ্গীকারাবদ্ধ।"}
             </p>
@@ -585,7 +679,7 @@ export const PublicSchoolWebsite: React.FC = () => {
             <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href="#admission"
-                className="inline-flex items-center gap-2 rounded-md bg-[#eab308] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-md transition hover:bg-[#fde047] sm:text-sm"
+                className="inline-flex items-center gap-2 rounded-md bg-[#eab308] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-md transition hover:bg-[#fde047] sm:text-sm active:scale-95"
               >
                 <BookOpen size={16} />
                 <span>{content.admissionBtnText || "ভর্তি তথ্য ও আবেদন"}</span>
@@ -593,7 +687,7 @@ export const PublicSchoolWebsite: React.FC = () => {
 
               <a
                 href="#notices"
-                className="inline-flex items-center gap-2 rounded-md border border-white/40 bg-white/15 px-5 py-2.5 text-xs font-semibold text-white backdrop-blur-xs transition hover:bg-white/25 sm:text-sm"
+                className="inline-flex items-center gap-2 rounded-md border border-white/40 bg-black/30 px-5 py-2.5 text-xs font-semibold text-white backdrop-blur-sm transition hover:bg-black/50 sm:text-sm active:scale-95"
               >
                 <Bell size={16} />
                 <span>নোটিশ বোর্ড দেখুন</span>
@@ -601,7 +695,7 @@ export const PublicSchoolWebsite: React.FC = () => {
 
               <a
                 href="#downloads"
-                className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-emerald-950/60 px-4 py-2.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-900 sm:text-sm"
+                className="inline-flex items-center gap-2 rounded-md border border-white/30 bg-[#004d38]/80 px-4 py-2.5 text-xs font-semibold text-emerald-100 backdrop-blur-sm transition hover:bg-[#004d38] sm:text-sm active:scale-95"
               >
                 <Download size={15} />
                 <span>ক্লাস রুটিন ও সিলেবাস</span>
@@ -609,8 +703,40 @@ export const PublicSchoolWebsite: React.FC = () => {
             </div>
           </div>
 
+          {/* Slide Counter & Dots Indicators (Bottom Right) */}
+          {bannerImages.length > 1 && (
+            <div className="absolute bottom-4 right-4 sm:right-6 z-20 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur-md border border-white/20 shadow-md">
+              <span className="text-[11px] font-bold tracking-wider text-emerald-200">
+                {formatDigits(currentSlide + 1)} / {formatDigits(bannerImages.length)}
+              </span>
+              <div className="flex items-center gap-1.5 ml-1">
+                {bannerImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentSlide(idx)}
+                    aria-label={`Go to slide ${idx + 1}`}
+                    className={`h-2 transition-all duration-300 rounded-full ${
+                      idx === currentSlide
+                        ? "w-5 bg-amber-400 shadow-sm"
+                        : "w-2 bg-white/50 hover:bg-white/80"
+                    }`}
+                  />
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCarouselPaused((p) => !p)}
+                title={isCarouselPaused ? "Play Carousel" : "Pause Carousel"}
+                className="ml-1 text-white/80 hover:text-white transition p-0.5 rounded hover:bg-white/10"
+              >
+                {isCarouselPaused ? <Play size={12} /> : <Pause size={12} />}
+              </button>
+            </div>
+          )}
+
           {/* National Flag Color accent bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#006a4e] via-[#da291c] to-[#006a4e]" />
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#006a4e] via-[#da291c] to-[#006a4e] z-20" />
         </section>
 
         {/* ──────────────────────────────────────────────────────────────────────────

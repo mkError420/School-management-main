@@ -228,6 +228,16 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     codeOfConductSubtitleEn: incoming.codeOfConductSubtitleEn !== undefined ? cleanStr(incoming.codeOfConductSubtitleEn, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitleEn || ""),
     codeOfConductRules: cleanList(incoming.codeOfConductRules, DEFAULT_WEBSITE_CONTENT.codeOfConductRules || []),
     admissionSeatMatrix: cleanList(incoming.admissionSeatMatrix, DEFAULT_WEBSITE_CONTENT.admissionSeatMatrix || []),
+    heroImages: cleanList(
+      incoming.heroImages && incoming.heroImages.length > 0
+        ? incoming.heroImages
+        : incoming.heroImage
+        ? [incoming.heroImage]
+        : undefined,
+      DEFAULT_WEBSITE_CONTENT.heroImages || ["/images/bgimage.jpg"]
+    ),
+    heroOverlayOpacity: (incoming.heroOverlayOpacity as any) || DEFAULT_WEBSITE_CONTENT.heroOverlayOpacity || "light",
+    heroCarouselSpeed: typeof incoming.heroCarouselSpeed === "number" ? incoming.heroCarouselSpeed : (DEFAULT_WEBSITE_CONTENT.heroCarouselSpeed || 5000),
   };
 };
 
