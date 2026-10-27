@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
-import type { SchoolWebsiteContent } from "@/types/site";
+import type { SchoolWebsiteContent, ContactSubmission } from "@/types/site";
 import { toEnglishDigits, toBengaliDigits, translateBnToEn, translateEnToBn } from "@/lib/translation";
 
 export const CURRENCY_OPTIONS = [
@@ -49,6 +49,7 @@ interface SiteSettingsContextValue {
   formatDigits: (val: string | number) => string;
   saveSiteName: (siteName: string) => Promise<{ success: boolean; message?: string }>;
   saveWebsiteContent: (content: SchoolWebsiteContent) => Promise<{ success: boolean; message?: string }>;
+  submitContactInquiry: (data: { name: string; phone: string; email?: string; subject: string; message: string }) => Promise<{ success: boolean; message?: string }>;
   saveCurrencySymbol: (symbol: string) => void;
   saveSiteLogo: (fileOrUrl: File | string) => Promise<{ success: boolean; message?: string; logoUrl?: string }>;
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
@@ -88,6 +89,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   formatDigits: (val: string | number) => String(val ?? ""),
   saveSiteName: async () => ({ success: false, message: "Site settings are unavailable." }),
   saveWebsiteContent: async () => ({ success: false, message: "Site settings are unavailable." }),
+  submitContactInquiry: async () => ({ success: false, message: "Site settings are unavailable." }),
   saveCurrencySymbol: () => {},
   saveSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
@@ -227,6 +229,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     codeOfConductSubtitle: incoming.codeOfConductSubtitle !== undefined ? cleanStr(incoming.codeOfConductSubtitle, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitle || ""),
     codeOfConductSubtitleEn: incoming.codeOfConductSubtitleEn !== undefined ? cleanStr(incoming.codeOfConductSubtitleEn, "") : (DEFAULT_WEBSITE_CONTENT.codeOfConductSubtitleEn || ""),
     codeOfConductRules: cleanList(incoming.codeOfConductRules, DEFAULT_WEBSITE_CONTENT.codeOfConductRules || []),
+    contactSubmissions: cleanList(incoming.contactSubmissions, DEFAULT_WEBSITE_CONTENT.contactSubmissions || []),
     admissionSeatMatrix: cleanList(incoming.admissionSeatMatrix, DEFAULT_WEBSITE_CONTENT.admissionSeatMatrix || []),
     heroImages: cleanList(
       incoming.heroImages && incoming.heroImages.length > 0
@@ -591,6 +594,51 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return { success: true };
   };
 
+  const submitContactInquiry = async (data: {
+    name: string;
+    phone: string;
+    email?: string;
+    subject: string;
+    message: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    const newSubmission: ContactSubmission = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      name: data.name.trim(),
+      phone: data.phone.trim(),
+      email: data.email?.trim() || undefined,
+      subject: data.subject.trim(),
+      message: data.message.trim(),
+      createdAt: new Date().toISOString(),
+      status: "unread",
+    };
+
+    const currentSubmissions = Array.isArray(websiteContent.contactSubmissions) ? websiteContent.contactSubmissions : [];
+    const updatedSubmissions = [newSubmission, ...currentSubmissions];
+    const updatedContent: SchoolWebsiteContent = {
+      ...websiteContent,
+      contactSubmissions: updatedSubmissions,
+    };
+
+    setWebsiteContent(updatedContent);
+    try {
+      localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(updatedContent));
+    } catch {}
+    broadcastUpdate();
+
+    try {
+      const res = await api.submitContactForm(data);
+      if (res.success) {
+        return { success: true, message: "আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে এবং ড্যাশবোর্ডে সংরক্ষিত হয়েছে।" };
+      }
+    } catch {
+      try {
+        await api.updateWebsiteContent(updatedContent);
+      } catch {}
+    }
+
+    return { success: true, message: "আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে।" };
+  };
+
   const saveCurrencySymbol = (symbol: string) => {
     setCurrencySymbol(symbol);
     try {
@@ -615,6 +663,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         formatDigits,
         saveSiteName,
         saveWebsiteContent,
+        submitContactInquiry,
         saveCurrencySymbol,
         saveSiteLogo,
         resetSiteLogo,

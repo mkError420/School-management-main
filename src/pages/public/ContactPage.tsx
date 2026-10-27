@@ -4,24 +4,63 @@ import {
   ArrowRight,
   Clock,
   Home,
+  Loader2,
   Mail,
   MapPin,
   Phone,
   PhoneCall,
   Send,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 export const ContactPage: React.FC = () => {
-  const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
+  const { websiteContent: content, t, lang, formatDigits, submitContactInquiry } = useSiteSettings();
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    (e.target as HTMLFormElement).reset();
-    setTimeout(() => setSubmitted(false), 5000);
+    if (!formData.name.trim() || !formData.phone.trim() || !formData.message.trim()) {
+      return;
+    }
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      const res = await submitContactInquiry({
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        subject: formData.subject || (lang === "bn" ? "অনলাইন মতামত ও অনুসন্ধান" : "Online Feedback & Inquiry"),
+        message: formData.message,
+      });
+      if (res.success) {
+        setSubmitted(true);
+        setFormData({
+          name: "",
+          phone: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+        setTimeout(() => setSubmitted(false), 8000);
+      } else {
+        setSubmitError(res.message || (lang === "bn" ? "বার্তা পাঠাতে সমস্যা হয়েছে।" : "Failed to send message."));
+      }
+    } catch (err: any) {
+      setSubmitError(err?.message || (lang === "bn" ? "সার্ভার সংযোগ সমস্যা।" : "Server connection error."));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -121,14 +160,21 @@ export const ContactPage: React.FC = () => {
           </p>
 
           {submitted && (
-            <div className="mt-4 rounded-md bg-emerald-50 border border-emerald-300 p-3 text-xs font-bold text-emerald-900 flex items-center gap-2">
-              <ShieldCheck size={16} />
+            <div className="mt-4 rounded-md bg-emerald-50 border border-emerald-300 p-3.5 text-xs font-bold text-emerald-900 flex items-center gap-2.5 animate-in fade-in">
+              <ShieldCheck size={18} className="shrink-0 text-emerald-600" />
               <span>
                 {t(
-                  "আপনার বার্তাটি সফলভাবে বিদ্যালয় কর্তৃপক্ষের নিকট পাঠানো হয়েছে। ধন্যবাদ!",
-                  "Your message has been sent successfully to the school administration. Thank you!"
+                  "আপনার বার্তাটি সফলভাবে বিদ্যালয় কর্তৃপক্ষের নিকট পাঠানো হয়েছে, অথোরিটি দ্রুত আপনার সাথে যোগাযোগ করবে। ধন্যবাদ!",
+                  "Your message has been sent successfully to the school administration, authority will contact you soon. Thank you!"
                 )}
               </span>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="mt-4 rounded-md bg-red-50 border border-red-300 p-3.5 text-xs font-bold text-red-900 flex items-center gap-2.5 animate-in fade-in">
+              <AlertCircle size={18} className="shrink-0 text-red-600" />
+              <span>{submitError}</span>
             </div>
           )}
 
@@ -139,6 +185,8 @@ export const ContactPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={formData.name}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   placeholder={t("পূর্ণ নাম লিখুন", "Enter full name")}
                   className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e]"
                 />
@@ -149,6 +197,8 @@ export const ContactPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  value={formData.phone}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                   placeholder={t("০১৭xxxxxxxx", "017xxxxxxxx")}
                   className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e]"
                 />
@@ -159,6 +209,8 @@ export const ContactPage: React.FC = () => {
               {t("ইমেইল ঠিকানা (ঐচ্ছিক)", "Email Address (Optional)")}
               <input
                 type="email"
+                value={formData.email}
+                onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                 placeholder="example@mail.com"
                 className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e]"
               />
@@ -169,6 +221,8 @@ export const ContactPage: React.FC = () => {
               <input
                 type="text"
                 required
+                value={formData.subject}
+                onChange={(e) => setFormData((prev) => ({ ...prev, subject: e.target.value }))}
                 placeholder={t("বার্তার মূল বিষয় লিখুন", "Enter main subject")}
                 className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e]"
               />
@@ -179,6 +233,8 @@ export const ContactPage: React.FC = () => {
               <textarea
                 rows={4}
                 required
+                value={formData.message}
+                onChange={(e) => setFormData((prev) => ({ ...prev, message: e.target.value }))}
                 placeholder={t("এখানে আপনার বার্তা লিখুন...", "Write your message here...")}
                 className="mt-1 w-full rounded border border-gray-300 px-3 py-2 text-xs text-black outline-none focus:border-[#006a4e] resize-y"
               />
@@ -186,10 +242,20 @@ export const ContactPage: React.FC = () => {
 
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded bg-[#006a4e] px-6 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
+              disabled={isSubmitting}
+              className="inline-flex items-center justify-center gap-2 rounded bg-[#006a4e] px-6 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <Send size={14} />
-              <span>{t("বার্তা পাঠান", "Send Message")}</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>{t("বার্তা পাঠানো হচ্ছে...", "Sending Message...")}</span>
+                </>
+              ) : (
+                <>
+                  <Send size={14} />
+                  <span>{t("বার্তা পাঠান", "Send Message")}</span>
+                </>
+              )}
             </button>
           </form>
         </div>

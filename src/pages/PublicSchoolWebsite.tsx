@@ -23,6 +23,7 @@ import {
   HelpCircle,
   Image as ImageIcon,
   Languages,
+  Loader2,
   Mail,
   MapPin,
   Menu,
@@ -65,8 +66,12 @@ const GOVT_OFFICIAL_LINKS = [
 ];
 
 export const PublicSchoolWebsite: React.FC = () => {
-  const { websiteContent: content, siteLogo, liveCounts } = useSiteSettings();
+  const { websiteContent: content, siteLogo, liveCounts, submitContactInquiry } = useSiteSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [homeContactForm, setHomeContactForm] = useState({ name: "", phone: "", email: "", message: "" });
+  const [isHomeContactSending, setIsHomeContactSending] = useState(false);
+  const [homeContactSuccess, setHomeContactSuccess] = useState(false);
+  const [homeContactError, setHomeContactError] = useState("");
   const [activeNoticeCategory, setActiveNoticeCategory] = useState<string>("সকল");
   const [noticeSearch, setNoticeSearch] = useState<string>("");
   const [selectedNotice, setSelectedNotice] = useState<SchoolNotice | null>(null);
@@ -338,7 +343,7 @@ export const PublicSchoolWebsite: React.FC = () => {
             {/* Super Admin & Staff Portal Login */}
             <Link
               to="/sign-in"
-              className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
             >
               <Users size={13} />
               <span>ইউজার লগইন</span>
@@ -1507,12 +1512,47 @@ export const PublicSchoolWebsite: React.FC = () => {
 
             <div className="rounded-lg bg-white/10 p-5 backdrop-blur-xs lg:col-span-7">
               <h4 className="text-sm font-bold text-white">জরুরি যোগাযোগ / মতামত ফরম</h4>
-              <p className="mt-1 text-xs text-emerald-100">বিদ্যালয় কর্তৃপক্ষের নিকট আপনার মতামত বা প্রশ্ন পাঠান</p>
+              <p className="mt-1 text-xs text-emerald-100">বিদ্যালয় কর্তৃপক্ষের নিকট আপনার মতামত বা প্রশ্ন পাঠান (সরাসরি সুপার অ্যাডমিন ড্যাশবোর্ডে জমা হবে)</p>
+
+              {homeContactSuccess && (
+                <div className="mt-3 rounded-md bg-emerald-500/30 border border-emerald-400 p-3 text-xs font-bold text-white flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 size={16} className="text-emerald-300 shrink-0" />
+                  <span>আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে এবং অ্যাডমিন ড্যাশবোর্ডে সংরক্ষিত হয়েছে। ধন্যবাদ!</span>
+                </div>
+              )}
+
+              {homeContactError && (
+                <div className="mt-3 rounded-md bg-red-500/30 border border-red-400 p-3 text-xs font-bold text-white flex items-center gap-2 animate-in fade-in">
+                  <span>{homeContactError}</span>
+                </div>
+              )}
+
               <form
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
-                  alert("আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে। ধন্যবাদ!");
-                  (e.target as HTMLFormElement).reset();
+                  if (!homeContactForm.name.trim() || !homeContactForm.phone.trim() || !homeContactForm.message.trim()) return;
+                  setIsHomeContactSending(true);
+                  setHomeContactError("");
+                  try {
+                    const res = await submitContactInquiry({
+                      name: homeContactForm.name,
+                      phone: homeContactForm.phone,
+                      email: homeContactForm.email,
+                      subject: "ওয়েবসাইট হোমপেজ যোগাযোগ",
+                      message: homeContactForm.message,
+                    });
+                    if (res.success) {
+                      setHomeContactSuccess(true);
+                      setHomeContactForm({ name: "", phone: "", email: "", message: "" });
+                      setTimeout(() => setHomeContactSuccess(false), 7000);
+                    } else {
+                      setHomeContactError(res.message || "বার্তা পাঠাতে সমস্যা হয়েছে।");
+                    }
+                  } catch (err: any) {
+                    setHomeContactError(err?.message || "সার্ভার সংযোগ সমস্যা।");
+                  } finally {
+                    setIsHomeContactSending(false);
+                  }
                 }}
                 className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
               >
@@ -1520,31 +1560,49 @@ export const PublicSchoolWebsite: React.FC = () => {
                   type="text"
                   placeholder="আপনার নাম *"
                   required
+                  value={homeContactForm.name}
+                  onChange={(e) => setHomeContactForm((p) => ({ ...p, name: e.target.value }))}
                   className="rounded border border-white/20 bg-white/20 px-3 py-2 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/30"
                 />
                 <input
                   type="text"
                   placeholder="মোবাইল নম্বর *"
                   required
+                  value={homeContactForm.phone}
+                  onChange={(e) => setHomeContactForm((p) => ({ ...p, phone: e.target.value }))}
                   className="rounded border border-white/20 bg-white/20 px-3 py-2 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/30"
                 />
                 <input
                   type="email"
                   placeholder="ইমেইল (ঐচ্ছিক)"
+                  value={homeContactForm.email}
+                  onChange={(e) => setHomeContactForm((p) => ({ ...p, email: e.target.value }))}
                   className="rounded border border-white/20 bg-white/20 px-3 py-2 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/30 sm:col-span-2"
                 />
                 <textarea
                   rows={3}
                   placeholder="আপনার বার্তা বা প্রশ্ন..."
                   required
+                  value={homeContactForm.message}
+                  onChange={(e) => setHomeContactForm((p) => ({ ...p, message: e.target.value }))}
                   className="rounded border border-white/20 bg-white/20 px-3 py-2 text-xs text-white placeholder:text-white/60 outline-none focus:bg-white/30 sm:col-span-2"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded bg-[#eab308] px-5 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#fde047] sm:col-span-2"
+                  disabled={isHomeContactSending}
+                  className="inline-flex items-center justify-center gap-2 rounded bg-[#eab308] px-5 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#fde047] sm:col-span-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <span>বার্তা পাঠান</span>
-                  <ArrowRight size={14} />
+                  {isHomeContactSending ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>বার্তা পাঠানো হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>বার্তা পাঠান</span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
                 </button>
               </form>
             </div>

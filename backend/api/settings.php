@@ -14,6 +14,8 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
+        } elseif ($action === 'submit-contact' || $action === 'submit-feedback' || $action === 'contact') {
+            submitPublicContactForm($db);
         } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-book-file' || $action === 'upload-book-pdf' || $action === 'upload-file' || $action === 'upload-banner-image' || !empty($_FILES['file']) || !empty($_FILES['book']) || !empty($_FILES['notice_file']) || !empty($_FILES['banner']) || !empty($_FILES['image'])) {
             uploadNoticeFile($db);
         } else {
@@ -493,4 +495,75 @@ function uploadNoticeFile($db) {
         'size'          => $upload['size'],
     ]);
 }
+
+function submitPublicContactForm($db) {
+    ensureSiteSettingsTable($db);
+    $rawInput = file_get_contents('php://input');
+    $input = json_decode($rawInput, true) ?? [];
+
+    $name = trim((string)($input['name'] ?? ''));
+    $phone = trim((string)($input['phone'] ?? ''));
+    $email = trim((string)($input['email'] ?? ''));
+    $subject = trim((string)($input['subject'] ?? ''));
+    $message = trim((string)($input['message'] ?? ''));
+
+    if (empty($name) || empty($phone) || empty($message)) {
+        Response::error('নাম, মোবাইল নম্বর এবং বার্তা পূরণ করা আবশ্যক');
+    }
+
+    if (empty($subject)) {
+        $subject = 'অনলাইন মতামত ও অনুসন্ধান';
+    }
+
+    try {
+        $db->query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'");
+    } catch (Exception $e) {}
+
+    $row = $db->fetchOne("SELECT setting_value FROM site_settings WHERE setting_key = 'website_content'");
+    $content = [];
+    if (!empty($row['setting_value'])) {
+        $content = json_decode($row['setting_value'], true);
+        if (!is_array($content)) {
+            $content = [];
+        }
+    }
+
+    if (!isset($content['contactSubmissions']) || !is_array($content['contactSubmissions'])) {
+        $content['contactSubmissions'] = [];
+    }
+
+    $newSubmission = [
+        'id' => 'msg_' . time() . '_' . substr(bin2hex(random_bytes(4)), 0, 6),
+        'name' => $name,
+        'phone' => $phone,
+        'email' => $email,
+        'subject' => $subject,
+        'message' => $message,
+        'createdAt' => date('c'),
+        'status' => 'unread',
+    ];
+
+    // Prepend so newest is first
+    array_unshift($content['contactSubmissions'], $newSubmission);
+
+    // Limit to latest 300 inquiries
+    if (count($content['contactSubmissions']) > 300) {
+        $content['contactSubmissions'] = array_slice($content['contactSubmissions'], 0, 300);
+    }
+
+    $encoded = json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $db->query(
+        "INSERT INTO site_settings (setting_key, setting_value)
+         VALUES ('website_content', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)",
+        [$encoded]
+    );
+
+    Response::success('আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে এবং সংরক্ষিত হয়েছে', [
+        'submission' => $newSubmission,
+        'total' => count($content['contactSubmissions']),
+        'website_content' => $content,
+    ]);
+}
+
 

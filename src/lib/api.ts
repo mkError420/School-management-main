@@ -1,5 +1,4 @@
-// API Client for PHP Backend & MySQL Database
-import type { SchoolWebsiteContent } from "@/types/site";
+import type { SchoolWebsiteContent, ContactSubmission } from "@/types/site";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/backend/api';
 
@@ -154,6 +153,13 @@ class ApiService {
     return this.request<{ website_content: SchoolWebsiteContent }>('settings', {
       method: 'PUT',
       body: JSON.stringify({ website_content: websiteContent }),
+    });
+  }
+
+  async submitContactForm(data: { name: string; phone: string; email?: string; subject: string; message: string }) {
+    return this.request<{ submission: ContactSubmission; total?: number; website_content?: SchoolWebsiteContent }>('settings?action=submit-contact', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 

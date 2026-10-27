@@ -82,6 +82,19 @@ export interface SchoolCodeOfConductRule {
   badgeEn?: string;
 }
 
+export interface ContactSubmission {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  subject: string;
+  message: string;
+  createdAt: string;
+  status?: "unread" | "read" | "replied";
+  adminReply?: string;
+  repliedAt?: string;
+}
+
 export interface SchoolWebsiteContent {
   // 1. Basic Identification & Government Details
   schoolName: string;
@@ -237,6 +250,9 @@ export interface SchoolWebsiteContent {
   codeOfConductSubtitle?: string;
   codeOfConductSubtitleEn?: string;
   codeOfConductRules?: SchoolCodeOfConductRule[];
+
+  // 11. Online Feedback & Contact Inquiries
+  contactSubmissions?: ContactSubmission[];
 }
 
 export interface AdmissionSeatCapacityItem {
@@ -952,6 +968,28 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
       descriptionEn: "Bringing smartphones or electronic gadgets into classrooms is strictly prohibited.",
       badge: "শৃঙ্খলা বিধি",
       badgeEn: "Discipline",
+    },
+  ],
+  contactSubmissions: [
+    {
+      id: "demo_contact_1",
+      name: "মোহাম্মদ রফিকুল ইসলাম",
+      phone: "01712345678",
+      email: "rafiq.parent@gmail.com",
+      subject: "ষষ্ঠ শ্রেণিতে ভর্তি প্রক্রিয়া সংক্রান্ত তথ্য",
+      message: "আসসালামু আলাইকুম। আমার ছেলের জন্য ষষ্ঠ শ্রেণির ভর্তি পরীক্ষার সিলেবাস ও আবেদন ফি জমা দেওয়ার শেষ তারিখ জানতে চাচ্ছি। ধন্যবাদ।",
+      createdAt: "2026-10-26T10:30:00.000Z",
+      status: "unread",
+    },
+    {
+      id: "demo_contact_2",
+      name: "নাজমিন আক্তার",
+      phone: "01898765432",
+      email: "nazmin.a@yahoo.com",
+      subject: "বিজ্ঞান ল্যাব ও ক্লাসরুম সুবিধা সংক্রান্ত প্রশংসা",
+      message: "বিদ্যালয়ের নতুন কম্পিউটার ও বিজ্ঞান ল্যাবের আধুনিক সুযোগ-সুবিধা দেখে অনেক ভালো লাগলো। প্রধান শিক্ষক ও সম্মানিত শিক্ষকদের আন্তরিক ধন্যবাদ জানাই।",
+      createdAt: "2026-10-25T14:15:00.000Z",
+      status: "read",
     },
   ],
 };

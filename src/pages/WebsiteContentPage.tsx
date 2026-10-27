@@ -27,6 +27,7 @@ import {
   GraduationCap,
   HeartHandshake,
   Image as ImageIcon,
+  Inbox,
   Info,
   Languages,
   Layers,
@@ -34,8 +35,13 @@ import {
   Lightbulb,
   Link as LinkIcon,
   Loader2,
+  Mail,
+  MessageSquare,
+  MessageCircle,
   Monitor,
   Pencil,
+  Phone,
+  PhoneCall,
   Plus,
   Radio,
   RefreshCw,
@@ -77,6 +83,7 @@ import type {
   StudyCornerStat,
   StudyCornerLink,
   StudyCornerTip,
+  ContactSubmission,
 } from "@/types/site";
 import { DEFAULT_ADMISSION_SEAT_MATRIX, DEFAULT_WEBSITE_CONTENT } from "@/types/site";
 import {
@@ -124,7 +131,8 @@ type ContentTab =
   | "gallery"
   | "study_co"
   | "links"
-  | "conduct";
+  | "conduct"
+  | "contact";
 
 type EditLangMode = "bn" | "en" | "dual";
 
@@ -181,6 +189,12 @@ const WebsiteContentPage: React.FC = () => {
     admin: number;
     support: number;
   } | null>(null);
+
+  // Contact / Feedback State
+  const [contactSubTab, setContactSubTab] = useState<"inbox" | "settings">("inbox");
+  const [contactSearchQuery, setContactSearchQuery] = useState("");
+  const [contactFilterStatus, setContactFilterStatus] = useState<"all" | "unread" | "read">("all");
+  const [selectedInquiryModal, setSelectedInquiryModal] = useState<ContactSubmission | null>(null);
 
   const mapStaffArrayToTeachers = useCallback((rawStaff: any[]): SchoolTeacherMember[] => {
     return rawStaff.map((s, idx) => {
@@ -665,6 +679,102 @@ const WebsiteContentPage: React.FC = () => {
   const isDirty = useMemo(() => {
     return JSON.stringify(draft) !== JSON.stringify(websiteContent);
   }, [draft, websiteContent]);
+
+  // Contact Submissions Handlers
+  const handleToggleInquiryStatus = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDraft((prev) => {
+      const list = (prev.contactSubmissions || []).map((sub) => {
+        if (sub.id === id) {
+          const nextStatus = sub.status === "read" ? ("unread" as const) : ("read" as const);
+          return { ...sub, status: nextStatus };
+        }
+        return sub;
+      });
+      return { ...prev, contactSubmissions: list };
+    });
+  };
+
+  const handleMarkAllInquiriesRead = () => {
+    setDraft((prev) => {
+      const list = (prev.contactSubmissions || []).map((sub) => ({
+        ...sub,
+        status: "read" as const,
+      }));
+      return { ...prev, contactSubmissions: list };
+    });
+  };
+
+  const handleDeleteInquiry = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!confirm("আপনি কি নিশ্চিতভাবে এই অনুসন্ধান বার্তাটি মুছে ফেলতে চান?")) return;
+    setDraft((prev) => {
+      const list = (prev.contactSubmissions || []).filter((sub) => sub.id !== id);
+      return { ...prev, contactSubmissions: list };
+    });
+    if (selectedInquiryModal?.id === id) {
+      setSelectedInquiryModal(null);
+    }
+  };
+
+  const handleExportInquiriesCsv = () => {
+    const inquiries = draft.contactSubmissions || [];
+    if (inquiries.length === 0) {
+      alert("এক্সপোর্ট করার মতো কোনো বার্তা নেই।");
+      return;
+    }
+    const headers = ["ID", "Name", "Phone", "Email", "Subject", "Message", "Status", "Date"];
+    const rows = inquiries.map((item) => [
+      `"${item.id}"`,
+      `"${(item.name || "").replace(/"/g, '""')}"`,
+      `"${(item.phone || "").replace(/"/g, '""')}"`,
+      `"${(item.email || "").replace(/"/g, '""')}"`,
+      `"${(item.subject || "").replace(/"/g, '""')}"`,
+      `"${(item.message || "").replace(/"/g, '""')}"`,
+      `"${item.status || "unread"}"`,
+      `"${item.createdAt ? new Date(item.createdAt).toLocaleString() : ""}"`,
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `school_contact_inquiries_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleOpenInquiryModal = (sub: ContactSubmission) => {
+    setSelectedInquiryModal(sub);
+    if (sub.status !== "read") {
+      setDraft((prev) => {
+        const list = (prev.contactSubmissions || []).map((s) => {
+          if (s.id === sub.id) {
+            return { ...s, status: "read" as const };
+          }
+          return s;
+        });
+        return { ...prev, contactSubmissions: list };
+      });
+    }
+  };
+
+  const filteredInquiries = useMemo(() => {
+    const list = draft.contactSubmissions || [];
+    const q = contactSearchQuery.trim().toLowerCase();
+    return list.filter((item) => {
+      if (contactFilterStatus === "unread" && item.status === "read") return false;
+      if (contactFilterStatus === "read" && item.status !== "read") return false;
+      if (!q) return true;
+      return (
+        (item.name || "").toLowerCase().includes(q) ||
+        (item.phone || "").toLowerCase().includes(q) ||
+        (item.email || "").toLowerCase().includes(q) ||
+        (item.subject || "").toLowerCase().includes(q) ||
+        (item.message || "").toLowerCase().includes(q)
+      );
+    });
+  }, [draft.contactSubmissions, contactSearchQuery, contactFilterStatus]);
 
   // Ticker Handlers
   const addTickerItem = () => {
@@ -1769,6 +1879,12 @@ const WebsiteContentPage: React.FC = () => {
       icon: Shield,
       badgeCount: (draft.codeOfConductRules || []).length,
     },
+    {
+      id: "contact",
+      label: "১৪. যোগাযোগ ও মতামত (Contact)",
+      icon: Mail,
+      badgeCount: (draft.contactSubmissions || []).filter((s) => s.status !== "read").length,
+    },
   ];
 
   const handleToggleSecondSidebar = () => {
@@ -1816,7 +1932,7 @@ const WebsiteContentPage: React.FC = () => {
                     ওয়েবসাইট সেকশন
                   </h2>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
-                    ১৩টি কনটেন্ট মডিউল
+                    {tabs.length}টি কনটেন্ট মডিউল
                   </p>
                 </div>
               </div>
@@ -1993,7 +2109,7 @@ const WebsiteContentPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#006a4e] px-3 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-[#00503a] shrink-0"
               >
                 <Layers size={13} />
-                <span>মেনু (১৩)</span>
+                <span>মেনু ({tabs.length})</span>
               </button>
             </div>
 
@@ -7288,6 +7404,504 @@ const WebsiteContentPage: React.FC = () => {
               </div>
             )}
 
+            {/* ─── ১৪. যোগাযোগ ও মতামত (CONTACT & ONLINE INQUIRIES) ─── */}
+            {activeTab === "contact" && (
+              <div className="space-y-6">
+                <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 dark:border-slate-800">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-[#006a4e] dark:bg-emerald-950 dark:text-emerald-300">
+                          <Mail size={16} />
+                        </span>
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                          ১৪. যোগাযোগ ও অনলাইন মতামত ব্যবস্থাপনা (Contact & Inquiries)
+                        </h2>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        ওয়েবসাইটের{" "}
+                        <a
+                          href="/contact"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-[#006a4e] underline hover:text-[#00503a] dark:text-emerald-400"
+                        >
+                          /contact
+                        </a>{" "}
+                        পেজের মাধ্যমে অভিভাবক বা দর্শনার্থীদের প্রেরিত অনলাইন ফিডব্যাক, অনুসন্ধান ও প্রশ্ন এখানে সরাসরি সিঙ্ক ও সংরক্ষিত হয়।
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href="/contact"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-emerald-50 hover:text-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition"
+                      >
+                        <ExternalLink size={13} />
+                        <span>লাইভ যোগাযোগ পেজ</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Counters */}
+                  <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-3.5 dark:border-slate-800 dark:bg-slate-850">
+                      <p className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">মোট প্রাপ্ত বার্তা</p>
+                      <p className="mt-1 text-xl font-extrabold text-gray-900 dark:text-white">
+                        {(draft.contactSubmissions || []).length}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-3.5 dark:border-amber-900/40 dark:bg-amber-950/20">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-semibold text-amber-900 dark:text-amber-300">নতুন / অপঠিত</p>
+                        {(draft.contactSubmissions || []).filter((s) => s.status !== "read").length > 0 && (
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xl font-extrabold text-amber-700 dark:text-amber-400">
+                        {(draft.contactSubmissions || []).filter((s) => s.status !== "read").length}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3.5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                      <p className="text-[11px] font-semibold text-emerald-900 dark:text-emerald-300">পঠিত ও অনুসৃত</p>
+                      <p className="mt-1 text-xl font-extrabold text-[#006a4e] dark:text-emerald-400">
+                        {(draft.contactSubmissions || []).filter((s) => s.status === "read").length}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-blue-200/80 bg-blue-50/60 p-3.5 dark:border-blue-900/40 dark:bg-blue-950/20">
+                      <p className="text-[11px] font-semibold text-blue-900 dark:text-blue-300">অফিস হটলাইন</p>
+                      <p className="mt-1 text-xs font-bold text-blue-950 dark:text-blue-200 truncate" title={draft.phone}>
+                        {draft.phone || "সেট করা হয়নি"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Sub-Tab Navigation Toggle */}
+                  <div className="mt-6 flex border-b border-gray-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setContactSubTab("inbox")}
+                      className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-bold transition-all ${
+                        contactSubTab === "inbox"
+                          ? "border-[#006a4e] text-[#006a4e] dark:text-emerald-400"
+                          : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      <Inbox size={15} />
+                      <span>অনলাইন মতামত ও অনুসন্ধান ইনবক্স</span>
+                      {(draft.contactSubmissions || []).filter((s) => s.status !== "read").length > 0 && (
+                        <span className="rounded-full bg-amber-500 px-1.5 py-0.2 text-[10px] font-extrabold text-white">
+                          {(draft.contactSubmissions || []).filter((s) => s.status !== "read").length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setContactSubTab("settings")}
+                      className={`flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-bold transition-all ${
+                        contactSubTab === "settings"
+                          ? "border-[#006a4e] text-[#006a4e] dark:text-emerald-400"
+                          : "border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                      }`}
+                    >
+                      <Phone size={14} />
+                      <span>অফিস যোগাযোগ তথ্য ও সময়সূচী এডিট</span>
+                    </button>
+                  </div>
+
+                  {/* SUB-TAB 1: INBOX */}
+                  {contactSubTab === "inbox" && (
+                    <div className="mt-5 space-y-4">
+                      {/* Search and Action Toolbar */}
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-1 items-center gap-2">
+                          <div className="relative flex-1 max-w-md">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            <input
+                              type="text"
+                              value={contactSearchQuery}
+                              onChange={(e) => setContactSearchQuery(e.target.value)}
+                              placeholder="নাম, মোবাইল, ইমেইল বা বিষয় দিয়ে খুঁজুন..."
+                              className="w-full rounded-lg border border-gray-200 bg-white pl-8.5 pr-8 py-2 text-xs text-gray-800 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-gray-200"
+                            />
+                            {contactSearchQuery && (
+                              <button
+                                type="button"
+                                onClick={() => setContactSearchQuery("")}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              >
+                                <X size={13} />
+                              </button>
+                            )}
+                          </div>
+
+                          <select
+                            value={contactFilterStatus}
+                            onChange={(e) => setContactFilterStatus(e.target.value as any)}
+                            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                          >
+                            <option value="all">সকল অবস্থা ({(draft.contactSubmissions || []).length})</option>
+                            <option value="unread">
+                              শুধু অপঠিত ({(draft.contactSubmissions || []).filter((s) => s.status !== "read").length})
+                            </option>
+                            <option value="read">
+                              পঠিত ({(draft.contactSubmissions || []).filter((s) => s.status === "read").length})
+                            </option>
+                          </select>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {(draft.contactSubmissions || []).filter((s) => s.status !== "read").length > 0 && (
+                            <button
+                              type="button"
+                              onClick={handleMarkAllInquiriesRead}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-[#006a4e] hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 transition"
+                            >
+                              <CheckCircle2 size={13} />
+                              <span>সবগুলো পঠিত করুন</span>
+                            </button>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={handleExportInquiriesCsv}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition shadow-2xs"
+                          >
+                            <Download size={13} />
+                            <span>CSV এক্সপোর্ট</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inquiries List */}
+                      {filteredInquiries.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-gray-200 p-10 text-center dark:border-slate-800">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-[#006a4e] dark:bg-slate-800 dark:text-emerald-400">
+                            <Inbox size={24} />
+                          </div>
+                          <h4 className="mt-3 text-sm font-bold text-gray-900 dark:text-white">
+                            {contactSearchQuery ? "খোঁজার সাথে কোনো বার্তা মেলেনি" : "এখনও কোনো অনলাইন মতামত জমা পড়েনি"}
+                          </h4>
+                          <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
+                            ওয়েবসাইটের{" "}
+                            <a href="/contact" target="_blank" rel="noreferrer" className="text-[#006a4e] underline font-bold">
+                              যোগাযোগ পেজে
+                            </a>{" "}
+                            গিয়ে "অনলাইন মতামত ও প্রশ্ন ফরম" পূরণ করলে তা সরাসরি এখানে সংরক্ষিত হয়ে প্রদর্শিত হবে।
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {filteredInquiries.map((item) => {
+                            const isUnread = item.status !== "read";
+                            const formattedDate = item.createdAt
+                              ? new Date(item.createdAt).toLocaleString("bn-BD", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "তারিখ সংরক্ষিত নেই";
+
+                            const initial = (item.name || "অ").charAt(0).toUpperCase();
+                            const cleanPhone = (item.phone || "").replace(/[^0-9]/g, "");
+                            const waPhone = cleanPhone.startsWith("88") ? cleanPhone : `88${cleanPhone.replace(/^0/, "")}`;
+
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => handleOpenInquiryModal(item)}
+                                className={`group relative rounded-xl border p-4 transition-all duration-150 cursor-pointer ${
+                                  isUnread
+                                    ? "border-amber-300 bg-amber-50/30 hover:bg-amber-50/60 dark:border-amber-800/60 dark:bg-amber-950/20 shadow-xs ring-1 ring-amber-400/20"
+                                    : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/10 dark:border-slate-800 dark:bg-slate-850"
+                                }`}
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  {/* User & Subject Header */}
+                                  <div className="flex items-start gap-3 min-w-0">
+                                    <div
+                                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                                        isUnread
+                                          ? "bg-amber-500 text-white shadow-xs"
+                                          : "bg-emerald-100 text-[#006a4e] dark:bg-slate-700 dark:text-emerald-300"
+                                      }`}
+                                    >
+                                      {initial}
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm truncate">
+                                          {item.name}
+                                        </h4>
+
+                                        {isUnread ? (
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-300">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+                                            <span>নতুন বার্তা</span>
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-700 dark:bg-slate-700 dark:text-gray-300">
+                                            <Check size={11} className="text-emerald-600" />
+                                            <span>পঠিত</span>
+                                          </span>
+                                        )}
+
+                                        <span className="text-[10px] text-gray-400">{formattedDate}</span>
+                                      </div>
+
+                                      <p className="mt-1 text-xs font-semibold text-[#006a4e] dark:text-emerald-400">
+                                        বিষয়: {item.subject}
+                                      </p>
+
+                                      <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                                        {item.message}
+                                      </p>
+
+                                      {/* Quick Contact Link Pills */}
+                                      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs" onClick={(e) => e.stopPropagation()}>
+                                        <a
+                                          href={`tel:${cleanPhone}`}
+                                          className="inline-flex items-center gap-1 font-semibold text-gray-700 hover:text-[#006a4e] dark:text-gray-300 transition"
+                                          title="সরাসরি কল করুন"
+                                        >
+                                          <Phone size={12} className="text-[#006a4e]" />
+                                          <span>{item.phone}</span>
+                                        </a>
+
+                                        {cleanPhone && (
+                                          <a
+                                            href={`https://wa.me/${waPhone}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800 dark:text-emerald-400 transition"
+                                            title="হোয়াটসঅ্যাপে চ্যাট করুন"
+                                          >
+                                            <MessageCircle size={12} />
+                                            <span>হোয়াটসঅ্যাপ</span>
+                                          </a>
+                                        )}
+
+                                        {item.email && (
+                                          <a
+                                            href={`mailto:${item.email}?subject=Re: ${encodeURIComponent(item.subject)}`}
+                                            className="inline-flex items-center gap-1 font-semibold text-blue-700 hover:text-blue-800 dark:text-blue-400 transition truncate max-w-xs"
+                                            title="ইমেইল রিপ্লাই পাঠান"
+                                          >
+                                            <Mail size={12} />
+                                            <span className="truncate">{item.email}</span>
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Right Actions */}
+                                  <div className="flex shrink-0 items-center gap-1.5 self-end sm:self-center" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenInquiryModal(item)}
+                                      className="rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-emerald-50 hover:text-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition"
+                                    >
+                                      বিস্তারিত দেখুন
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleToggleInquiryStatus(item.id, e)}
+                                      title={isUnread ? "পঠিত হিসেবে চিহ্নিত করুন" : "অপঠিত হিসেবে চিহ্নিত করুন"}
+                                      className="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-600 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition"
+                                    >
+                                      {isUnread ? <Check size={14} className="text-emerald-600" /> : <Eye size={14} />}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteInquiry(item.id, e)}
+                                      title="বার্তা মুছে ফেলুন"
+                                      className="rounded-lg border border-red-200 bg-white p-1.5 text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:bg-slate-800 dark:hover:bg-red-950/40 transition"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* SUB-TAB 2: SETTINGS */}
+                  {contactSubTab === "settings" && (
+                    <div className="mt-5 space-y-6">
+                      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        {/* Phone */}
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            অফিসিয়াল ফোন / হটলাইন নম্বর *
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.phone || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, phone: e.target.value }))}
+                            placeholder="+880 2 1234 5678"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          />
+                          <p className="mt-1 text-[11px] text-gray-400">ওয়েবসাইটের যোগাযোগের হেডারে এবং কার্ডে প্রদর্শিত হবে।</p>
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            অফিসিয়াল ইমেইল ঠিকানা *
+                          </label>
+                          <input
+                            type="email"
+                            value={draft.email || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, email: e.target.value }))}
+                            placeholder="info@mkschool.edu.bd"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          />
+                          <p className="mt-1 text-[11px] text-gray-400">অভিভাবক ও শিক্ষার্থীরা এই ইমেইলে যোগাযোগ করবেন।</p>
+                        </div>
+
+                        {/* Facebook URL */}
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            অফিসিয়াল ফেসবুক পেজ লিঙ্ক
+                          </label>
+                          <input
+                            type="url"
+                            value={draft.facebookUrl || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, facebookUrl: e.target.value }))}
+                            placeholder="https://facebook.com/mkschool"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          />
+                        </div>
+
+                        {/* Address BN */}
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            বিদ্যালয়ের ঠিকানা (বাংলা) *
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={draft.address || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, address: e.target.value }))}
+                            placeholder="কলেজ রোড, ধানমন্ডি, ঢাকা-১২০৫, বাংলাদেশ"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-y"
+                          />
+                        </div>
+
+                        {/* Address EN */}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              বিদ্যালয়ের ঠিকানা (English)
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (draft.address) {
+                                  setDraft((p) => ({ ...p, addressEn: translateBnToEn(draft.address) }));
+                                }
+                              }}
+                              className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                            >
+                              বাংলা থেকে অনুবাদ
+                            </button>
+                          </div>
+                          <textarea
+                            rows={3}
+                            value={draft.addressEn || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, addressEn: e.target.value }))}
+                            placeholder="College Road, Dhanmondi, Dhaka-1205, Bangladesh"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white resize-y"
+                          />
+                        </div>
+
+                        {/* Office Hours BN */}
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                            অফিস সময়সূচী (বাংলা) *
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.officeHours || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, officeHours: e.target.value }))}
+                            placeholder="রবিবার - বৃহস্পতিবার: সকাল ৯:০০ - বিকাল ৪:০০"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          />
+                        </div>
+
+                        {/* Office Hours EN */}
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                              অফিস সময়সূচী (English)
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (draft.officeHours) {
+                                  setDraft((p) => ({ ...p, officeHoursEn: translateBnToEn(draft.officeHours) }));
+                                }
+                              }}
+                              className="text-[10px] font-bold text-[#006a4e] hover:underline"
+                            >
+                              বাংলা থেকে অনুবাদ
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={draft.officeHoursEn || ""}
+                            onChange={(e) => setDraft((p) => ({ ...p, officeHoursEn: e.target.value }))}
+                            placeholder="Sunday - Thursday: 9:00 AM - 4:00 PM"
+                            className="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-xs text-gray-900 outline-none focus:border-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Live Preview Box */}
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#006a4e] dark:text-emerald-300">
+                          <Eye size={14} />
+                          <span>ওয়েবসাইট প্রিভিউ (লাইভ কার্ড)</span>
+                        </div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3 text-xs text-gray-700 dark:text-gray-300">
+                          <div>
+                            <span className="font-bold text-gray-900 dark:text-white">ঠিকানা:</span>
+                            <p className="mt-0.5 text-gray-600 dark:text-gray-400">{draft.address || "ঠিকানা প্রদান করা হয়নি"}</p>
+                          </div>
+                          <div>
+                            <span className="font-bold text-gray-900 dark:text-white">হটলাইন:</span>
+                            <p className="mt-0.5 text-gray-600 dark:text-gray-400">{draft.phone || "ফোন নম্বর নেই"}</p>
+                          </div>
+                          <div>
+                            <span className="font-bold text-gray-900 dark:text-white">সময়সূচী:</span>
+                            <p className="mt-0.5 text-gray-600 dark:text-gray-400">{draft.officeHours || "সময়সূচী প্রদান করা হয়নি"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
+
             {/* Sticky Action Footer */}
             <footer className="sticky bottom-0 z-20 flex flex-col-reverse items-stretch justify-between gap-3 border-t border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur-sm sm:flex-row sm:items-center dark:border-slate-800 dark:bg-slate-900/95">
               <div className="flex items-center gap-2">
@@ -7333,6 +7947,142 @@ const WebsiteContentPage: React.FC = () => {
               </div>
             </footer>
           </form>
+
+          {/* CONTACT INQUIRY DETAIL MODAL */}
+          {selectedInquiryModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+              onClick={() => setSelectedInquiryModal(null)}
+            >
+              <div
+                className="relative w-full max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between border-b pb-4 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-[#006a4e] font-bold text-base dark:bg-emerald-950/60 dark:text-emerald-300">
+                      {(selectedInquiryModal.name || "অ").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                        {selectedInquiryModal.name}
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {selectedInquiryModal.createdAt
+                          ? new Date(selectedInquiryModal.createdAt).toLocaleString("bn-BD")
+                          : "তারিখ সংরক্ষিত নেই"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedInquiryModal(null)}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-slate-800"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-4 text-xs">
+                  <div className="rounded-xl border border-gray-100 bg-gray-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-850 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-gray-400 font-medium">মোবাইল নম্বর:</span>
+                      <p className="mt-0.5 font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <Phone size={13} className="text-[#006a4e]" />
+                        <a href={`tel:${selectedInquiryModal.phone}`} className="hover:underline">
+                          {selectedInquiryModal.phone}
+                        </a>
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-gray-400 font-medium">ইমেইল:</span>
+                      <p className="mt-0.5 font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <Mail size={13} className="text-blue-600" />
+                        {selectedInquiryModal.email ? (
+                          <a href={`mailto:${selectedInquiryModal.email}`} className="hover:underline truncate">
+                            {selectedInquiryModal.email}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 font-normal">দেওয়া হয়নি</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 font-medium">বার্তার বিষয়:</span>
+                    <h4 className="mt-1 text-sm font-bold text-[#006a4e] dark:text-emerald-400">
+                      {selectedInquiryModal.subject}
+                    </h4>
+                  </div>
+
+                  <div>
+                    <span className="text-gray-400 font-medium">পূর্ণ বার্তা:</span>
+                    <div className="mt-1 rounded-xl border border-gray-200 bg-white p-4 text-xs leading-relaxed text-gray-800 shadow-2xs dark:border-slate-800 dark:bg-slate-800/60 dark:text-gray-200 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                      {selectedInquiryModal.message}
+                    </div>
+                  </div>
+
+                  {/* Quick Connect & Action Toolbar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:${selectedInquiryModal.phone}`}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[#006a4e] px-3 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] transition"
+                      >
+                        <Phone size={13} />
+                        <span>কল করুন</span>
+                      </a>
+
+                      <a
+                        href={`https://wa.me/88${(selectedInquiryModal.phone || "").replace(/[^0-9]/g, "").replace(/^0/, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
+                      >
+                        <MessageCircle size={13} />
+                        <span>হোয়াটসঅ্যাপ</span>
+                      </a>
+
+                      {selectedInquiryModal.email && (
+                        <a
+                          href={`mailto:${selectedInquiryModal.email}?subject=Re: ${encodeURIComponent(selectedInquiryModal.subject)}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                        >
+                          <Mail size={13} />
+                          <span>ইমেইল পাঠান</span>
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleToggleInquiryStatus(selectedInquiryModal.id);
+                          setSelectedInquiryModal((prev) =>
+                            prev ? { ...prev, status: prev.status === "read" ? "unread" : "read" } : null
+                          );
+                        }}
+                        className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 dark:border-slate-700 dark:text-gray-300"
+                      >
+                        {selectedInquiryModal.status === "read" ? "অপঠিত হিসেবে চিহ্নিত করুন" : "পঠিত চিহ্নিত করুন"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteInquiry(selectedInquiryModal.id)}
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-400"
+                      >
+                        মুছে ফেলুন
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* BANNER SLIDE ADD / EDIT MODAL */}
           {isBannerSlideModalOpen && (
@@ -7710,7 +8460,7 @@ const WebsiteContentPage: React.FC = () => {
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white">
                     ওয়েবসাইট সেকশন মেনু
                   </h3>
-                  <p className="text-[11px] text-gray-500">১৩টি কনটেন্ট বিভাগের তালিকা</p>
+                  <p className="text-[11px] text-gray-500">{tabs.length}টি কনটেন্ট বিভাগের তালিকা</p>
                 </div>
               </div>
               <button
