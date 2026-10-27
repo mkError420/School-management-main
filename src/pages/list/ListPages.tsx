@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import moment from "moment";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -271,49 +272,103 @@ export const ExamsPage: React.FC = () => {
     { header: "Class", accessor: "class", className: "hidden md:table-cell" },
     { header: "Teacher", accessor: "teacher", className: "hidden lg:table-cell" },
     { header: "Date", accessor: "date", className: "hidden lg:table-cell" },
+    { header: "Status", accessor: "status" },
     { header: "Marks", accessor: "marks", className: "hidden md:table-cell" },
     { header: "Routine", accessor: "routine" },
     { header: "Actions", accessor: "actions" },
   ];
 
-  const renderRow = (item: any) => (
-    <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-primary-50 dark:hover:bg-[#1a2332] transition dark:text-gray-200">
-      <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
-        {item.title}
-        {item.description && (
-          <p className="text-xs font-normal text-gray-400 truncate max-w-[180px]">{item.description}</p>
-        )}
-      </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
-      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
-        {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
-      </td>
-      <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
-        {item.start_time ? new Date(item.start_time).toLocaleDateString() : "—"}
-      </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
-        {item.total_marks ? `${item.total_marks} pts` : "—"}
-      </td>
-      {/* Routine attachment badge — authenticated fetch to carry JWT token */}
-      <td>
-        {item.attachment_url ? (
-          <RoutineBadge examId={item.id} mime={item.attachment_mime_type} label={item.attachment_original_name} />
-        ) : (
-          <span className="text-gray-400 text-xs">—</span>
-        )}
-      </td>
-      <td>
-        <div className="flex items-center gap-2">
-          {role === "admin" && (
-            <>
-              <FormModal table="exam" type="update" data={item} onSuccess={fetchData} />
-              <FormModal table="exam" type="delete" id={item.id} onSuccess={fetchData} />
-            </>
+  const renderRow = (item: any) => {
+    const isExpired = (() => {
+      // 1. Check end_time if provided
+      if (item?.end_time) {
+        const end = moment(item.end_time);
+        if (end.isValid()) {
+          return end.isBefore(moment());
+        }
+      }
+
+      // 2. Check start_time
+      if (item?.start_time) {
+        const startStr = String(item.start_time).trim();
+        const start = moment(startStr);
+        if (start.isValid()) {
+          // If pure date (YYYY-MM-DD), expire at end of that day
+          if (/^\d{4}-\d{2}-\d{2}$/.test(startStr)) {
+            return start.endOf("day").isBefore(moment());
+          }
+          return start.isBefore(moment());
+        }
+      }
+
+      // 3. Fallback to date field
+      if (item?.date) {
+        const dateStr = String(item.date).trim();
+        const d = moment(dateStr);
+        if (d.isValid()) {
+          return d.endOf("day").isBefore(moment());
+        }
+      }
+
+      return false;
+    })();
+
+    return (
+      <tr key={item.id} className="border-b border-gray-700/30 dark:border-gray-700 even:bg-slate-50 dark:even:bg-gray-700/40 text-xs hover:bg-primary-50 dark:hover:bg-[#1a2332] transition dark:text-gray-200">
+        <td className="py-3 font-semibold text-gray-800 dark:text-gray-100">
+          {item.title}
+          {item.description && (
+            <p className="text-xs font-normal text-gray-400 truncate max-w-[180px]">{item.description}</p>
           )}
-        </div>
-      </td>
-    </tr>
-  );
+        </td>
+        <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.class_name || "—"}</td>
+        <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
+          {item.teacher_name ? `${item.teacher_name} ${item.teacher_surname}` : "—"}
+        </td>
+        <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400">
+          {item.start_time
+            ? new Date(item.start_time).toLocaleDateString()
+            : item.date
+            ? new Date(item.date).toLocaleDateString()
+            : "—"}
+        </td>
+        <td>
+          {isExpired ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              Completed
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Upcoming
+            </span>
+          )}
+        </td>
+        <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
+          {item.total_marks ? `${item.total_marks} pts` : "—"}
+        </td>
+        {/* Routine attachment badge — authenticated fetch to carry JWT token */}
+        <td>
+          {item.attachment_url ? (
+            <RoutineBadge examId={item.id} mime={item.attachment_mime_type} label={item.attachment_original_name} />
+          ) : (
+            <span className="text-gray-400 text-xs">—</span>
+          )}
+        </td>
+        <td>
+          <div className="flex items-center gap-2">
+            {role === "admin" && (
+              <>
+                <FormModal table="exam" type="update" data={item} onSuccess={fetchData} />
+                <FormModal table="exam" type="delete" id={item.id} onSuccess={fetchData} />
+              </>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm">
