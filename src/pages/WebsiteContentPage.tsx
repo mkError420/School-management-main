@@ -595,6 +595,12 @@ const WebsiteContentPage: React.FC = () => {
     setDraft(websiteContent);
   }, [websiteContent]);
 
+  useEffect(() => {
+    if (activeTab === "contact") {
+      refreshSettings().catch(() => {});
+    }
+  }, [activeTab]);
+
   const handleReloadFromDatabase = async () => {
     setSyncing(true);
     setFeedback({ type: "info", message: "ডাটাবেজ থেকে সর্বশেষ তথ্য লোড করা হচ্ছে..." });
@@ -7433,6 +7439,26 @@ const WebsiteContentPage: React.FC = () => {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setSyncing(true);
+                          try {
+                            await refreshSettings();
+                            setFeedback({ type: "success", message: "ডাটাবেজ থেকে ইনবক্স ও বার্তা তালিকা রিফ্রেশ করা হয়েছে।" });
+                          } catch {
+                            setFeedback({ type: "error", message: "রিফ্রেশ করতে সমস্যা হয়েছে।" });
+                          } finally {
+                            setSyncing(false);
+                          }
+                        }}
+                        disabled={syncing}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-emerald-50 hover:text-[#006a4e] dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300 transition"
+                      >
+                        <RefreshCw size={13} className={syncing ? "animate-spin text-[#006a4e]" : ""} />
+                        <span>ইনবক্স রিফ্রেশ</span>
+                      </button>
+
                       <a
                         href="/contact"
                         target="_blank"

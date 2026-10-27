@@ -601,42 +601,57 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     subject: string;
     message: string;
   }): Promise<{ success: boolean; message?: string }> => {
-    const newSubmission: ContactSubmission = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      name: data.name.trim(),
-      phone: data.phone.trim(),
-      email: data.email?.trim() || undefined,
-      subject: data.subject.trim(),
-      message: data.message.trim(),
-      createdAt: new Date().toISOString(),
-      status: "unread",
-    };
-
-    const currentSubmissions = Array.isArray(websiteContent.contactSubmissions) ? websiteContent.contactSubmissions : [];
-    const updatedSubmissions = [newSubmission, ...currentSubmissions];
-    const updatedContent: SchoolWebsiteContent = {
-      ...websiteContent,
-      contactSubmissions: updatedSubmissions,
-    };
-
-    setWebsiteContent(updatedContent);
-    try {
-      localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(updatedContent));
-    } catch {}
-    broadcastUpdate();
-
     try {
       const res = await api.submitContactForm(data);
       if (res.success) {
-        return { success: true, message: "আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে এবং ড্যাশবোর্ডে সংরক্ষিত হয়েছে।" };
-      }
-    } catch {
-      try {
-        await api.updateWebsiteContent(updatedContent);
-      } catch {}
-    }
+        if (res.data?.website_content) {
+          const merged = normalizeContent(res.data.website_content);
+          setWebsiteContent(merged);
+          try {
+            localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(merged));
+          } catch {}
+          broadcastUpdate();
+        } else {
+          const newSubmission: ContactSubmission = res.data?.submission || {
+            id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            name: data.name.trim(),
+            phone: data.phone.trim(),
+            email: data.email?.trim() || undefined,
+            subject: data.subject.trim(),
+            message: data.message.trim(),
+            createdAt: new Date().toISOString(),
+            status: "unread",
+          };
+          const currentSubmissions = Array.isArray(websiteContent.contactSubmissions) ? websiteContent.contactSubmissions : [];
+          const updatedSubmissions = [newSubmission, ...currentSubmissions.filter((s) => s.id !== newSubmission.id)];
+          const updatedContent: SchoolWebsiteContent = {
+            ...websiteContent,
+            contactSubmissions: updatedSubmissions,
+          };
+          setWebsiteContent(updatedContent);
+          try {
+            localStorage.setItem(CONTENT_STORAGE_KEY, JSON.stringify(updatedContent));
+          } catch {}
+          broadcastUpdate();
+        }
 
-    return { success: true, message: "আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে।" };
+        return {
+          success: true,
+          message: res.message || "আপনার বার্তাটি সফলভাবে পাঠানো হয়েছে এবং অ্যাডমিন ড্যাশবোর্ডে সংরক্ষিত হয়েছে।",
+        };
+      }
+
+      return {
+        success: false,
+        message: res.message || "বার্তা পাঠাতে সমস্যা হয়েছে। অনুগ্রহ করে পুনরায় চেষ্টা করুন।",
+      };
+    } catch (err: any) {
+      console.error("submitContactInquiry error:", err);
+      return {
+        success: false,
+        message: err?.message || "সার্ভার সংযোগ সমস্যা। অনুগ্রহ করে পুনরায় চেষ্টা করুন।",
+      };
+    }
   };
 
   const saveCurrencySymbol = (symbol: string) => {

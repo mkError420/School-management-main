@@ -157,9 +157,26 @@ class ApiService {
   }
 
   async submitContactForm(data: { name: string; phone: string; email?: string; subject: string; message: string }) {
+    const payload = { action: 'submit-contact', ...data };
+    try {
+      const direct = await this.request<{ submission: ContactSubmission; total?: number; website_content?: SchoolWebsiteContent }>('contact', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      if (direct.success) {
+        return direct;
+      }
+    } catch {}
+
     return this.request<{ submission: ContactSubmission; total?: number; website_content?: SchoolWebsiteContent }>('settings?action=submit-contact', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getContactSubmissions() {
+    return this.request<{ submissions: ContactSubmission[]; total: number }>('contact', {
+      method: 'GET',
     });
   }
 

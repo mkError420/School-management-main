@@ -12,10 +12,21 @@ switch ($method) {
         break;
     case 'POST':
         $action = $_GET['action'] ?? '';
-        if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
+        $rawPost = @file_get_contents('php://input');
+        $inputData = json_decode($rawPost, true);
+        if (empty($action) && is_array($inputData) && !empty($inputData['action'])) {
+            $action = (string)$inputData['action'];
+        }
+
+        if (
+            $action === 'submit-contact' ||
+            $action === 'submit-feedback' ||
+            $action === 'contact' ||
+            (empty($action) && empty($_FILES) && is_array($inputData) && isset($inputData['name']) && isset($inputData['message']) && !isset($inputData['site_name']) && !isset($inputData['website_content']))
+        ) {
+            submitPublicContactForm($db, $inputData);
+        } elseif ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
-        } elseif ($action === 'submit-contact' || $action === 'submit-feedback' || $action === 'contact') {
-            submitPublicContactForm($db);
         } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-book-file' || $action === 'upload-book-pdf' || $action === 'upload-file' || $action === 'upload-banner-image' || !empty($_FILES['file']) || !empty($_FILES['book']) || !empty($_FILES['notice_file']) || !empty($_FILES['banner']) || !empty($_FILES['image'])) {
             uploadNoticeFile($db);
         } else {
@@ -496,10 +507,12 @@ function uploadNoticeFile($db) {
     ]);
 }
 
-function submitPublicContactForm($db) {
+function submitPublicContactForm($db, $inputData = null) {
     ensureSiteSettingsTable($db);
-    $rawInput = file_get_contents('php://input');
-    $input = json_decode($rawInput, true) ?? [];
+    $input = is_array($inputData) ? $inputData : (json_decode(file_get_contents('php://input'), true) ?? $_POST);
+    if (!is_array($input)) {
+        $input = [];
+    }
 
     $name = trim((string)($input['name'] ?? ''));
     $phone = trim((string)($input['phone'] ?? ''));
