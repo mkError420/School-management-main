@@ -62,6 +62,7 @@ function ensureAdmissionsTable($db) {
             phone VARCHAR(50),
             date_of_birth DATE,
             gender ENUM('MALE', 'FEMALE') NOT NULL DEFAULT 'MALE',
+            student_type VARCHAR(100) NULL,
             blood_type VARCHAR(10) DEFAULT 'A+',
             address TEXT,
             grade_id INT,
@@ -88,7 +89,7 @@ function ensureAdmissionsTable($db) {
         throw new Exception('Database setup error: ' . $e->getMessage());
     }
 
-    // Safely add roll, username, password, img if existing table doesn't have them
+    // Safely add roll, username, password, img, student_type if existing table doesn't have them
     try {
         $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'roll'");
         if (empty($cols)) {
@@ -119,12 +120,24 @@ function ensureAdmissionsTable($db) {
             $db->query("ALTER TABLE admissions ADD COLUMN parent_nid VARCHAR(50) NULL AFTER parent_id");
         }
     } catch (Exception $e) {}
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admissions LIKE 'student_type'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admissions ADD COLUMN student_type VARCHAR(100) NULL AFTER gender");
+        }
+    } catch (Exception $e) {}
 
-    // Also ensure roll column exists on students table
+    // Also ensure roll and student_type columns exist on students table
     try {
         $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'roll'");
         if (empty($cols)) {
             $db->query("ALTER TABLE students ADD COLUMN roll VARCHAR(50) NULL AFTER username");
+        }
+    } catch (Exception $e) {}
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'student_type'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE students ADD COLUMN student_type VARCHAR(100) NULL AFTER sex");
         }
     } catch (Exception $e) {}
 
@@ -347,12 +360,14 @@ function getAdmissions($db) {
     $search = $_GET['search'] ?? '';
     $status = $_GET['status'] ?? '';
     $gradeId = $_GET['grade_id'] ?? '';
+    $studentType = $_GET['student_type'] ?? '';
     $offset = ($page - 1) * $limit;
 
     $sql = "SELECT a.*, 
                    COALESCE(NULLIF(a.roll, ''), s.roll) as roll,
                    COALESCE(a.username, s.username) as username,
                    COALESCE(a.img, s.img) as img,
+                   COALESCE(NULLIF(a.student_type, ''), s.student_type) as student_type,
                    c.name as class_name, g.level as grade_level,
                    p.name as linked_parent_name, p.surname as linked_parent_surname,
                    p.nid as linked_parent_nid,
@@ -375,10 +390,16 @@ function getAdmissions($db) {
         $params[] = $gradeId;
     }
 
+    if (!empty($studentType) && $studentType !== 'all') {
+        $sql .= " AND (a.student_type LIKE ? OR s.student_type LIKE ?)";
+        $params[] = "%{$studentType}%";
+        $params[] = "%{$studentType}%";
+    }
+
     if (!empty($search)) {
-        $sql .= " AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.application_no LIKE ? OR a.roll LIKE ? OR a.email LIKE ? OR a.parent_name LIKE ? OR a.enrolled_student_id LIKE ?)";
+        $sql .= " AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.application_no LIKE ? OR a.roll LIKE ? OR a.email LIKE ? OR a.parent_name LIKE ? OR a.enrolled_student_id LIKE ? OR a.student_type LIKE ?)";
         $term = "%{$search}%";
-        $params = array_merge($params, [$term, $term, $term, $term, $term, $term, $term]);
+        $params = array_merge($params, [$term, $term, $term, $term, $term, $term, $term, $term]);
     }
 
     // Dynamic counts by status
@@ -421,6 +442,7 @@ function getAdmission($db, $id) {
                 COALESCE(NULLIF(a.roll, ''), s.roll) as roll,
                 COALESCE(a.username, s.username) as username,
                 COALESCE(a.img, s.img) as img,
+                COALESCE(NULLIF(a.student_type, ''), s.student_type) as student_type,
                 c.name as class_name, g.level as grade_level,
                 p.name as linked_parent_name, p.surname as linked_parent_surname, p.phone as linked_parent_phone
          FROM admissions a
@@ -521,6 +543,8 @@ function createAdmission($db) {
         $gradeId = $defaultGrade['id'] ?? 1;
     }
 
+    $studentType = trim($input['student_type'] ?? '');
+
     $data = [
         'application_no' => $appNo,
         'roll' => !empty($roll) ? $roll : null,
@@ -532,6 +556,7 @@ function createAdmission($db) {
         'phone' => $input['phone'] ?? null,
         'date_of_birth' => !empty($input['date_of_birth']) ? $input['date_of_birth'] : null,
         'gender' => $gender,
+        'student_type' => !empty($studentType) ? $studentType : null,
         'blood_type' => $input['blood_type'] ?? 'AB+',
         'address' => $input['address'] ?? '',
         'img' => $uploadedImage ?? ($input['img'] ?? null),
@@ -563,7 +588,7 @@ function createAdmission($db) {
             }
         }
 
-        $created = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname, p.nid as linked_parent_nid, COALESCE(a.parent_nid, p.nid) as parent_nid FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
+        $created = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, COALESCE(NULLIF(a.student_type, ''), s.student_type) as student_type, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname, p.nid as linked_parent_nid, COALESCE(a.parent_nid, p.nid) as parent_nid FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$admissionId]);
         Response::success('Admission application created successfully', $created, 201);
     } catch (Exception $e) {
         Response::error('Failed to create admission: ' . $e->getMessage());
@@ -578,7 +603,7 @@ function trackAdmissionApplication($db) {
 
     $admission = $db->fetchOne(
         "SELECT a.id, a.application_no, a.first_name, a.last_name, a.email, a.phone,
-                a.gender, a.date_of_birth, a.blood_type, a.address, a.status, a.applied_date,
+                a.gender, a.student_type, a.date_of_birth, a.blood_type, a.address, a.status, a.applied_date,
                 a.parent_name, a.parent_phone, a.parent_email, a.parent_nid, a.previous_school, a.notes, a.created_at,
                 c.name as class_name, g.level as grade_level,
                 s.roll as enrolled_roll, s.id as enrolled_student_id
@@ -613,7 +638,7 @@ function updateAdmission($db, $id) {
     // Remove _method override key from input so it doesn't get written to DB
     unset($input['_method']);
 
-    $allowed = ['roll', 'username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'parent_nid', 'previous_school', 'status', 'notes', 'applied_date'];
+    $allowed = ['roll', 'username', 'password', 'first_name', 'last_name', 'name', 'surname', 'email', 'phone', 'date_of_birth', 'gender', 'sex', 'student_type', 'blood_type', 'address', 'img', 'grade_id', 'class_id', 'parent_name', 'parent_phone', 'parent_email', 'parent_id', 'parent_nid', 'previous_school', 'status', 'notes', 'applied_date'];
 
     $data = [];
     foreach ($allowed as $f) {
@@ -709,6 +734,7 @@ function updateAdmission($db, $id) {
             if (isset($data['address'])) $stdUpdate['address'] = $data['address'];
             if (isset($data['blood_type'])) $stdUpdate['blood_type'] = $data['blood_type'];
             if (isset($data['gender'])) $stdUpdate['sex'] = $data['gender'];
+            if (isset($data['student_type'])) $stdUpdate['student_type'] = $data['student_type'];
             if (isset($data['img'])) $stdUpdate['img'] = $data['img'];
             if (isset($data['class_id'])) $stdUpdate['class_id'] = $data['class_id'];
             if (isset($data['grade_id'])) $stdUpdate['grade_id'] = $data['grade_id'];
@@ -723,7 +749,7 @@ function updateAdmission($db, $id) {
 
     try {
         $db->update('admissions', $data, 'id = ?', [$id]);
-        $updated = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
+        $updated = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, COALESCE(NULLIF(a.student_type, ''), s.student_type) as student_type, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
         Response::success('Admission updated successfully', $updated);
     } catch (Exception $e) {
         Response::error('Failed to update admission: ' . $e->getMessage());
@@ -841,6 +867,7 @@ function enrollStudentFromAdmission($db, $data) {
             'img' => $data['img'] ?? null,
             'blood_type' => $data['blood_type'] ?: 'AB+',
             'sex' => $gender,
+            'student_type' => $data['student_type'] ?? null,
             'parent_id' => $parentId,
             'class_id' => $classId,
             'grade_id' => $gradeId

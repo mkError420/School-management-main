@@ -43,6 +43,7 @@ export interface AdmissionItem {
   phone?: string;
   date_of_birth?: string;
   gender: "MALE" | "FEMALE";
+  student_type?: string;
   blood_type?: string;
   address?: string;
   img?: string;
@@ -85,6 +86,7 @@ const emptyAdmissionForm = {
   email: "",
   phone: "",
   address: "",
+  student_type: "",
   blood_type: "AB+",
   sex: "FEMALE" as "MALE" | "FEMALE",
   date_of_birth: "",
@@ -146,6 +148,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const [searchInput, setSearchInput] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
+  const [studentTypeFilter, setStudentTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Options
@@ -201,6 +204,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         limit: 500,
         status: statusFilter !== "all" ? statusFilter : undefined as any,
         grade_id: gradeFilter !== "all" ? gradeFilter : undefined as any,
+        student_type: studentTypeFilter !== "all" ? studentTypeFilter : undefined as any,
         search: search.trim() || undefined as any,
       });
 
@@ -217,12 +221,12 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, gradeFilter, search]);
+  }, [statusFilter, gradeFilter, studentTypeFilter, search]);
 
   useEffect(() => {
     void loadAdmissions();
     setCurrentPage(1);
-  }, [statusFilter, gradeFilter, search]);
+  }, [statusFilter, gradeFilter, studentTypeFilter, search]);
 
   useEffect(() => {
     const handleAdmissionsUpdated = () => {
@@ -249,17 +253,24 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
 
   // Client-side filtering (backup for when server doesn't support all filters)
   const filteredAdmissions = useMemo(() => {
-    if (!search.trim()) return admissions;
+    let list = admissions;
+    if (studentTypeFilter !== "all") {
+      list = list.filter((item) =>
+        item.student_type?.toLowerCase().includes(studentTypeFilter.toLowerCase())
+      );
+    }
+    if (!search.trim()) return list;
     const q = search.toLowerCase().trim();
-    return admissions.filter((item) => {
+    return list.filter((item) => {
       const fullName = `${item.first_name} ${item.last_name}`.toLowerCase();
       const appNo = item.application_no.toLowerCase();
       const parent = (item.parent_name || item.linked_parent_name || "").toLowerCase();
       const email = (item.email || "").toLowerCase();
       const username = (item.username || "").toLowerCase();
-      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q) || username.includes(q);
+      const sType = (item.student_type || "").toLowerCase();
+      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q) || username.includes(q) || sType.includes(q);
     });
-  }, [admissions, search]);
+  }, [admissions, search, studentTypeFilter]);
 
   // Pagination & Displayed items: if maxItems is set (e.g. 5 on Home page), sort newest first and take last N
   const totalPages = Math.max(1, Math.ceil(filteredAdmissions.length / ITEMS_PER_PAGE));
@@ -296,6 +307,29 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     }
   };
 
+  // Handle Student Type Checkbox Toggle (Resident, Non-Resident, Day Care)
+  const handleStudentTypeToggle = (type: "Resident" | "Non-Resident" | "Day Care") => {
+    const current = formData.student_type
+      ? formData.student_type.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    let next: string[];
+    if (current.some((t) => t.toLowerCase() === type.toLowerCase())) {
+      // Uncheck it
+      next = current.filter((t) => t.toLowerCase() !== type.toLowerCase());
+    } else {
+      // Check it: Resident and Non-Resident are opposites (mutually exclusive)
+      next = current.filter((t) => {
+        const lower = t.toLowerCase();
+        if (type === "Resident" && lower === "non-resident") return false;
+        if (type === "Non-Resident" && lower === "resident") return false;
+        return true;
+      });
+      next.push(type);
+    }
+    setFormData((prev) => ({ ...prev, student_type: next.join(", ") }));
+  };
+
   // Open Create Modal
   const openCreateModal = () => {
     setEditItem(null);
@@ -306,6 +340,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       class_id: String(defaultClass?.id || ""),
       parent_id: String(parents[0]?.id || ""),
       parent_nid: (parents[0] as any)?.nid || "",
+      student_type: "",
       blood_type: "AB+",
       sex: "FEMALE",
     });
@@ -331,6 +366,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       email: item.email || "",
       phone: item.phone || "",
       address: item.address || "",
+      student_type: item.student_type || "",
       blood_type: item.blood_type || "AB+",
       sex: (item.gender || "FEMALE") as "MALE" | "FEMALE",
       date_of_birth: item.date_of_birth || "",
@@ -453,6 +489,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
         address: formData.address.trim(),
+        student_type: formData.student_type.trim() || null,
         blood_type: formData.blood_type.trim(),
         sex: formData.sex,
         gender: formData.sex,
@@ -746,7 +783,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Filter size={13} className="text-gray-400" />
           <span className="text-xs font-medium text-gray-500">Grade:</span>
           <select
@@ -760,12 +797,25 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             ))}
           </select>
 
-          {(statusFilter !== "all" || gradeFilter !== "all" || search) && (
+          <span className="text-xs font-medium text-gray-500 ml-1">Type:</span>
+          <select
+            value={studentTypeFilter}
+            onChange={(e) => { setStudentTypeFilter(e.target.value); setCurrentPage(1); }}
+            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 outline-none"
+          >
+            <option value="all">All Types</option>
+            <option value="Resident">Resident</option>
+            <option value="Non-Resident">Non-Resident</option>
+            <option value="Day Care">Day Care</option>
+          </select>
+
+          {(statusFilter !== "all" || gradeFilter !== "all" || studentTypeFilter !== "all" || search) && (
             <button
               type="button"
               onClick={() => {
                 setStatusFilter("all");
                 setGradeFilter("all");
+                setStudentTypeFilter("all");
                 setSearch("");
                 setSearchInput("");
                 setCurrentPage(1);
@@ -863,6 +913,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           <span className="text-[11px] text-gray-400">
                             {item.gender} · {item.blood_type || "—"}
                           </span>
+                          {item.student_type && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                              {item.student_type}
+                            </span>
+                          )}
                           {item.enrolled_student_id && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#707E94]/10 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/40">
                               Enrolled
@@ -1292,6 +1347,65 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   </label>
                 )}
 
+                {/* Student Type Checkbox System */}
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Student Type:
+                    </label>
+                    {formData.student_type ? (
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        Selected: <span className="font-semibold">{formData.student_type}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        Select student type (Resident, Non-Resident, Day Care)
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: "Resident", label: "Resident", desc: "Boarding / Hostel" },
+                      { id: "Non-Resident", label: "Non-Resident", desc: "Day Scholar" },
+                      { id: "Day Care", label: "Day Care", desc: "Extended Day Care" },
+                    ].map((item) => {
+                      const isChecked = formData.student_type
+                        ? formData.student_type.split(",").map((s) => s.trim().toLowerCase()).includes(item.id.toLowerCase())
+                        : false;
+
+                      return (
+                        <label
+                          key={item.id}
+                          className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition select-none ${
+                            isChecked
+                              ? "border-[#707E94] bg-[#707E94]/10 dark:border-[#a4b3c7] dark:bg-[#707E94]/20 shadow-sm ring-1 ring-[#707E94]/30"
+                              : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            name="student_type"
+                            value={item.id}
+                            checked={isChecked}
+                            onChange={() => handleStudentTypeToggle(item.id as "Resident" | "Non-Resident" | "Day Care")}
+                            className="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-[#707E94] focus:ring-[#707E94]/30 focus:ring-offset-0 cursor-pointer accent-[#707E94]"
+                          />
+                          <div className="flex flex-col">
+                            <span className={`text-sm font-semibold ${
+                              isChecked ? "text-gray-900 dark:text-white" : "text-gray-700 dark:text-gray-300"
+                            }`}>
+                              {item.label}
+                            </span>
+                            <span className="text-[11px] text-gray-400 dark:text-gray-400">
+                              {item.desc}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Address */}
                 <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300 sm:col-span-2">
                   <span>Address *</span>
@@ -1623,6 +1737,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         </span>
                       )}
                       <StatusBadge status={detailsItem.status} size="xs" />
+                      {detailsItem.student_type && (
+                        <span className="font-semibold text-[11px] text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
+                          {detailsItem.student_type}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5">Applied: {detailsItem.applied_date || "Recent"}</p>
                   </div>
@@ -1671,6 +1790,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     {detailsItem.gender} · Blood {detailsItem.blood_type || "—"}
                   </p>
                   <p className="text-gray-500 mt-0.5">DOB: {detailsItem.date_of_birth || "Not recorded"}</p>
+                  {detailsItem.student_type && (
+                    <p className="text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
+                      Type: {detailsItem.student_type}
+                    </p>
+                  )}
                 </div>
               </div>
 

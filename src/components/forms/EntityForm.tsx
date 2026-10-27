@@ -62,6 +62,7 @@ const fieldsByEntity: Record<Entity, Field[]> = {
     { name: "phone", label: "Phone" },
     { name: "blood_type", label: "Blood type", required: true },
     { name: "sex", label: "Sex", type: "select", required: true, options: [{ value: "MALE", label: "Male" }, { value: "FEMALE", label: "Female" }] },
+    { name: "student_type", label: "Student Type", type: "select", options: [{ value: "Resident", label: "Resident" }, { value: "Non-Resident", label: "Non-Resident" }, { value: "Day Care", label: "Day Care" }] },
     { name: "parent_id", label: "Parent", type: "select", required: true, resource: "parents" },
     { name: "address", label: "Address", type: "textarea", required: true },
     { name: "img", label: "Student photo", type: "file" },

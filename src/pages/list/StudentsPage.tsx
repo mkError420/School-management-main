@@ -21,6 +21,7 @@ interface Student {
   img?: string;
   blood_type: string;
   sex: string;
+  student_type?: string;
   class_name?: string;
   grade_level?: number;
 }
@@ -63,7 +64,14 @@ const StudentsPage: React.FC = () => {
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{item.name} {item.surname}</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
+            <span>{item.name} {item.surname}</span>
+            {item.student_type && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                {item.student_type}
+              </span>
+            )}
+          </h3>
           <p className="text-gray-500 dark:text-gray-400">{item.email}</p>
         </div>
       </td>

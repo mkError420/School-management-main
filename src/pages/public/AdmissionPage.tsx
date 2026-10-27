@@ -254,6 +254,7 @@ export const AdmissionPage: React.FC = () => {
     grade_id: "",
     date_of_birth: "",
     sex: "MALE" as "MALE" | "FEMALE",
+    student_type: "",
     blood_type: "A+",
     email: "",
     phone: "",
@@ -288,6 +289,27 @@ export const AdmissionPage: React.FC = () => {
       return;
     }
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Toggle student type checkbox (Resident, Non-Resident, Day Care)
+  const handleStudentTypeToggle = (type: "Resident" | "Non-Resident" | "Day Care") => {
+    const current = formData.student_type
+      ? formData.student_type.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+
+    let next: string[];
+    if (current.some((t) => t.toLowerCase() === type.toLowerCase())) {
+      next = current.filter((t) => t.toLowerCase() !== type.toLowerCase());
+    } else {
+      next = current.filter((t) => {
+        const lower = t.toLowerCase();
+        if (type === "Resident" && lower === "non-resident") return false;
+        if (type === "Non-Resident" && lower === "resident") return false;
+        return true;
+      });
+      next.push(type);
+    }
+    setFormData((prev) => ({ ...prev, student_type: next.join(", ") }));
   };
 
   // Tracking State
@@ -480,6 +502,7 @@ export const AdmissionPage: React.FC = () => {
         email: formData.email.trim() || null,
         phone: formData.phone.trim() || null,
         address: formData.address.trim(),
+        student_type: formData.student_type.trim() || null,
         previous_school: formData.previous_school.trim() || null,
         parent_name: formData.parent_name.trim(),
         parent_phone: formData.parent_phone.trim(),
@@ -516,6 +539,7 @@ export const AdmissionPage: React.FC = () => {
           grade_id: "",
           date_of_birth: "",
           sex: "MALE",
+          student_type: "",
           blood_type: "A+",
           email: "",
           phone: "",
@@ -819,6 +843,15 @@ export const AdmissionPage: React.FC = () => {
                       </p>
                     </div>
 
+                    {submittedAdmission.student_type && (
+                      <div>
+                        <span className="text-gray-500 font-medium">{t("শিক্ষার্থীর ধরন:", "Student Type:")}</span>
+                        <p className="font-semibold text-emerald-800 mt-0.5">
+                          {submittedAdmission.student_type}
+                        </p>
+                      </div>
+                    )}
+
                     <div className="sm:col-span-2">
                       <span className="text-gray-500 font-medium">{t("বর্তমান ঠিকানা:", "Address:")}</span>
                       <p className="text-gray-800 mt-0.5 leading-relaxed">
@@ -1012,6 +1045,66 @@ export const AdmissionPage: React.FC = () => {
                             className="rounded-lg border border-gray-300 px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:ring-2 focus:ring-[#006a4e]/20 font-mono"
                           />
                         </label>
+
+                        {/* Student Type Checkbox System */}
+                        <div className="flex flex-col gap-2 sm:col-span-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-gray-700">
+                              {t("শিক্ষার্থীর ধরন (Student Type):", "Student Type:")}
+                            </span>
+                            {formData.student_type ? (
+                              <span className="text-xs font-medium text-emerald-700">
+                                {t("নির্বাচিত: ", "Selected: ")}
+                                <span className="font-semibold">{formData.student_type}</span>
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-gray-400">
+                                {t("প্রযোজ্য অপশন টিক দিন", "Select student type (Resident, Non-Resident, Day Care)")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {[
+                              { id: "Resident", labelBn: "আবাসিক (Resident)", labelEn: "Resident", descBn: "হোস্টেল / বোর্ডিং", descEn: "Boarding / Hostel" },
+                              { id: "Non-Resident", labelBn: "অনাবাসিক (Non-Resident)", labelEn: "Non-Resident", descBn: "ডে-স্কুল শিক্ষার্থী", descEn: "Day Scholar" },
+                              { id: "Day Care", labelBn: "ডে কেয়ার (Day Care)", labelEn: "Day Care", descBn: "ডে-কেয়ার সুবিধা", descEn: "Day Care Facility" },
+                            ].map((item) => {
+                              const isChecked = formData.student_type
+                                ? formData.student_type.split(",").map((s) => s.trim().toLowerCase()).includes(item.id.toLowerCase())
+                                : false;
+
+                              return (
+                                <label
+                                  key={item.id}
+                                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none ${
+                                    isChecked
+                                      ? "border-[#006a4e] bg-[#006a4e]/5 shadow-xs ring-1 ring-[#006a4e]/20"
+                                      : "border-gray-200 bg-white hover:border-gray-300"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    name="student_type"
+                                    value={item.id}
+                                    checked={isChecked}
+                                    onChange={() => handleStudentTypeToggle(item.id as "Resident" | "Non-Resident" | "Day Care")}
+                                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#006a4e] focus:ring-[#006a4e]/30 cursor-pointer accent-[#006a4e]"
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className={`text-xs font-semibold ${
+                                      isChecked ? "text-gray-900 font-bold" : "text-gray-700"
+                                    }`}>
+                                      {t(item.labelBn, item.labelEn)}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">
+                                      {t(item.descBn, item.descEn)}
+                                    </span>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
 
                         {/* Present Address */}
                         <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700 sm:col-span-2">
@@ -1405,6 +1498,13 @@ export const AdmissionPage: React.FC = () => {
                         <span className="text-gray-500 font-medium">{t("আবেদনের তারিখ:", "Applied Date:")}</span>
                         <p className="font-semibold text-gray-800 mt-0.5">{trackResult.applied_date || "N/A"}</p>
                       </div>
+
+                      {trackResult.student_type && (
+                        <div>
+                          <span className="text-gray-500 font-medium">{t("শিক্ষার্থীর ধরন:", "Student Type:")}</span>
+                          <p className="font-semibold text-emerald-800 mt-0.5">{trackResult.student_type}</p>
+                        </div>
+                      )}
 
                       {trackResult.status === "APPROVED" && trackResult.enrolled_roll && (
                         <div className="sm:col-span-2 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-emerald-900 font-semibold">

@@ -9,6 +9,12 @@ try {
         $db->query("ALTER TABLE students ADD COLUMN roll VARCHAR(50) NULL AFTER username");
     }
 } catch (Exception $e) {}
+try {
+    $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'student_type'");
+    if (empty($cols)) {
+        $db->query("ALTER TABLE students ADD COLUMN student_type VARCHAR(100) NULL AFTER sex");
+    }
+} catch (Exception $e) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
@@ -301,6 +307,7 @@ function createStudent($db) {
             'img'        => $uploadedImage ?? ($input['img'] ?? null),
             'blood_type' => $input['blood_type'],
             'sex'        => $input['sex'],
+            'student_type' => $input['student_type'] ?? null,
             'parent_id'  => $input['parent_id'],
             'class_id'   => $input['class_id'],
             'grade_id'   => $gradeId
@@ -330,6 +337,7 @@ function createStudent($db) {
                 'email'               => $input['email'] ?? null,
                 'phone'               => $input['phone'] ?? null,
                 'gender'              => (isset($input['sex']) && strtoupper($input['sex']) === 'FEMALE') ? 'FEMALE' : 'MALE',
+                'student_type'        => $input['student_type'] ?? null,
                 'blood_type'          => $input['blood_type'] ?? 'A+',
                 'address'             => $input['address'] ?? '',
                 'grade_id'            => $input['grade_id'],
@@ -375,7 +383,7 @@ function updateStudent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'parent_id', 'class_id', 'grade_id'];
+    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'student_type', 'parent_id', 'class_id', 'grade_id'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
@@ -427,6 +435,7 @@ function updateStudent($db, $id) {
             if (isset($data['address'])) $admData['address'] = $data['address'];
             if (isset($data['blood_type'])) $admData['blood_type'] = $data['blood_type'];
             if (isset($data['sex'])) $admData['gender'] = strtoupper($data['sex']) === 'FEMALE' ? 'FEMALE' : 'MALE';
+            if (isset($data['student_type'])) $admData['student_type'] = $data['student_type'];
             if (isset($data['class_id'])) $admData['class_id'] = $data['class_id'];
             if (isset($data['grade_id'])) $admData['grade_id'] = $data['grade_id'];
             if (isset($data['parent_id'])) $admData['parent_id'] = $data['parent_id'];
