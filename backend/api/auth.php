@@ -281,10 +281,20 @@ function handleGetCurrentUser($db) {
             Response::error('Invalid role');
     }
     
-    $userData = $db->fetchOne(
-        "SELECT * FROM {$table} WHERE id = ?",
-        [$user['user_id']]
-    );
+    if ($user['role'] === 'student') {
+        $userData = $db->fetchOne(
+            "SELECT s.*, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type 
+             FROM students s 
+             LEFT JOIN admissions a ON a.enrolled_student_id = s.id 
+             WHERE s.id = ?",
+            [$user['user_id']]
+        );
+    } else {
+        $userData = $db->fetchOne(
+            "SELECT * FROM {$table} WHERE id = ?",
+            [$user['user_id']]
+        );
+    }
     
     if (!$userData) {
         Response::notFound('User not found');

@@ -42,6 +42,8 @@ interface ChildStudent {
   sex?: string | null;
   class_name?: string | null;
   grade_level?: number | null;
+  roll?: string | null;
+  student_type?: string | null;
   status?: string | null;
 }
 
@@ -239,9 +241,20 @@ const ParentDashboardPage: React.FC = () => {
                               Class: {child.class_name}
                             </span>
                           )}
+                          {child.roll && (
+                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
+                              Roll: {child.roll}
+                            </span>
+                          )}
                           {child.grade_level && (
                             <span className="text-xs font-medium px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-300">
                               Grade {child.grade_level}
+                            </span>
+                          )}
+                          {child.student_type && (
+                            <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1 shadow-2xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Type: {child.student_type}
                             </span>
                           )}
                         </div>

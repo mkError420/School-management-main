@@ -69,8 +69,10 @@ function getStudents($db) {
     $offset = ($page - 1) * $limit;
     
     // Build query
-    $sql = "SELECT s.*, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname 
+    $selectFields = "s.*, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname";
+    $sql = "SELECT {$selectFields} 
             FROM students s 
+            LEFT JOIN admissions a ON a.enrolled_student_id = s.id
             LEFT JOIN classes c ON s.class_id = c.id 
             LEFT JOIN grades g ON s.grade_id = g.id 
             LEFT JOIN parents p ON s.parent_id = p.id 
@@ -95,7 +97,7 @@ function getStudents($db) {
     }
     
     // Get total count
-    $countSql = str_replace("SELECT s.*, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname", "SELECT COUNT(*) as total", $sql);
+    $countSql = str_replace("SELECT {$selectFields}", "SELECT COUNT(*) as total", $sql);
     $totalResult = $db->fetchOne($countSql, $params);
     $total = $totalResult['total'];
     
@@ -140,8 +142,15 @@ function getStudent($db, $id) {
     }
     
     $student = $db->fetchOne(
-        "SELECT s.*, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname, p.phone as parent_phone 
+        "SELECT s.*, 
+                COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type,
+                c.name as class_name, 
+                g.level as grade_level, 
+                p.name as parent_name, 
+                p.surname as parent_surname, 
+                p.phone as parent_phone 
          FROM students s 
+         LEFT JOIN admissions a ON a.enrolled_student_id = s.id
          LEFT JOIN classes c ON s.class_id = c.id 
          LEFT JOIN grades g ON s.grade_id = g.id 
          LEFT JOIN parents p ON s.parent_id = p.id 

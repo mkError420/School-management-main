@@ -104,7 +104,10 @@ function getParents($db) {
 
         // 1. Fetch enrolled students from students table
         $students = $db->fetchAll(
-            "SELECT id, name, surname FROM students WHERE parent_id = ? ORDER BY name",
+            "SELECT s.id, s.name, s.surname, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type 
+             FROM students s 
+             LEFT JOIN admissions a ON a.enrolled_student_id = s.id
+             WHERE s.parent_id = ? ORDER BY s.name",
             [$parent['id']]
         );
 
@@ -122,7 +125,7 @@ function getParents($db) {
         // 2. Also include admission applicants linked to this parent (e.g. from new admission form)
         try {
             $admissions = $db->fetchAll(
-                "SELECT id, first_name, last_name, name, surname, enrolled_student_id 
+                "SELECT id, first_name, last_name, name, surname, enrolled_student_id, student_type 
                  FROM admissions 
                  WHERE parent_id = ? 
                  ORDER BY id DESC",
@@ -139,7 +142,8 @@ function getParents($db) {
                     $students[] = [
                         'id' => $adm['id'],
                         'name' => $stName,
-                        'surname' => $stSurname
+                        'surname' => $stSurname,
+                        'student_type' => $adm['student_type'] ?? null
                     ];
                     $includedNames[$fullName] = true;
                 }
@@ -181,8 +185,12 @@ function getParent($db, $id) {
 
     // Get parent's children (students)
     $children = $db->fetchAll(
-        "SELECT s.*, c.name as class_name, g.level as grade_level
+        "SELECT s.*, 
+                COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type,
+                c.name as class_name, 
+                g.level as grade_level
          FROM students s
+         LEFT JOIN admissions a ON a.enrolled_student_id = s.id
          LEFT JOIN classes c ON s.class_id = c.id
          LEFT JOIN grades g  ON s.grade_id  = g.id
          WHERE s.parent_id = ?
@@ -220,7 +228,8 @@ function getParent($db, $id) {
                 'phone' => $adm['phone'] ?? '',
                 'class_name' => $adm['class_name'] ?? 'Pending Admission',
                 'grade_level' => $adm['grade_level'] ?? null,
-                'status' => $adm['status'] ?? 'PENDING'
+                'status' => $adm['status'] ?? 'PENDING',
+                'student_type' => $adm['student_type'] ?? null
             ];
         }
     } catch (Exception $e) {}

@@ -23,6 +23,7 @@ export interface StudentProfileDetails {
     img?: string | null;
     blood_type?: string | null;
     sex?: string | null;
+    student_type?: string | null;
     class_id?: number | null;
     grade_id?: number | null;
     class_name?: string | null;
@@ -152,14 +153,31 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         <section className="flex min-w-0 items-center gap-4 rounded-md bg-sky-200 p-4 text-slate-900">
           {student.img ? <img src={student.img} alt={fullName} className="h-24 w-24 shrink-0 rounded-full border-2 border-white/70 object-cover" /> : <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full bg-white/70 text-2xl font-semibold text-sky-900">{student.name[0]}{student.surname[0]}</div>}
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Student profile</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Student profile</p>
+              {student.student_type && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-indigo-700 text-white shadow-xs">
+                  {student.student_type}
+                </span>
+              )}
+            </div>
             <h1 className="mt-1 break-words text-lg font-bold">{fullName}</h1>
-            <p className="mt-0.5 truncate text-xs text-slate-700">ID: {student.id}{student.roll ? ` · Roll: ${student.roll}` : ""} · @{student.username}</p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-700">
+              <span>ID: {student.id}</span>
+              {student.roll ? <span>· Roll: <strong>{student.roll}</strong></span> : null}
+              <span>· @{student.username}</span>
+            </div>
             <div className="mt-3 grid gap-1 text-xs sm:grid-cols-2">
               <span className="flex min-w-0 items-center gap-1.5"><Mail size={12} /><span className="truncate">{student.email || "Email not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><Phone size={12} /><span className="truncate">{student.phone || "Phone not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><MapPin size={12} /><span className="truncate">{student.address || "Address not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><Users size={12} /><span className="truncate">{[student.parent_name, student.parent_surname].filter(Boolean).join(" ") || "No guardian assigned"}</span></span>
+              {student.student_type && (
+                <span className="flex min-w-0 items-center gap-1.5 sm:col-span-2 text-indigo-950 font-medium">
+                  <GraduationCap size={12} className="text-indigo-800" />
+                  <span>Student Type: <strong className="font-bold underline decoration-indigo-300">{student.student_type}</strong></span>
+                </span>
+              )}
             </div>
           </div>
         </section>

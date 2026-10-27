@@ -50,9 +50,14 @@ const ParentsPage: React.FC = () => {
               return (
                 <span
                   key={s.id || idx}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/30"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/30"
                 >
-                  {fullName || "Student"}
+                  <span>{fullName || "Student"}</span>
+                  {s.student_type && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      {s.student_type}
+                    </span>
+                  )}
                 </span>
               );
             })}

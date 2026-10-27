@@ -11,6 +11,7 @@ export interface User {
   name?: string;
   role: UserRole;
   email?: string;
+  student_type?: string | null;
 }
 
 interface AuthContextType {
@@ -59,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: authenticatedUser.name,
           role: res.data.role as UserRole,
           email: authenticatedUser.email,
+          student_type: authenticatedUser.student_type || null,
         });
       } else {
         api.setToken(null);
@@ -95,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: res.data.user?.name || username,
           role: (res.data.role as UserRole) || role || 'admin',
           email: res.data.user?.email || '',
+          student_type: res.data.user?.student_type || null,
         };
         api.setToken(res.data.token);
         setToken(res.data.token);

@@ -32,6 +32,8 @@ interface StudentInfo {
   img?: string | null;
   blood_type?: string | null;
   sex?: string | null;
+  roll?: string | null;
+  student_type?: string | null;
   class_name?: string | null;
   grade_level?: number | null;
   parent_name?: string | null;
@@ -148,6 +150,16 @@ const StudentDashboardPage: React.FC = () => {
                 <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
                   <GraduationCap size={12} /> Student
                 </span>
+                {data.student.student_type && (
+                  <span className="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shadow-2xs">
+                    Type: {data.student.student_type}
+                  </span>
+                )}
+                {data.student.roll && (
+                  <span className="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">
+                    Roll: {data.student.roll}
+                  </span>
+                )}
                 {data.student.class_name && (
                   <span className="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
                     Class: {data.student.class_name}
