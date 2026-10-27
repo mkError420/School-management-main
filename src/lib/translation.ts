@@ -588,6 +588,7 @@ export const autoTranslateWebsiteContent = async (
       titleEn: b.titleEn || translateBnToEn(b.title),
       authorEn: b.authorEn || translateBnToEn(b.author),
       categoryEn: b.categoryEn || translateBnToEn(b.category),
+      descriptionEn: b.descriptionEn || (b.description ? translateBnToEn(b.description) : undefined),
     }));
 
     result.studyCornerResources = (result.studyCornerResources || []).map((r) => ({

@@ -14,7 +14,7 @@ switch ($method) {
         $action = $_GET['action'] ?? '';
         if ($action === 'upload-logo' || !empty($_FILES['logo'])) {
             uploadSiteLogo($db);
-        } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-file' || $action === 'upload-banner-image' || !empty($_FILES['file']) || !empty($_FILES['notice_file']) || !empty($_FILES['banner']) || !empty($_FILES['image'])) {
+        } elseif ($action === 'upload-notice-file' || $action === 'upload-download-file' || $action === 'upload-book-file' || $action === 'upload-book-pdf' || $action === 'upload-file' || $action === 'upload-banner-image' || !empty($_FILES['file']) || !empty($_FILES['book']) || !empty($_FILES['notice_file']) || !empty($_FILES['banner']) || !empty($_FILES['image'])) {
             uploadNoticeFile($db);
         } else {
             updateSiteSettings($db);
@@ -376,7 +376,7 @@ function uploadNoticeFile($db) {
         Response::forbidden('Only an administrator can upload notice and website files');
     }
 
-    $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['notice_file']) ? 'notice_file' : (!empty($_FILES['banner']) ? 'banner' : (!empty($_FILES['image']) ? 'image' : null)));
+    $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['book']) ? 'book' : (!empty($_FILES['notice_file']) ? 'notice_file' : (!empty($_FILES['banner']) ? 'banner' : (!empty($_FILES['image']) ? 'image' : null))));
     if (!$uploadKey || empty($_FILES[$uploadKey]) || $_FILES[$uploadKey]['error'] === UPLOAD_ERR_NO_FILE) {
         Response::error('Please choose an image or PDF file to upload');
     }
@@ -386,8 +386,8 @@ function uploadNoticeFile($db) {
         Response::error('File upload failed (code ' . $upload['error'] . ')');
     }
 
-    if ($upload['size'] > 10 * 1024 * 1024) {
-        Response::error('File must be 10 MB or smaller');
+    if ($upload['size'] > 50 * 1024 * 1024) {
+        Response::error('File must be 50 MB or smaller');
     }
 
     $allowedMimes = [
@@ -430,8 +430,9 @@ function uploadNoticeFile($db) {
 
     $action = $_GET['action'] ?? '';
     $isBannerUpload = ($uploadKey === 'banner' || $action === 'upload-banner-image');
-    $subDir = $isBannerUpload ? 'banners' : 'notices';
-    $prefix = $isBannerUpload ? 'banner_' : 'notice_';
+    $isBookUpload = ($uploadKey === 'book' || $action === 'upload-book-file' || $action === 'upload-book-pdf');
+    $subDir = $isBannerUpload ? 'banners' : ($isBookUpload ? 'books' : 'notices');
+    $prefix = $isBannerUpload ? 'banner_' : ($isBookUpload ? 'book_' : 'notice_');
 
     $root = dirname(__DIR__, 2);
     $targetDirs = [];

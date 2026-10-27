@@ -442,6 +442,12 @@ export interface StudyCornerBook {
   authorEn?: string;
   category: string;
   categoryEn?: string;
+  pdfUrl?: string;
+  coverImage?: string;
+  description?: string;
+  descriptionEn?: string;
+  fileSize?: string;
+  classGrade?: string;
 }
 
 export interface StudyCornerResource {

@@ -200,6 +200,15 @@ class ApiService {
     });
   }
 
+  async uploadBookFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ file_url: string; original_name?: string; size?: number }>('settings?action=upload-book-file', {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async uploadFile(file: File) {
     const formData = new FormData();
     formData.append('file', file);

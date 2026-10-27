@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -14,8 +14,17 @@ import {
   Award,
   ArrowRight,
   Filter,
+  ExternalLink,
+  Download,
+  Maximize2,
+  Minimize2,
+  X,
+  FileText,
+  Eye,
+  CheckCircle2,
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import type { StudyCornerBook } from "@/types/site";
 
 const RESOURCE_ICONS: Record<string, React.ReactNode> = {
   BookOpen: <BookOpen size={20} />,
@@ -74,8 +83,31 @@ export const StudyCornerPage: React.FC = () => {
   const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
   const [bookSearch, setBookSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("সকল");
+  const [selectedBook, setSelectedBook] = useState<StudyCornerBook | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const books = content.studyCornerBooks?.length ? content.studyCornerBooks : DEFAULT_BOOKS;
+  // Close modal on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (isFullscreen) {
+          setIsFullscreen(false);
+        } else {
+          setSelectedBook(null);
+        }
+      }
+    };
+    if (selectedBook) {
+      window.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [selectedBook, isFullscreen]);
+
+  const books: StudyCornerBook[] = content.studyCornerBooks?.length ? content.studyCornerBooks : DEFAULT_BOOKS;
   const resources = content.studyCornerResources?.length ? content.studyCornerResources : DEFAULT_RESOURCES;
   const stats = content.studyCornerStats?.length ? content.studyCornerStats : DEFAULT_STATS;
   const links = content.studyCornerLinks?.length ? content.studyCornerLinks : DEFAULT_LINKS;
@@ -97,7 +129,13 @@ export const StudyCornerPage: React.FC = () => {
     return books.filter((book) => {
       const catCurrent = lang === "en" ? (book.categoryEn || book.category) : book.category;
       const allKey = lang === "en" ? "All" : "সকল";
-      const matchCat = selectedCategory === allKey || selectedCategory === "সকল" || selectedCategory === "All" || catCurrent === selectedCategory || book.category === selectedCategory || (book.categoryEn || "") === selectedCategory;
+      const matchCat =
+        selectedCategory === allKey ||
+        selectedCategory === "সকল" ||
+        selectedCategory === "All" ||
+        catCurrent === selectedCategory ||
+        book.category === selectedCategory ||
+        (book.categoryEn || "") === selectedCategory;
 
       const q = bookSearch.trim().toLowerCase();
       const matchSearch =
@@ -105,7 +143,10 @@ export const StudyCornerPage: React.FC = () => {
         book.title?.toLowerCase().includes(q) ||
         book.titleEn?.toLowerCase().includes(q) ||
         book.author?.toLowerCase().includes(q) ||
-        book.authorEn?.toLowerCase().includes(q);
+        book.authorEn?.toLowerCase().includes(q) ||
+        book.description?.toLowerCase().includes(q) ||
+        book.descriptionEn?.toLowerCase().includes(q) ||
+        book.category?.toLowerCase().includes(q);
       return matchCat && matchSearch;
     });
   }, [books, selectedCategory, bookSearch, lang]);
@@ -271,28 +312,111 @@ export const StudyCornerPage: React.FC = () => {
         </div>
 
         {/* Book Grid */}
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredBooks.length > 0 ? (
-            filteredBooks.map((book, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 rounded-md border border-gray-100 bg-[#fcfdfc] p-3 transition hover:border-[#006a4e] hover:shadow-2xs"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#006a4e]/10 text-[#006a4e]">
-                  <BookOpen size={18} />
+            filteredBooks.map((book, idx) => {
+              const hasPdf = Boolean(book.pdfUrl && book.pdfUrl.trim());
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setSelectedBook(book);
+                    setIsFullscreen(false);
+                  }}
+                  className="group relative flex flex-col justify-between rounded-xl border border-gray-200/90 bg-white p-4 shadow-2xs transition-all duration-200 hover:-translate-y-1 hover:border-[#006a4e] hover:shadow-md cursor-pointer overflow-hidden"
+                >
+                  {/* Top Category and Status Badge */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-[#006a4e] border border-emerald-200/60">
+                        {t(book.category, book.categoryEn)}
+                      </span>
+                      {hasPdf ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                          <FileText size={11} className="text-emerald-700" />
+                          <span>{t("ই-বুক / PDF", "E-Book / PDF")}</span>
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
+                          {t("লাইব্রেরি কপি", "Library Copy")}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Book Cover / Stylized Graphic */}
+                    <div className="relative mb-3 flex h-36 w-full items-center justify-center overflow-hidden rounded-lg bg-gradient-to-br from-[#004d38] via-[#006a4e] to-[#003828] text-white shadow-xs">
+                      {book.coverImage ? (
+                        <img
+                          src={book.coverImage}
+                          alt={t(book.title, book.titleEn)}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-3 text-center">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-xs mb-2 transition-transform duration-300 group-hover:scale-110">
+                            <BookOpen size={24} />
+                          </div>
+                          <span className="line-clamp-1 text-[11px] font-bold tracking-wide text-emerald-100">
+                            {t(book.category, book.categoryEn)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Quick overlay indicator on hover */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 backdrop-blur-2xs transition-opacity duration-200 group-hover:opacity-100">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-[#006a4e] shadow-md">
+                          {hasPdf ? (
+                            <>
+                              <BookOpen size={13} />
+                              <span>{t("বইটি পড়ুন", "Read Book")}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye size={13} />
+                              <span>{t("বিস্তারিত দেখুন", "View Details")}</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Book Info */}
+                    <h4 className="line-clamp-2 text-sm font-bold text-gray-900 group-hover:text-[#006a4e] transition-colors">
+                      {t(book.title, book.titleEn)}
+                    </h4>
+                    <p className="mt-1 text-xs text-gray-500 font-medium">
+                      {t("লেখক:", "Author:")} <span className="text-gray-700">{t(book.author, book.authorEn)}</span>
+                    </p>
+                    {book.classGrade && (
+                      <p className="mt-0.5 text-[10px] text-gray-400">
+                        {t(book.classGrade, book.classGrade)}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Card Action Link */}
+                  <div className="mt-3.5 pt-2.5 border-t border-gray-100 flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[#006a4e] group-hover:underline flex items-center gap-1">
+                      {hasPdf ? t("অনলাইনে পড়ুন", "Read Online") : t("তথ্য ও বিবরণ", "Info & Details")}
+                      <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                    {book.fileSize && (
+                      <span className="text-[10px] text-gray-400 font-normal">
+                        {book.fileSize}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold leading-snug text-gray-900">{t(book.title, book.titleEn)}</p>
-                  <p className="mt-0.5 text-[10px] text-gray-500">{t(book.author, book.authorEn)}</p>
-                  <span className="mt-1 inline-block rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
-                    {t(book.category, book.categoryEn)}
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
-            <div className="col-span-4 rounded-md border border-dashed border-gray-300 py-8 text-center text-sm text-gray-500">
-              {t("কোনো বই পাওয়া যায়নি।", "No books found.")}
+            <div className="col-span-full rounded-xl border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500 bg-[#f9fbf9]">
+              <BookOpen size={36} className="mx-auto text-gray-400 mb-2" />
+              <p className="font-semibold text-gray-700">{t("কোনো বই পাওয়া যায়নি।", "No books found.")}</p>
+              <p className="mt-1 text-xs text-gray-500">{t("অন্য ক্যাটাগরি নির্বাচন করুন অথবা নতুন নাম লিখে খুঁজুন।", "Try selecting another category or clear your search term.")}</p>
             </div>
           )}
         </div>
@@ -367,6 +491,212 @@ export const StudyCornerPage: React.FC = () => {
           <ArrowRight size={13} />
         </Link>
       </div>
+
+      {/* Book Reader / PDF Viewer In-Page Modal */}
+      {selectedBook && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => {
+            setSelectedBook(null);
+            setIsFullscreen(false);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`flex flex-col bg-white shadow-2xl transition-all duration-200 ${
+              isFullscreen
+                ? "fixed inset-0 z-50 rounded-none w-screen h-screen"
+                : "relative w-full max-w-5xl h-[88vh] max-h-[880px] rounded-xl overflow-hidden border border-emerald-900/20"
+            }`}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 bg-[#f7faf8] px-4 py-3 sm:px-6">
+              <div className="min-w-0 pr-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#006a4e] text-white">
+                    <BookOpen size={16} />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-bold text-gray-900 sm:text-base">
+                      {t(selectedBook.title, selectedBook.titleEn)}
+                    </h3>
+                    <p className="truncate text-[11px] text-gray-500 sm:text-xs">
+                      {t("লেখক:", "Author:")} <span className="font-semibold text-gray-700">{t(selectedBook.author, selectedBook.authorEn)}</span>
+                      {selectedBook.category && (
+                        <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-[#006a4e]">
+                          {t(selectedBook.category, selectedBook.categoryEn)}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Header Actions */}
+              <div className="flex shrink-0 items-center gap-1.5">
+                {selectedBook.pdfUrl && (
+                  <>
+                    <a
+                      href={selectedBook.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hidden sm:inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#006a4e] transition"
+                      title={t("নতুন ট্যাবে খুলুন", "Open in New Tab")}
+                    >
+                      <ExternalLink size={13} />
+                      <span>{t("নতুন ট্যাব", "New Tab")}</span>
+                    </a>
+                    <a
+                      href={selectedBook.pdfUrl}
+                      download
+                      className="hidden sm:inline-flex items-center gap-1 rounded-md bg-[#006a4e] px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-[#00503a] transition shadow-2xs"
+                      title={t("ডাউনলোড করুন", "Download PDF")}
+                    >
+                      <Download size={13} />
+                      <span>{t("ডাউনলোড", "Download")}</span>
+                    </a>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition"
+                  title={isFullscreen ? t("ছোট করুন", "Exit Fullscreen") : t("পূর্ণ পর্দা", "Fullscreen")}
+                >
+                  {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBook(null);
+                    setIsFullscreen(false);
+                  }}
+                  className="rounded-md p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition"
+                  title={t("বন্ধ করুন", "Close")}
+                >
+                  <X size={19} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="relative flex-1 overflow-auto bg-gray-100">
+              {selectedBook.pdfUrl ? (
+                <div className="flex h-full w-full flex-col">
+                  <object
+                    data={`${selectedBook.pdfUrl}#toolbar=1&navpanes=0`}
+                    type="application/pdf"
+                    className="h-full w-full flex-1 border-0"
+                  >
+                    <iframe
+                      src={`${selectedBook.pdfUrl}#toolbar=1&navpanes=0`}
+                      className="h-full w-full flex-1 border-0"
+                      title={t(selectedBook.title, selectedBook.titleEn)}
+                    >
+                      <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-white">
+                        <FileText size={48} className="text-[#006a4e] mb-3" />
+                        <p className="text-base font-bold text-gray-800">
+                          {t(selectedBook.title, selectedBook.titleEn)}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500 max-w-md">
+                          {t(
+                            "আপনার ব্রাউজারে সরাসরি প্রিভিউ প্রদর্শিত না হলে নিচের বোতামে ক্লিক করে বইটি সরাসরি ডাউনলোড বা নতুন ট্যাবে পড়ুন।",
+                            "If the embedded viewer is not supported on this device, click below to open or download the PDF directly."
+                          )}
+                        </p>
+                        <div className="mt-4 flex gap-2">
+                          <a
+                            href={selectedBook.pdfUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                          >
+                            <ExternalLink size={14} />
+                            <span>{t("নতুন ট্যাবে বইটি পড়ুন", "Open in New Tab")}</span>
+                          </a>
+                        </div>
+                      </div>
+                    </iframe>
+                  </object>
+                </div>
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center p-6 sm:p-12 text-center bg-white">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-[#006a4e] mb-4 shadow-xs">
+                    <BookOpen size={32} />
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e] mb-2">
+                    {t(selectedBook.category, selectedBook.categoryEn)}
+                  </span>
+                  <h3 className="text-xl font-bold text-gray-900 max-w-md">
+                    {t(selectedBook.title, selectedBook.titleEn)}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600 font-medium">
+                    {t("লেখক / রচয়িতা:", "Author:")} <span className="font-bold text-gray-900">{t(selectedBook.author, selectedBook.authorEn)}</span>
+                  </p>
+
+                  {selectedBook.description && (
+                    <p className="mt-4 max-w-lg rounded-lg border border-gray-100 bg-[#f9fbf9] p-4 text-xs leading-relaxed text-gray-700 text-left">
+                      {t(selectedBook.description, selectedBook.descriptionEn)}
+                    </p>
+                  )}
+
+                  <div className="mt-6 max-w-md rounded-lg border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900">
+                    <p className="font-bold mb-1">
+                      {t("📚 পাঠাগার কপি সংক্রান্ত তথ্য", "📚 Library Circulation Information")}
+                    </p>
+                    <p className="text-[11px] leading-relaxed">
+                      {t(
+                        "এই বইটি বিদ্যালয় পাঠাগারে সরাসরি অধ্যয়নের জন্য সংরক্ষিত রয়েছে। ডিজিটাল পিডিএফ কপিটি বিদ্যালয় কর্তৃপক্ষ কর্তৃক শীঘ্রই যুক্ত করা হবে। বইটি পড়তে বিদ্যালয়ের স্টাডি কর্নারে যোগাযোগ করুন।",
+                        "This volume is currently available in the physical study center. A digital PDF copy will be made available soon by school administration."
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex flex-wrap gap-2 justify-center">
+                    <Link
+                      to="/contact"
+                      onClick={() => setSelectedBook(null)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a]"
+                    >
+                      <span>{t("পাঠাগার ডেস্কে যোগাযোগ করুন", "Contact Library Desk")}</span>
+                      <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 bg-[#f7faf8] px-4 py-2.5 sm:px-6 text-xs text-gray-600">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#006a4e]">{t(content.schoolNameBn || content.schoolName, content.schoolName)}</span>
+                <span>•</span>
+                <span>{t("Study Corner পাঠাগার", "Study Corner Library")}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selectedBook.pdfUrl && (
+                  <span className="text-[11px] text-gray-500">
+                    {t("পিডিএফ পাঠকদের জন্য উন্মুক্ত", "PDF is accessible for readers")}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBook(null);
+                    setIsFullscreen(false);
+                  }}
+                  className="rounded bg-gray-200 px-3 py-1 font-semibold text-gray-800 hover:bg-gray-300 transition"
+                >
+                  {t("বন্ধ করুন", "Close")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
