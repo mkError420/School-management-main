@@ -607,9 +607,8 @@ export const PublicSchoolWebsite: React.FC = () => {
               return (
                 <div
                   key={`${imgUrl}-${idx}`}
-                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                    isActive ? "opacity-100 z-1" : "opacity-0 z-0 pointer-events-none"
-                  }`}
+                  className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? "opacity-100 z-1" : "opacity-0 z-0 pointer-events-none"
+                    }`}
                 >
                   <img
                     src={imgUrl}
@@ -663,7 +662,7 @@ export const PublicSchoolWebsite: React.FC = () => {
             </div>
 
             <h2 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl md:text-5xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-              {content.heroTitle || "ঐতিহ্যবাহী এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম"}
+              {content.heroTitle || "এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম"}
             </h2>
 
             <p className="mt-3 text-sm font-bold text-amber-300 sm:text-base drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
@@ -716,11 +715,10 @@ export const PublicSchoolWebsite: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentSlide(idx)}
                     aria-label={`Go to slide ${idx + 1}`}
-                    className={`h-2 transition-all duration-300 rounded-full ${
-                      idx === currentSlide
-                        ? "w-5 bg-amber-400 shadow-sm"
-                        : "w-2 bg-white/50 hover:bg-white/80"
-                    }`}
+                    className={`h-2 transition-all duration-300 rounded-full ${idx === currentSlide
+                      ? "w-5 bg-amber-400 shadow-sm"
+                      : "w-2 bg-white/50 hover:bg-white/80"
+                      }`}
                   />
                 ))}
               </div>
