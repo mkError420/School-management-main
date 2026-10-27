@@ -231,6 +231,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     codeOfConductRules: cleanList(incoming.codeOfConductRules, DEFAULT_WEBSITE_CONTENT.codeOfConductRules || []),
     contactSubmissions: cleanList(incoming.contactSubmissions, DEFAULT_WEBSITE_CONTENT.contactSubmissions || []),
     admissionSeatMatrix: cleanList(incoming.admissionSeatMatrix, DEFAULT_WEBSITE_CONTENT.admissionSeatMatrix || []),
+    admissionFormPdfUrl: incoming.admissionFormPdfUrl !== undefined ? cleanStr(incoming.admissionFormPdfUrl, DEFAULT_WEBSITE_CONTENT.admissionFormPdfUrl || "") : (DEFAULT_WEBSITE_CONTENT.admissionFormPdfUrl || ""),
     heroImages: cleanList(
       incoming.heroImages && incoming.heroImages.length > 0
         ? incoming.heroImages

@@ -11,6 +11,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  Eye,
   FileCheck,
   FileText,
   Home,
@@ -33,6 +34,10 @@ import {
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
+import {
+  downloadAdmissionFormPdf,
+  openAdmissionFormPrintWindow,
+} from "@/lib/admissionPdfGenerator";
 
 type ActiveTab = "apply" | "guidelines" | "track";
 
@@ -273,6 +278,19 @@ export const AdmissionPage: React.FC = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [submittedAdmission, setSubmittedAdmission] = useState<any | null>(null);
   const [copiedAppNo, setCopiedAppNo] = useState<boolean>(false);
+  const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
+  const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
+
+  const handleDownloadPdfClick = () => {
+    setDownloadingPdf(true);
+    try {
+      downloadAdmissionFormPdf(content);
+    } catch {
+      window.open(content.admissionFormPdfUrl || "/uploads/forms/Admission_Form_2026.pdf", "_blank");
+    } finally {
+      setTimeout(() => setDownloadingPdf(false), 1200);
+    }
+  };
 
   // Bengali / Bangla Unicode range: U+0980 - U+09FF
   const BANGLA_REGEX = /[\u0980-\u09FF]/;
@@ -1531,6 +1549,116 @@ export const AdmissionPage: React.FC = () => {
 
         {/* Right Column (Sidebar) */}
         <aside className="space-y-6 lg:col-span-4">
+          {/* ────── 1. DOWNLOADABLE ADMISSION FORM (PDF VERSION) ────── */}
+          <div className="rounded-xl border-2 border-emerald-600/30 bg-gradient-to-b from-[#f3f9f5] via-white to-white p-5 shadow-sm relative overflow-hidden">
+            {/* Top decorative accent ribbon */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-600 via-[#006a4e] to-emerald-600" />
+
+            <div className="flex items-start justify-between gap-2 border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-600 shadow-2xs border border-red-200">
+                  <FileText size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-block rounded bg-red-600 px-1.5 py-0.2 text-[9px] font-black tracking-wider text-white uppercase shadow-2xs">
+                      PDF Version
+                    </span>
+                    <span className="text-[10px] font-bold text-gray-500">A4 Document</span>
+                  </div>
+                  <h4 className="font-bold text-gray-900 text-sm mt-0.5">
+                    {t("ভর্তি আবেদন ফরম (PDF ডাউনলোড)", "Admission Form (PDF Version)")}
+                  </h4>
+                </div>
+              </div>
+            </div>
+
+            <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+              {t(
+                "অফলাইনে স্বহস্তে পূরণ করতে ইচ্ছুক অভিভাবক ও শিক্ষার্থীরা বিদ্যালয়ের অফিশিয়াল A4 ভর্তি ফরমের PDF সংস্করণ ডাউনলোড ও প্রিন্ট করতে পারেন।",
+                "Download and print the official A4-size student admission application form (PDF version) for offline completion and office submission."
+              )}
+            </p>
+
+            {/* Feature specs checklist */}
+            <div className="mt-3.5 space-y-1.5 rounded-lg border border-emerald-100 bg-[#f8fbf9] p-3 text-[11px] text-gray-700 font-medium">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">{t("ফরমের ফরম্যাট:", "Format:")}</span>
+                <span className="font-bold text-red-700 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-600 inline-block"></span>
+                  PDF (Print-Ready)
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">{t("কাগজের সাইজ:", "Paper Size:")}</span>
+                <span className="font-bold text-gray-800">A4 Portrait (1 Page)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">{t("শিক্ষাবর্ষ:", "Session:")}</span>
+                <span className="font-bold text-[#006a4e]">2026 / 2027</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">{t("ভাষা:", "Language:")}</span>
+                <span className="font-semibold text-gray-800">{t("বাংলা ও ইংরেজি (দ্বিভাষিক)", "Bilingual (BN/EN)")}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-emerald-100/60">
+                <span className="text-gray-500">{t("ডাউনলোড ফি:", "Form Cost:")}</span>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                  {t("বিনামূল্যে (Free)", "100% Free")}
+                </span>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={handleDownloadPdfClick}
+                disabled={downloadingPdf}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 via-[#006a4e] to-[#005a40] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-95 transition disabled:opacity-60 active:scale-[0.99] cursor-pointer"
+              >
+                {downloadingPdf ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>{t("PDF ডাউনলোড হচ্ছে...", "Downloading PDF...")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={15} />
+                    <span>{t("PDF ফরম ডাউনলোড করুন", "Download Admission Form (PDF)")}</span>
+                  </>
+                )}
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPdfModal(true)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-[11px] font-bold text-gray-700 hover:bg-gray-50 hover:text-[#006a4e] shadow-2xs transition cursor-pointer"
+                >
+                  <Eye size={13} />
+                  <span>{t("ফরম প্রিভিউ", "Preview Form")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo)}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50/70 px-3 py-2 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-100/70 shadow-2xs transition cursor-pointer"
+                >
+                  <Printer size={13} />
+                  <span>{t("সরাসরি প্রিন্ট", "Print Directly")}</span>
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-3 text-[10px] text-gray-500 text-center leading-tight">
+              {t(
+                "* ফরমটি প্রিন্ট করে স্বহস্তে পূরণপূর্বক প্রয়োজনীয় কাগজপত্র সহ বিদ্যালয় অফিসে জমা দিন।",
+                "* Print and fill out by hand, then submit to the admissions office with required documents."
+              )}
+            </p>
+          </div>
+
           {/* Quick Apply Card */}
           <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-[#f4f9f6] to-white p-5 shadow-xs">
             <h4 className="font-bold text-[#006a4e] border-b border-emerald-100 pb-2.5 text-sm flex items-center gap-1.5">
@@ -1601,6 +1729,260 @@ export const AdmissionPage: React.FC = () => {
           </div>
         </aside>
       </div>
+
+      {/* ─────── PDF ADMISSION FORM PREVIEW & PRINT MODAL ─────── */}
+      {showPdfModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setShowPdfModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex flex-col bg-white shadow-2xl rounded-xl overflow-hidden border border-emerald-900/20 w-full max-w-4xl h-[92vh] max-h-[950px]"
+          >
+            {/* Modal Header */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-[#f7faf8] px-4 py-3 sm:px-6">
+              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-600 text-white shadow-xs">
+                  <FileText size={20} />
+                </span>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="truncate text-sm font-bold text-gray-900 sm:text-base">
+                      {t("ভর্তি আবেদন ফরম — PDF সংস্করণ প্রিভিউ", "Admission Application Form -- PDF Preview")}
+                    </h3>
+                    <span className="hidden sm:inline-flex rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      PDF • A4 Size
+                    </span>
+                  </div>
+                  <p className="truncate text-[11px] text-gray-500">
+                    {t(
+                      "অফলাইনে পূরণ ও জমা দেওয়ার জন্য অফিশিয়াল ভর্তি ফরম — ২০২৬/২৭ শিক্ষাবর্ষ",
+                      "Official A4 print-ready blank admission form for offline submission -- Session 2026/27"
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDownloadPdfClick}
+                  disabled={downloadingPdf}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#00503a] transition cursor-pointer"
+                  title={t("PDF ফরম ডাউনলোড করুন", "Download Admission Form PDF")}
+                >
+                  {downloadingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span>{t("PDF ডাউনলোড", "Download PDF")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-[#006a4e] transition cursor-pointer"
+                  title={t("প্রিন্ট / সেভ PDF", "Print / Save as PDF")}
+                >
+                  <Printer size={14} />
+                  <span>{t("প্রিন্ট / সেভ PDF", "Print Form")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowPdfModal(false)}
+                  className="rounded-lg p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                  title={t("বন্ধ করুন", "Close")}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: A4 Paper Preview */}
+            <div className="flex-1 overflow-auto bg-gray-100 p-3 sm:p-6 flex justify-center">
+              <div className="w-full max-w-[760px] bg-white border-2 border-[#005a40] p-4 sm:p-6 shadow-lg rounded-sm text-gray-900 text-[11px] leading-relaxed my-auto">
+                <div className="border border-[#7ea898] p-3 sm:p-4">
+                  {/* Header Table */}
+                  <div className="flex items-center justify-between border-b-2 border-[#005a40] pb-3 mb-3 gap-3">
+                    <div className="w-14 h-14 shrink-0 flex items-center justify-center">
+                      {siteLogo ? (
+                        <img src={siteLogo} alt="Logo" className="max-h-14 max-w-14 object-contain" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-[#006a4e] text-white flex items-center justify-center font-bold text-xl shadow-xs">
+                          🏛️
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center flex-1 min-w-0">
+                      <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                        গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
+                      </div>
+                      <div className="text-base sm:text-lg font-black text-[#005a40] leading-tight">
+                        {content.schoolNameBn || "সরকারি মডেল উচ্চ বিদ্যালয় ও কলেজ"}
+                      </div>
+                      <div className="text-xs font-bold text-gray-800 tracking-wide uppercase">
+                        {content.schoolName || "Government Model High School & College"}
+                      </div>
+                      <div className="text-[9.5px] text-gray-600 mt-1">
+                        EIIN: <b>{content.eiin}</b> &nbsp;|&nbsp; কোড: <b>{content.schoolCode}</b> &nbsp;|&nbsp; প্রতিষ্ঠিত: ১৯৭৪
+                        <br />
+                        ঠিকানা: {content.address} &nbsp;|&nbsp; হেল্পলাইন: {formatDigits(content.phone)}
+                      </div>
+                    </div>
+
+                    {/* Photo Box */}
+                    <div className="w-20 h-24 shrink-0 border-2 border-dashed border-gray-400 bg-gray-50 flex flex-col items-center justify-center text-center p-1 text-[8.5px] text-gray-500">
+                      <span className="text-sm">📷</span>
+                      <span>শিক্ষার্থীর ২ কপি পাসপোর্ট সাইজ ছবি</span>
+                    </div>
+                  </div>
+
+                  {/* Title Banner */}
+                  <div className="bg-[#005a40] text-white text-center py-1.5 px-3 rounded font-bold text-xs tracking-wide mb-3">
+                    ভর্তি আবেদন ফরম — ২০২৬/২০২৭ শিক্ষাবর্ষ &nbsp;|&nbsp; STUDENT ADMISSION APPLICATION FORM
+                  </div>
+
+                  {/* Metadata Row */}
+                  <div className="flex flex-wrap items-center justify-between border border-gray-300 bg-gray-50 p-2 text-[10.5px] font-semibold mb-3 rounded gap-2">
+                    <div>আবেদন ফরম নং (Form No): <span className="font-mono text-gray-600">ADM-2026-______________</span></div>
+                    <div>ভর্তিচ্ছু শ্রেণি (Class): <span className="text-gray-600">____________________</span></div>
+                    <div>তারিখ (Date): <span className="text-gray-600">____/____/২০২৬</span></div>
+                  </div>
+
+                  {/* Section 1 */}
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                    ১. শিক্ষার্থীর ব্যক্তিগত বিবরণ (Student Information)
+                  </div>
+                  <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
+                    <tbody>
+                      <tr className="border-b border-gray-300">
+                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">শিক্ষার্থীর নাম (বাংলায়):</td>
+                        <td colSpan={3} className="p-1.5 text-gray-400">................................................................................................................................</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">Full Name (in English):</td>
+                        <td colSpan={3} className="p-1.5 text-gray-400 font-mono text-[9.5px]">(IN CAPITAL BLOCK LETTERS) ........................................................................</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">জন্ম তারিখ (DOB):</td>
+                        <td className="p-1.5 border-r border-gray-300">দিন: ____ মাস: ____ বছর: ________</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">লিঙ্গ (Gender):</td>
+                        <td className="p-1.5">[ &nbsp; ] ছাত্র (Male) &nbsp; [ &nbsp; ] ছাত্রী (Female)</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">ডিজিটাল জন্ম নিবন্ধন নং:</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">রক্তের গ্রুপ ও ধর্ম:</td>
+                        <td className="p-1.5">রক্ত: _______ &nbsp; ধর্ম: ______________</td>
+                      </tr>
+                      <tr>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">শিক্ষার্থীর ধরন:</td>
+                        <td className="p-1.5 border-r border-gray-300">[ ] অনাবাসিক &nbsp; [ ] আবাসিক &nbsp; [ ] ডে-কেয়ার</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">বিশেষ কোটা:</td>
+                        <td className="p-1.5">[ ] সাধারণ &nbsp; [ ] মুক্তিযোদ্ধা &nbsp; [ ] প্রতিবন্ধী</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Section 2 */}
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                    ২. পিতা, মাতা ও অভিভাবকের বিবরণ (Parent & Guardian Information)
+                  </div>
+                  <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
+                    <tbody>
+                      <tr className="border-b border-gray-300">
+                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার পূর্ণ নাম:</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার NID নম্বর:</td>
+                        <td className="p-1.5 text-gray-400">............................................</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার পূর্ণ নাম:</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার NID নম্বর:</td>
+                        <td className="p-1.5 text-gray-400">............................................</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতা/অভিভাবকের পেশা:</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">অভিভাবকের মোবাইল নং:</td>
+                        <td className="p-1.5 font-mono font-bold">+880 1........................</td>
+                      </tr>
+                      <tr>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">বর্তমান ও স্থায়ী ঠিকানা:</td>
+                        <td colSpan={3} className="p-1.5 text-gray-500">গ্রাম/মহল্লা: ............................., ডাকঘর: ......................, উপজেলা: ......................, জেলা: ......................</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Section 3 */}
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                    ৩. পূর্ববর্তী বিদ্যালয়ের বিবরণ (প্রযোজ্য ক্ষেত্রে)
+                  </div>
+                  <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
+                    <tbody>
+                      <tr className="border-b border-gray-300">
+                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">বিদ্যালয়ের নাম:</td>
+                        <td colSpan={3} className="p-1.5 text-gray-400">................................................................................................................................</td>
+                      </tr>
+                      <tr>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">উত্তীর্ণ শ্রেণি ও বছর:</td>
+                        <td className="p-1.5 border-r border-gray-300">শ্রেণি: __________ বছর: ২০____</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">প্রাপ্ত জিপিএ ও TC নং:</td>
+                        <td className="p-1.5">জিপিএ: ________ TC নং: _____________</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Section 4 */}
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                    ৪. শিক্ষার্থী ও অভিভাবকের অঙ্গীকারনামা (Declaration)
+                  </div>
+                  <div className="border border-gray-200 bg-gray-50 p-2 text-[9px] text-gray-600 leading-normal rounded mb-3">
+                    আমি অঙ্গীকার করছি যে, অত্র আবেদনপত্রে বর্ণিত যাবতীয় তথ্য সত্য ও নির্ভুল। ভবিষ্যতে কোনো তথ্য ভুল বা অসত্য প্রমাণিত হলে আবেদনপত্র বা ভর্তি বাতিল বলে গণ্য হবে। বিদ্যালয়ের শৃঙ্খলা, পোশাকবিধি ও সকল নিয়মাবলি মেনে চলতে আমি ও আমার সন্তান সম্পূর্ণ বাধ্য থাকব।
+                  </div>
+
+                  <div className="flex justify-between items-end pt-5 px-6 pb-2 text-[10px]">
+                    <div className="text-center w-40 border-t border-gray-700 pt-1 font-bold">
+                      শিক্ষার্থীর স্বাক্ষর ও তারিখ
+                    </div>
+                    <div className="text-center w-44 border-t border-gray-700 pt-1 font-bold">
+                      পিতা / অভিভাবকের স্বাক্ষর ও তারিখ
+                    </div>
+                  </div>
+
+                  {/* Section 5: Office Use */}
+                  <div className="border-2 border-[#005a40] rounded p-2.5 mt-2 bg-emerald-50/20">
+                    <div className="font-bold text-[#005a40] text-[10px] uppercase mb-1">
+                      ৫. অফিসের ব্যবহারের জন্য (For Office Enrollment Desk Use Only)
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[9.5px] text-gray-700">
+                      <div>নথিপত্র যাচাই: [ ] জন্মসনদ &nbsp; [ ] মূল টিসি &nbsp; [ ] ছবি &nbsp; [ ] NID</div>
+                      <div>ভর্তি সিদ্ধান্ত: [ ] অনুমোদিত &nbsp; [ ] অপেক্ষমাণ &nbsp; [ ] বাতিল</div>
+                      <div>নির্ধারিত শ্রেণি: ____________ শাখা: ____________</div>
+                      <div>শ্রেণি রোল: ____________ রসিদ নং: ____________</div>
+                    </div>
+                    <div className="flex justify-between items-end pt-6 px-6 text-[9.5px]">
+                      <div className="text-center w-36 border-t border-gray-700 pt-1">
+                        যাচাইকারী কর্মকর্তার স্বাক্ষর
+                      </div>
+                      <div className="text-center w-40 border-t border-gray-700 pt-1 font-bold">
+                        অধ্যক্ষ / প্রধান শিক্ষকের স্বাক্ষর ও সিল
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="text-[8.5px] text-gray-400 text-center mt-2">
+                    * ফরমটি স্বহস্তে পূরণ করে প্রয়োজনীয় কাগজপত্র সহ প্রশাসনিক দপ্তরে জমা দিন। ফরমটি সম্পূর্ণ বিনামূল্যে সরবরাহকৃত।
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
