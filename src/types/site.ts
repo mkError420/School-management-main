@@ -201,6 +201,7 @@ export interface SchoolWebsiteContent {
   admissionSeats: string;
   admissionSeatsEn?: string;
   admissionFormUrl: string;
+  admissionFormPdfUrl?: string;
   admissionSeatMatrix?: AdmissionSeatCapacityItem[];
 
   // 7. Dynamic Lists
@@ -599,6 +600,7 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   admissionSeats: "৬ষ্ঠ শ্রেণি: ১২০ আসন · ৭ম শ্রেণি: ৩০ আসন · ৮ম শ্রেণি: ২৫ আসন · ৯ম শ্রেণি: ৬০ আসন",
   admissionSeatsEn: "Class 6: 120 seats · Class 7: 30 seats · Class 8: 25 seats · Class 9: 60 seats",
   admissionFormUrl: "https://gsa.teletalk.com.bd",
+  admissionFormPdfUrl: "/uploads/forms/Admission_Form_2026.pdf",
   admissionSeatMatrix: DEFAULT_ADMISSION_SEAT_MATRIX,
 
   notices: [],
@@ -613,6 +615,15 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   ],
 
   downloads: [
+    {
+      id: "d0",
+      title: "২০২৬ শিক্ষাবর্ষের শিক্ষার্থী ভর্তি আবেদন ফরম (Admission Form PDF)",
+      titleEn: "Student Admission Application Form 2026/27 (Admission Form PDF)",
+      category: "ভর্তি ফরম",
+      categoryEn: "Admission Form",
+      publishDate: "2026-10-25",
+      fileUrl: "/uploads/forms/Admission_Form_2026.pdf",
+    },
     {
       id: "d1",
       title: "২০২৬ শিক্ষাবর্ষের সকল শ্রেণির ক্লাস রুটিন (Class Routine)",
