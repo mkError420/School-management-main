@@ -44,8 +44,8 @@ export interface LiveVisitorStats {
 }
 
 const DEFAULT_VISITOR_STATS: LiveVisitorStats = {
-  today: 452,
-  total: 84120,
+  today: 1,
+  total: 1,
   online: 1,
 };
 

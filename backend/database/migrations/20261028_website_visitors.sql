@@ -12,8 +12,9 @@ CREATE TABLE IF NOT EXISTS website_visitors (
     INDEX idx_last_active (last_active)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Baseline counters in site_settings
-INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('visitor_baseline_total', '84120');
-INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('visitor_baseline_today', '452');
-INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES ('visitor_baseline_date', CURDATE());
-
+-- View to directly calculate "Today's Visitors", "Total Visitors", and "Online Visitors" from website_visitors table
+CREATE OR REPLACE VIEW view_visitor_statistics AS
+SELECT 
+    (SELECT COUNT(*) FROM website_visitors WHERE visit_date = CURDATE()) AS today_visitors,
+    (SELECT COUNT(*) FROM website_visitors) AS total_visitors,
+    (SELECT COUNT(DISTINCT visitor_id) FROM website_visitors WHERE last_active >= NOW() - INTERVAL 15 MINUTE) AS online_visitors;

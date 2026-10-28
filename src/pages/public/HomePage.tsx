@@ -217,9 +217,8 @@ export const HomePage: React.FC = () => {
             return (
               <div
                 key={`${imgUrl}-${idx}`}
-                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-                  isActive ? "opacity-100 z-1" : "opacity-0 z-0 pointer-events-none"
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${isActive ? "opacity-100 z-1" : "opacity-0 z-0 pointer-events-none"
+                  }`}
               >
                 <img
                   src={imgUrl}
@@ -327,11 +326,10 @@ export const HomePage: React.FC = () => {
                   type="button"
                   onClick={() => setCurrentSlide(idx)}
                   aria-label={`Go to slide ${idx + 1}`}
-                  className={`h-2 transition-all duration-300 rounded-full ${
-                    idx === currentSlide
-                      ? "w-5 bg-amber-400 shadow-sm"
-                      : "w-2 bg-white/50 hover:bg-white/80"
-                  }`}
+                  className={`h-2 transition-all duration-300 rounded-full ${idx === currentSlide
+                    ? "w-5 bg-amber-400 shadow-sm"
+                    : "w-2 bg-white/50 hover:bg-white/80"
+                    }`}
                 />
               ))}
             </div>
@@ -590,15 +588,14 @@ export const HomePage: React.FC = () => {
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                            notice.categoryEn === "Admission"
-                              ? "bg-purple-100 text-purple-800"
-                              : notice.categoryEn === "Examination"
+                          <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${notice.categoryEn === "Admission"
+                            ? "bg-purple-100 text-purple-800"
+                            : notice.categoryEn === "Examination"
                               ? "bg-amber-100 text-amber-900"
                               : notice.categoryEn === "Academic"
-                              ? "bg-blue-100 text-blue-900"
-                              : "bg-emerald-100 text-emerald-900"
-                          }`}>
+                                ? "bg-blue-100 text-blue-900"
+                                : "bg-emerald-100 text-emerald-900"
+                            }`}>
                             {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
                           </span>
                           {notice.className && (
@@ -1110,7 +1107,7 @@ export const HomePage: React.FC = () => {
                     <div className="flex items-start gap-3.5">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded bg-red-50 text-red-700">
                         {selectedNotice.fileUrl.startsWith("data:image/") ||
-                        /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                          /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
                           <ImageIcon size={22} />
                         ) : (
                           <FileText size={22} />
@@ -1150,7 +1147,7 @@ export const HomePage: React.FC = () => {
                         <Download size={14} />
                         <span>
                           {selectedNotice.fileUrl.startsWith("data:image/") ||
-                          /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl)
+                            /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl)
                             ? (lang === "bn" ? "ফাইল / ছবি ডাউনলোড" : "Download File / Image")
                             : (lang === "bn" ? "পিডিএফ ডাউনলোড" : "Download PDF")}
                         </span>
@@ -1160,7 +1157,7 @@ export const HomePage: React.FC = () => {
 
                   {/* Embedded Document on Display */}
                   {selectedNotice.fileUrl.startsWith("data:image/") ||
-                  /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
+                    /\.(jpg|jpeg|png|webp|svg)(\?.*)?$/i.test(selectedNotice.fileUrl) ? (
                     <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-2 shadow-inner">
                       <img
                         src={selectedNotice.fileUrl}
