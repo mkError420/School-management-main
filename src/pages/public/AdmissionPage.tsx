@@ -1095,11 +1095,10 @@ export const AdmissionPage: React.FC = () => {
                               return (
                                 <label
                                   key={item.id}
-                                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none ${
-                                    isChecked
-                                      ? "border-[#006a4e] bg-[#006a4e]/5 shadow-xs ring-1 ring-[#006a4e]/20"
-                                      : "border-gray-200 bg-white hover:border-gray-300"
-                                  }`}
+                                  className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition select-none ${isChecked
+                                    ? "border-[#006a4e] bg-[#006a4e]/5 shadow-xs ring-1 ring-[#006a4e]/20"
+                                    : "border-gray-200 bg-white hover:border-gray-300"
+                                    }`}
                                 >
                                   <input
                                     type="checkbox"
@@ -1110,9 +1109,8 @@ export const AdmissionPage: React.FC = () => {
                                     className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#006a4e] focus:ring-[#006a4e]/30 cursor-pointer accent-[#006a4e]"
                                   />
                                   <div className="flex flex-col">
-                                    <span className={`text-xs font-semibold ${
-                                      isChecked ? "text-gray-900 font-bold" : "text-gray-700"
-                                    }`}>
+                                    <span className={`text-xs font-semibold ${isChecked ? "text-gray-900 font-bold" : "text-gray-700"
+                                      }`}>
                                       {t(item.labelBn, item.labelEn)}
                                     </span>
                                     <span className="text-[10px] text-gray-400">
@@ -1616,7 +1614,7 @@ export const AdmissionPage: React.FC = () => {
                 type="button"
                 onClick={handleDownloadPdfClick}
                 disabled={downloadingPdf}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-600 via-[#006a4e] to-[#005a40] px-4 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-95 transition disabled:opacity-60 active:scale-[0.99] cursor-pointer"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gray-700 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:opacity-95 transition disabled:opacity-60 active:scale-[0.99] cursor-pointer"
               >
                 {downloadingPdf ? (
                   <>
