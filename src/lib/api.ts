@@ -103,6 +103,11 @@ class ApiService {
         staff: number;
         classes?: number;
       };
+      visitor_counts?: {
+        today: number;
+        total: number;
+        online?: number;
+      };
     }>('settings', { method: 'GET' });
   }
 
@@ -116,7 +121,33 @@ class ApiService {
         classes?: number;
         parents?: number;
       };
+      visitors?: {
+        today: number;
+        total: number;
+        online?: number;
+      };
     }>('dashboard?action=public-stats', { method: 'GET' });
+  }
+
+  // Live Visitor Statistics
+  async recordVisitor(visitorId?: string) {
+    return this.request<{
+      today: number;
+      total: number;
+      online?: number;
+      visitor_id?: string;
+    }>('visitors', {
+      method: 'POST',
+      body: JSON.stringify({ visitor_id: visitorId }),
+    });
+  }
+
+  async getVisitorStats() {
+    return this.request<{
+      today: number;
+      total: number;
+      online?: number;
+    }>('visitors', { method: 'GET' });
   }
 
   // Public Staff & Faculty Directory

@@ -24,6 +24,33 @@ if ($action === 'public-stats' || $action === 'public-counts') {
     }
     $classCount = (int)($db->fetchOne("SELECT COUNT(*) as total FROM classes")['total'] ?? 0);
 
+    // Visitor counts
+    $visitorToday = 452;
+    $visitorTotal = 84120;
+    $visitorOnline = 1;
+    try {
+        $todayDate = date('Y-m-d');
+        $baseTotal = 84120;
+        $baseToday = 452;
+        $baseDate = $todayDate;
+        $baseRows = $db->fetchAll("SELECT setting_key, setting_value FROM site_settings WHERE setting_key IN ('visitor_baseline_total', 'visitor_baseline_today', 'visitor_baseline_date')");
+        if (is_array($baseRows)) {
+            foreach ($baseRows as $br) {
+                if ($br['setting_key'] === 'visitor_baseline_total') $baseTotal = (int)$br['setting_value'];
+                if ($br['setting_key'] === 'visitor_baseline_today') $baseToday = (int)$br['setting_value'];
+                if ($br['setting_key'] === 'visitor_baseline_date') $baseDate = (string)$br['setting_value'];
+            }
+        }
+        $todayRow = $db->fetchOne("SELECT COUNT(*) as cnt FROM website_visitors WHERE visit_date = CURDATE()");
+        $todayRecorded = (int)($todayRow['cnt'] ?? 0);
+        $totalRow = $db->fetchOne("SELECT COUNT(*) as cnt FROM website_visitors");
+        $totalRecorded = (int)($totalRow['cnt'] ?? 0);
+        $visitorToday = ($baseDate === $todayDate) ? ($baseToday + $todayRecorded) : $todayRecorded;
+        $visitorTotal = $baseTotal + $totalRecorded;
+        $onlineRow = $db->fetchOne("SELECT COUNT(DISTINCT visitor_id) as cnt FROM website_visitors WHERE last_active >= NOW() - INTERVAL 15 MINUTE");
+        $visitorOnline = max(1, (int)($onlineRow['cnt'] ?? 1));
+    } catch (Exception $e) {}
+
     Response::success('Public stats retrieved successfully', [
         'counts' => [
             'students' => $studentCount,
@@ -31,6 +58,11 @@ if ($action === 'public-stats' || $action === 'public-counts') {
             'staff' => $staffCount,
             'classes' => $classCount,
             'parents' => $parentCount,
+        ],
+        'visitors' => [
+            'today' => $visitorToday,
+            'total' => $visitorTotal,
+            'online' => $visitorOnline,
         ]
     ]);
     exit;

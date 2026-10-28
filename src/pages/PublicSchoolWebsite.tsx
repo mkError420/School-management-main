@@ -66,7 +66,7 @@ const GOVT_OFFICIAL_LINKS = [
 ];
 
 export const PublicSchoolWebsite: React.FC = () => {
-  const { websiteContent: content, siteLogo, liveCounts, submitContactInquiry } = useSiteSettings();
+  const { websiteContent: content, siteLogo, liveCounts, submitContactInquiry, visitorStats } = useSiteSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [homeContactForm, setHomeContactForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [isHomeContactSending, setIsHomeContactSending] = useState(false);
@@ -1444,17 +1444,36 @@ export const PublicSchoolWebsite: React.FC = () => {
 
             {/* 8. VISITOR COUNTER & FACEBOOK */}
             <div className="rounded-lg border border-[#dde5df] bg-white p-4 shadow-xs text-center text-xs text-gray-600">
-              <p className="font-bold text-[#006a4e]">ওয়েবসাইট পরিদর্শক পরিসংখ্যান</p>
+              <div className="flex items-center justify-between border-b border-[#e5ece8] pb-1.5 mb-2">
+                <p className="font-bold text-[#006a4e]">
+                  {lang === "bn" ? "ওয়েবসাইট পরিদর্শক পরিসংখ্যান" : "Visitor Statistics"}
+                </p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+                  </span>
+                  <span>{lang === "bn" ? "লাইভ" : "LIVE"}</span>
+                </span>
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2 text-center">
                 <div className="rounded bg-gray-50 p-2">
-                  <p className="text-sm font-bold text-gray-900">৪৫২</p>
-                  <p className="text-[10px] text-gray-500">আজকের পরিদর্শক</p>
+                  <p className="text-sm font-bold text-gray-900">{formatDigits(visitorStats.today.toLocaleString())}</p>
+                  <p className="text-[10px] text-gray-500">{lang === "bn" ? "আজকের পরিদর্শক" : "Today's Visitors"}</p>
                 </div>
                 <div className="rounded bg-gray-50 p-2">
-                  <p className="text-sm font-bold text-gray-900">৮৪,১২০</p>
-                  <p className="text-[10px] text-gray-500">সর্বমোট পরিদর্শক</p>
+                  <p className="text-sm font-bold text-gray-900">{formatDigits(visitorStats.total.toLocaleString())}</p>
+                  <p className="text-[10px] text-gray-500">{lang === "bn" ? "সর্বমোট পরিদর্শক" : "Total Visitors"}</p>
                 </div>
               </div>
+              {visitorStats.online !== undefined && visitorStats.online > 0 && (
+                <p className="mt-2 text-[10px] text-gray-500 flex items-center justify-center gap-1">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  {lang === "bn"
+                    ? `বর্তমানে সক্রিয়: ${formatDigits(visitorStats.online)} জন`
+                    : `Currently Online: ${formatDigits(visitorStats.online)}`}
+                </p>
+              )}
 
               {content.facebookUrl && (
                 <a
@@ -1464,7 +1483,7 @@ export const PublicSchoolWebsite: React.FC = () => {
                   className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:underline"
                 >
                   <Share2 size={13} />
-                  <span>অফিসিয়াল ফেসবুক পেজ</span>
+                  <span>{lang === "bn" ? "অফিসিয়াল ফেসবুক পেজ" : "Official Facebook Page"}</span>
                 </a>
               )}
             </div>

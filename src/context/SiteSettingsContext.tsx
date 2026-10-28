@@ -25,6 +25,9 @@ const CURRENCY_STORAGE_KEY = "school_currency_symbol";
 const LOGO_STORAGE_KEY = "school_site_logo";
 const LANG_STORAGE_KEY = "school_site_lang";
 const COUNTS_STORAGE_KEY = "school_site_live_counts";
+const VISITOR_STORAGE_KEY = "school_site_visitor_stats";
+const VISITOR_ID_STORAGE_KEY = "school_visitor_id";
+const VISITOR_SESSION_RECORDED_KEY = "school_visitor_recorded_today";
 export const DEFAULT_SITE_LOGO = "/images/logo.png";
 
 export interface LiveDashboardCounts {
@@ -33,6 +36,18 @@ export interface LiveDashboardCounts {
   staff: number;
   classes?: number;
 }
+
+export interface LiveVisitorStats {
+  today: number;
+  total: number;
+  online?: number;
+}
+
+const DEFAULT_VISITOR_STATS: LiveVisitorStats = {
+  today: 452,
+  total: 84120,
+  online: 1,
+};
 
 interface SiteSettingsContextValue {
   siteName: string;
@@ -43,6 +58,7 @@ interface SiteSettingsContextValue {
   isLoading: boolean;
   lang: "bn" | "en";
   liveCounts: LiveDashboardCounts | null;
+  visitorStats: LiveVisitorStats;
   setLang: (lang: "bn" | "en") => void;
   toggleLang: () => void;
   t: (bnText?: string, enText?: string) => string;
@@ -55,6 +71,7 @@ interface SiteSettingsContextValue {
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
   refreshSettings: () => Promise<void>;
   refreshLiveCounts: () => Promise<void>;
+  refreshVisitorStats: () => Promise<void>;
 }
 
 export const resolveLogoUrl = (logo?: string | null): string => {
@@ -83,6 +100,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   isLoading: false,
   lang: "bn",
   liveCounts: null,
+  visitorStats: DEFAULT_VISITOR_STATS,
   setLang: () => {},
   toggleLang: () => {},
   t: (bnText?: string, enText?: string) => bnText || enText || "",
@@ -95,6 +113,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   refreshSettings: async () => {},
   refreshLiveCounts: async () => {},
+  refreshVisitorStats: async () => {},
 });
 
 const fileToDataUrl = (file: File): Promise<string> => {
@@ -299,6 +318,48 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     } catch {}
     return null;
   });
+  const [visitorStats, setVisitorStats] = useState<LiveVisitorStats>(() => {
+    try {
+      const cached = localStorage.getItem(VISITOR_STORAGE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (typeof parsed?.today === "number" && typeof parsed?.total === "number") {
+          return parsed;
+        }
+      }
+    } catch {}
+    return DEFAULT_VISITOR_STATS;
+  });
+
+  const getOrGenerateVisitorId = (): string => {
+    try {
+      let id = localStorage.getItem(VISITOR_ID_STORAGE_KEY);
+      if (!id) {
+        id = `v_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 10)}`;
+        localStorage.setItem(VISITOR_ID_STORAGE_KEY, id);
+      }
+      return id;
+    } catch {
+      return `v_${Date.now().toString(36)}`;
+    }
+  };
+
+  const refreshVisitorStats = async () => {
+    try {
+      const res = await api.getVisitorStats();
+      if (res.success && res.data) {
+        const nextStats: LiveVisitorStats = {
+          today: Number(res.data.today ?? 0),
+          total: Number(res.data.total ?? 0),
+          online: Number(res.data.online ?? 1),
+        };
+        setVisitorStats(nextStats);
+        try {
+          localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(nextStats));
+        } catch {}
+      }
+    } catch {}
+  };
 
   const setLang = (nextLang: "bn" | "en") => {
     setLangState(nextLang);
@@ -343,6 +404,17 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(c));
         } catch {}
       }
+      if (res.success && res.data?.visitors) {
+        const vs: LiveVisitorStats = {
+          today: Number(res.data.visitors.today ?? 0),
+          total: Number(res.data.visitors.total ?? 0),
+          online: Number(res.data.visitors.online ?? 1),
+        };
+        setVisitorStats(vs);
+        try {
+          localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(vs));
+        } catch {}
+      }
     } catch {
       // transient network error
     }
@@ -372,6 +444,17 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setLiveCounts(c);
           try {
             localStorage.setItem(COUNTS_STORAGE_KEY, JSON.stringify(c));
+          } catch {}
+        }
+        if (response.data.visitor_counts) {
+          const vs: LiveVisitorStats = {
+            today: Number(response.data.visitor_counts.today ?? 0),
+            total: Number(response.data.visitor_counts.total ?? 0),
+            online: Number(response.data.visitor_counts.online ?? 1),
+          };
+          setVisitorStats(vs);
+          try {
+            localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(vs));
           } catch {}
         }
         if (response.data.website_content) {
@@ -421,6 +504,17 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       } else {
         refreshLiveCounts().catch(() => {});
       }
+      if (response.data.visitor_counts) {
+        const vs: LiveVisitorStats = {
+          today: Number(response.data.visitor_counts.today ?? 0),
+          total: Number(response.data.visitor_counts.total ?? 0),
+          online: Number(response.data.visitor_counts.online ?? 1),
+        };
+        setVisitorStats(vs);
+        try {
+          localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(vs));
+        } catch {}
+      }
       if (response.data.website_content) {
         const wasCorrupted = hasAnyCorruption(response.data.website_content);
         const merged = normalizeContent(response.data.website_content);
@@ -435,6 +529,73 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }).finally(() => {
       if (active) setIsLoading(false);
     });
+
+    // Record visitor session & setup live auto-refresh
+    const visitorId = getOrGenerateVisitorId();
+    const todayDateKey = new Date().toISOString().slice(0, 10);
+    const sessionRecorded = sessionStorage.getItem(`${VISITOR_SESSION_RECORDED_KEY}_${todayDateKey}`);
+
+    const recordAndFetchVisitor = async () => {
+      try {
+        if (!sessionRecorded) {
+          const res = await api.recordVisitor(visitorId);
+          if (active && res.success && res.data) {
+            const nextStats: LiveVisitorStats = {
+              today: Number(res.data.today ?? 0),
+              total: Number(res.data.total ?? 0),
+              online: Number(res.data.online ?? 1),
+            };
+            setVisitorStats(nextStats);
+            try {
+              localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(nextStats));
+              sessionStorage.setItem(`${VISITOR_SESSION_RECORDED_KEY}_${todayDateKey}`, "1");
+            } catch {}
+            return;
+          }
+        }
+      } catch {}
+
+      try {
+        const statsRes = await api.getVisitorStats();
+        if (active && statsRes.success && statsRes.data) {
+          const nextStats: LiveVisitorStats = {
+            today: Number(statsRes.data.today ?? 0),
+            total: Number(statsRes.data.total ?? 0),
+            online: Number(statsRes.data.online ?? 1),
+          };
+          setVisitorStats(nextStats);
+          try {
+            localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(nextStats));
+          } catch {}
+        } else if (!sessionRecorded) {
+          // Offline / fallback optimistic increment for new session
+          setVisitorStats((prev) => {
+            const updated = { ...prev, today: prev.today + 1, total: prev.total + 1 };
+            try {
+              localStorage.setItem(VISITOR_STORAGE_KEY, JSON.stringify(updated));
+              sessionStorage.setItem(`${VISITOR_SESSION_RECORDED_KEY}_${todayDateKey}`, "1");
+            } catch {}
+            return updated;
+          });
+        }
+      } catch {}
+    };
+
+    recordAndFetchVisitor();
+
+    // Live refresh every 45 seconds when window is active
+    const visitorPollInterval = window.setInterval(() => {
+      if (active && document.visibilityState === "visible") {
+        refreshVisitorStats().catch(() => {});
+      }
+    }, 45000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshVisitorStats().catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     const handleSync = () => {
       try {
@@ -470,6 +631,8 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => {
       active = false;
+      clearInterval(visitorPollInterval);
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("school-site-settings-updated", handleSync);
       window.removeEventListener("school-site-lang-changed", handleSync);
       window.removeEventListener("school-live-counts-updated", handleLiveCounts);
@@ -673,6 +836,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         isLoading,
         lang,
         liveCounts,
+        visitorStats,
         setLang,
         toggleLang,
         t,
@@ -685,6 +849,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         resetSiteLogo,
         refreshSettings,
         refreshLiveCounts,
+        refreshVisitorStats,
       }}
     >
       {children}
