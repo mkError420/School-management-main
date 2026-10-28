@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowRight, Eye, EyeOff, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, GraduationCap, ShieldCheck, UsersRound } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { resolveLogoUrl, useSiteSettings } from "@/context/SiteSettingsContext";
 
@@ -13,11 +13,12 @@ const demoAccounts = [
 
 const SignInPage: React.FC = () => {
   const { login, isLoading } = useAuth();
-  const { siteName, siteLogo, refreshSettings } = useSiteSettings();
+  const { siteName, siteLogo, websiteContent: content, refreshSettings } = useSiteSettings();
   const navigate = useNavigate();
 
-  const isDefaultLogo = !siteLogo || siteLogo === "/images/logo.png" || siteLogo === "/logo.png";
-  const logoUrl = resolveLogoUrl(siteLogo);
+  const logoUrl = resolveLogoUrl(siteLogo) || "/images/logo.png";
+  const schoolTitle = content.schoolNameBn || content.schoolName || siteName || "School Management System";
+  const schoolSubtitle = content.heroSubtitle || content.heroSubtitleEn || "School Management System";
 
   useEffect(() => {
     // Refresh settings from server when viewing login page
@@ -58,35 +59,46 @@ const SignInPage: React.FC = () => {
       <img src="/images/bgimage2.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center" />
       <div className="absolute inset-0 bg-slate-950/45" aria-hidden="true" />
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 sm:px-6">
-        <main className="login-card w-full max-w-[470px] rounded-lg border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+        <main className="login-card w-full max-w-[470px] rounded-2xl border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">
+          <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-3">
+            <Link
+              to="/"
+              className="group inline-flex items-center gap-1.5 text-xs font-semibold text-[#006a4e] hover:text-[#004d38] transition"
+              title="Return to School Website"
+            >
+              <ArrowLeft size={14} className="transition group-hover:-translate-x-0.5" />
+              <span>ওয়েবসাইটে ফিরে যান / Back to Website</span>
+            </Link>
+          </div>
+
           <header className="mb-7">
             <div className="flex items-center gap-3.5">
-              <div
-                className={`flex h-12 w-12 items-center justify-center rounded-xl overflow-hidden p-1.5 transition-all shadow-xs ${isDefaultLogo
-                  ? "bg-[#707E94] shadow-sm"
-                  : "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm"
-                  }`}
+              <Link
+                to="/"
+                className="group relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#006a4e] bg-white p-1 shadow-md transition hover:scale-105"
+                title="Go to Website"
               >
                 <img
                   src={logoUrl}
-                  alt={siteName}
+                  alt={schoolTitle}
                   onError={(e) => {
                     const target = e.currentTarget;
                     if (!target.dataset.fallback) {
                       target.dataset.fallback = "true";
                       target.src = "/images/logo.png";
-                      target.classList.add("brightness-0", "invert");
                     }
                   }}
-                  className={`h-full w-full object-contain ${isDefaultLogo ? "brightness-0 invert" : ""}`}
+                  className="h-full w-full object-contain rounded-full"
                 />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-black">{siteName}</h1>
-                <p className="text-xs text-gray-700">School Management System</p>
+              </Link>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg font-bold text-gray-900 leading-tight sm:text-xl truncate" title={schoolTitle}>
+                  {schoolTitle}
+                </h1>
+                <p className="mt-0.5 text-xs text-gray-600 truncate">{schoolSubtitle}</p>
               </div>
             </div>
-            <p className="mt-6 text-sm font-medium text-black">Sign in to continue to your account.</p>
+            <p className="mt-5 text-sm font-medium text-gray-700">Sign in to continue to your account.</p>
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-4">
