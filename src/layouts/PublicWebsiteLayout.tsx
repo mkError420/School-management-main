@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Bell,
@@ -20,8 +20,11 @@ import {
   PhoneCall,
   Play,
   Printer,
+  RotateCcw,
   Shield,
   Users,
+  Volume2,
+  VolumeX,
   X,
   ArrowRight,
   ArrowUpRight,
@@ -38,7 +41,12 @@ export const PublicWebsiteLayout: React.FC = () => {
   const [showCharterModal, setShowCharterModal] = useState<boolean>(false);
   const [showAnthemModal, setShowAnthemModal] = useState<boolean>(false);
   const [isPlayingAnthem, setIsPlayingAnthem] = useState<boolean>(false);
-  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [anthemTrack, setAnthemTrack] = useState<"vocal" | "instrumental">("vocal");
+  const [anthemCurrentTime, setAnthemCurrentTime] = useState<number>(0);
+  const [anthemDuration, setAnthemDuration] = useState<number>(0);
+  const [isAnthemMuted, setIsAnthemMuted] = useState<boolean>(false);
+  const [anthemSourceIdx, setAnthemSourceIdx] = useState<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [liveNotices, setLiveNotices] = useState<SchoolNotice[]>([]);
   const location = useLocation();
 
@@ -86,7 +94,7 @@ export const PublicWebsiteLayout: React.FC = () => {
           });
           setLiveNotices(mapped);
         }
-      } catch {}
+      } catch { }
     };
     void fetchLiveNotices();
 
@@ -147,25 +155,122 @@ export const PublicWebsiteLayout: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // National Anthem Audio setup
+  // National Anthem Audio sources (primary local file with CDN fallbacks)
+  const anthemSources = useMemo(
+    () => ({
+      vocal: [
+        "/audio/national-anthem.mp3",
+        "/audio/national-anthem-vocal.ogg",
+        "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bc/Amar_Sonar_Bangla_-_official_vocal_music_of_the_National_anthem_of_Bangladesh.ogg/Amar_Sonar_Bangla_-_official_vocal_music_of_the_National_anthem_of_Bangladesh.ogg.mp3",
+      ],
+      instrumental: [
+        "/audio/national-anthem-instrumental.mp3",
+        "/audio/national-anthem-instrumental.ogg",
+        "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/7d/Amar_Sonar_Bangla_instrumental_by_US_Navy_Band.oga/Amar_Sonar_Bangla_instrumental_by_US_Navy_Band.oga.mp3",
+      ],
+    }),
+    []
+  );
+
   useEffect(() => {
-    const audio = new Audio("https://upload.wikimedia.org/wikipedia/commons/7/77/Amar_Shonar_Bangla_instrumental.ogg");
-    audio.onended = () => setIsPlayingAnthem(false);
-    audio.onpause = () => setIsPlayingAnthem(false);
-    audio.onplay = () => setIsPlayingAnthem(true);
-    setAudioRef(audio);
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audioRef.current = audio;
+
+    const sources = anthemSources[anthemTrack];
+    audio.src = sources[anthemSourceIdx] || sources[0];
+
+    const handlePlay = () => setIsPlayingAnthem(true);
+    const handlePause = () => setIsPlayingAnthem(false);
+    const handleEnded = () => {
+      setIsPlayingAnthem(false);
+      setAnthemCurrentTime(0);
+    };
+    const handleTimeUpdate = () => {
+      setAnthemCurrentTime(audio.currentTime);
+    };
+    const handleLoadedMetadata = () => {
+      setAnthemDuration(audio.duration || 0);
+    };
+    const handleError = () => {
+      if (anthemSourceIdx < sources.length - 1) {
+        setAnthemSourceIdx((prev) => prev + 1);
+      }
+    };
+
+    audio.addEventListener("play", handlePlay);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("error", handleError);
+
     return () => {
+      audio.removeEventListener("play", handlePlay);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("error", handleError);
       audio.pause();
     };
-  }, []);
+  }, [anthemTrack, anthemSourceIdx, anthemSources]);
 
-  const toggleAnthem = () => {
-    if (!audioRef) return;
+  const toggleAnthem = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
     if (isPlayingAnthem) {
-      audioRef.pause();
+      audio.pause();
     } else {
-      audioRef.play().catch(() => { });
+      try {
+        await audio.play();
+      } catch (err) {
+        console.warn("Autoplay or audio play blocked:", err);
+      }
     }
+  };
+
+  const switchAnthemTrack = (track: "vocal" | "instrumental") => {
+    if (track === anthemTrack) return;
+    const wasPlaying = isPlayingAnthem;
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    setAnthemTrack(track);
+    setAnthemSourceIdx(0);
+    setAnthemCurrentTime(0);
+    if (wasPlaying) {
+      setTimeout(() => {
+        audioRef.current?.play().catch(() => { });
+      }, 100);
+    }
+  };
+
+  const restartAnthem = () => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch(() => { });
+  };
+
+  const toggleAnthemMute = () => {
+    if (!audioRef.current) return;
+    audioRef.current.muted = !audioRef.current.muted;
+    setIsAnthemMuted(audioRef.current.muted);
+  };
+
+  const handleSeekAnthem = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
+      setAnthemCurrentTime(val);
+    }
+  };
+
+  const formatAudioTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   const navLinks = [
@@ -284,11 +389,21 @@ export const PublicWebsiteLayout: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowAnthemModal(true)}
-                className="inline-flex items-center gap-1 rounded bg-white/10 px-2 py-0.5 font-medium transition hover:bg-white/20"
+                className={`inline-flex items-center gap-1.5 rounded px-2.5 py-0.5 font-medium transition ${isPlayingAnthem
+                  ? "bg-amber-500/30 text-amber-300 ring-1 ring-amber-400/50"
+                  : "bg-white/10 hover:bg-white/20 text-white"
+                  }`}
                 title={lang === "bn" ? "জাতীয় সংগীত শুনুন ও লিরিক্স দেখুন" : "Play National Anthem & View Lyrics"}
               >
-                <Music size={12} className="text-amber-300" />
-                <span className="hidden sm:inline">{lang === "bn" ? "জাতীয় সংগীত" : "Anthem"}</span>
+                <Music size={12} className={isPlayingAnthem ? "text-amber-300 animate-pulse" : "text-emerald-300"} />
+                <span>{lang === "bn" ? "জাতীয় সংগীত" : "Anthem"}</span>
+                {isPlayingAnthem && (
+                  <span className="flex items-center gap-0.5">
+                    <span className="h-2 w-0.5 bg-amber-300 animate-pulse" />
+                    <span className="h-3 w-0.5 bg-amber-300 animate-pulse" style={{ animationDelay: "150ms" }} />
+                    <span className="h-1.5 w-0.5 bg-amber-300 animate-pulse" style={{ animationDelay: "300ms" }} />
+                  </span>
+                )}
               </button>
 
               <button
@@ -296,7 +411,6 @@ export const PublicWebsiteLayout: React.FC = () => {
                 onClick={() => setShowCharterModal(true)}
                 className="inline-flex items-center gap-1 rounded bg-white/10 px-2 py-0.5 font-medium transition hover:bg-white/20"
               >
-                <Shield size={12} className="text-amber-300" />
                 <span className="hidden sm:inline">{lang === "bn" ? "সিটিজেন চার্টার" : "Citizen Charter"}</span>
               </button>
 
@@ -312,7 +426,7 @@ export const PublicWebsiteLayout: React.FC = () => {
 
               <Link
                 to="/sign-in"
-                className="inline-flex items-center gap-1.5 rounded-sm bg-[#eab308] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#fde047] hover:shadow-md"
+                className="inline-flex items-center gap-1.5 rounded-sm bg-[#0aa0ab] px-3 py-1 font-bold text-gray-950 shadow-xs transition hover:bg-[#0aa0ab] hover:shadow-md"
               >
                 <Users size={13} />
                 <span>{lang === "bn" ? "ইউজার লগইন" : "User Login"}</span>
@@ -627,7 +741,7 @@ export const PublicWebsiteLayout: React.FC = () => {
               <div className="mt-4">
                 <Link
                   to="/sign-in"
-                  className="inline-flex items-center gap-2 rounded bg-[#eab308] px-4 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#fde047]"
+                  className="inline-flex items-center gap-2 rounded bg-[#0aa0ab] px-4 py-2 text-xs font-bold text-gray-950 transition hover:bg-[#0aa0ab]"
                 >
                   <Users size={14} />
                   <span>{lang === "bn" ? "সুপার অ্যাডমিন লগইন" : "Admin Login"}</span>
@@ -879,19 +993,111 @@ export const PublicWebsiteLayout: React.FC = () => {
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4 backdrop-blur-xs"
         >
-          <div className="relative w-full max-w-lg rounded-lg border border-emerald-700 bg-white p-6 shadow-2xl text-center">
+          <div className="relative w-full max-w-lg rounded-xl border border-emerald-700 bg-white p-5 sm:p-6 shadow-2xl text-center max-h-[90vh] flex flex-col">
             <button
               type="button"
               onClick={() => setShowAnthemModal(false)}
-              className="absolute right-3 top-3 rounded p-1 text-gray-500 hover:bg-gray-100"
+              className="absolute right-3.5 top-3.5 rounded p-1 text-gray-500 hover:bg-gray-100 transition"
+              title={lang === "bn" ? "বন্ধ করুন" : "Close"}
             >
               <X size={20} />
             </button>
-            <h3 className="mt-2 text-lg font-bold text-[#006a4e]">{lang === "bn" ? "আমাদের জাতীয় সংগীত" : "Our National Anthem"}</h3>
-            <p className="text-xs text-gray-500">{lang === "bn" ? "রচিয়তা: বিশ্বকবি রবীন্দ্রনাথ ঠাকুর" : "Composed by: Rabindranath Tagore"}</p>
 
-            <div className="my-4 rounded-lg bg-emerald-50/70 p-4 font-serif text-sm leading-relaxed text-gray-800">
-              <p>আমার সোনার বাংলা, আমি তোমায় ভালোবাসি।</p>
+            <div className="flex items-center justify-center gap-2">
+              <div className="h-6 w-1 rounded-full bg-[#006a4e]" />
+              <h3 className="text-lg font-bold text-[#006a4e]">
+                {lang === "bn" ? "আমাদের জাতীয় সংগীত" : "Our National Anthem"}
+              </h3>
+              <div className="h-6 w-1 rounded-full bg-[#006a4e]" />
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {lang === "bn" ? "রচিয়তা: বিশ্বকবি রবীন্দ্রনাথ ঠাকুর" : "Composed by: Rabindranath Tagore"}
+            </p>
+
+            {/* Track selector tabs: Vocal vs Instrumental */}
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => switchAnthemTrack("vocal")}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${anthemTrack === "vocal"
+                  ? "bg-[#006a4e] text-white shadow-xs"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                {lang === "bn" ? "🎙️ কণ্ঠসহ (মূল গান)" : "🎙️ Vocal (Song)"}
+              </button>
+              <button
+                type="button"
+                onClick={() => switchAnthemTrack("instrumental")}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition ${anthemTrack === "instrumental"
+                  ? "bg-[#006a4e] text-white shadow-xs"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+              >
+                {lang === "bn" ? "🎺 বাদ্যযন্ত্র (সুর)" : "🎺 Instrumental"}
+              </button>
+            </div>
+
+            {/* Audio Player Controls */}
+            <div className="mt-3.5 rounded-xl border border-emerald-200 bg-gradient-to-b from-emerald-50/70 to-emerald-50/20 p-3 shadow-xs">
+              <div className="flex items-center gap-2 text-[11px] font-mono text-gray-600">
+                <span className="w-9 text-right">{formatAudioTime(anthemCurrentTime)}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={anthemDuration || 100}
+                  step={0.5}
+                  value={anthemCurrentTime}
+                  onChange={handleSeekAnthem}
+                  className="h-1.5 w-full cursor-pointer accent-[#006a4e] rounded-lg bg-gray-300"
+                />
+                <span className="w-9 text-left">{formatAudioTime(anthemDuration)}</span>
+              </div>
+
+              <div className="mt-2.5 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={restartAnthem}
+                  className="rounded-full p-2 text-gray-600 hover:bg-emerald-100 hover:text-emerald-900 transition"
+                  title={lang === "bn" ? "প্রথম থেকে বাজান" : "Play from beginning"}
+                >
+                  <RotateCcw size={15} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleAnthem}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#006a4e] px-5 py-2 text-xs font-bold text-white shadow-md transition hover:bg-[#00503a] active:scale-95"
+                >
+                  {isPlayingAnthem ? <Pause size={16} /> : <Play size={16} />}
+                  <span>
+                    {isPlayingAnthem
+                      ? (lang === "bn" ? "সংগীত বন্ধ করুন" : "Pause Anthem")
+                      : (lang === "bn" ? "সংগীত বাজান" : "Play Anthem")}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleAnthemMute}
+                  className="rounded-full p-2 text-gray-600 hover:bg-emerald-100 hover:text-emerald-900 transition"
+                  title={isAnthemMuted ? (lang === "bn" ? "আনমিউট করুন" : "Unmute") : (lang === "bn" ? "মিউট করুন" : "Mute")}
+                >
+                  {isAnthemMuted ? <VolumeX size={16} className="text-rose-600" /> : <Volume2 size={16} />}
+                </button>
+              </div>
+
+              {isPlayingAnthem && (
+                <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-emerald-800">
+                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-600 animate-ping" />
+                  <span>{lang === "bn" ? "জাতীয় সংগীত বাজছে..." : "National anthem is playing..."}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Lyrics */}
+            <div className="my-3.5 flex-1 overflow-y-auto max-h-[35vh] rounded-lg bg-emerald-50/50 border border-emerald-100 p-4 font-serif text-sm leading-relaxed text-gray-800">
+              <p className="font-semibold text-emerald-900">আমার সোনার বাংলা, আমি তোমায় ভালোবাসি।</p>
               <p>চিরদিন তোমার আকাশ, তোমার বাতাস, আমার প্রাণে বাজায় বাঁশি॥</p>
               <p className="mt-2">ও মা, ফাগুনে তোর আমের বনে ঘ্রাণে পাগল করে,</p>
               <p>মরি হায়, হায় রে—</p>
@@ -903,19 +1109,11 @@ export const PublicWebsiteLayout: React.FC = () => {
               <p>মা, তোর বদনখানি মলিন হলে, ও মা, আমি নয়নজলে ভাসি॥</p>
             </div>
 
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={toggleAnthem}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#006a4e] px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#00503a]"
-              >
-                {isPlayingAnthem ? <Pause size={14} /> : <Play size={14} />}
-                <span>{isPlayingAnthem ? (lang === "bn" ? "সংগীত বন্ধ করুন" : "Stop Anthem") : (lang === "bn" ? "সংগীত বাজান" : "Play Anthem")}</span>
-              </button>
+            <div className="text-right">
               <button
                 type="button"
                 onClick={() => setShowAnthemModal(false)}
-                className="rounded-full border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                className="rounded-md border border-gray-300 px-4 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
               >
                 {lang === "bn" ? "বন্ধ করুন" : "Close"}
               </button>

@@ -164,7 +164,7 @@ export const PublicSchoolWebsite: React.FC = () => {
 
   // National Anthem Audio setup
   useEffect(() => {
-    const audio = new Audio("https://upload.wikimedia.org/wikipedia/commons/7/77/Amar_Shonar_Bangla_instrumental.ogg");
+    const audio = new Audio("/audio/national-anthem.mp3");
     audio.onended = () => setIsPlayingAnthem(false);
     audio.onpause = () => setIsPlayingAnthem(false);
     audio.onplay = () => setIsPlayingAnthem(true);
