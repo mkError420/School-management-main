@@ -1852,7 +1852,7 @@ export const AdmissionPage: React.FC = () => {
                   </div>
 
                   {/* Section 1 */}
-                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5 text-center">
                     ১. শিক্ষার্থীর ব্যক্তিগত বিবরণ (Student Information)
                   </div>
                   <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
@@ -1887,38 +1887,48 @@ export const AdmissionPage: React.FC = () => {
                   </table>
 
                   {/* Section 2 */}
-                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5 text-center">
                     ২. পিতা, মাতা ও অভিভাবকের বিবরণ (Parent & Guardian Information)
                   </div>
-                  <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
+                  <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2 table-fixed">
+                    <colgroup>
+                      <col className="w-[17%]" />
+                      <col className="w-[35%]" />
+                      <col className="w-[25%]" />
+                      <col className="w-[23%]" />
+                    </colgroup>
                     <tbody>
                       <tr className="border-b border-gray-300">
-                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার পূর্ণ নাম:</td>
-                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
-                        <td className="w-1/4 bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার NID নম্বর:</td>
-                        <td className="p-1.5 text-gray-400">............................................</td>
+                        <td className="w-[17%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার পূর্ণ নাম:</td>
+                        <td className="w-[35%] p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
+                        <td className="w-[25%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার NID নম্বর:</td>
+                        <td className="w-[23%] p-1.5 text-gray-400">............................................</td>
                       </tr>
                       <tr className="border-b border-gray-300">
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার পূর্ণ নাম:</td>
-                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার NID নম্বর:</td>
                         <td className="p-1.5 text-gray-400">............................................</td>
                       </tr>
                       <tr className="border-b border-gray-300">
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতা/অভিভাবকের পেশা:</td>
-                        <td className="p-1.5 border-r border-gray-300 text-gray-400">............................................</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">অভিভাবকের মোবাইল নং:</td>
                         <td className="p-1.5 font-mono font-bold">+880 1........................</td>
                       </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">বর্তমান ঠিকানা:</td>
+                        <td colSpan={3} className="p-1.5 text-gray-500">গ্রাম/মহল্লা: ............................., ডাকঘর: ......................, উপজেলা: ......................, জেলা: ......................</td>
+                      </tr>
                       <tr>
-                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">বর্তমান ও স্থায়ী ঠিকানা:</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">স্থায়ী ঠিকানা:</td>
                         <td colSpan={3} className="p-1.5 text-gray-500">গ্রাম/মহল্লা: ............................., ডাকঘর: ......................, উপজেলা: ......................, জেলা: ......................</td>
                       </tr>
                     </tbody>
                   </table>
 
                   {/* Section 3 */}
-                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5 text-center">
                     ৩. পূর্ববর্তী বিদ্যালয়ের বিবরণ (প্রযোজ্য ক্ষেত্রে)
                   </div>
                   <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2">
@@ -1937,7 +1947,7 @@ export const AdmissionPage: React.FC = () => {
                   </table>
 
                   {/* Section 4 */}
-                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5">
+                  <div className="bg-emerald-50 border-l-4 border-[#005a40] border-y border-r border-emerald-200 px-2 py-1 font-bold text-[#005a40] text-[10.5px] uppercase mb-1.5 text-center">
                     ৪. শিক্ষার্থী ও অভিভাবকের অঙ্গীকারনামা (Declaration)
                   </div>
                   <div className="border border-gray-200 bg-gray-50 p-2 text-[9px] text-gray-600 leading-normal rounded mb-3">
@@ -1955,7 +1965,7 @@ export const AdmissionPage: React.FC = () => {
 
                   {/* Section 5: Office Use */}
                   <div className="border-2 border-[#005a40] rounded p-2.5 mt-2 bg-emerald-50/20">
-                    <div className="font-bold text-[#005a40] text-[10px] uppercase mb-1">
+                    <div className="font-bold text-[#005a40] text-[10px] uppercase mb-1 text-center">
                       ৫. অফিসের ব্যবহারের জন্য (For Office Enrollment Desk Use Only)
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-[9.5px] text-gray-700">

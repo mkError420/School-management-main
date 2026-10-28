@@ -273,7 +273,7 @@ export function getAdmissionFormHtml(
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap');
     @page {
       size: A4 portrait;
-      margin: 8mm 10mm 8mm 10mm;
+      margin: 0;
     }
     * {
       box-sizing: border-box;
@@ -288,20 +288,32 @@ export function getAdmissionFormHtml(
       color: #111827;
       background: #ffffff;
       line-height: 1.3;
+      margin: 0;
+      padding: 0;
     }
     .page-container {
-      width: 100%;
-      max-width: 210mm;
+      width: 794px;
+      height: 1123px;
+      min-height: 1123px;
+      max-height: 1123px;
       margin: 0 auto;
-      border: 2px solid #005a40;
-      padding: 8px 12px;
+      border: 2.5px solid #005a40;
+      padding: 10px 14px;
       position: relative;
       background: #fff;
       font-family: 'Noto Sans Bengali', 'Segoe UI', Arial, SolaimanLipi, Kalpurush, sans-serif;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
     }
     .inner-border {
       border: 1px solid #7ea898;
-      padding: 6px 10px;
+      padding: 8px 12px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
     }
     .header-table {
       width: 100%;
@@ -381,13 +393,15 @@ export function getAdmissionFormHtml(
       border-top: 1px solid #cbe0d3;
       border-right: 1px solid #cbe0d3;
       border-bottom: 1px solid #cbe0d3;
-      padding: 2.5px 6px;
+      padding: 3px 6px;
       font-size: 10.5px;
       font-weight: bold;
       color: #005a40;
       margin-top: 5px;
       margin-bottom: 3px;
       text-transform: uppercase;
+      text-align: center;
+      line-height: 1.25;
     }
     .grid-table {
       width: 100%;
@@ -405,6 +419,28 @@ export function getAdmissionFormHtml(
       font-weight: 600;
       width: 22%;
       color: #374151;
+    }
+    .parent-info-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    .parent-info-table td.label-cell-left {
+      width: 17%;
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    .parent-info-table td.value-cell-name {
+      width: 35%;
+    }
+    .parent-info-table td.label-cell-right {
+      width: 25%;
+      background: #f9fafb;
+      font-weight: 600;
+      color: #374151;
+    }
+    .parent-info-table td.value-cell-nid {
+      width: 23%;
     }
     .dots {
       border-bottom: 1px dotted #9ca3af;
@@ -464,6 +500,7 @@ export function getAdmissionFormHtml(
       color: #005a40;
       text-transform: uppercase;
       margin-bottom: 3px;
+      text-align: center;
     }
     .footer-note {
       font-size: 8px;
@@ -499,14 +536,13 @@ export function getAdmissionFormHtml(
   `;
 
   const bodyContent = `
-  ${
-    includePrintBar
+  ${includePrintBar
       ? `<div class="print-bar" onclick="window.print()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
           <span>প্রিন্ট / সেভ PDF (Print Form)</span>
         </div>`
       : ""
-  }
+    }
 
   <div class="page-container">
     <div class="inner-border">
@@ -514,11 +550,10 @@ export function getAdmissionFormHtml(
       <table class="header-table">
         <tr>
           <td style="width: 70px; vertical-align: middle;">
-            ${
-              logoUrl
-                ? `<img src="${logoUrl}" class="header-logo" alt="Logo" onerror="this.style.display='none'"/>`
-                : `<div style="width:54px;height:54px;border-radius:50%;background:#005a40;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin:auto;">🏛️</div>`
-            }
+            ${logoUrl
+      ? `<img src="${logoUrl}" class="header-logo" alt="Logo" onerror="this.style.display='none'"/>`
+      : `<div style="width:54px;height:54px;border-radius:50%;background:#005a40;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin:auto;">🏛️</div>`
+    }
           </td>
           <td class="header-text">
             <div style="font-size: 9.5px; color: #4b5563; font-weight: 600;">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত</div>
@@ -559,7 +594,7 @@ export function getAdmissionFormHtml(
         </tr>
         <tr>
           <td class="label-cell">Full Name (in English):</td>
-          <td colspan="3"><span class="dots" style="font-family: monospace;">(IN CAPITAL BLOCK LETTERS)</span></td>
+          <td colspan="3"><span class="dots" style="font-family: monospace;"></span></td>
         </tr>
         <tr>
           <td class="label-cell">জন্ম তারিখ (Date of Birth):</td>
@@ -594,31 +629,37 @@ export function getAdmissionFormHtml(
 
       <!-- SECTION 2 -->
       <div class="section-title">২. পিতা, মাতা ও অভিভাবকের বিবরণ (Parent & Guardian Information)</div>
-      <table class="grid-table">
+      <table class="grid-table parent-info-table">
+        <colgroup>
+          <col style="width: 17%;" />
+          <col style="width: 35%;" />
+          <col style="width: 25%;" />
+          <col style="width: 23%;" />
+        </colgroup>
         <tr>
-          <td class="label-cell">পিতার পূর্ণ নাম:</td>
-          <td><span class="dots"></span></td>
-          <td class="label-cell">পিতার জাতীয় পরিচয়পত্র (NID):</td>
-          <td><span class="dots"></span></td>
+          <td class="label-cell label-cell-left">পিতার পূর্ণ নাম:</td>
+          <td class="value-cell-name"><span class="dots"></span></td>
+          <td class="label-cell label-cell-right">পিতার জাতীয় পরিচয়পত্র (NID):</td>
+          <td class="value-cell-nid"><span class="dots"></span></td>
         </tr>
         <tr>
-          <td class="label-cell">মাতার পূর্ণ নাম:</td>
-          <td><span class="dots"></span></td>
-          <td class="label-cell">মাতার জাতীয় পরিচয়পত্র (NID):</td>
-          <td><span class="dots"></span></td>
+          <td class="label-cell label-cell-left">মাতার পূর্ণ নাম:</td>
+          <td class="value-cell-name"><span class="dots"></span></td>
+          <td class="label-cell label-cell-right">মাতার জাতীয় পরিচয়পত্র (NID):</td>
+          <td class="value-cell-nid"><span class="dots"></span></td>
         </tr>
         <tr>
-          <td class="label-cell">পিতা/অভিভাবকের পেশা:</td>
-          <td><span class="dots"></span></td>
-          <td class="label-cell">অভিভাবকের মোবাইল নং:</td>
-          <td><b>+880 1</b>_____________________</td>
+          <td class="label-cell label-cell-left">পিতা/অভিভাবকের পেশা:</td>
+          <td class="value-cell-name"><span class="dots"></span></td>
+          <td class="label-cell label-cell-right">অভিভাবকের মোবাইল নং:</td>
+          <td class="value-cell-nid"><b>+880 1</b>_____________________</td>
         </tr>
         <tr>
-          <td class="label-cell">বর্তমান ঠিকানা (Present Address):</td>
+          <td class="label-cell label-cell-left">বর্তমান ঠিকানা:</td>
           <td colspan="3">গ্রাম/মহল্লা: ______________________________, ডাকঘর: _________________, থানা/উপজেলা: _________________, জেলা: _________________</td>
         </tr>
         <tr>
-          <td class="label-cell">স্থায়ী ঠিকানা (Permanent Address):</td>
+          <td class="label-cell label-cell-left">স্থায়ী ঠিকানা:</td>
           <td colspan="3">গ্রাম/মহল্লা: ______________________________, ডাকঘর: _________________, থানা/উপজেলা: _________________, জেলা: _________________</td>
         </tr>
       </table>
@@ -777,7 +818,7 @@ export async function downloadAdmissionFormPdf(
     if (document.fonts && document.fonts.ready) {
       try {
         await document.fonts.ready;
-      } catch {}
+      } catch { }
     }
 
     // Wait for logo or any image to finish loading
@@ -822,19 +863,9 @@ export async function downloadAdmissionFormPdf(
 
     const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
     const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
-    const canvasHeight = canvas.height;
-    const canvasWidth = canvas.width;
-    const renderedHeightMm = (canvasHeight * pdfWidth) / canvasWidth;
 
-    if (renderedHeightMm <= pdfHeight) {
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, renderedHeightMm, undefined, "FAST");
-    } else {
-      // Fit neatly onto one A4 page without bottom cutoff
-      const scale = pdfHeight / renderedHeightMm;
-      const scaledWidth = pdfWidth * scale;
-      const offsetX = (pdfWidth - scaledWidth) / 2;
-      pdf.addImage(imgData, "JPEG", offsetX, 0, scaledWidth, pdfHeight, undefined, "FAST");
-    }
+    // Seamlessly fit all content across the full A4 page (210mm x 297mm)
+    pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
 
     pdf.save("Admission_Form_2026.pdf");
   } finally {
