@@ -281,14 +281,15 @@ export const AdmissionPage: React.FC = () => {
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
 
-  const handleDownloadPdfClick = () => {
+  const handleDownloadPdfClick = async () => {
     setDownloadingPdf(true);
     try {
-      downloadAdmissionFormPdf(content);
-    } catch {
-      window.open(content.admissionFormPdfUrl || "/uploads/forms/Admission_Form_2026.pdf", "_blank");
+      await downloadAdmissionFormPdf(content, siteLogo);
+    } catch (error) {
+      console.error("Direct PDF generation failed, opening print view:", error);
+      openAdmissionFormPrintWindow(content, siteLogo);
     } finally {
-      setTimeout(() => setDownloadingPdf(false), 1200);
+      setDownloadingPdf(false);
     }
   };
 
@@ -1620,7 +1621,7 @@ export const AdmissionPage: React.FC = () => {
                 {downloadingPdf ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
-                    <span>{t("PDF ডাউনলোড হচ্ছে...", "Downloading PDF...")}</span>
+                    <span>{t("PDF প্রস্তুত হচ্ছে...", "Generating PDF...")}</span>
                   </>
                 ) : (
                   <>

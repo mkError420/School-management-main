@@ -1,4 +1,13 @@
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import { SchoolWebsiteContent } from "@/types/site";
+
+/**
+ * Escapes characters for PDF literal strings
+ */
+function escapePdfText(text: string): string {
+  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+}
 
 /**
  * Builds a valid, self-contained PDF 1.4 binary string for an official A4 School Admission Application Form.
@@ -11,26 +20,22 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   const phone = content.phone || "+880 1712-345678";
   const email = content.email || "admission@school.edu.bd";
 
-  // Stream content instructions in PDF graphics/text language
-  // Coordinate space: (0, 0) is bottom-left, (595.28, 841.89) is top-right (A4 standard)
   const streamLines: string[] = [];
-
-  // Helper functions
   const add = (line: string) => streamLines.push(line);
 
   // Outer decorative double border
-  add("0.75 w 0.0 0.35 0.22 RG"); // Dark Emerald stroke
+  add("0.75 w 0.0 0.35 0.22 RG");
   add("25 25 545.28 791.89 re S");
   add("0.4 w 0.4 0.4 0.4 RG");
   add("28 28 539.28 785.89 re S");
 
   // Header background accent bar
-  add("0.0 0.42 0.27 rg"); // Emerald fill
+  add("0.0 0.42 0.27 rg");
   add("28 765 539.28 48.89 re f");
 
-  // Header Text (White)
+  // Header Text
   add("BT");
-  add("/F2 14 Tf 1 1 1 rg"); // Helvetica-Bold 14pt White
+  add("/F2 14 Tf 1 1 1 rg");
   add(`35 794 Td (${escapePdfText(schoolName)}) Tj`);
   add("/F1 8.5 Tf 0.95 0.95 0.95 rg");
   add(`0 -13 Td (EIIN: ${escapePdfText(eiin)}  |  School Code: ${escapePdfText(code)}  |  ESTD: 1974  |  Govt. Approved Secondary & Higher Secondary) Tj`);
@@ -52,20 +57,19 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("0 -10 Td ((2 COPIES)) Tj");
   add("ET");
 
-  // Top Metadata Grid (Left of Photo)
+  // Top Metadata Grid
   add("0.5 w 0.7 0.7 0.7 RG");
   add("35 695 405 24 re S");
   add("35 665 405 24 re S");
   add("35 635 405 24 re S");
 
-  // Metadata labels & dotted lines
   add("BT /F2 8.5 Tf 0.1 0.1 0.1 rg");
   add("42 703 Td (Application Form No: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 100 0 Td (ADM-2026-___________) Tj");
   add("/F2 8.5 Tf 0.1 0.1 0.1 rg 110 0 Td (Desired Class: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 70 0 Td (________________) Tj");
-
   add("ET");
+
   add("BT /F2 8.5 Tf 0.1 0.1 0.1 rg");
   add("42 673 Td (Applied Date: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 65 0 Td (____/____/2026) Tj");
@@ -78,10 +82,9 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 70 0 Td ([ ] Non-Resident   [ ] Resident   [ ] Day Care) Tj");
   add("ET");
 
-  // SECTION 1: APPLICANT STUDENT INFORMATION
+  // SECTION 1
   add("0.0 0.38 0.25 rg 35 610 525 18 re f");
   add("BT /F2 9.5 Tf 1 1 1 rg 42 615 Td (1. APPLICANT STUDENT INFORMATION (IN BLOCK LETTERS)) Tj ET");
-
   add("0.5 w 0.75 0.75 0.75 RG");
   add("35 588 525 20 re S");
   add("35 566 525 20 re S");
@@ -106,10 +109,9 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 528 Td (Special Quota (if any): ) Tj");
   add("/F1 8 Tf 110 0 Td ([ ] General   [ ] Freedom Fighter   [ ] Special Needs / Disability   [ ] Catchment Area) Tj ET");
 
-  // SECTION 2: PARENTS & GUARDIAN INFORMATION
+  // SECTION 2
   add("0.0 0.38 0.25 rg 35 496 525 18 re f");
   add("BT /F2 9.5 Tf 1 1 1 rg 42 501 Td (2. PARENTS & LEGAL GUARDIAN INFORMATION) Tj ET");
-
   add("0.5 w 0.75 0.75 0.75 RG");
   add("35 474 525 20 re S");
   add("35 452 525 20 re S");
@@ -138,10 +140,9 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 392 Td (Permanent Address: ) Tj");
   add("/F1 8 Tf 90 0 Td (House/Vill: ______________________, Post: _______________, Upazila/PS: _____________, Dist: ______________) Tj ET");
 
-  // SECTION 3: PREVIOUS ACADEMIC RECORD
+  // SECTION 3
   add("0.0 0.38 0.25 rg 35 360 525 18 re f");
   add("BT /F2 9.5 Tf 1 1 1 rg 42 365 Td (3. PREVIOUS ACADEMIC RECORD (IF APPLICABLE)) Tj ET");
-
   add("0.5 w 0.75 0.75 0.75 RG");
   add("35 338 525 20 re S");
   add("35 316 525 20 re S");
@@ -158,10 +159,9 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("/F2 8 Tf 65 0 Td (Transfer Certificate (TC) No: ) Tj");
   add("/F1 8 Tf 120 0 Td (_____________________) Tj ET");
 
-  // SECTION 4: DECLARATION & UNDERTAKING
+  // SECTION 4
   add("0.0 0.38 0.25 rg 35 290 525 18 re f");
   add("BT /F2 9.5 Tf 1 1 1 rg 42 295 Td (4. DECLARATION BY STUDENT & PARENT / GUARDIAN) Tj ET");
-
   add("0.5 w 0.75 0.75 0.75 RG");
   add("35 212 525 76 re S");
 
@@ -171,7 +171,6 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("0 -10 Td (I also pledge to abide by the disciplinary regulations, code of conduct, and academic requirements of this institution.) Tj");
   add("ET");
 
-  // Signature Lines
   add("0.6 w 0.4 0.4 0.4 RG");
   add("60 230 150 0.5 re S");
   add("375 230 150 0.5 re S");
@@ -181,11 +180,10 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("380 220 Td (Signature of Guardian & Date) Tj");
   add("ET");
 
-  // SECTION 5: FOR OFFICE & ENROLLMENT DESK USE ONLY
+  // SECTION 5
   add("0.85 0.90 0.88 rg 0.0 0.38 0.25 RG 0.75 w");
   add("35 180 525 18 re b");
   add("BT /F2 9.5 Tf 0.0 0.35 0.22 rg 42 185 Td (5. FOR ADMINISTRATIVE & OFFICE ENROLLMENT DESK USE ONLY) Tj ET");
-
   add("0.5 w 0.75 0.75 0.75 RG");
   add("35 110 525 68 re S");
 
@@ -201,7 +199,6 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("/F1 8 Tf 45 0 Td (______) Tj");
   add("ET");
 
-  // Officer & Principal Signature Lines
   add("0.6 w 0.4 0.4 0.4 RG");
   add("60 124 140 0.5 re S");
   add("375 124 150 0.5 re S");
@@ -211,18 +208,13 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("380 114 Td (Headmaster / Principal Seal & Signature) Tj");
   add("ET");
 
-  // Footer Notice
   add("BT /F1 7.2 Tf 0.45 0.45 0.45 rg");
   add("35 34 Td (* Please submit this filled-in form along with attested birth certificate, previous school TC, 2 photos & parent NIDs to the admission office.) Tj");
   add("0 -8 Td (Generated by School Management System Portal -- Official Document. Free of Cost.) Tj");
   add("ET");
 
   const streamContent = streamLines.join("\n");
-
-  // Build PDF Objects
-  // Use TextEncoder for accurate byte-length calculation (needed for /Length and XRef offsets)
   const enc = new TextEncoder();
-
   const streamBytes = enc.encode(streamContent);
   const streamLength = streamBytes.length;
 
@@ -235,14 +227,13 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   objects[5] = "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj";
   objects[6] = "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj";
 
-  // Calculate byte offsets for XRef table using actual UTF-8 byte lengths
-  const header = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n"; // raw latin-1 comment bytes — ASCII-safe for byte counting
-  let currentOffset = header.length; // all chars are single-byte here
+  const header = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+  let currentOffset = header.length;
   const offsets: number[] = [0];
 
   for (let i = 1; i <= 6; i++) {
     offsets[i] = currentOffset;
-    currentOffset += enc.encode(objects[i]).length + 1; // +1 for the joining "\n"
+    currentOffset += enc.encode(objects[i]).length + 1;
   }
 
   const xrefOffset = currentOffset;
@@ -252,87 +243,37 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   }
 
   const trailer = `trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-
   return header + objects.slice(1).join("\n") + "\n" + xref + trailer;
 }
 
-/**
- * Escapes characters for PDF literal strings
- */
-function escapePdfText(text: string): string {
-  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-}
-
-/**
- * Creates a valid PDF Blob
- */
 export function generateAdmissionFormPdfBlob(content: Partial<SchoolWebsiteContent>): Blob {
   const pdfString = buildAdmissionFormPdfString(content);
-  // Use TextEncoder to correctly convert the PDF string to bytes
   const bytes = new TextEncoder().encode(pdfString);
   return new Blob([bytes], { type: "application/pdf" });
 }
 
 /**
- * Triggers instant download of the PDF version of the admission form
+ * Returns the complete official bilingual Admission Form HTML string.
  */
-export function downloadAdmissionFormPdf(content: Partial<SchoolWebsiteContent>): void {
-  // If the admin has uploaded or linked a custom PDF, download that
-  const customUrl = content.admissionFormPdfUrl;
-  if (customUrl && customUrl.trim() && customUrl !== "#") {
-    const a = document.createElement("a");
-    a.href = customUrl;
-    a.download = "Admission_Form_2026.pdf";
-    a.target = "_blank";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    return;
-  }
-
-  // Otherwise generate official PDF blob dynamically with the school's live info
-  const blob = generateAdmissionFormPdfBlob(content);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  const safeName = (content.schoolName || "School").replace(/[^a-zA-Z0-9]/g, "_");
-  a.download = `Admission_Application_Form_2026_${safeName}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
-/**
- * Generates an official bilingual print-ready A4 document in an iframe/window
- */
-export function openAdmissionFormPrintWindow(
+export function getAdmissionFormHtml(
   content: Partial<SchoolWebsiteContent>,
-  logoUrl?: string
-): void {
+  logoUrl?: string,
+  includePrintBar: boolean = false,
+  fullDocument: boolean = true
+): string {
   const schoolNameBn = content.schoolNameBn || "সরকারি মডেল উচ্চ বিদ্যালয় ও কলেজ";
   const schoolNameEn = content.schoolName || "Government Model High School & College";
   const eiin = content.eiin || "108542";
   const code = content.schoolCode || "3421";
   const address = content.address || "Main Campus, Education Zone, Bangladesh";
   const phone = content.phone || "+880 1712-345678";
-  const email = content.email || "admission@school.edu.bd";
 
-  const printWindow = window.open("", "_blank", "width=900,height=1000");
-  if (!printWindow) {
-    alert("Please allow popups to preview and print the Admission Form.");
-    return;
-  }
-
-  const html = `<!DOCTYPE html>
-<html lang="bn">
-<head>
-  <meta charset="UTF-8">
-  <title>Student Admission Form 2026 - ${schoolNameEn}</title>
+  const styleBlock = `
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;600;700;800&display=swap');
     @page {
       size: A4 portrait;
-      margin: 10mm 12mm 10mm 12mm;
+      margin: 8mm 10mm 8mm 10mm;
     }
     * {
       box-sizing: border-box;
@@ -342,85 +283,86 @@ export function openAdmissionFormPrintWindow(
       print-color-adjust: exact !important;
     }
     body {
-      font-family: 'Segoe UI', Arial, SolaimanLipi, Kalpurush, sans-serif;
-      font-size: 11.5px;
+      font-family: 'Noto Sans Bengali', 'Segoe UI', Arial, SolaimanLipi, Kalpurush, sans-serif;
+      font-size: 11px;
       color: #111827;
       background: #ffffff;
-      line-height: 1.35;
+      line-height: 1.3;
     }
     .page-container {
       width: 100%;
       max-width: 210mm;
       margin: 0 auto;
       border: 2px solid #005a40;
-      padding: 10px 14px;
+      padding: 8px 12px;
       position: relative;
       background: #fff;
+      font-family: 'Noto Sans Bengali', 'Segoe UI', Arial, SolaimanLipi, Kalpurush, sans-serif;
     }
     .inner-border {
       border: 1px solid #7ea898;
-      padding: 8px 12px;
+      padding: 6px 10px;
     }
     .header-table {
       width: 100%;
       border-bottom: 2px solid #005a40;
-      padding-bottom: 8px;
-      margin-bottom: 8px;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
     }
     .header-logo {
-      width: 65px;
-      height: 65px;
+      width: 62px;
+      height: 62px;
       object-fit: contain;
     }
     .header-text {
       text-align: center;
-      padding: 0 10px;
+      padding: 0 8px;
     }
     .school-title-bn {
-      font-size: 19px;
+      font-size: 18px;
       font-weight: 800;
       color: #005a40;
       line-height: 1.2;
     }
     .school-title-en {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       color: #111827;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .header-meta {
-      font-size: 10px;
+      font-size: 9.5px;
       color: #4b5563;
-      margin-top: 3px;
+      margin-top: 2px;
     }
     .photo-cell {
-      width: 95px;
+      width: 92px;
       text-align: right;
     }
     .photo-box {
-      width: 88px;
-      height: 105px;
+      width: 84px;
+      height: 98px;
       border: 1.5px dashed #4b5563;
       display: inline-flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      font-size: 9px;
+      font-size: 8.5px;
       color: #6b7280;
-      padding: 4px;
+      padding: 3px;
       background: #fafafa;
     }
     .title-banner {
       background: #005a40;
       color: #ffffff;
       text-align: center;
-      padding: 4px;
-      font-size: 12.5px;
+      padding: 3.5px;
+      font-size: 11.5px;
       font-weight: bold;
       border-radius: 3px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       letter-spacing: 0.5px;
     }
     .meta-row {
@@ -428,9 +370,9 @@ export function openAdmissionFormPrintWindow(
       justify-content: space-between;
       border: 1px solid #d1d5db;
       background: #f9fafb;
-      padding: 5px 8px;
-      font-size: 11px;
-      margin-bottom: 8px;
+      padding: 4px 6px;
+      font-size: 10.5px;
+      margin-bottom: 6px;
       border-radius: 3px;
     }
     .section-title {
@@ -439,23 +381,23 @@ export function openAdmissionFormPrintWindow(
       border-top: 1px solid #cbe0d3;
       border-right: 1px solid #cbe0d3;
       border-bottom: 1px solid #cbe0d3;
-      padding: 3px 8px;
-      font-size: 11px;
+      padding: 2.5px 6px;
+      font-size: 10.5px;
       font-weight: bold;
       color: #005a40;
-      margin-top: 6px;
-      margin-bottom: 4px;
+      margin-top: 5px;
+      margin-bottom: 3px;
       text-transform: uppercase;
     }
     .grid-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 4px;
-      font-size: 10.5px;
+      margin-bottom: 3px;
+      font-size: 10px;
     }
     .grid-table td, .grid-table th {
       border: 1px solid #d1d5db;
-      padding: 4.5px 6px;
+      padding: 3.5px 5px;
       vertical-align: middle;
     }
     .grid-table td.label-cell {
@@ -468,12 +410,12 @@ export function openAdmissionFormPrintWindow(
       border-bottom: 1px dotted #9ca3af;
       display: inline-block;
       width: 100%;
-      min-height: 14px;
+      min-height: 12px;
     }
     .checkbox-box {
       display: inline-block;
-      width: 11px;
-      height: 11px;
+      width: 10px;
+      height: 10px;
       border: 1px solid #374151;
       margin-right: 4px;
       vertical-align: -1px;
@@ -481,55 +423,55 @@ export function openAdmissionFormPrintWindow(
     .checkbox-item {
       display: inline-flex;
       align-items: center;
-      margin-right: 12px;
+      margin-right: 10px;
     }
     .declaration-box {
       border: 1px solid #d1d5db;
       background: #fafafa;
-      padding: 5px 8px;
-      font-size: 9.5px;
+      padding: 4px 6px;
+      font-size: 9px;
       color: #4b5563;
-      line-height: 1.4;
-      margin-bottom: 6px;
+      line-height: 1.35;
+      margin-bottom: 5px;
       border-radius: 3px;
     }
     .sig-row {
       display: flex;
       justify-content: space-between;
-      margin-top: 24px;
-      margin-bottom: 8px;
-      padding: 0 16px;
+      margin-top: 18px;
+      margin-bottom: 6px;
+      padding: 0 14px;
     }
     .sig-box {
       text-align: center;
-      width: 180px;
+      width: 175px;
       border-top: 1px solid #374151;
-      padding-top: 3px;
-      font-size: 10px;
+      padding-top: 2px;
+      font-size: 9.5px;
       font-weight: 600;
       color: #111827;
     }
     .office-box {
       border: 1.5px solid #005a40;
       border-radius: 4px;
-      padding: 6px 8px;
-      margin-top: 8px;
+      padding: 5px 6px;
+      margin-top: 6px;
       background: #fbfdfc;
     }
     .office-title {
-      font-size: 10.5px;
+      font-size: 10px;
       font-weight: bold;
       color: #005a40;
       text-transform: uppercase;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .footer-note {
-      font-size: 8.5px;
+      font-size: 8px;
       color: #6b7280;
       text-align: center;
-      margin-top: 6px;
+      margin-top: 4px;
       border-top: 1px solid #e5e7eb;
-      padding-top: 4px;
+      padding-top: 3px;
     }
     .print-bar {
       position: fixed;
@@ -554,12 +496,17 @@ export function openAdmissionFormPrintWindow(
       .page-container { border: 2px solid #005a40 !important; }
     }
   </style>
-</head>
-<body>
-  <div class="print-bar" onclick="window.print()">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-    <span>প্রিন্ট / সেভ PDF (Print Form)</span>
-  </div>
+  `;
+
+  const bodyContent = `
+  ${
+    includePrintBar
+      ? `<div class="print-bar" onclick="window.print()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>প্রিন্ট / সেভ PDF (Print Form)</span>
+        </div>`
+      : ""
+  }
 
   <div class="page-container">
     <div class="inner-border">
@@ -570,11 +517,11 @@ export function openAdmissionFormPrintWindow(
             ${
               logoUrl
                 ? `<img src="${logoUrl}" class="header-logo" alt="Logo" onerror="this.style.display='none'"/>`
-                : `<div style="width:58px;height:58px;border-radius:50%;background:#005a40;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:bold;margin:auto;">🏛️</div>`
+                : `<div style="width:54px;height:54px;border-radius:50%;background:#005a40;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:bold;margin:auto;">🏛️</div>`
             }
           </td>
           <td class="header-text">
-            <div style="font-size: 10px; color: #4b5563; font-weight: 600;">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত</div>
+            <div style="font-size: 9.5px; color: #4b5563; font-weight: 600;">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত</div>
             <div class="school-title-bn">${schoolNameBn}</div>
             <div class="school-title-en">${schoolNameEn}</div>
             <div class="header-meta">
@@ -584,7 +531,7 @@ export function openAdmissionFormPrintWindow(
           </td>
           <td class="photo-cell">
             <div class="photo-box">
-              <span style="font-size: 18px; margin-bottom: 2px;">📷</span>
+              <span style="font-size: 16px; margin-bottom: 2px;">📷</span>
               শিক্ষার্থীর ২ কপি পাসপোর্ট সাইজ ছবি
             </div>
           </td>
@@ -607,7 +554,7 @@ export function openAdmissionFormPrintWindow(
       <div class="section-title">১. শিক্ষার্থীর ব্যক্তিগত বিবরণ (Student Information)</div>
       <table class="grid-table">
         <tr>
-          <td class="label-cell">শিক্ষার্থীর নাম (বাংলায়):</td>
+          <td class="label-cell">শিক্ষার্থীর নাম (বাংলায়):</td>
           <td colspan="3"><span class="dots"></span></td>
         </tr>
         <tr>
@@ -634,7 +581,7 @@ export function openAdmissionFormPrintWindow(
           <td>
             <span class="checkbox-item"><span class="checkbox-box"></span>অনাবাসিক</span>
             <span class="checkbox-item"><span class="checkbox-box"></span>আবাসিক</span>
-            <span class="checkbox-item"><span class="checkbox-box"></span>ডে-কেয়ার</span>
+            <span class="checkbox-item"><span class="checkbox-box"></span>ডে-কেয়ার</span>
           </td>
           <td class="label-cell">বিশেষ কোটা (যদি থাকে):</td>
           <td>
@@ -727,9 +674,9 @@ export function openAdmissionFormPrintWindow(
             <td>রোল: __________ রসিদ নং: _________</td>
           </tr>
         </table>
-        <div class="sig-row" style="margin-top: 18px; margin-bottom: 2px;">
-          <div class="sig-box" style="width: 140px; font-size: 9px;">যাচাইকারী কর্মকর্তার স্বাক্ষর</div>
-          <div class="sig-box" style="width: 160px; font-size: 9px;">অধ্যক্ষ / প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
+        <div class="sig-row" style="margin-top: 14px; margin-bottom: 2px;">
+          <div class="sig-box" style="width: 140px; font-size: 8.5px;">যাচাইকারী কর্মকর্তার স্বাক্ষর</div>
+          <div class="sig-box" style="width: 160px; font-size: 8.5px;">অধ্যক্ষ / প্রধান শিক্ষকের স্বাক্ষর ও সিল</div>
         </div>
       </div>
 
@@ -738,10 +685,23 @@ export function openAdmissionFormPrintWindow(
       </div>
     </div>
   </div>
+  `;
 
+  if (!fullDocument) {
+    return `${styleBlock}${bodyContent}`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Admission Form 2026 - ${schoolNameEn}</title>
+  ${styleBlock}
+</head>
+<body>
+  ${bodyContent}
   <script>
     window.onload = function() {
-      // Auto trigger print when loaded
       setTimeout(function() {
         window.print();
       }, 400);
@@ -749,7 +709,155 @@ export function openAdmissionFormPrintWindow(
   </script>
 </body>
 </html>`;
+}
 
+/**
+ * Generates an actual .pdf file of the official bilingual admission form and triggers browser download.
+ */
+export async function downloadAdmissionFormPdf(
+  content: Partial<SchoolWebsiteContent>,
+  logoUrl?: string
+): Promise<void> {
+  // 1. If admin uploaded or configured a direct custom PDF file (other than the default placeholder), download that
+  const customUrl = content.admissionFormPdfUrl;
+  if (
+    customUrl &&
+    customUrl.trim() &&
+    customUrl !== "#" &&
+    !customUrl.includes("Admission_Form_2026.pdf") &&
+    customUrl.toLowerCase().endsWith(".pdf")
+  ) {
+    const a = document.createElement("a");
+    a.href = customUrl;
+    a.download = "Admission_Form_2026.pdf";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return;
+  }
+
+  // 2. Pre-load logo to Base64 to ensure html2canvas can render it without CORS taint
+  let safeLogoUrl = logoUrl;
+  if (logoUrl && !logoUrl.startsWith("data:")) {
+    try {
+      const resp = await fetch(logoUrl);
+      if (resp.ok) {
+        const blob = await resp.blob();
+        safeLogoUrl = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(logoUrl);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch {
+      // Keep original URL
+    }
+  }
+
+  // 3. Render the bilingual HTML template into an offscreen element and export via jsPDF
+  const container = document.createElement("div");
+  container.id = "admission-pdf-download-container";
+  container.style.position = "absolute";
+  container.style.left = "0";
+  container.style.top = "0";
+  container.style.width = "794px"; // Standard A4 width in pixels at 96 DPI (210mm)
+  container.style.zIndex = "-99999";
+  container.style.pointerEvents = "none";
+  container.style.backgroundColor = "#ffffff";
+  container.style.margin = "0";
+  container.style.padding = "0";
+
+  container.innerHTML = getAdmissionFormHtml(content, safeLogoUrl, false, false);
+  document.body.appendChild(container);
+
+  try {
+    // Wait for web fonts if available
+    if (document.fonts && document.fonts.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {}
+    }
+
+    // Wait for logo or any image to finish loading
+    const images = Array.from(container.querySelectorAll("img"));
+    if (images.length > 0) {
+      await Promise.all(
+        images.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete && img.naturalHeight !== 0) {
+                resolve();
+              } else {
+                img.onload = () => resolve();
+                img.onerror = () => resolve();
+              }
+            })
+        )
+      );
+    }
+
+    // Small delay to ensure web fonts and styles are fully applied
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const targetElement = (container.querySelector(".page-container") as HTMLElement) || container;
+
+    const canvas = await html2canvas(targetElement, {
+      scale: 2, // 2x resolution for crisp high-quality text and lines
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: "#ffffff",
+      scrollX: 0,
+      scrollY: 0,
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.98);
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
+    const canvasHeight = canvas.height;
+    const canvasWidth = canvas.width;
+    const renderedHeightMm = (canvasHeight * pdfWidth) / canvasWidth;
+
+    if (renderedHeightMm <= pdfHeight) {
+      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, renderedHeightMm, undefined, "FAST");
+    } else {
+      // Fit neatly onto one A4 page without bottom cutoff
+      const scale = pdfHeight / renderedHeightMm;
+      const scaledWidth = pdfWidth * scale;
+      const offsetX = (pdfWidth - scaledWidth) / 2;
+      pdf.addImage(imgData, "JPEG", offsetX, 0, scaledWidth, pdfHeight, undefined, "FAST");
+    }
+
+    pdf.save("Admission_Form_2026.pdf");
+  } finally {
+    if (container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
+  }
+}
+
+/**
+ * Generates an official bilingual print-ready A4 document in an iframe/window
+ */
+export function openAdmissionFormPrintWindow(
+  content: Partial<SchoolWebsiteContent>,
+  logoUrl?: string
+): void {
+  const printWindow = window.open("", "_blank", "width=900,height=1000");
+  if (!printWindow) {
+    alert("Please allow popups to preview and print the Admission Form.");
+    return;
+  }
+
+  const html = getAdmissionFormHtml(content, logoUrl, true, true);
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
