@@ -683,7 +683,7 @@ export const PublicSchoolWebsite: React.FC = () => {
             <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href="#admission"
-                className="inline-flex items-center gap-2 rounded-md bg-[#eab308] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-md transition hover:bg-[#fde047] sm:text-sm active:scale-95"
+                className="inline-flex items-center gap-2 rounded-md bg-[#0aa0ab] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-md transition hover:bg-[#0aa0ab] sm:text-sm active:scale-95"
               >
                 <BookOpen size={16} />
                 <span>{content.admissionBtnText || "ভর্তি তথ্য ও আবেদন"}</span>
