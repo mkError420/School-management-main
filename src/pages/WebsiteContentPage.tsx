@@ -2529,14 +2529,18 @@ const WebsiteContentPage: React.FC = () => {
                                     <div>
                                       <h3
                                         className={`text-sm font-bold sm:text-base ${
-                                          draft.headerBgOverlay === "dark" ? "text-white" : "text-[#005a40]"
+                                          draft.headerBgOverlay === "dark" || draft.headerBgOverlay === "none"
+                                            ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]"
+                                            : "text-[#005a40]"
                                         }`}
                                       >
                                         {draft.schoolNameBn || draft.schoolName || "বিদ্যালয়ের নাম"}
                                       </h3>
                                       <p
                                         className={`text-[11px] ${
-                                          draft.headerBgOverlay === "dark" ? "text-emerald-200" : "text-gray-600"
+                                          draft.headerBgOverlay === "dark" || draft.headerBgOverlay === "none"
+                                            ? "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]"
+                                            : "text-gray-600"
                                         }`}
                                       >
                                         {draft.schoolName || "School Name English"} · EIIN: {draft.eiin || "123456"}
@@ -2545,8 +2549,8 @@ const WebsiteContentPage: React.FC = () => {
                                   </div>
                                   <span
                                     className={`hidden sm:inline-block rounded px-2 py-0.5 text-xs font-semibold ${
-                                      draft.headerBgOverlay === "dark"
-                                        ? "bg-white/20 text-white"
+                                      draft.headerBgOverlay === "dark" || draft.headerBgOverlay === "none"
+                                        ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                                         : "bg-emerald-100 text-[#005a40]"
                                     }`}
                                   >

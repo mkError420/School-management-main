@@ -49,6 +49,35 @@ export const PublicWebsiteLayout: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [liveNotices, setLiveNotices] = useState<SchoolNotice[]>([]);
   const location = useLocation();
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  const mobileBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Automatically close mobile menu on page/route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu when visitor clicks anywhere on display outside the menu
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(target) &&
+        mobileBtnRef.current &&
+        !mobileBtnRef.current.contains(target)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   // Helper to normalize announcement category
   const normalizeNoticeCategory = (rawCat?: string | null) => {
@@ -438,8 +467,8 @@ export const PublicWebsiteLayout: React.FC = () => {
         {/* ─── 2. MAIN SCHOOL BRANDING & HEADER ─── */}
         {(() => {
           const hasHeaderBg = Boolean(content.headerBgImage && content.headerBgImage.trim());
-          const isDarkHeader = Boolean(hasHeaderBg && content.headerBgOverlay === "dark");
           const overlayMode = content.headerBgOverlay || "light";
+          const isWhiteTextHeader = Boolean(hasHeaderBg && (overlayMode === "none" || overlayMode === "dark"));
 
           return (
             <header
@@ -487,8 +516,8 @@ export const PublicWebsiteLayout: React.FC = () => {
                   <div>
                     <h1
                       className={`text-2xl font-bold tracking-tight transition sm:text-3xl lg:text-4xl ${
-                        isDarkHeader
-                          ? "text-white group-hover:text-emerald-200"
+                        isWhiteTextHeader
+                          ? "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] group-hover:text-emerald-200"
                           : "text-[#005a40] group-hover:text-[#00422f]"
                       }`}
                     >
@@ -496,14 +525,18 @@ export const PublicWebsiteLayout: React.FC = () => {
                     </h1>
                     <p
                       className={`text-xs font-semibold uppercase tracking-wider sm:text-sm ${
-                        isDarkHeader ? "text-emerald-200" : "text-[#3d5a4c]"
+                        isWhiteTextHeader
+                          ? "text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]"
+                          : "text-[#3d5a4c]"
                       }`}
                     >
                       {secondarySchoolName}
                     </p>
                     <p
                       className={`mt-0.5 hidden text-xs font-medium sm:block ${
-                        isDarkHeader ? "text-emerald-100" : "text-[#006a4e]"
+                        isWhiteTextHeader
+                          ? "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]"
+                          : "text-[#006a4e]"
                       }`}
                     >
                       {t(content.boardName, content.boardNameEn) || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
@@ -511,8 +544,8 @@ export const PublicWebsiteLayout: React.FC = () => {
                     <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold sm:justify-start">
                       <span
                         className={`rounded px-2 py-0.5 ${
-                          isDarkHeader
-                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                          isWhiteTextHeader
+                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                             : "bg-emerald-100/90 text-[#005a40]"
                         }`}
                       >
@@ -520,8 +553,8 @@ export const PublicWebsiteLayout: React.FC = () => {
                       </span>
                       <span
                         className={`rounded px-2 py-0.5 ${
-                          isDarkHeader
-                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                          isWhiteTextHeader
+                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                             : "bg-emerald-100/90 text-[#005a40]"
                         }`}
                       >
@@ -529,8 +562,8 @@ export const PublicWebsiteLayout: React.FC = () => {
                       </span>
                       <span
                         className={`rounded px-2 py-0.5 ${
-                          isDarkHeader
-                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                          isWhiteTextHeader
+                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
                             : "bg-emerald-100/90 text-[#005a40]"
                         }`}
                       >
@@ -545,30 +578,38 @@ export const PublicWebsiteLayout: React.FC = () => {
                     <SmartBdBadge />
                     <div
                       className={`mt-2 flex items-center justify-end gap-2 text-xs font-semibold ${
-                        isDarkHeader ? "text-white hover:text-emerald-200" : "text-[#005a40]"
+                        isWhiteTextHeader
+                          ? "text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] hover:text-emerald-200"
+                          : "text-[#005a40]"
                       }`}
                     >
-                      <PhoneCall size={14} className={isDarkHeader ? "text-emerald-300" : "text-[#006a4e]"} />
+                      <PhoneCall
+                        size={14}
+                        className={isWhiteTextHeader ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" : "text-[#006a4e]"}
+                      />
                       <a href={`tel:${content.phone?.replace(/[^\d+]/g, "")}`} className="hover:underline">
                         {content.phone || "+880 2 1234 5678"}
                       </a>
                     </div>
-                    <p className={`text-[10px] ${isDarkHeader ? "text-slate-200" : "text-gray-500"}`}>
+                    <p
+                      className={`text-[10px] ${
+                        isWhiteTextHeader
+                          ? "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] font-medium"
+                          : "text-gray-500"
+                      }`}
+                    >
                       {content.officeHours || "রবিবার-বৃহস্পতিবার ৯:০০-৪:০০"}
                     </p>
                   </div>
 
                   <button
+                    ref={mobileBtnRef}
                     type="button"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-md border shadow-xs transition sm:hidden ${
-                      isDarkHeader
-                        ? "border-slate-600 bg-slate-900/80 text-white hover:bg-slate-800"
-                        : "border-[#c4d4c8] bg-white text-[#006a4e] hover:bg-emerald-50"
-                    }`}
+                    onClick={() => setMobileMenuOpen((prev) => !prev)}
+                    className="flex h-10 w-10 items-center justify-center rounded-md border border-[#088d97] bg-[#0AA0AB] text-white shadow-md transition hover:bg-[#088d97] active:scale-95 sm:hidden"
                     aria-label="মেনু খুলুন"
                   >
-                    {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                    {mobileMenuOpen ? <X size={22} className="text-white" /> : <Menu size={22} className="text-white" />}
                   </button>
                 </div>
               </div>
@@ -598,9 +639,21 @@ export const PublicWebsiteLayout: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile Backdrop to hide menu when visitor clicks anywhere on display */}
+          {mobileMenuOpen && (
+            <div
+              className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px] transition-opacity sm:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
           {/* Mobile Drawer */}
           {mobileMenuOpen && (
-            <div className="border-t border-emerald-800 bg-[#005a40] px-4 py-3 sm:hidden">
+            <div
+              ref={mobileMenuRef}
+              className="relative z-30 border-t border-emerald-800 bg-[#005a40] px-4 py-3 shadow-xl sm:hidden"
+            >
               <div className="grid grid-cols-2 gap-2">
                 {navLinks.map((item) => (
                   <NavLink
@@ -621,7 +674,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                 <Link
                   to="/sign-in"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#eab308] py-2 text-xs font-bold text-gray-950"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded bg-[#0AA0AB] py-2 text-xs font-bold text-white shadow-xs transition hover:bg-[#088d97]"
                 >
                   <span>{lang === "bn" ? "সুপার অ্যাডমিন ও শিক্ষক লগইন" : "Admin & Teacher Login"}</span>
                   <ArrowRight size={14} />
