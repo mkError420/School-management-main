@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import {
   AlertCircle,
   ArrowDown,
@@ -137,6 +138,7 @@ type ContentTab =
 type EditLangMode = "bn" | "en" | "dual";
 
 const WebsiteContentPage: React.FC = () => {
+  const { canManageWebsiteContent, isLoading: isAuthLoading } = useAuth();
   const { websiteContent, saveWebsiteContent, siteLogo, saveSiteLogo, refreshSettings, isLoading, liveCounts } = useSiteSettings();
   const [draft, setDraft] = useState<SchoolWebsiteContent>(websiteContent);
   const [activeTab, setActiveTab] = useState<ContentTab>("identity");
@@ -1966,6 +1968,10 @@ const WebsiteContentPage: React.FC = () => {
     }, [tabs, sectionSearchQuery]);
 
     const currentTabObj = tabs.find((t) => t.id === activeTab) || tabs[0];
+
+    if (!isAuthLoading && !canManageWebsiteContent) {
+      return <Navigate to="/dashboard" replace />;
+    }
 
     return (
       <div className="flex flex-col lg:flex-row min-h-full w-full font-sans bg-gray-50/50 dark:bg-[#0b1220]">

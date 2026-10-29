@@ -78,6 +78,14 @@ const SuperAdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return role === "super_admin" ? <>{children}</> : <Navigate to="/dashboard" replace />;
 };
 
+const WebsiteContentRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { canManageWebsiteContent, isLoading } = useAuth();
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Checking your session...</div>;
+  }
+  return canManageWebsiteContent ? <>{children}</> : <Navigate to="/dashboard" replace />;
+};
+
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { role } = useAuth();
   return hasAdminAccess(role) ? <>{children}</> : <Navigate to="/dashboard" replace />;
@@ -173,7 +181,7 @@ const App: React.FC = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="admin-users" element={<SuperAdminRoute><AdminUsersPage /></SuperAdminRoute>} />
-          <Route path="website-content" element={<SuperAdminRoute><WebsiteContentPage /></SuperAdminRoute>} />
+          <Route path="website-content" element={<WebsiteContentRoute><WebsiteContentPage /></WebsiteContentRoute>} />
           <Route path="class-schedule" element={<ClassSchedulePage />} />
           <Route path="admissions" element={<AdmissionsPage />} />
           <Route path="fees" element={<AdminRoute><FeesPage /></AdminRoute>} />

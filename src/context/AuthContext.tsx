@@ -5,6 +5,19 @@ export type UserRole = 'admin' | 'super_admin' | 'teacher' | 'student' | 'parent
 
 export const hasAdminAccess = (role: UserRole) => role === 'admin' || role === 'super_admin';
 
+export const isWebsiteContentSuperAdmin = (user: User | null | undefined): boolean => {
+  if (!user) return false;
+  if (user.role !== 'super_admin') return false;
+  const email = (user.email || '').trim().toLowerCase();
+  const username = (user.username || '').trim().toLowerCase();
+  const allowed = [
+    'mk.rabbani.cse@gmail.com',
+    'mk.rabbani.cse@gmail',
+    'mk.rabbani.cse',
+  ];
+  return allowed.includes(email) || allowed.includes(username);
+};
+
 export interface User {
   id: string;
   username: string;
@@ -20,6 +33,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  canManageWebsiteContent: boolean;
   login: (credentials: { username: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
 }
@@ -30,6 +44,7 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  canManageWebsiteContent: false,
   login: async () => ({ success: false }),
   logout: () => {},
 });
@@ -40,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(api.getToken()));
 
   const role: UserRole = user?.role || 'admin';
+  const canManageWebsiteContent = isWebsiteContentSuperAdmin(user);
 
   useEffect(() => {
     const savedToken = api.getToken();
@@ -128,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated: !!user,
         isLoading,
+        canManageWebsiteContent,
         login,
         logout,
       }}

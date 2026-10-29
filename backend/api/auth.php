@@ -93,6 +93,7 @@ function handleLogin($db, $input) {
     $token = JWTHandler::encode([
         'user_id' => $user['id'],
         'username' => $user['username'],
+        'email' => $user['email'] ?? null,
         'role' => $role
     ]);
     

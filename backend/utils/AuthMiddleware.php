@@ -52,6 +52,49 @@ class AuthMiddleware {
     public static function isAdmin($user) {
         return in_array($user['role'] ?? '', ['admin', 'super_admin'], true);
     }
+
+    public static function isSuperAdmin($user) {
+        return ($user['role'] ?? '') === 'super_admin';
+    }
+
+    public static function isWebsiteContentSuperAdmin($user, $db = null) {
+        if (!$user || !self::isSuperAdmin($user)) {
+            return false;
+        }
+
+        $targetEmails = ['mk.rabbani.cse@gmail.com', 'mk.rabbani.cse@gmail'];
+        $targetUsernames = ['mk.rabbani.cse', 'mk.rabbani.cse@gmail.com', 'mk.rabbani.cse@gmail'];
+
+        $email = strtolower(trim($user['email'] ?? ''));
+        $username = strtolower(trim($user['username'] ?? ''));
+
+        if (in_array($email, $targetEmails, true) || in_array($username, $targetUsernames, true)) {
+            return true;
+        }
+
+        if (empty($db)) {
+            try {
+                $db = Database::getInstance();
+            } catch (Exception $e) {
+                $db = null;
+            }
+        }
+
+        if ($db && !empty($user['user_id'])) {
+            try {
+                $admin = $db->fetchOne("SELECT username, email, role FROM admins WHERE id = ?", [$user['user_id']]);
+                if ($admin && ($admin['role'] ?? '') === 'super_admin') {
+                    $dbEmail = strtolower(trim($admin['email'] ?? ''));
+                    $dbUsername = strtolower(trim($admin['username'] ?? ''));
+                    if (in_array($dbEmail, $targetEmails, true) || in_array($dbUsername, $targetUsernames, true)) {
+                        return true;
+                    }
+                }
+            } catch (Exception $e) {}
+        }
+
+        return false;
+    }
     
     public static function optionalAuth() {
         $headers = function_exists('getallheaders') ? getallheaders() : [];

@@ -186,16 +186,19 @@ interface MenuProps {
 }
 
 const Menu: React.FC<MenuProps> = ({ isCollapsed = false, onItemClick }) => {
-  const { role, logout } = useAuth();
+  const { role, canManageWebsiteContent, logout } = useAuth();
   const location = useLocation();
 
   return (
     <div className="mt-2 text-sm overflow-y-auto flex-1 pr-1 custom-scrollbar">
       {menuItems.map((section) => {
         // Check if at least one item in section is visible
-        const visibleItems = section.items.filter(
-          (item) => item.visible.includes(role) || (hasAdminAccess(role) && item.visible.includes("admin"))
-        );
+        const visibleItems = section.items.filter((item) => {
+          if (item.href === "/website-content") {
+            return canManageWebsiteContent;
+          }
+          return item.visible.includes(role) || (hasAdminAccess(role) && item.visible.includes("admin"));
+        });
         if (visibleItems.length === 0) return null;
 
         return (

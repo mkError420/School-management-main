@@ -211,6 +211,10 @@ function updateSiteSettings($db) {
     }
 
     if (isset($input['website_content'])) {
+        if (!AuthMiddleware::isWebsiteContentSuperAdmin($user, $db)) {
+            Response::forbidden('Only the super admin (mk.rabbani.cse@gmail.com) can maintain website content');
+        }
+
         $websiteContent = $input['website_content'];
         if (!is_array($websiteContent)) {
             Response::error('Website content must be an object');
@@ -404,8 +408,8 @@ function uploadSiteLogo($db) {
 
 function uploadNoticeFile($db) {
     $user = AuthMiddleware::authenticate();
-    if (!AuthMiddleware::isAdmin($user)) {
-        Response::forbidden('Only an administrator can upload notice and website files');
+    if (!AuthMiddleware::isWebsiteContentSuperAdmin($user, $db)) {
+        Response::forbidden('Only the super admin (mk.rabbani.cse@gmail.com) can upload website content files');
     }
 
     $uploadKey = !empty($_FILES['file']) ? 'file' : (!empty($_FILES['book']) ? 'book' : (!empty($_FILES['notice_file']) ? 'notice_file' : (!empty($_FILES['banner']) ? 'banner' : (!empty($_FILES['image']) ? 'image' : null))));

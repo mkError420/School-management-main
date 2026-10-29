@@ -11,6 +11,10 @@ INSERT INTO admins (id, username, password, role) VALUES
 ON DUPLICATE KEY UPDATE role='super_admin';
 UPDATE admins SET role = 'super_admin', password = '$2y$12$dmjlIC/C2DyDhHvYOMZmgumXtNxBo/ub5egttmCaZ8YYhTgojsiFG' WHERE username = 'admin';
 
+INSERT INTO admins (id, username, email, password, role) VALUES
+('super-admin-001', 'mk.rabbani.cse', 'mk.rabbani.cse@gmail.com', '$2y$12$f/6vmqM/Gay2PVwQnYJX0.a3ykAHLVtToQ3jpLs4Y9pkpnOmwq5Pm', 'super_admin')
+ON DUPLICATE KEY UPDATE username=username;
+
 -- 2. Grades
 INSERT INTO grades (id, level) VALUES 
 (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6),
