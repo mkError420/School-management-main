@@ -65,7 +65,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { api } from "@/lib/api";
-import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { useSiteSettings, resolveLogoUrl } from "@/context/SiteSettingsContext";
 import { ImageUploadField } from "@/components/ImageUploadField";
 import FormModal from "@/components/FormModal";
 import type { AnnouncementItem } from "@/pages/list/AnnouncementsPage";
@@ -2438,6 +2438,142 @@ const WebsiteContentPage: React.FC = () => {
                         uploadEndpoint="logo"
                         helperText="ওয়েবসাইটের হেডার, ফুটার ও রেজাল্ট শিট/আইডি কার্ডে প্রদর্শিত হবে। স্বচ্ছ ব্যাকগ্রাউন্ডের PNG বা SVG ফাইল সেরা।"
                         presets={[{ label: "ডিফল্ট লোগো", url: "/images/logo.png" }]}
+                      />
+                    </div>
+
+                    {/* Website Header Background Banner Upload */}
+                    <div className="sm:col-span-2 rounded-lg border border-teal-200 bg-teal-50/30 p-3.5 dark:border-slate-700 dark:bg-slate-800/40">
+                      <div className="flex flex-col gap-3">
+                        <ImageUploadField
+                          label="ওয়েবসাইট হেডার ব্যাকগ্রাউন্ড ব্যানার ছবি (Website Header Background Image)"
+                          labelEn="Website Header Background Image"
+                          value={draft.headerBgImage || ""}
+                          onChange={(newUrl) => updateField("headerBgImage", newUrl)}
+                          aspectRatio="banner"
+                          uploadEndpoint="banner"
+                          helperText="ওয়েবসাইটের মূল হেডারে (লোগো, বিদ্যালয়ের নাম ও যোগাযোগের পেছনে) ডাইনামিক ব্যাকগ্রাউন্ড হিসেবে প্রদর্শিত হবে। ফাঁকা রাখলে ডিফল্ট গ্রেডিয়েন্ট প্রদর্শিত হবে।"
+                          presets={[
+                            { label: "ডিফল্ট ক্লিন গ্রেডিয়েন্ট (ছবি ছাড়া)", url: "" },
+                            { label: "ক্যাম্পাস ছবি ১", url: "/images/bgimage.jpg" },
+                            { label: "ক্যাম্পাস ছবি ২", url: "/images/bgimage2.jpg" },
+                          ]}
+                        />
+
+                        {/* Overlay selection & Live Header Preview when image is present */}
+                        {Boolean(draft.headerBgImage) && (
+                          <div className="mt-2 rounded-md border border-teal-100 bg-white/80 p-3 dark:border-slate-700 dark:bg-slate-900/60">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                হেডার ব্যাকগ্রাউন্ড ওভারলে মোড (Text Readability & Contrast):
+                              </label>
+                              <div className="flex flex-wrap gap-2">
+                                {[
+                                  { id: "light", label: "হালকা সাদা (৮৫% - সেরা পাঠযোগ্যতা)" },
+                                  { id: "soft", label: "মাঝারি সাদা (৬০%)" },
+                                  { id: "none", label: "কোনো ওভারলে নেই (Full Original)" },
+                                  { id: "dark", label: "ডার্ক ওভারলে (৭৫% Dark)" },
+                                ].map((opt) => (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => updateField("headerBgOverlay", opt.id as any)}
+                                    className={`rounded px-2.5 py-1 text-xs font-semibold transition ${
+                                      (draft.headerBgOverlay || "light") === opt.id
+                                        ? "bg-[#006a4e] text-white shadow-xs"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-slate-800 dark:text-gray-300"
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Live mini preview of the header */}
+                            <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 shadow-xs dark:border-slate-700">
+                              <div className="bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600 dark:bg-slate-800 dark:text-gray-400">
+                                লাইভ হেডার প্রিভিউ (Live Header Preview):
+                              </div>
+                              <div
+                                className="relative overflow-hidden p-4 bg-gradient-to-r from-white via-[#fafdff] to-[#f4f8f5]"
+                                style={
+                                  draft.headerBgImage
+                                    ? {
+                                        backgroundImage: `url(${draft.headerBgImage})`,
+                                        backgroundSize: "cover",
+                                        backgroundPosition: "center",
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {draft.headerBgImage && (
+                                  <div
+                                    className={`absolute inset-0 pointer-events-none transition-all ${
+                                      draft.headerBgOverlay === "none"
+                                        ? "bg-transparent"
+                                        : draft.headerBgOverlay === "soft"
+                                        ? "bg-white/60 backdrop-blur-[1px]"
+                                        : draft.headerBgOverlay === "dark"
+                                        ? "bg-slate-950/75 backdrop-blur-[1px]"
+                                        : "bg-white/85 backdrop-blur-[2px]"
+                                    }`}
+                                  />
+                                )}
+                                <div className="relative z-10 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={resolveLogoUrl(siteLogo) || "/images/logo.png"}
+                                      alt="Logo"
+                                      className="h-12 w-12 rounded-full border-2 border-[#006a4e] bg-white p-0.5 object-contain"
+                                    />
+                                    <div>
+                                      <h3
+                                        className={`text-sm font-bold sm:text-base ${
+                                          draft.headerBgOverlay === "dark" ? "text-white" : "text-[#005a40]"
+                                        }`}
+                                      >
+                                        {draft.schoolNameBn || draft.schoolName || "বিদ্যালয়ের নাম"}
+                                      </h3>
+                                      <p
+                                        className={`text-[11px] ${
+                                          draft.headerBgOverlay === "dark" ? "text-emerald-200" : "text-gray-600"
+                                        }`}
+                                      >
+                                        {draft.schoolName || "School Name English"} · EIIN: {draft.eiin || "123456"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`hidden sm:inline-block rounded px-2 py-0.5 text-xs font-semibold ${
+                                      draft.headerBgOverlay === "dark"
+                                        ? "bg-white/20 text-white"
+                                        : "bg-emerald-100 text-[#005a40]"
+                                    }`}
+                                  >
+                                    {draft.phone || "+880 2 1234 5678"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Login Page Background Upload */}
+                    <div className="sm:col-span-2 rounded-lg border border-indigo-200 bg-indigo-50/30 p-3.5 dark:border-slate-700 dark:bg-slate-800/40">
+                      <ImageUploadField
+                        label="ইউজার ও অ্যাডমিন লগইন পেইজ ব্যাকগ্রাউন্ড ছবি (Login / Sign-In Page Background)"
+                        labelEn="Login / Sign-In Page Background Image"
+                        value={draft.loginBgImage || "/images/bgimage2.jpg"}
+                        onChange={(newUrl) => updateField("loginBgImage", newUrl)}
+                        aspectRatio="video"
+                        uploadEndpoint="banner"
+                        helperText="লগইন পোর্টাল পেইজের (/sign-in) ব্যাকগ্রাউন্ডে ফুল স্ক্রিনে প্রদর্শিত হবে।"
+                        presets={[
+                          { label: "ডিফল্ট ব্যাকগ্রাউন্ড", url: "/images/bgimage2.jpg" },
+                          { label: "ক্যাম্পাস ব্যাকগ্রাউন্ড", url: "/images/bgimage.jpg" },
+                        ]}
                       />
                     </div>
 

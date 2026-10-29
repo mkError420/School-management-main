@@ -436,67 +436,145 @@ export const PublicWebsiteLayout: React.FC = () => {
         </div>
 
         {/* ─── 2. MAIN SCHOOL BRANDING & HEADER ─── */}
-        <header className="border-b border-[#dde5df] bg-gradient-to-r from-white via-[#fafdff] to-[#f4f8f5] shadow-xs">
-          <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-4 sm:flex-row sm:px-6 lg:px-8">
-            <Link to="/" className="flex items-center gap-3.5 text-center sm:text-left group">
-              <div className="relative shrink-0">
-                <img
-                  src={resolveLogoUrl(siteLogo) || "/images/logo.png"}
-                  alt={primarySchoolName || "School Monogram"}
-                  className="h-16 w-16 rounded-full border-2 border-[#006a4e] bg-white p-1 shadow-md object-contain transition group-hover:scale-105 sm:h-20 sm:w-20"
-                  onError={(e) => {
-                    e.currentTarget.src = "/images/logo.png";
-                  }}
+        {(() => {
+          const hasHeaderBg = Boolean(content.headerBgImage && content.headerBgImage.trim());
+          const isDarkHeader = Boolean(hasHeaderBg && content.headerBgOverlay === "dark");
+          const overlayMode = content.headerBgOverlay || "light";
+
+          return (
+            <header
+              className="relative overflow-hidden border-b border-[#dde5df] bg-gradient-to-r from-white via-[#fafdff] to-[#f4f8f5] shadow-xs"
+              style={
+                hasHeaderBg
+                  ? {
+                      backgroundImage: `url(${content.headerBgImage!.trim()})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                    }
+                  : undefined
+              }
+            >
+              {/* Dynamic Background Overlay */}
+              {hasHeaderBg && (
+                <div
+                  className={`absolute inset-0 pointer-events-none transition-all ${
+                    overlayMode === "none"
+                      ? "bg-transparent"
+                      : overlayMode === "soft"
+                      ? "bg-white/60 backdrop-blur-[1px]"
+                      : overlayMode === "dark"
+                      ? "bg-slate-950/75 backdrop-blur-[1px]"
+                      : "bg-white/85 backdrop-blur-[2px]"
+                  }`}
+                  aria-hidden="true"
                 />
-              </div>
+              )}
 
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[#005a40] sm:text-3xl lg:text-4xl transition group-hover:text-[#00422f]">
-                  {primarySchoolName}
-                </h1>
-                <p className="text-xs font-semibold uppercase tracking-wider text-[#3d5a4c] sm:text-sm">
-                  {secondarySchoolName}
-                </p>
-                <p className="mt-0.5 hidden text-xs font-medium text-[#006a4e] sm:block">
-                  {t(content.boardName, content.boardNameEn) || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
-                </p>
-                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold text-gray-700 sm:justify-start">
-                  <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
-                    {lang === "bn" ? "স্থাপিত:" : "Est:"} {formatDigits(content.establishedYear || "1985")}
-                  </span>
-                  <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
-                    EIIN: {content.eiin || "123456"}
-                  </span>
-                  <span className="rounded bg-emerald-100/90 px-2 py-0.5 text-[#005a40]">
-                    {lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode || "1001"}
-                  </span>
+              <div className="relative z-10 mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-4 sm:flex-row sm:px-6 lg:px-8">
+                <Link to="/" className="flex items-center gap-3.5 text-center sm:text-left group">
+                  <div className="relative shrink-0">
+                    <img
+                      src={resolveLogoUrl(siteLogo) || "/images/logo.png"}
+                      alt={primarySchoolName || "School Monogram"}
+                      className="h-16 w-16 rounded-full border-2 border-[#006a4e] bg-white p-1 shadow-md object-contain transition group-hover:scale-105 sm:h-20 sm:w-20"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/logo.png";
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <h1
+                      className={`text-2xl font-bold tracking-tight transition sm:text-3xl lg:text-4xl ${
+                        isDarkHeader
+                          ? "text-white group-hover:text-emerald-200"
+                          : "text-[#005a40] group-hover:text-[#00422f]"
+                      }`}
+                    >
+                      {primarySchoolName}
+                    </h1>
+                    <p
+                      className={`text-xs font-semibold uppercase tracking-wider sm:text-sm ${
+                        isDarkHeader ? "text-emerald-200" : "text-[#3d5a4c]"
+                      }`}
+                    >
+                      {secondarySchoolName}
+                    </p>
+                    <p
+                      className={`mt-0.5 hidden text-xs font-medium sm:block ${
+                        isDarkHeader ? "text-emerald-100" : "text-[#006a4e]"
+                      }`}
+                    >
+                      {t(content.boardName, content.boardNameEn) || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold sm:justify-start">
+                      <span
+                        className={`rounded px-2 py-0.5 ${
+                          isDarkHeader
+                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                            : "bg-emerald-100/90 text-[#005a40]"
+                        }`}
+                      >
+                        {lang === "bn" ? "স্থাপিত:" : "Est:"} {formatDigits(content.establishedYear || "1985")}
+                      </span>
+                      <span
+                        className={`rounded px-2 py-0.5 ${
+                          isDarkHeader
+                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                            : "bg-emerald-100/90 text-[#005a40]"
+                        }`}
+                      >
+                        EIIN: {content.eiin || "123456"}
+                      </span>
+                      <span
+                        className={`rounded px-2 py-0.5 ${
+                          isDarkHeader
+                            ? "bg-white/20 text-emerald-100 border border-white/20"
+                            : "bg-emerald-100/90 text-[#005a40]"
+                        }`}
+                      >
+                        {lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode || "1001"}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+
+                <div className="flex items-center gap-3">
+                  <div className="hidden text-right lg:block">
+                    <SmartBdBadge />
+                    <div
+                      className={`mt-2 flex items-center justify-end gap-2 text-xs font-semibold ${
+                        isDarkHeader ? "text-white hover:text-emerald-200" : "text-[#005a40]"
+                      }`}
+                    >
+                      <PhoneCall size={14} className={isDarkHeader ? "text-emerald-300" : "text-[#006a4e]"} />
+                      <a href={`tel:${content.phone?.replace(/[^\d+]/g, "")}`} className="hover:underline">
+                        {content.phone || "+880 2 1234 5678"}
+                      </a>
+                    </div>
+                    <p className={`text-[10px] ${isDarkHeader ? "text-slate-200" : "text-gray-500"}`}>
+                      {content.officeHours || "রবিবার-বৃহস্পতিবার ৯:০০-৪:০০"}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className={`flex h-10 w-10 items-center justify-center rounded-md border shadow-xs transition sm:hidden ${
+                      isDarkHeader
+                        ? "border-slate-600 bg-slate-900/80 text-white hover:bg-slate-800"
+                        : "border-[#c4d4c8] bg-white text-[#006a4e] hover:bg-emerald-50"
+                    }`}
+                    aria-label="মেনু খুলুন"
+                  >
+                    {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+                  </button>
                 </div>
               </div>
-            </Link>
-
-            <div className="flex items-center gap-3">
-              <div className="hidden text-right lg:block">
-                <SmartBdBadge />
-                <div className="mt-2 flex items-center justify-end gap-2 text-xs font-semibold text-[#005a40]">
-                  <PhoneCall size={14} className="text-[#006a4e]" />
-                  <a href={`tel:${content.phone?.replace(/[^\d+]/g, "")}`} className="hover:underline">
-                    {content.phone || "+880 2 1234 5678"}
-                  </a>
-                </div>
-                <p className="text-[10px] text-gray-500">{content.officeHours || "রবিবার-বৃহস্পতিবার ৯:০০-৪:০০"}</p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="flex h-10 w-10 items-center justify-center rounded-md border border-[#c4d4c8] bg-white text-[#006a4e] shadow-xs transition hover:bg-emerald-50 sm:hidden"
-                aria-label="মেনু খুলুন"
-              >
-                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
-            </div>
-          </div>
-        </header>
+            </header>
+          );
+        })()}
 
         {/* ─── 3. GOVERNMENT TEMPLATE NAVIGATION BAR ─── */}
         <nav className="sticky top-0 z-30 border-t-2 border-[#eab308] bg-[#006a4e] text-white shadow-md">

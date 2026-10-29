@@ -260,6 +260,33 @@ export const ContactPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Google Map - Rangpur Bus Terminal */}
+      <div className="rounded-lg border border-[#dde5df] bg-white p-4 shadow-xs sm:p-6">
+        <h3 className="mb-4 font-bold text-[#005a40] text-base flex items-center gap-2">
+          <MapPin size={18} className="text-[#006a4e]" />
+          {t("আমাদের অবস্থান — রংপুর বাস টার্মিনাল", "Our Location — Rangpur Bus Terminal")}
+        </h3>
+        <div className="overflow-hidden rounded-lg border border-gray-200">
+          <iframe
+            title={t("রংপুর বাস টার্মিনাল গুগল ম্যাপ", "Rangpur Bus Terminal Google Map")}
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.123!2d89.2321!3d25.7436!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39e32de6fdb4275f%3A0x68cf2a543be25a0!2sRangpur%20Central%20Bus%20Terminal!5e0!3m2!1sen!2sbd!4v1698600000000!5m2!1sen!2sbd"
+            width="100%"
+            height="400"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="w-full"
+          />
+        </div>
+        <p className="mt-3 text-xs text-gray-500 text-center">
+          {t(
+            "রংপুর কেন্দ্রীয় বাস টার্মিনাল, রংপুর, বাংলাদেশ",
+            "Rangpur Central Bus Terminal, Rangpur, Bangladesh"
+          )}
+        </p>
+      </div>
     </div>
   );
 };

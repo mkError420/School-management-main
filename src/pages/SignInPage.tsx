@@ -54,9 +54,23 @@ const SignInPage: React.FC = () => {
     }
   };
 
+  const loginBgUrl = content.loginBgImage?.trim() || "/images/bgimage2.jpg";
+
   return (
     <div className="relative isolate min-h-screen overflow-hidden bg-slate-900">
-      <img src="/images/bgimage2.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center" />
+      <img
+        src={loginBgUrl}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-center transition-opacity duration-500"
+        onError={(e) => {
+          const target = e.currentTarget;
+          if (!target.dataset.fallback) {
+            target.dataset.fallback = "true";
+            target.src = "/images/bgimage2.jpg";
+          }
+        }}
+      />
       <div className="absolute inset-0 bg-slate-950/45" aria-hidden="true" />
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 sm:px-6">
         <main className="login-card w-full max-w-[470px] rounded-2xl border border-white/50 bg-white/95 p-6 shadow-2xl backdrop-blur-sm sm:p-8">

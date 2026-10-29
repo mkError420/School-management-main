@@ -261,6 +261,9 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     ),
     heroOverlayOpacity: (incoming.heroOverlayOpacity as any) || DEFAULT_WEBSITE_CONTENT.heroOverlayOpacity || "light",
     heroCarouselSpeed: typeof incoming.heroCarouselSpeed === "number" ? incoming.heroCarouselSpeed : (DEFAULT_WEBSITE_CONTENT.heroCarouselSpeed || 5000),
+    headerBgImage: incoming.headerBgImage !== undefined ? cleanStr(incoming.headerBgImage, "") : (DEFAULT_WEBSITE_CONTENT.headerBgImage || ""),
+    headerBgOverlay: (incoming.headerBgOverlay as any) || DEFAULT_WEBSITE_CONTENT.headerBgOverlay || "light",
+    loginBgImage: incoming.loginBgImage !== undefined ? cleanStr(incoming.loginBgImage, "/images/bgimage2.jpg") : (DEFAULT_WEBSITE_CONTENT.loginBgImage || "/images/bgimage2.jpg"),
   };
 };
 

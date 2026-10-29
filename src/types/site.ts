@@ -119,6 +119,13 @@ export interface SchoolWebsiteContent {
   breakingNews: string;
   breakingNewsEn?: string;
 
+  // Header & Navigation Branding Background
+  headerBgImage?: string;
+  headerBgOverlay?: "none" | "soft" | "light" | "dark";
+
+  // Login / Auth Page Background
+  loginBgImage?: string;
+
   // 2. Banner & Hero Section
   heroTitle: string;
   heroTitleEn?: string;
@@ -517,6 +524,10 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   facebookUrl: "https://facebook.com",
   breakingNews: "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · আগামী ১৫ অক্টোবর বার্ষিক ক্রীড়া প্রতিযোগিতা অনুষ্ঠিত হবে",
   breakingNewsEn: "Admission applications for Classes 6 to 9 for Academic Year 2026 are ongoing · Annual Sports Competition will be held on October 15",
+
+  headerBgImage: "",
+  headerBgOverlay: "light",
+  loginBgImage: "/images/bgimage2.jpg",
 
   heroTitle: "ঐতিহ্যবাহী এম. কে. সরকারি মডেল উচ্চ বিদ্যালয়ে স্বাগতম",
   heroTitleEn: "Welcome to MK Government Model High School",

@@ -102,6 +102,15 @@ function getSiteSettings($db) {
                         if (empty($decoded['heroCarouselSpeed'])) {
                             $decoded['heroCarouselSpeed'] = 5000;
                         }
+                        if (!isset($decoded['headerBgImage'])) {
+                            $decoded['headerBgImage'] = '';
+                        }
+                        if (empty($decoded['headerBgOverlay'])) {
+                            $decoded['headerBgOverlay'] = 'light';
+                        }
+                        if (empty($decoded['loginBgImage'])) {
+                            $decoded['loginBgImage'] = '/images/bgimage2.jpg';
+                        }
                         $settings['website_content'] = $decoded;
                     }
                 } else {
@@ -259,6 +268,22 @@ function updateSiteSettings($db) {
             $websiteContent['heroCarouselSpeed'] = 5000;
         } else {
             $websiteContent['heroCarouselSpeed'] = (int)$websiteContent['heroCarouselSpeed'];
+        }
+
+        if (isset($websiteContent['headerBgImage']) && is_string($websiteContent['headerBgImage'])) {
+            $websiteContent['headerBgImage'] = trim($websiteContent['headerBgImage']);
+        } else {
+            $websiteContent['headerBgImage'] = '';
+        }
+
+        if (empty($websiteContent['headerBgOverlay']) || !in_array($websiteContent['headerBgOverlay'], ['none', 'soft', 'light', 'dark'])) {
+            $websiteContent['headerBgOverlay'] = 'light';
+        }
+
+        if (isset($websiteContent['loginBgImage']) && is_string($websiteContent['loginBgImage']) && trim($websiteContent['loginBgImage']) !== '') {
+            $websiteContent['loginBgImage'] = trim($websiteContent['loginBgImage']);
+        } else {
+            $websiteContent['loginBgImage'] = '/images/bgimage2.jpg';
         }
 
         // Encode to UTF-8 JSON
