@@ -2,7 +2,7 @@
 
 // Unified Global Search API
 $db = Database::getInstance();
-$user = AuthMiddleware::requireAnyRole(['admin', 'super_admin', 'teacher', 'student', 'parent']);
+$user = AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
 
 $method = $_SERVER['REQUEST_METHOD'];
 if ($method !== 'GET') {

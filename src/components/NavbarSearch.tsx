@@ -1,5 +1,6 @@
-﻿import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth, hasAdminAccess } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import {
   Search,
@@ -44,6 +45,7 @@ const CATEGORY_TABS = [
 ];
 
 export const NavbarSearch: React.FC = () => {
+  const { role } = useAuth();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -191,6 +193,10 @@ export const NavbarSearch: React.FC = () => {
         return <FileText className="h-4 w-4 text-gray-600 dark:text-gray-400" />;
     }
   };
+
+  if (!hasAdminAccess(role)) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} className="relative">

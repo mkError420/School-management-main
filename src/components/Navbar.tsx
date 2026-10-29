@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Image from "@/components/Image";
-import { useAuth, UserRole } from "@/context/AuthContext";
+import { useAuth, UserRole, hasAdminAccess } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useSidebar } from "@/context/SidebarContext";
 import { Link, useLocation } from "react-router-dom";
@@ -74,8 +74,8 @@ const Navbar: React.FC = () => {
           {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
         </button>
 
-        {/* Searchbar */}
-        <NavbarSearch />
+        {/* Searchbar - only visible for super_admin & admin */}
+        {hasAdminAccess(role) && <NavbarSearch />}
       </div>
 
       {/* Right side: Icons & User Profile */}
