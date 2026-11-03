@@ -11,6 +11,41 @@ function escapePdfText(text: string): string {
 
 export type AdmissionPdfVersion = "blank" | "Bangla" | "English" | "All";
 
+export interface SubmittedAdmissionFormData {
+  application_no?: string;
+  applied_date?: string;
+  first_name?: string;
+  last_name?: string;
+  class_name?: string;
+  version?: string;
+  date_of_birth?: string;
+  gender?: string;
+  sex?: string;
+  blood_type?: string;
+  student_type?: string;
+  parent_name?: string;
+  parent_phone?: string;
+  parent_email?: string;
+  parent_nid?: string;
+  address?: string;
+  previous_school?: string;
+  notes?: string;
+  photo_data_url?: string;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return entities[character];
+  });
+}
+
 /**
  * Builds a valid, self-contained PDF 1.4 binary string for an official A4 School Admission Application Form.
  */
@@ -278,7 +313,9 @@ export function getAdmissionFormHtml(
   logoUrl?: string,
   includePrintBar: boolean = false,
   fullDocument: boolean = true,
-  version: AdmissionPdfVersion = "blank"
+  version: AdmissionPdfVersion = "blank",
+  autoPrint: boolean = true,
+  submitted?: SubmittedAdmissionFormData
 ): string {
   const schoolNameBn = content.schoolNameBn || "সরকারি মডেল উচ্চ বিদ্যালয় ও কলেজ";
   const schoolNameEn = content.schoolName || "Government Model High School & College";
@@ -286,6 +323,25 @@ export function getAdmissionFormHtml(
   const code = content.schoolCode || "3421";
   const address = content.address || "Main Campus, Education Zone, Bangladesh";
   const phone = content.phone || "+880 1712-345678";
+  const escape = (value?: string) => escapeHtml(value || "");
+  const displayValue = (value?: string, placeholder = "") =>
+    submitted
+      ? `<span class="filled-value">${escape(value) || "—"}</span>`
+      : `<span class="dots">${placeholder}</span>`;
+  const normalizeGender = (value?: string) => (value ?? "").trim().toUpperCase();
+  const genderValue = normalizeGender(submitted?.gender || submitted?.sex);
+  const selectedTypes = new Set(
+    (submitted?.student_type || "").toLowerCase().split(",").map((item) => item.trim())
+  );
+  const checkbox = (checked: boolean) =>
+    `<span class="checkbox-box">${checked ? "✓" : ""}</span>`;
+  const studentPhoto = submitted?.photo_data_url
+    ? `<img src="${escape(submitted.photo_data_url)}" alt="Student photo" style="width:100%;height:100%;object-fit:cover;" />`
+    : `<span style="font-size: 16px; margin-bottom: 2px;">📷</span>
+       <span>শিক্ষার্থীর ২ কপি পাসপোর্ট সাইজ ছবি</span>`;
+  const appliedDate = submitted?.applied_date
+    ? escape(submitted.applied_date.slice(0, 10))
+    : "";
 
   const styleBlock = `
   <style>
@@ -467,6 +523,15 @@ export function getAdmissionFormHtml(
       width: 100%;
       min-height: 12px;
     }
+    .filled-value {
+      display: block;
+      min-height: 14px;
+      padding: 1px 3px;
+      color: #111827;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
     .checkbox-box {
       display: inline-flex;
       align-items: center;
@@ -590,9 +655,8 @@ export function getAdmissionFormHtml(
             </div>
           </td>
           <td class="photo-cell">
-            <div class="photo-box">
-              <span style="font-size: 16px; margin-bottom: 2px;">📷</span>
-              শিক্ষার্থীর ২ কপি পাসপোর্ট সাইজ ছবি
+            <div class="photo-box" style="${submitted?.photo_data_url ? "padding:0;overflow:hidden;" : ""}">
+              ${studentPhoto}
             </div>
           </td>
         </tr>
@@ -605,10 +669,10 @@ export function getAdmissionFormHtml(
 
       <!-- META ROW -->
       <div class="meta-row">
-        <div><b>আবেদন ফরম নং (Form No):</b> &nbsp;ADM-2026-______________</div>
-        <div><b>ভর্তিচ্ছু শ্রেণি (Class):</b> &nbsp;____________________</div>
-        <div><b>ভার্সন (Version):</b> &nbsp;<span class="checkbox-item"><span class="checkbox-box">${version === "Bangla" ? "&#10004;" : ""}</span>বাংলা</span> &nbsp;<span class="checkbox-item"><span class="checkbox-box">${version === "English" ? "&#10004;" : ""}</span>English</span></div>
-        <div><b>তারিখ (Date):</b> &nbsp;____/____/২০২৬</div>
+        <div><b>আবেদন ফরম নং (Form No):</b> &nbsp;${submitted ? escape(submitted.application_no) || "Pending" : "ADM-2026-______________"}</div>
+        <div><b>ভর্তিচ্ছু শ্রেণি (Class):</b> &nbsp;${submitted ? escape(submitted.class_name) || "—" : "____________________"}</div>
+        <div><b>ভার্সন (Version):</b> &nbsp;<span class="checkbox-item">${checkbox(submitted ? submitted.version?.toLowerCase() === "bangla" : version === "Bangla")}বাংলা</span> &nbsp;<span class="checkbox-item">${checkbox(submitted ? submitted.version?.toLowerCase() === "english" : version === "English")}English</span></div>
+        <div><b>তারিখ (Date):</b> &nbsp;${submitted ? appliedDate || "—" : "____/____/২০২৬"}</div>
       </div>
 
       <!-- SECTION 1 -->
@@ -620,29 +684,29 @@ export function getAdmissionFormHtml(
         </tr>
         <tr>
           <td class="label-cell">Full Name (in English):</td>
-          <td colspan="3"><span class="dots" style="font-family: monospace;"></span></td>
+          <td colspan="3">${displayValue(submitted ? `${submitted.first_name || ""} ${submitted.last_name || ""}`.trim() : undefined, "")}</td>
         </tr>
         <tr>
           <td class="label-cell">জন্ম তারিখ (Date of Birth):</td>
-          <td>দিন: ____ মাস: ____ বছর: ________</td>
+          <td>${submitted ? displayValue(submitted.date_of_birth) : "দিন: ____ মাস: ____ বছর: ________"}</td>
           <td class="label-cell">লিঙ্গ (Gender):</td>
           <td>
-            <span class="checkbox-item"><span class="checkbox-box"></span>ছাত্র (Male)</span>
-            <span class="checkbox-item"><span class="checkbox-box"></span>ছাত্রী (Female)</span>
+            <span class="checkbox-item">${checkbox(submitted ? genderValue === "MALE" : false)}ছাত্র (Male)</span>
+            <span class="checkbox-item">${checkbox(submitted ? genderValue === "FEMALE" : false)}ছাত্রী (Female)</span>
           </td>
         </tr>
         <tr>
           <td class="label-cell">ডিজিটাল জন্ম নিবন্ধন নং:</td>
-          <td><span class="dots"></span></td>
+          <td>${displayValue()}</td>
           <td class="label-cell">রক্তের গ্রুপ ও ধর্ম:</td>
-          <td>রক্ত: ________ &nbsp; ধর্ম: ______________</td>
+          <td>${submitted ? `রক্ত: ${escape(submitted.blood_type) || "—"} &nbsp; ধর্ম: —` : "রক্ত: ________ &nbsp; ধর্ম: ______________"}</td>
         </tr>
         <tr>
           <td class="label-cell">শিক্ষার্থীর ধরন (Student Type):</td>
           <td>
-            <span class="checkbox-item"><span class="checkbox-box"></span>অনাবাসিক</span>
-            <span class="checkbox-item"><span class="checkbox-box"></span>আবাসিক</span>
-            <span class="checkbox-item"><span class="checkbox-box"></span>ডে-কেয়ার</span>
+            <span class="checkbox-item">${checkbox(selectedTypes.has("non-resident"))}অনাবাসিক</span>
+            <span class="checkbox-item">${checkbox(selectedTypes.has("resident"))}আবাসিক</span>
+            <span class="checkbox-item">${checkbox(selectedTypes.has("day care"))}ডে-কেয়ার</span>
           </td>
           <td class="label-cell">বিশেষ কোটা (যদি থাকে):</td>
           <td>
@@ -666,11 +730,11 @@ export function getAdmissionFormHtml(
           <td class="label-cell label-cell-left">পিতার নাম (বাংলায়):</td>
           <td class="value-cell-name"><span class="dots"></span></td>
           <td class="label-cell label-cell-right">পিতার জাতীয় পরিচয়পত্র (NID):</td>
-          <td class="value-cell-nid"><span class="dots"></span></td>
+          <td class="value-cell-nid">${displayValue(submitted?.parent_nid)}</td>
         </tr>
         <tr>
-          <td class="label-cell label-cell-left">Father's Name (English):</td>
-          <td class="value-cell-name"><span class="dots" style="font-family: monospace;"></span></td>
+          <td class="label-cell label-cell-left">${submitted ? "Parent / Guardian Name:" : "Father's Name (English):"}</td>
+          <td class="value-cell-name">${displayValue(submitted?.parent_name)}</td>
           <td class="label-cell label-cell-right">পিতা/অভিভাবকের পেশা:</td>
           <td class="value-cell-nid"><span class="dots"></span></td>
         </tr>
@@ -684,11 +748,11 @@ export function getAdmissionFormHtml(
           <td class="label-cell label-cell-left">Mother's Name (English):</td>
           <td class="value-cell-name"><span class="dots" style="font-family: monospace;"></span></td>
           <td class="label-cell label-cell-right">অভিভাবকের মোবাইল নং:</td>
-          <td class="value-cell-nid"><b>+880 1</b>_____________________</td>
+          <td class="value-cell-nid">${displayValue(submitted?.parent_phone, "<b>+880 1</b>_____________________")}</td>
         </tr>
         <tr>
           <td class="label-cell label-cell-left">বর্তমান ঠিকানা:</td>
-          <td colspan="3">গ্রাম/মহল্লা: ______________________________, ডাকঘর: _________________, থানা/উপজেলা: _________________, জেলা: _________________</td>
+          <td colspan="3">${submitted ? displayValue(submitted.address) : "গ্রাম/মহল্লা: ______________________________, ডাকঘর: _________________, থানা/উপজেলা: _________________, জেলা: _________________"}</td>
         </tr>
         <tr>
           <td class="label-cell label-cell-left">স্থায়ী ঠিকানা:</td>
@@ -701,7 +765,7 @@ export function getAdmissionFormHtml(
       <table class="grid-table">
         <tr>
           <td class="label-cell">পূর্ববর্তী বিদ্যালয়ের নাম:</td>
-          <td colspan="3"><span class="dots"></span></td>
+          <td colspan="3">${displayValue(submitted?.previous_school)}</td>
         </tr>
         <tr>
           <td class="label-cell">উত্তীর্ণ শ্রেণি ও বছর:</td>
@@ -715,6 +779,7 @@ export function getAdmissionFormHtml(
       <div class="section-title">৪. শিক্ষার্থী ও অভিভাবকের অঙ্গীকারনামা (Declaration)</div>
       <div class="declaration-box">
         আমি অঙ্গীকার করছি যে, অত্র আবেদনপত্রে বর্ণিত যাবতীয় তথ্য সত্য ও নির্ভুল। ভবিষ্যতে কোনো তথ্য ভুল বা অসত্য প্রমাণিত হলে আবেদনপত্র বা ভর্তি বাতিল বলে গণ্য হবে। বিদ্যালয়ের শৃঙ্খলা, পোশাকবিধি ও সকল নিয়মাবলি মেনে চলতে আমি ও আমার সন্তান সম্পূর্ণ বাধ্য থাকব।
+        ${submitted?.notes ? `<br/><b>Remarks:</b> ${escape(submitted.notes)}` : ""}
       </div>
 
       <div class="sig-row">
@@ -773,15 +838,115 @@ export function getAdmissionFormHtml(
 </head>
 <body>
   ${bodyContent}
-  <script>
+  ${autoPrint ? `<script>
     window.onload = function() {
       setTimeout(function() {
         window.print();
       }, 400);
     };
-  </script>
+  </script>` : ""}
 </body>
 </html>`;
+}
+
+export async function downloadSubmittedAdmissionPdf(
+  content: Partial<SchoolWebsiteContent>,
+  logoUrl: string | undefined,
+  application: SubmittedAdmissionFormData
+): Promise<void> {
+  const frame = document.createElement("iframe");
+  frame.title = "Admission application PDF rendering";
+  frame.style.position = "fixed";
+  frame.style.left = "-10000px";
+  frame.style.top = "0";
+  frame.style.width = "794px";
+  frame.style.height = "1123px";
+  frame.style.border = "0";
+  frame.setAttribute("aria-hidden", "true");
+  document.body.appendChild(frame);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      frame.onload = () => resolve();
+      frame.onerror = () => reject(new Error("Unable to render the application preview."));
+      frame.srcdoc = getAdmissionFormHtml(
+        content,
+        logoUrl,
+        false,
+        true,
+        "All",
+        false,
+        application
+      );
+    });
+
+    const frameDocument = frame.contentDocument;
+    const target = frameDocument?.querySelector(".page-container") as HTMLElement | null;
+    if (!frameDocument || !target) {
+      throw new Error("The admission application form could not be rendered.");
+    }
+
+    await frameDocument.fonts.ready;
+    await Promise.all(
+      Array.from(target.querySelectorAll("img")).map(async (image) => {
+        if (!image.complete) {
+          await new Promise<void>((resolve, reject) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener(
+              "error",
+              () => reject(new Error("Unable to load an image in the admission form.")),
+              { once: true }
+            );
+          });
+        }
+        if (!image.naturalWidth) {
+          throw new Error("Unable to load an image in the admission form.");
+        }
+        await image.decode();
+      })
+    );
+
+    const canvas = await html2canvas(target, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    pdf.addImage(
+      canvas.toDataURL("image/jpeg", 0.98),
+      "JPEG",
+      0,
+      0,
+      pdf.internal.pageSize.getWidth(),
+      pdf.internal.pageSize.getHeight()
+    );
+    const safeApplicationNo = (application.application_no || "application").replace(
+      /[^a-zA-Z0-9_-]/g,
+      "_"
+    );
+    pdf.save(`Admission_Application_${safeApplicationNo}.pdf`);
+  } finally {
+    frame.remove();
+  }
+}
+
+export function openSubmittedAdmissionPrintWindow(
+  content: Partial<SchoolWebsiteContent>,
+  logoUrl: string | undefined,
+  application: SubmittedAdmissionFormData
+): void {
+  const printWindow = window.open("", "_blank", "width=900,height=1000");
+  if (!printWindow) {
+    alert("Please allow popups to print the submitted Admission Application.");
+    return;
+  }
+
+  printWindow.document.open();
+  printWindow.document.write(
+    getAdmissionFormHtml(content, logoUrl, false, true, "All", true, application)
+  );
+  printWindow.document.close();
 }
 
 /**

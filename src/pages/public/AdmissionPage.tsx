@@ -36,9 +36,13 @@ import {
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
 import {
+  downloadSubmittedAdmissionPdf,
   downloadAdmissionFormPdf,
+  getAdmissionFormHtml,
   openAdmissionFormPrintWindow,
+  openSubmittedAdmissionPrintWindow,
   AdmissionPdfVersion,
+  SubmittedAdmissionFormData,
 } from "@/lib/admissionPdfGenerator";
 
 type ActiveTab = "apply" | "guidelines" | "track";
@@ -238,6 +242,20 @@ const CLASS_SEAT_CAPACITY = [
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"] as const;
 
+const fileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Unable to read the uploaded student photo."));
+      }
+    };
+    reader.onerror = () => reject(new Error("Unable to read the uploaded student photo."));
+    reader.readAsDataURL(file);
+  });
+
 export const AdmissionPage: React.FC = () => {
   const { websiteContent: content, siteLogo, t, lang, formatDigits } = useSiteSettings();
 
@@ -283,7 +301,32 @@ export const AdmissionPage: React.FC = () => {
   const [copiedAppNo, setCopiedAppNo] = useState<boolean>(false);
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
+  const [showSubmittedForm, setShowSubmittedForm] = useState<boolean>(false);
+  const [submittedPdfError, setSubmittedPdfError] = useState<string | null>(null);
   const [pdfVersion, setPdfVersion] = useState<AdmissionPdfVersion>("blank");
+
+  const handleDownloadSubmittedPdf = async () => {
+    if (!submittedAdmission) return;
+
+    setDownloadingPdf(true);
+    setSubmittedPdfError(null);
+    try {
+      await downloadSubmittedAdmissionPdf(
+        content,
+        siteLogo,
+        submittedAdmission as SubmittedAdmissionFormData
+      );
+    } catch (error) {
+      console.error("Failed to download submitted admission form:", error);
+      setSubmittedPdfError(
+        lang === "en"
+          ? "Unable to create the PDF. Please use Print and choose Save as PDF."
+          : "পিডিএফ তৈরি করা যায়নি। অনুগ্রহ করে প্রিন্ট অপশন থেকে Save as PDF নির্বাচন করুন।"
+      );
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
 
   const handleDownloadPdfClick = async () => {
     setDownloadingPdf(true);
@@ -512,6 +555,7 @@ export const AdmissionPage: React.FC = () => {
     try {
       const selectedClass = classesList.find((c) => String(c.id) === String(formData.class_id));
       const gradeId = formData.grade_id || (selectedClass ? selectedClass.grade_id : 1);
+      const photoDataUrl = selectedPhoto ? await fileToDataUrl(selectedPhoto) : "";
 
       const payload: Record<string, any> = {
         first_name: formData.first_name.trim(),
@@ -550,11 +594,25 @@ export const AdmissionPage: React.FC = () => {
 
       if (res.success && res.data) {
         const created = res.data;
-        // Attach class name if missing from backend response
-        if (!created.class_name && selectedClass) {
-          created.class_name = selectedClass.name;
-        }
-        setSubmittedAdmission(created);
+        setSubmittedAdmission({
+          ...payload,
+          ...created,
+          application_no: created.application_no || "",
+          applied_date: created.applied_date || new Date().toISOString().slice(0, 10),
+          first_name: created.first_name || payload.first_name,
+          last_name: created.last_name || payload.last_name,
+          class_name: created.class_name || selectedClass?.name || "",
+          version: created.version || payload.version,
+          gender: created.gender || created.sex || payload.gender || payload.sex,
+          sex: created.sex || created.gender || payload.sex || payload.gender,
+          parent_name: created.parent_name || payload.parent_name,
+          parent_phone: created.parent_phone || payload.parent_phone,
+          parent_nid: created.parent_nid || payload.parent_nid,
+          address: created.address || payload.address,
+          photo_data_url: photoDataUrl,
+        });
+        setSubmittedPdfError(null);
+        setShowSubmittedForm(true);
         // Reset form
         setFormData({
           first_name: "",
@@ -644,7 +702,13 @@ export const AdmissionPage: React.FC = () => {
 
   // Print Slip
   const handlePrintSlip = () => {
-    window.print();
+    if (submittedAdmission) {
+      openSubmittedAdmissionPrintWindow(
+        content,
+        siteLogo,
+        submittedAdmission as SubmittedAdmissionFormData
+      );
+    }
   };
 
   return (
@@ -772,7 +836,10 @@ export const AdmissionPage: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => setSubmittedAdmission(null)}
+                        onClick={() => {
+                          setShowSubmittedForm(false);
+                          setSubmittedAdmission(null);
+                        }}
                         className="inline-flex items-center gap-1.5 rounded-lg bg-[#006a4e] px-3.5 py-2 text-xs font-bold text-white hover:bg-[#00503a] shadow-xs"
                       >
                         <UserPlus size={14} />
@@ -842,7 +909,9 @@ export const AdmissionPage: React.FC = () => {
                     <div>
                       <span className="text-gray-500 font-medium">{t("লিঙ্গ ও জন্ম তারিখ:", "Gender & Date of Birth:")}</span>
                       <p className="font-semibold text-gray-800 mt-0.5">
-                        {submittedAdmission.gender === "FEMALE" ? t("ছাত্রী (Female)", "Female") : t("ছাত্র (Male)", "Male")},{" "}
+                        {((submittedAdmission.gender || submittedAdmission.sex || "").toUpperCase() === "FEMALE"
+                          ? t("ছাত্রী (Female)", "Female")
+                          : t("ছাত্র (Male)", "Male"))},{" "}
                         {submittedAdmission.date_of_birth || "N/A"}
                       </p>
                     </div>
@@ -1832,6 +1901,83 @@ export const AdmissionPage: React.FC = () => {
           </div>
         </aside>
       </div>
+
+      {showSubmittedForm && submittedAdmission && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-2 backdrop-blur-sm sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="submitted-admission-title"
+          onClick={() => setShowSubmittedForm(false)}
+        >
+          <div
+            className="flex h-[96vh] max-h-[1100px] w-full max-w-5xl flex-col overflow-hidden rounded-xl border border-emerald-900/20 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-[#f7faf8] px-4 py-3 sm:px-6">
+              <div className="min-w-0">
+                <h2 id="submitted-admission-title" className="text-sm font-bold text-gray-900 sm:text-base">
+                  {t("জমাকৃত ভর্তি আবেদনপত্র", "Submitted Admission Application")}
+                </h2>
+                <p className="text-[11px] text-gray-500">
+                  {submittedAdmission.application_no || t("আবেদন নম্বর অপেক্ষমাণ", "Application number pending")}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    openSubmittedAdmissionPrintWindow(
+                      content,
+                      siteLogo,
+                      submittedAdmission as SubmittedAdmissionFormData
+                    )
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50"
+                >
+                  <Printer size={14} />
+                  <span>{t("প্রিন্ট", "Print")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSubmittedPdf}
+                  disabled={downloadingPdf}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#006a4e] px-3 py-2 text-xs font-bold text-white hover:bg-[#00503a] disabled:opacity-60"
+                >
+                  {downloadingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span>{t("পিডিএফ ডাউনলোড", "Download PDF")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSubmittedForm(false)}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"
+                  aria-label={t("বন্ধ করুন", "Close")}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            {submittedPdfError && (
+              <p role="alert" className="border-b border-red-100 bg-red-50 px-4 py-2 text-xs text-red-700">
+                {submittedPdfError}
+              </p>
+            )}
+            <iframe
+              title={t("জমাকৃত ভর্তি আবেদনপত্রের প্রিভিউ", "Submitted admission application preview")}
+              srcDoc={getAdmissionFormHtml(
+                content,
+                siteLogo,
+                false,
+                true,
+                "All",
+                false,
+                submittedAdmission as SubmittedAdmissionFormData
+              )}
+              className="min-h-0 flex-1 bg-gray-100"
+            />
+          </div>
+        </div>
+      )}
 
       {/* ─────── PDF ADMISSION FORM PREVIEW & PRINT MODAL ─────── */}
       {showPdfModal && (

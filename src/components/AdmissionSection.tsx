@@ -12,6 +12,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  FileText,
   Filter,
   GraduationCap,
   Mail,
@@ -30,7 +31,13 @@ import {
   X,
   XCircle,
 } from "lucide-react";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
+import {
+  downloadSubmittedAdmissionPdf,
+  openSubmittedAdmissionPrintWindow,
+  SubmittedAdmissionFormData,
+} from "@/lib/admissionPdfGenerator";
 
 export interface AdmissionItem {
   id: number;
@@ -133,6 +140,7 @@ export interface AdmissionSectionProps {
 }
 
 const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewAllLink }) => {
+  const { websiteContent: content, siteLogo } = useSiteSettings();
   const [admissions, setAdmissions] = useState<AdmissionItem[]>([]);
   const [counts, setCounts] = useState<AdmissionCounts>({
     total: 0,
@@ -197,6 +205,41 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
   }, []);
+
+  const toSubmittedAdmissionForm = useCallback((item: AdmissionItem): SubmittedAdmissionFormData => ({
+    application_no: item.application_no,
+    applied_date: item.applied_date || item.created_at || undefined,
+    first_name: item.first_name,
+    last_name: item.last_name,
+    class_name: item.class_name || "",
+    version: item.version || "Bangla",
+    date_of_birth: item.date_of_birth || "",
+    gender: item.gender,
+    blood_type: item.blood_type || "A+",
+    student_type: item.student_type || "",
+    parent_name: item.parent_name || item.linked_parent_name || "",
+    parent_phone: item.parent_phone || "",
+    parent_email: item.parent_email || "",
+    parent_nid: item.parent_nid || (item as any).linked_parent_nid || "",
+    address: item.address || "",
+    previous_school: item.previous_school || "",
+    notes: item.notes || "",
+    photo_data_url: item.img || "",
+  }), []);
+
+  const handleOpenAdmissionForm = useCallback((item: AdmissionItem) => {
+    openSubmittedAdmissionPrintWindow(content, siteLogo, toSubmittedAdmissionForm(item));
+  }, [content, siteLogo, toSubmittedAdmissionForm]);
+
+  const handleDownloadAdmissionForm = useCallback(async (item: AdmissionItem) => {
+    try {
+      await downloadSubmittedAdmissionPdf(content, siteLogo, toSubmittedAdmissionForm(item));
+      showToast("Admission form downloaded successfully.");
+    } catch (error) {
+      console.error("Failed to download admission form:", error);
+      showToast("Unable to generate this PDF. Please use the print preview instead.", "error");
+    }
+  }, [content, siteLogo, showToast, toSubmittedAdmissionForm]);
 
   // Load Data
   const loadAdmissions = useCallback(async (silent = false) => {
@@ -1015,6 +1058,18 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                           <GraduationCap size={15} />
                         </Link>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenAdmissionForm(item);
+                        }}
+                        title="Open Admission Form"
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-[#005a40] hover:bg-emerald-50 dark:hover:bg-[#0c3a2d] transition"
+                      >
+                        <FileText size={14} />
+                      </button>
 
                       <button
                         type="button"
@@ -1943,6 +1998,20 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                     <UserCheck size={13} /> Approve &amp; Enroll
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => void handleOpenAdmissionForm(detailsItem)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-[#005a40]/30 bg-emerald-50 hover:bg-emerald-100 text-[#005a40] px-3 py-1.5 text-xs font-semibold transition"
+                >
+                  <FileText size={13} /> View Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadAdmissionForm(detailsItem)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-sky-300 bg-sky-50 hover:bg-sky-100 text-sky-700 px-3 py-1.5 text-xs font-semibold transition"
+                >
+                  <Download size={13} /> Download PDF
+                </button>
                 {detailsItem.status !== "WAITLISTED" && detailsItem.status !== "APPROVED" && (
                   <button
                     type="button"
