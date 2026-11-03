@@ -329,7 +329,7 @@ const StaffSection: React.FC = () => {
       if (clsRes.success && Array.isArray(clsRes.data?.classes)) {
         setClasses(clsRes.data.classes);
       }
-    } catch {}
+    } catch { }
 
     // 2. Fetch staff list
     try {
@@ -346,7 +346,7 @@ const StaffSection: React.FC = () => {
         if (stored) {
           try {
             loadedStaff = JSON.parse(stored);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -383,7 +383,7 @@ const StaffSection: React.FC = () => {
             }
           });
         }
-      } catch {}
+      } catch { }
 
       // If still empty (first run), initialize with default seed
       if (loadedStaff.length === 0) {
@@ -633,12 +633,12 @@ const StaffSection: React.FC = () => {
       const updated = staff.map((s) =>
         s.id === editItem.id
           ? {
-              ...s,
-              ...payload,
-              subjects: assignedSubjects,
-              classes: assignedClasses,
-              ...(res?.data ? res.data : {}),
-            }
+            ...s,
+            ...payload,
+            subjects: assignedSubjects,
+            classes: assignedClasses,
+            ...(res?.data ? res.data : {}),
+          }
           : s
       );
       setStaff(updated);
@@ -753,11 +753,10 @@ const StaffSection: React.FC = () => {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold border transition ${
-            toast.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800"
-              : "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800"
-          }`}
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold border transition ${toast.type === "success"
+            ? "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-800"
+            : "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800"
+            }`}
         >
           {toast.type === "success" ? <Check size={16} /> : <AlertCircle size={16} />}
           <span>{toast.msg}</span>
@@ -916,11 +915,10 @@ const StaffSection: React.FC = () => {
               setTypeFilter("ALL");
               setPage(1);
             }}
-            className={`px-3 py-1.5 rounded-xl transition ${
-              typeFilter === "ALL"
-                ? "bg-[#D32F45] text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-            }`}
+            className={`px-3 py-1.5 rounded-xl transition ${typeFilter === "ALL"
+              ? "bg-[#D32F45] text-white shadow-sm"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+              }`}
           >
             All Staff ({staff.length})
           </button>
@@ -930,11 +928,10 @@ const StaffSection: React.FC = () => {
               setTypeFilter("TEACHING");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
-              typeFilter === "TEACHING"
-                ? "bg-[#D32F45] text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${typeFilter === "TEACHING"
+              ? "bg-[#D32F45] text-white shadow-sm"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+              }`}
           >
             <GraduationCap size={14} />
             <span>Teachers Only ({stats.teaching_count})</span>
@@ -945,11 +942,10 @@ const StaffSection: React.FC = () => {
               setTypeFilter("ADMINISTRATIVE");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
-              typeFilter === "ADMINISTRATIVE"
-                ? "bg-[#D32F45] text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${typeFilter === "ADMINISTRATIVE"
+              ? "bg-[#D32F45] text-white shadow-sm"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+              }`}
           >
             <Shield size={14} />
             <span>Administrators ({stats.administrative_count})</span>
@@ -960,11 +956,10 @@ const StaffSection: React.FC = () => {
               setTypeFilter("NON_TEACHING");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
-              typeFilter === "NON_TEACHING"
-                ? "bg-[#D32F45] text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${typeFilter === "NON_TEACHING"
+              ? "bg-[#D32F45] text-white shadow-sm"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+              }`}
           >
             <Briefcase size={14} />
             <span>Operations & Finance ({stats.non_teaching_count})</span>
@@ -975,11 +970,10 @@ const StaffSection: React.FC = () => {
               setTypeFilter("SUPPORT");
               setPage(1);
             }}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
-              typeFilter === "SUPPORT"
-                ? "bg-[#D32F45] text-white shadow-sm"
-                : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${typeFilter === "SUPPORT"
+              ? "bg-[#D32F45] text-white shadow-sm"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200"
+              }`}
           >
             <Building2 size={14} />
             <span>Support & Services ({stats.support_count})</span>
@@ -1045,18 +1039,16 @@ const StaffSection: React.FC = () => {
             <div className="flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode("table")}
-                className={`p-1.5 rounded-lg transition ${
-                  viewMode === "table" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
-                }`}
+                className={`p-1.5 rounded-lg transition ${viewMode === "table" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
+                  }`}
                 title="Table view"
               >
                 <List size={14} />
               </button>
               <button
                 onClick={() => setViewMode("cards")}
-                className={`p-1.5 rounded-lg transition ${
-                  viewMode === "cards" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
-                }`}
+                className={`p-1.5 rounded-lg transition ${viewMode === "cards" ? "bg-white dark:bg-gray-800 text-[#707E94] shadow-sm" : "text-gray-400"
+                  }`}
                 title="Card grid view"
               >
                 <Grid size={14} />
@@ -1376,11 +1368,10 @@ const StaffSection: React.FC = () => {
                             department: opt.value === "TEACHING" ? "Academic Faculty" : formData.department,
                           });
                         }}
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
-                          formData.type === opt.value
-                            ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
-                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
-                        }`}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${formData.type === opt.value
+                          ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
+                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
+                          }`}
                       >
                         <Icon size={18} />
                         <span className="text-[11px]">{opt.label}</span>
@@ -1390,7 +1381,6 @@ const StaffSection: React.FC = () => {
                 </div>
                 {formData.type === "TEACHING" && (
                   <div className="mt-2 p-2.5 rounded-xl bg-[#707E94]/10 dark:bg-[#707E94]/20 border border-[#707E94]/30 dark:border-[#707E94]/40 text-[#707E94] dark:text-[#a4b3c7] text-[11px] flex items-center gap-2">
-                    <Sparkles size={14} className="shrink-0" />
                     <span>
                       Adding as a <strong>Teacher</strong> will automatically create their teaching profile, enable subject assignments, and add them to the Teachers section.
                     </span>
@@ -1555,11 +1545,10 @@ const StaffSection: React.FC = () => {
                                 : [...formData.subject_ids, sub.id];
                               setFormData({ ...formData, subject_ids: next });
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                              isSelected
-                                ? "bg-[#D32F45] text-white border-[#707E94]"
-                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                            }`}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${isSelected
+                              ? "bg-[#D32F45] text-white border-[#707E94]"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              }`}
                           >
                             {sub.name}
                           </button>
@@ -1586,11 +1575,10 @@ const StaffSection: React.FC = () => {
                                 : [...formData.class_ids, cls.id];
                               setFormData({ ...formData, class_ids: next });
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                              isSelected
-                                ? "bg-[#D32F45] text-white border-[#707E94]"
-                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                            }`}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${isSelected
+                              ? "bg-[#D32F45] text-white border-[#707E94]"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              }`}
                           >
                             Class {cls.name}
                           </button>
@@ -1869,11 +1857,10 @@ const StaffSection: React.FC = () => {
                             department: opt.value === "TEACHING" ? (editFormData.department === "Operations" ? "Academic Faculty" : editFormData.department) : editFormData.department,
                           });
                         }}
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
-                          editFormData.type === opt.value
-                            ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
-                            : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
-                        }`}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${editFormData.type === opt.value
+                          ? "bg-[#707E94]/10 border-[#707E94] text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] dark:border-[#707E94] shadow-sm font-bold"
+                          : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50"
+                          }`}
                       >
                         <Icon size={18} />
                         <span className="text-[11px]">{opt.label}</span>
@@ -2045,11 +2032,10 @@ const StaffSection: React.FC = () => {
                                 : [...editFormData.subject_ids, sub.id];
                               setEditFormData({ ...editFormData, subject_ids: next });
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                              isSelected
-                                ? "bg-[#D32F45] text-white border-[#707E94]"
-                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                            }`}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${isSelected
+                              ? "bg-[#D32F45] text-white border-[#707E94]"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              }`}
                           >
                             {sub.name}
                           </button>
@@ -2076,11 +2062,10 @@ const StaffSection: React.FC = () => {
                                 : [...editFormData.class_ids, cls.id];
                               setEditFormData({ ...editFormData, class_ids: next });
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${
-                              isSelected
-                                ? "bg-[#D32F45] text-white border-[#707E94]"
-                                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
-                            }`}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium border transition ${isSelected
+                              ? "bg-[#D32F45] text-white border-[#707E94]"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              }`}
                           >
                             Class {cls.name}
                           </button>
