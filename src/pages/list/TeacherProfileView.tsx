@@ -21,6 +21,7 @@ export interface TeacherProfileDetails {
     img?: string | null;
     blood_type?: string | null;
     sex?: string | null;
+    staff_no?: string | null;
     created_at?: string;
   };
   subjects: { id: number | string; name: string }[];
@@ -155,7 +156,7 @@ const TeacherProfileView: React.FC<TeacherProfileViewProps> = ({ details, onRelo
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Teacher profile</p>
             <h1 className="mt-1 break-words text-lg font-bold">{fullName}</h1>
-            <p className="mt-0.5 truncate text-xs text-slate-700">ID: {teacher.id} · @{teacher.username}</p>
+            <p className="mt-0.5 truncate text-xs text-slate-700">ID: {teacher.staff_no || teacher.id} · @{teacher.username}</p>
             <div className="mt-3 grid gap-1 text-xs text-slate-800 sm:grid-cols-2">
               <span className="flex min-w-0 items-center gap-1.5"><Mail size={12} /> <span className="truncate">{teacher.email || "Email not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><Phone size={12} /> <span className="truncate">{teacher.phone || "Phone not provided"}</span></span>

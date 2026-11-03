@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
+import { generateNextStaffId } from "@/lib/staffIdGenerator";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import {
   StaffGender,
@@ -53,7 +54,8 @@ const ITEMS_PER_PAGE = 12;
 const defaultStaffSeed: StaffMember[] = [
   {
     id: "stf_1",
-    staff_no: "STF-T0001",
+    staff_no: "202601",
+    teacher_id: "202601",
     name: "John",
     surname: "Doe",
     email: "john@doe.com",
@@ -74,7 +76,8 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_2",
-    staff_no: "STF-T0002",
+    staff_no: "202602",
+    teacher_id: "202602",
     name: "Jane",
     surname: "Doe",
     email: "jane@doe.com",
@@ -95,7 +98,8 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_3",
-    staff_no: "STF-T0003",
+    staff_no: "202603",
+    teacher_id: "202603",
     name: "Mike",
     surname: "Geller",
     email: "mike@geller.com",
@@ -116,7 +120,7 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_4",
-    staff_no: "STF-A0001",
+    staff_no: "202604",
     name: "Eleanor",
     surname: "Vance",
     email: "eleanor.admin@school.edu",
@@ -135,7 +139,7 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_5",
-    staff_no: "STF-F0002",
+    staff_no: "202605",
     name: "Marcus",
     surname: "Sterling",
     email: "marcus.finance@school.edu",
@@ -154,7 +158,7 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_6",
-    staff_no: "STF-L0003",
+    staff_no: "202606",
     name: "Beatrice",
     surname: "Holloway",
     email: "beatrice.lib@school.edu",
@@ -173,7 +177,7 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_7",
-    staff_no: "STF-I0004",
+    staff_no: "202607",
     name: "David",
     surname: "Kovacs",
     email: "david.it@school.edu",
@@ -192,7 +196,7 @@ const defaultStaffSeed: StaffMember[] = [
   },
   {
     id: "stf_8",
-    staff_no: "STF-H0005",
+    staff_no: "202608",
     name: "Clara",
     surname: "Oswald",
     email: "clara.health@school.edu",
@@ -356,7 +360,7 @@ const StaffSection: React.FC = () => {
             if (!exists) {
               loadedStaff.push({
                 id: `stf_t_${t.id}`,
-                staff_no: `STF-T${String(200 + idx).padStart(4, "0")}`,
+                staff_no: t.staff_no || (/^\d{6,}$/.test(String(t.id)) ? String(t.id) : generateNextStaffId(loadedStaff)),
                 teacher_id: t.id,
                 name: t.name,
                 surname: t.surname,
@@ -1332,6 +1336,21 @@ const StaffSection: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 my-4 text-xs">
+              {/* Generated Staff ID Indicator */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs">
+                <div>
+                  <div className="font-semibold text-sky-900 dark:text-sky-200 flex items-center gap-1.5">
+                    <span>Generated Staff ID:</span>
+                    <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-white dark:bg-gray-800 font-bold border border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-300">
+                      {generateNextStaffId(staff, formData.joining_date)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-sky-600 dark:text-sky-400 mt-0.5">
+                    Format: Year + Sequential Number (e.g. {new Date().getFullYear()}01, {new Date().getFullYear()}02...)
+                    {formData.type === "TEACHING" && " · Also assigned as Teacher ID in Profile"}
+                  </p>
+                </div>
+              </div>
               {/* Staff Type Selector */}
               <div>
                 <label className="block font-semibold text-gray-700 dark:text-gray-300 mb-1.5">

@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../utils/StaffIdGenerator.php';
+
 $db = Database::getInstance();
 ensureStaffTable($db);
 
@@ -87,11 +89,13 @@ function ensureStaffTable($db) {
 
 function seedInitialStaff($db) {
     // 1. Import all existing teachers into staff as TEACHING staff
+    $currYear = date('Y');
+    $idx = 1;
+
     try {
-        $teachers = $db->fetchAll("SELECT * FROM teachers");
-        $idx = 101;
+        $teachers = $db->fetchAll("SELECT * FROM teachers ORDER BY created_at ASC");
         foreach ($teachers as $t) {
-            $staffNo = "STF-T" . str_pad($idx, 4, '0', STR_PAD_LEFT);
+            $staffNo = $currYear . str_pad((string)$idx, 2, '0', STR_PAD_LEFT);
             $db->insert('staff', [
                 'id' => 'stf_' . $t['id'],
                 'staff_no' => $staffNo,
@@ -117,11 +121,11 @@ function seedInitialStaff($db) {
         }
     } catch (Exception $e) {}
 
-    // 2. Add sample non-teaching & administrative staff
+    // 2. Add sample non-teaching & administrative staff with continuous Year + 01, 02... format
     $sampleStaff = [
         [
             'id' => 'stf_adm_1',
-            'staff_no' => 'STF-A0001',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'Eleanor',
             'surname' => 'Vance',
             'email' => 'eleanor.vance@school.edu',
@@ -140,7 +144,7 @@ function seedInitialStaff($db) {
         ],
         [
             'id' => 'stf_acc_1',
-            'staff_no' => 'STF-F0002',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'Marcus',
             'surname' => 'Sterling',
             'email' => 'marcus.finance@school.edu',
@@ -159,7 +163,7 @@ function seedInitialStaff($db) {
         ],
         [
             'id' => 'stf_lib_1',
-            'staff_no' => 'STF-L0003',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'Beatrice',
             'surname' => 'Holloway',
             'email' => 'beatrice.lib@school.edu',
@@ -178,7 +182,7 @@ function seedInitialStaff($db) {
         ],
         [
             'id' => 'stf_it_1',
-            'staff_no' => 'STF-I0004',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'David',
             'surname' => 'Kovacs',
             'email' => 'david.it@school.edu',
@@ -197,7 +201,7 @@ function seedInitialStaff($db) {
         ],
         [
             'id' => 'stf_nur_1',
-            'staff_no' => 'STF-H0005',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'Clara',
             'surname' => 'Oswald',
             'email' => 'clara.health@school.edu',
@@ -216,7 +220,7 @@ function seedInitialStaff($db) {
         ],
         [
             'id' => 'stf_sec_1',
-            'staff_no' => 'STF-S0006',
+            'staff_no' => $currYear . str_pad((string)($idx++), 2, '0', STR_PAD_LEFT),
             'name' => 'Samuel',
             'surname' => 'O\'Connor',
             'email' => 'samuel.security@school.edu',
@@ -481,13 +485,14 @@ function createStaffMember($db) {
         Response::error('First name and surname are required');
     }
 
-    // Auto-generate staff number
-    $countRow = $db->fetchOne("SELECT COUNT(*) as total FROM staff");
-    $nextNum = ((int)($countRow['total'] ?? 0)) + 1;
-    $prefix = $type === 'TEACHING' ? 'STF-T' : ($type === 'ADMINISTRATIVE' ? 'STF-A' : 'STF-S');
-    $staffNo = $input['staff_no'] ?? ($prefix . str_pad($nextNum, 4, '0', STR_PAD_LEFT));
+    // Auto-generate staff number with Year and 01, then 02...
+    $yearVal = !empty($joiningDate) ? substr($joiningDate, 0, 4) : date('Y');
+    if (!preg_match('/^\d{4}$/', $yearVal)) {
+        $yearVal = date('Y');
+    }
+    $staffNo = !empty($input['staff_no']) ? trim($input['staff_no']) : StaffIdGenerator::generate($db, $yearVal);
 
-    $staffId = 'stf_' . uniqid();
+    $staffId = 'stf_' . $staffNo;
     $teacherId = null;
 
     try {
@@ -514,7 +519,8 @@ function createStaffMember($db) {
             $password = !empty($input['password']) ? $input['password'] : 'teacher123';
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 
-            $teacherId = uniqid();
+            // Set Teacher ID to be identical to the generated Staff ID (e.g. 202601)
+            $teacherId = $staffNo;
 
             // Insert into teachers table
             $db->insert('teachers', [

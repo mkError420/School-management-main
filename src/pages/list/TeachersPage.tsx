@@ -19,6 +19,7 @@ interface Teacher {
   img?: string;
   blood_type: string;
   sex: string;
+  staff_no?: string;
   subjects?: { id: number; name: string }[];
   classes?: { id: number; name: string }[];
 }
@@ -70,7 +71,7 @@ const TeachersPage: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400">{item.email}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.id}</td>
+      <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">{item.staff_no || item.id}</td>
       <td className="hidden md:table-cell text-gray-600 dark:text-gray-400">
         {item.subjects?.map((s) => s.name).join(", ") || "—"}
       </td>

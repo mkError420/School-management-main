@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../utils/StaffIdGenerator.php';
+
 $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
@@ -58,25 +60,28 @@ function getTeachers($db) {
     
     $offset = ($page - 1) * $limit;
     
-    // Build query
-    $sql = "SELECT t.* FROM teachers t WHERE 1=1";
+    // Build query with staff_no link
+    $sql = "SELECT t.*, s.staff_no FROM teachers t LEFT JOIN staff s ON (s.teacher_id = t.id OR s.id = t.id) WHERE 1=1";
     $params = [];
 
     if ($user['role'] === 'teacher') {
-        $sql .= " AND t.id = ?";
+        $sql .= " AND (t.id = ? OR s.staff_no = ?)";
+        $params[] = $user['user_id'];
         $params[] = $user['user_id'];
     }
 
     if (!empty($search)) {
-        $sql .= " AND (t.name LIKE ? OR t.surname LIKE ? OR t.username LIKE ? OR t.email LIKE ?)";
+        $sql .= " AND (t.name LIKE ? OR t.surname LIKE ? OR t.username LIKE ? OR t.email LIKE ? OR t.id LIKE ? OR s.staff_no LIKE ?)";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
     // Get total count
-    $countSql = str_replace("SELECT t.*", "SELECT COUNT(*) as total", $sql);
+    $countSql = "SELECT COUNT(DISTINCT t.id) as total FROM teachers t LEFT JOIN staff s ON (s.teacher_id = t.id OR s.id = t.id) WHERE 1=1" . 
+        ($user['role'] === 'teacher' ? " AND (t.id = ? OR s.staff_no = ?)" : "") .
+        (!empty($search) ? " AND (t.name LIKE ? OR t.surname LIKE ? OR t.username LIKE ? OR t.email LIKE ? OR t.id LIKE ? OR s.staff_no LIKE ?)" : "");
     $totalResult = $db->fetchOne($countSql, $params);
-    $total = $totalResult['total'];
+    $total = $totalResult['total'] ?? 0;
     
     // Add pagination
     $sql .= " ORDER BY t.created_at DESC LIMIT ? OFFSET ?";
@@ -122,15 +127,20 @@ function getTeachers($db) {
 function getTeacher($db, $id) {
     $user = AuthMiddleware::requireAnyRole(['admin', 'teacher']);
     
-    // If teacher, they can only see their own data
-    if ($user['role'] === 'teacher' && $user['user_id'] !== $id) {
-        Response::forbidden('You can only view your own data');
-    }
-    
-    $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ?", [$id]);
+    $teacher = $db->fetchOne(
+        "SELECT t.*, s.staff_no FROM teachers t LEFT JOIN staff s ON (s.teacher_id = t.id OR s.id = t.id) WHERE t.id = ? OR s.staff_no = ?",
+        [$id, $id]
+    );
     
     if (!$teacher) {
         Response::notFound('Teacher not found');
+    }
+
+    $actualId = $teacher['id'];
+    
+    // If teacher, they can only see their own data
+    if ($user['role'] === 'teacher' && $user['user_id'] !== $actualId && $user['user_id'] !== ($teacher['staff_no'] ?? '')) {
+        Response::forbidden('You can only view your own data');
     }
     
     // Remove password from response
@@ -141,7 +151,7 @@ function getTeacher($db, $id) {
         "SELECT s.id, s.name FROM subjects s 
          INNER JOIN teacher_subjects ts ON s.id = ts.subject_id 
          WHERE ts.teacher_id = ?",
-        [$id]
+        [$actualId]
     );
     
     // Get teacher's classes
@@ -150,7 +160,7 @@ function getTeacher($db, $id) {
          INNER JOIN teacher_classes tc ON c.id = tc.class_id 
          LEFT JOIN grades g ON c.grade_id = g.id
          WHERE tc.teacher_id = ?",
-        [$id]
+        [$actualId]
     );
     
     // Get supervised classes
@@ -158,7 +168,7 @@ function getTeacher($db, $id) {
         "SELECT c.id, c.name, g.level as grade_level FROM classes c 
          LEFT JOIN grades g ON c.grade_id = g.id
          WHERE c.supervisor_id = ?",
-        [$id]
+        [$actualId]
     );
     
     // Get teacher's lessons
@@ -169,7 +179,7 @@ function getTeacher($db, $id) {
          LEFT JOIN classes c ON l.class_id = c.id 
          WHERE l.teacher_id = ? 
          ORDER BY l.day, l.start_time",
-        [$id]
+        [$actualId]
     );
 
     $exams = $db->fetchAll(
@@ -181,7 +191,7 @@ function getTeacher($db, $id) {
          LEFT JOIN classes c ON l.class_id = c.id
          WHERE l.teacher_id = ?
          ORDER BY e.start_time DESC",
-        [$id]
+        [$actualId]
     );
 
     $assignments = $db->fetchAll(
@@ -197,7 +207,7 @@ function getTeacher($db, $id) {
          LEFT JOIN classes c_direct ON a.class_id = c_direct.id
          WHERE (l.teacher_id = ? OR a.teacher_id = ?)
          ORDER BY a.due_date DESC",
-        [$id, $id]
+        [$actualId, $actualId]
     );
 
     $students = $db->fetchAll(
@@ -212,7 +222,7 @@ function getTeacher($db, $id) {
              SELECT supervised.id FROM classes supervised WHERE supervised.supervisor_id = ?
          )
          ORDER BY st.name, st.surname",
-        [$id, $id]
+        [$actualId, $actualId]
     );
 
     $results = $db->fetchAll(
@@ -230,7 +240,7 @@ function getTeacher($db, $id) {
          LEFT JOIN subjects s_assignment ON l_assignment.subject_id = s_assignment.id
          WHERE l_exam.teacher_id = ? OR l_assignment.teacher_id = ?
          ORDER BY date DESC",
-        [$id, $id]
+        [$actualId, $actualId]
     );
 
     $attendanceSummary = $db->fetchOne(
@@ -238,7 +248,7 @@ function getTeacher($db, $id) {
          FROM attendance a
          INNER JOIN lessons l ON a.lesson_id = l.id
          WHERE l.teacher_id = ?",
-        [$id]
+        [$actualId]
     );
 
     $announcements = $db->fetchAll(
@@ -252,7 +262,7 @@ function getTeacher($db, $id) {
          )
          ORDER BY a.date DESC
          LIMIT 5",
-        [$id, $id]
+        [$actualId, $actualId]
     );
     
     Response::success('Teacher retrieved successfully', [
@@ -289,8 +299,9 @@ function createTeacher($db) {
     // Hash password
     $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
     
-    // Generate unique ID
-    $id = uniqid();
+    // Generate Staff & Teacher ID with Year + 01, 02... format (e.g. 202601)
+    $currYear = date('Y');
+    $id = StaffIdGenerator::generate($db, $currYear);
     
     $uploadedImage = null;
     try {
@@ -331,12 +342,42 @@ function createTeacher($db) {
                 ]);
             }
         }
+
+        // Also register in staff directory with the same Staff ID
+        try {
+            $existingStaff = $db->fetchOne("SELECT id FROM staff WHERE teacher_id = ? OR staff_no = ?", [$id, $id]);
+            if (!$existingStaff) {
+                $db->insert('staff', [
+                    'id' => 'stf_' . $id,
+                    'staff_no' => $id,
+                    'teacher_id' => $id,
+                    'name' => $input['name'],
+                    'surname' => $input['surname'],
+                    'email' => $input['email'] ?? null,
+                    'phone' => $input['phone'] ?? null,
+                    'type' => 'TEACHING',
+                    'designation' => 'Academic Teacher',
+                    'department' => 'Academic Faculty',
+                    'gender' => ($input['sex'] ?? 'MALE') === 'FEMALE' ? 'FEMALE' : 'MALE',
+                    'blood_type' => $input['blood_type'] ?? 'O+',
+                    'address' => $input['address'] ?? 'Campus Staff Residence',
+                    'salary' => 3800.00,
+                    'joining_date' => date('Y-m-d'),
+                    'status' => 'ACTIVE',
+                    'qualification' => 'Bachelor of Education (B.Ed)',
+                    'img' => $uploadedImage ?? ($input['img'] ?? null),
+                ]);
+            }
+        } catch (Exception $staffErr) {
+            error_log('Syncing teacher to staff directory failed: ' . $staffErr->getMessage());
+        }
         
         $db->commit();
         
         // Get the created teacher
         $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ?", [$id]);
         unset($teacher['password']);
+        $teacher['staff_no'] = $id;
         
         Response::success('Teacher created successfully', $teacher, 201);
         
