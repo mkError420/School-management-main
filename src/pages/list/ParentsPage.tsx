@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -37,7 +38,14 @@ const ParentsPage: React.FC = () => {
           className="md:hidden xl:block w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <h3 className="font-semibold text-gray-800 dark:text-gray-100">{item.name} {item.surname}</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
+            <span>{item.name} {item.surname}</span>
+            {item.nid && (
+              <span className="font-mono text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">
+                NID: {item.nid}
+              </span>
+            )}
+          </h3>
           <p className="text-gray-500 dark:text-gray-400">{item.email}</p>
         </div>
       </td>
@@ -47,18 +55,31 @@ const ParentsPage: React.FC = () => {
           <div className="flex flex-wrap gap-1.5 items-center">
             {item.students.map((s: any, idx: number) => {
               const fullName = `${s.name || ""} ${s.surname || ""}`.trim();
+              const version = s.version || "Bangla";
               return (
-                <span
+                <Link
                   key={s.id || idx}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/30"
+                  to={`/list/students/${s.id}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-[#707E94]/10 dark:bg-[#707E94]/20 text-[#707E94] dark:text-[#a4b3c7] border border-[#707E94]/30 dark:border-[#707E94]/30 hover:bg-[#707E94]/20 dark:hover:bg-[#707E94]/30 transition group"
+                  title={`View student profile of ${fullName}`}
                 >
-                  <span>{fullName || "Student"}</span>
+                  <span className="font-semibold group-hover:underline">{fullName || "Student"}</span>
+                  {s.class_name && (
+                    <span className="text-[10px] text-gray-500 font-normal">({s.class_name})</span>
+                  )}
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded border ${
+                    version.toLowerCase() === "english"
+                      ? "bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                      : "bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                  }`}>
+                    {version}
+                  </span>
                   {s.student_type && (
                     <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                       {s.student_type}
                     </span>
                   )}
-                </span>
+                </Link>
               );
             })}
           </div>

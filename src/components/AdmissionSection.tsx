@@ -44,6 +44,7 @@ export interface AdmissionItem {
   date_of_birth?: string;
   gender: "MALE" | "FEMALE";
   student_type?: string;
+  version?: "Bangla" | "English" | string;
   blood_type?: string;
   address?: string;
   img?: string;
@@ -87,6 +88,7 @@ const emptyAdmissionForm = {
   phone: "",
   address: "",
   student_type: "",
+  version: "Bangla",
   blood_type: "AB+",
   sex: "FEMALE" as "MALE" | "FEMALE",
   date_of_birth: "",
@@ -149,6 +151,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [studentTypeFilter, setStudentTypeFilter] = useState<string>("all");
+  const [versionFilter, setVersionFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
 
   // Options
@@ -205,6 +208,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         status: statusFilter !== "all" ? statusFilter : undefined as any,
         grade_id: gradeFilter !== "all" ? gradeFilter : undefined as any,
         student_type: studentTypeFilter !== "all" ? studentTypeFilter : undefined as any,
+        version: versionFilter !== "all" ? versionFilter : undefined as any,
         search: search.trim() || undefined as any,
       });
 
@@ -221,7 +225,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, gradeFilter, studentTypeFilter, search]);
+  }, [statusFilter, gradeFilter, studentTypeFilter, versionFilter, search]);
 
   useEffect(() => {
     void loadAdmissions();
@@ -259,6 +263,11 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         item.student_type?.toLowerCase().includes(studentTypeFilter.toLowerCase())
       );
     }
+    if (versionFilter !== "all") {
+      list = list.filter((item) =>
+        (item.version || "Bangla").toLowerCase() === versionFilter.toLowerCase()
+      );
+    }
     if (!search.trim()) return list;
     const q = search.toLowerCase().trim();
     return list.filter((item) => {
@@ -268,9 +277,10 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       const email = (item.email || "").toLowerCase();
       const username = (item.username || "").toLowerCase();
       const sType = (item.student_type || "").toLowerCase();
-      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q) || username.includes(q) || sType.includes(q);
+      const ver = (item.version || "").toLowerCase();
+      return fullName.includes(q) || appNo.includes(q) || parent.includes(q) || email.includes(q) || username.includes(q) || sType.includes(q) || ver.includes(q);
     });
-  }, [admissions, search, studentTypeFilter]);
+  }, [admissions, search, studentTypeFilter, versionFilter]);
 
   // Pagination & Displayed items: if maxItems is set (e.g. 5 on Home page), sort newest first and take last N
   const totalPages = Math.max(1, Math.ceil(filteredAdmissions.length / ITEMS_PER_PAGE));
@@ -341,6 +351,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       parent_id: String(parents[0]?.id || ""),
       parent_nid: (parents[0] as any)?.nid || "",
       student_type: "",
+      version: "Bangla",
       blood_type: "AB+",
       sex: "FEMALE",
     });
@@ -367,6 +378,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       phone: item.phone || "",
       address: item.address || "",
       student_type: item.student_type || "",
+      version: item.version || "Bangla",
       blood_type: item.blood_type || "AB+",
       sex: (item.gender || "FEMALE") as "MALE" | "FEMALE",
       date_of_birth: item.date_of_birth || "",
@@ -490,6 +502,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
         phone: formData.phone.trim() || null,
         address: formData.address.trim(),
         student_type: formData.student_type.trim() || null,
+        version: formData.version || "Bangla",
         blood_type: formData.blood_type.trim(),
         sex: formData.sex,
         gender: formData.sex,
@@ -564,7 +577,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const handleExportCsv = () => {
     const headers = [
       "Application No", "Roll", "Student Name", "Gender", "Date of Birth",
-      "Grade", "Class", "Parent Name", "Parent Phone", "Parent Email",
+      "Grade", "Class", "Version", "Parent Name", "Parent Phone", "Parent Email",
       "Previous School", "Status", "Applied Date", "Notes",
     ];
     const rows = filteredAdmissions.map((item) => [
@@ -575,6 +588,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       item.date_of_birth || "",
       item.grade_level ? `Grade ${item.grade_level}` : "",
       item.class_name || "",
+      item.version || "Bangla",
       item.parent_name || item.linked_parent_name || "",
       item.parent_phone || "",
       item.parent_email || "",
@@ -809,13 +823,25 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             <option value="Day Care">Day Care</option>
           </select>
 
-          {(statusFilter !== "all" || gradeFilter !== "all" || studentTypeFilter !== "all" || search) && (
+          <span className="text-xs font-medium text-gray-500 ml-1">Version:</span>
+          <select
+            value={versionFilter}
+            onChange={(e) => { setVersionFilter(e.target.value); setCurrentPage(1); }}
+            className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 outline-none"
+          >
+            <option value="all">All Versions</option>
+            <option value="Bangla">Bangla</option>
+            <option value="English">English</option>
+          </select>
+
+          {(statusFilter !== "all" || gradeFilter !== "all" || studentTypeFilter !== "all" || versionFilter !== "all" || search) && (
             <button
               type="button"
               onClick={() => {
                 setStatusFilter("all");
                 setGradeFilter("all");
                 setStudentTypeFilter("all");
+                setVersionFilter("all");
                 setSearch("");
                 setSearchInput("");
                 setCurrentPage(1);
@@ -912,6 +938,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span className="text-[11px] text-gray-400">
                             {item.gender} · {item.blood_type || "—"}
+                          </span>
+                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+                            (item.version || "Bangla").toLowerCase() === "english"
+                              ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                              : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                          }`}>
+                            {item.version || "Bangla"}
                           </span>
                           {item.student_type && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
@@ -1222,6 +1255,23 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   >
                     <option value="">Select class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
+
+                {/* Version (Bangla, English) */}
+                <label className="flex flex-col gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-900 dark:text-white">Version *</span>
+                    <span className="text-[10px] text-gray-400 font-normal">Medium of instruction</span>
+                  </span>
+                  <select
+                    required
+                    value={formData.version || "Bangla"}
+                    onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition font-medium"
+                  >
+                    <option value="Bangla">Bangla (বাংলা মাধ্যম)</option>
+                    <option value="English">English (English Version)</option>
                   </select>
                 </label>
 
@@ -1737,6 +1787,13 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                         </span>
                       )}
                       <StatusBadge status={detailsItem.status} size="xs" />
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${
+                        (detailsItem.version || "Bangla").toLowerCase() === "english"
+                          ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                          : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                      }`}>
+                        {detailsItem.version || "Bangla"} Version
+                      </span>
                       {detailsItem.student_type && (
                         <span className="font-semibold text-[11px] text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-800">
                           {detailsItem.student_type}
@@ -1783,6 +1840,10 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   <p className="font-bold text-sm text-gray-900 dark:text-white mt-1">
                     {detailsItem.class_name ? `Class ${detailsItem.class_name}` : "Class unassigned"}
                   </p>
+                  <div className="mt-1 flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300 font-medium">
+                    <span className="text-gray-400">Version:</span>
+                    <span className="font-semibold">{detailsItem.version || "Bangla"}</span>
+                  </div>
                 </div>
                 <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3">
                   <span className="text-[11px] text-gray-500 uppercase tracking-wider font-semibold">Student Info</span>
@@ -1822,6 +1883,16 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   </p>
                 )}
                 {detailsItem.address && <p className="text-gray-400">Address: {detailsItem.address}</p>}
+                <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                  <span className="text-[11px] text-gray-400">Guardian Record</span>
+                  <Link
+                    to={`/list/parents?search=${encodeURIComponent(detailsItem.parent_phone || detailsItem.parent_name || detailsItem.linked_parent_name || "")}`}
+                    onClick={() => setDetailsItem(null)}
+                    className="inline-flex items-center gap-1 font-semibold text-xs text-[#707E94] dark:text-[#a4b3c7] hover:underline"
+                  >
+                    <Users size={12} /> View Guardian Profile →
+                  </Link>
+                </div>
               </div>
 
               {/* Previous school */}

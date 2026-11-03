@@ -24,6 +24,7 @@ export interface StudentProfileDetails {
     blood_type?: string | null;
     sex?: string | null;
     student_type?: string | null;
+    version?: string | null;
     class_id?: number | null;
     grade_id?: number | null;
     class_name?: string | null;
@@ -32,6 +33,11 @@ export interface StudentProfileDetails {
     parent_name?: string | null;
     parent_surname?: string | null;
     parent_phone?: string | null;
+    parent_email?: string | null;
+    parent_nid?: string | null;
+    parent_address?: string | null;
+    parent_img?: string | null;
+    parent_username?: string | null;
   };
   attendance: {
     id: number | string;
@@ -155,6 +161,13 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Student profile</p>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-xs ${
+                (student.version || "Bangla").toLowerCase() === "english"
+                  ? "bg-blue-700 text-white"
+                  : "bg-emerald-700 text-white"
+              }`}>
+                {student.version || "Bangla"} Version
+              </span>
               {student.student_type && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-indigo-700 text-white shadow-xs">
                   {student.student_type}
@@ -171,7 +184,20 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
               <span className="flex min-w-0 items-center gap-1.5"><Mail size={12} /><span className="truncate">{student.email || "Email not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><Phone size={12} /><span className="truncate">{student.phone || "Phone not provided"}</span></span>
               <span className="flex min-w-0 items-center gap-1.5"><MapPin size={12} /><span className="truncate">{student.address || "Address not provided"}</span></span>
-              <span className="flex min-w-0 items-center gap-1.5"><Users size={12} /><span className="truncate">{[student.parent_name, student.parent_surname].filter(Boolean).join(" ") || "No guardian assigned"}</span></span>
+              <span className="flex min-w-0 items-center gap-1.5">
+                <Users size={12} />
+                {student.parent_name || student.parent_surname ? (
+                  <Link
+                    to={`/list/parents?search=${encodeURIComponent(student.parent_phone || student.parent_name || "")}`}
+                    className="truncate hover:underline font-semibold text-sky-950 underline decoration-sky-400"
+                    title="Click to view guardian profile"
+                  >
+                    {[student.parent_name, student.parent_surname].filter(Boolean).join(" ")}
+                  </Link>
+                ) : (
+                  <span className="truncate text-gray-600">No guardian assigned</span>
+                )}
+              </span>
               {student.student_type && (
                 <span className="flex min-w-0 items-center gap-1.5 sm:col-span-2 text-indigo-950 font-medium">
                   <GraduationCap size={12} className="text-indigo-800" />
@@ -194,6 +220,68 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
           <div className="mt-3 flex flex-wrap gap-2">{shortcuts.map((shortcut) => <a key={shortcut.href} href={shortcut.href} className={`rounded-md px-3 py-2 text-xs font-medium transition ${shortcut.style}`}>{shortcut.label}</a>)}</div>
         </section>
       </div>
+
+      {/* ── Guardian / Parent Profile Connection ── */}
+      {(student.parent_name || student.parent_surname || student.parent_phone || student.parent_id) && (
+        <section className="rounded-md border border-amber-200/90 bg-gradient-to-r from-amber-50/70 via-white to-amber-50/30 p-4 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold text-base shadow-sm shrink-0">
+                {student.parent_img ? (
+                  <img src={student.parent_img} alt="" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  student.parent_name ? student.parent_name[0].toUpperCase() : "G"
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-gray-900">
+                    {[student.parent_name, student.parent_surname].filter(Boolean).join(" ") || "Assigned Guardian"}
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                    Guardian Profile
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 mt-1">
+                  {student.parent_phone && (
+                    <a href={`tel:${student.parent_phone}`} className="flex items-center gap-1 hover:text-emerald-600 transition">
+                      <Phone size={11} className="text-emerald-500" />
+                      <span>{student.parent_phone}</span>
+                    </a>
+                  )}
+                  {student.parent_email && (
+                    <a href={`mailto:${student.parent_email}`} className="flex items-center gap-1 hover:text-sky-600 transition">
+                      <Mail size={11} className="text-sky-500" />
+                      <span>{student.parent_email}</span>
+                    </a>
+                  )}
+                  {student.parent_nid && (
+                    <span className="flex items-center gap-1 font-mono text-[11px] text-gray-500">
+                      <span>NID:</span>
+                      <strong className="text-gray-700">{student.parent_nid}</strong>
+                    </span>
+                  )}
+                  {student.parent_address && (
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                      <MapPin size={11} className="text-rose-500" />
+                      <span className="truncate max-w-[200px]">{student.parent_address}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Link
+              to={`/list/parents?search=${encodeURIComponent(student.parent_phone || student.parent_name || "")}`}
+              className="inline-flex items-center gap-1.5 self-start sm:self-center px-3.5 py-1.5 rounded-md text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition shrink-0"
+            >
+              <Users size={13} />
+              <span>View Guardian in All Parents</span>
+              <span className="text-amber-200">→</span>
+            </Link>
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <section id="student-lessons" className="min-w-0 rounded-md border border-gray-100 bg-white p-4 shadow-sm">

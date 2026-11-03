@@ -44,6 +44,7 @@ interface ChildStudent {
   grade_level?: number | null;
   roll?: string | null;
   student_type?: string | null;
+  version?: string | null;
   status?: string | null;
 }
 
@@ -241,6 +242,13 @@ const ParentDashboardPage: React.FC = () => {
                               Class: {child.class_name}
                             </span>
                           )}
+                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${
+                            (child.version || "Bangla").toLowerCase() === "english"
+                              ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                              : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+                          }`}>
+                            Version: {child.version || "Bangla"}
+                          </span>
                           {child.roll && (
                             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-900/40">
                               Roll: {child.roll}

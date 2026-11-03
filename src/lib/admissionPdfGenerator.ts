@@ -73,8 +73,10 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("BT /F2 8.5 Tf 0.1 0.1 0.1 rg");
   add("42 673 Td (Applied Date: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 65 0 Td (____/____/2026) Tj");
-  add("/F2 8.5 Tf 0.1 0.1 0.1 rg 65 0 Td (Shift / Section: ) Tj");
-  add("/F1 8.5 Tf 0.3 0.3 0.3 rg 70 0 Td ([ ] Morning  [ ] Day) Tj");
+  add("/F2 8.5 Tf 0.1 0.1 0.1 rg 65 0 Td (Version: ) Tj");
+  add("/F1 8.5 Tf 0.3 0.3 0.3 rg 50 0 Td ([ ] Bangla  [ ] English) Tj");
+  add("/F2 8.5 Tf 0.1 0.1 0.1 rg 75 0 Td (Shift: ) Tj");
+  add("/F1 8.5 Tf 0.3 0.3 0.3 rg 40 0 Td ([ ] M  [ ] D) Tj");
   add("ET");
 
   add("BT /F2 8.5 Tf 0.1 0.1 0.1 rg");
@@ -582,6 +584,7 @@ export function getAdmissionFormHtml(
       <div class="meta-row">
         <div><b>আবেদন ফরম নং (Form No):</b> &nbsp;ADM-2026-______________</div>
         <div><b>ভর্তিচ্ছু শ্রেণি (Class):</b> &nbsp;____________________</div>
+        <div><b>ভার্সন (Version):</b> &nbsp;<span class="checkbox-item"><span class="checkbox-box"></span>বাংলা</span> &nbsp;<span class="checkbox-item"><span class="checkbox-box"></span>English</span></div>
         <div><b>তারিখ (Date):</b> &nbsp;____/____/২০২৬</div>
       </div>
 

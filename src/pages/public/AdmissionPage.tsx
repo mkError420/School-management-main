@@ -257,6 +257,7 @@ export const AdmissionPage: React.FC = () => {
     last_name: "",
     class_id: "",
     grade_id: "",
+    version: "Bangla",
     date_of_birth: "",
     sex: "MALE" as "MALE" | "FEMALE",
     student_type: "",
@@ -514,6 +515,7 @@ export const AdmissionPage: React.FC = () => {
         last_name: formData.last_name.trim(),
         class_id: formData.class_id,
         grade_id: gradeId || 1,
+        version: formData.version || "Bangla",
         date_of_birth: formData.date_of_birth || null,
         sex: formData.sex,
         gender: formData.sex,
@@ -556,6 +558,7 @@ export const AdmissionPage: React.FC = () => {
           last_name: "",
           class_id: "",
           grade_id: "",
+          version: "Bangla",
           date_of_birth: "",
           sex: "MALE",
           student_type: "",
@@ -827,6 +830,13 @@ export const AdmissionPage: React.FC = () => {
                     </div>
 
                     <div>
+                      <span className="text-gray-500 font-medium">{t("ভার্সন (Version):", "Version:")}</span>
+                      <p className="text-sm font-bold text-gray-800 mt-0.5">
+                        {submittedAdmission.version || "Bangla"} {t("ভার্সন", "Version")}
+                      </p>
+                    </div>
+
+                    <div>
                       <span className="text-gray-500 font-medium">{t("লিঙ্গ ও জন্ম তারিখ:", "Gender & Date of Birth:")}</span>
                       <p className="font-semibold text-gray-800 mt-0.5">
                         {submittedAdmission.gender === "FEMALE" ? t("ছাত্রী (Female)", "Female") : t("ছাত্র (Male)", "Male")},{" "}
@@ -987,6 +997,25 @@ export const AdmissionPage: React.FC = () => {
                                 {cls.name}
                               </option>
                             ))}
+                          </select>
+                        </label>
+
+                        {/* Version (Bangla, English) */}
+                        <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-700">
+                          <span className="flex items-center justify-between">
+                            <span>{t("ভার্সন (Version) *", "Version *")}</span>
+                            <span className="text-[10px] text-gray-400 font-normal">
+                              {t("শিক্ষার মাধ্যম", "Medium")}
+                            </span>
+                          </span>
+                          <select
+                            required
+                            value={formData.version || "Bangla"}
+                            onChange={(e) => setFormData({ ...formData, version: e.target.value })}
+                            className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e]"
+                          >
+                            <option value="Bangla">{t("বাংলা ভার্সন (Bangla Version)", "Bangla Version")}</option>
+                            <option value="English">{t("ইংরেজি ভার্সন (English Version)", "English Version")}</option>
                           </select>
                         </label>
 
@@ -1497,9 +1526,12 @@ export const AdmissionPage: React.FC = () => {
                       </div>
 
                       <div>
-                        <span className="text-gray-500 font-medium">{t("শ্রেণি:", "Class:")}</span>
-                        <p className="font-bold text-[#006a4e] mt-0.5">
-                          {trackResult.class_name || `Class ${trackResult.class_id}`}
+                        <span className="text-gray-500 font-medium">{t("শ্রেণি ও ভার্সন:", "Class & Version:")}</span>
+                        <p className="font-bold text-[#006a4e] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>{trackResult.class_name || `Class ${trackResult.class_id}`}</span>
+                          <span className="font-semibold text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            {trackResult.version || "Bangla"} Version
+                          </span>
                         </p>
                       </div>
 

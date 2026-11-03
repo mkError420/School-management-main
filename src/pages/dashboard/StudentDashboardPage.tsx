@@ -34,11 +34,14 @@ interface StudentInfo {
   sex?: string | null;
   roll?: string | null;
   student_type?: string | null;
+  version?: string | null;
   class_name?: string | null;
   grade_level?: number | null;
   parent_name?: string | null;
   parent_surname?: string | null;
   parent_phone?: string | null;
+  parent_email?: string | null;
+  parent_nid?: string | null;
 }
 
 interface StudentDashData {
@@ -150,6 +153,13 @@ const StudentDashboardPage: React.FC = () => {
                 <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
                   <GraduationCap size={12} /> Student
                 </span>
+                <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-2xs ${
+                  (data.student.version || "Bangla").toLowerCase() === "english"
+                    ? "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                    : "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                }`}>
+                  Version: {data.student.version || "Bangla"}
+                </span>
                 {data.student.student_type && (
                   <span className="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 shadow-2xs">
                     Type: {data.student.student_type}
@@ -199,10 +209,15 @@ const StudentDashboardPage: React.FC = () => {
                   </span>
                 )}
                 {(data.student.parent_name || data.student.parent_surname) && (
-                  <span className={`flex items-center gap-1.5 ${textMuted}`}>
+                  <span className={`flex items-center gap-1.5 ${textMuted} flex-wrap`}>
                     <UserCheck size={13} className="text-indigo-500 flex-shrink-0" />
-                    Guardian: {data.student.parent_name} {data.student.parent_surname}
+                    <span>Guardian: <strong className={textPrimary}>{data.student.parent_name} {data.student.parent_surname}</strong></span>
                     {data.student.parent_phone && ` (${data.student.parent_phone})`}
+                    {data.student.parent_nid && (
+                      <span className="font-mono text-[11px] bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded">
+                        NID: {data.student.parent_nid}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>

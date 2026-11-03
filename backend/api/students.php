@@ -15,6 +15,12 @@ try {
         $db->query("ALTER TABLE students ADD COLUMN student_type VARCHAR(100) NULL AFTER sex");
     }
 } catch (Exception $e) {}
+try {
+    $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'version'");
+    if (empty($cols)) {
+        $db->query("ALTER TABLE students ADD COLUMN version VARCHAR(50) DEFAULT 'Bangla' AFTER student_type");
+    }
+} catch (Exception $e) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
@@ -69,7 +75,7 @@ function getStudents($db) {
     $offset = ($page - 1) * $limit;
     
     // Build query
-    $selectFields = "s.*, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname";
+    $selectFields = "s.*, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type, COALESCE(NULLIF(s.version, ''), a.version, 'Bangla') as version, c.name as class_name, g.level as grade_level, p.name as parent_name, p.surname as parent_surname, p.phone as parent_phone, p.nid as parent_nid";
     $sql = "SELECT {$selectFields} 
             FROM students s 
             LEFT JOIN admissions a ON a.enrolled_student_id = s.id
@@ -81,9 +87,9 @@ function getStudents($db) {
     $params = [];
     
     if (!empty($search)) {
-        $sql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ? OR s.roll LIKE ? OR s.email LIKE ?)";
+        $sql .= " AND (s.name LIKE ? OR s.surname LIKE ? OR s.username LIKE ? OR s.roll LIKE ? OR s.email LIKE ? OR s.version LIKE ?)";
         $searchTerm = "%{$search}%";
-        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
+        $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm, $searchTerm]);
     }
     
     if (!empty($classId) && $classId !== 'all') {
@@ -144,11 +150,18 @@ function getStudent($db, $id) {
     $student = $db->fetchOne(
         "SELECT s.*, 
                 COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type,
+                COALESCE(NULLIF(s.version, ''), a.version, 'Bangla') as version,
                 c.name as class_name, 
                 g.level as grade_level, 
+                p.id as parent_id,
                 p.name as parent_name, 
                 p.surname as parent_surname, 
-                p.phone as parent_phone 
+                p.phone as parent_phone,
+                p.email as parent_email,
+                p.nid as parent_nid,
+                p.address as parent_address,
+                p.img as parent_img,
+                p.username as parent_username
          FROM students s 
          LEFT JOIN admissions a ON a.enrolled_student_id = s.id
          LEFT JOIN classes c ON s.class_id = c.id 
@@ -317,6 +330,7 @@ function createStudent($db) {
             'blood_type' => $input['blood_type'],
             'sex'        => $input['sex'],
             'student_type' => $input['student_type'] ?? null,
+            'version'    => !empty($input['version']) ? trim($input['version']) : 'Bangla',
             'parent_id'  => $input['parent_id'],
             'class_id'   => $input['class_id'],
             'grade_id'   => $gradeId
@@ -347,6 +361,7 @@ function createStudent($db) {
                 'phone'               => $input['phone'] ?? null,
                 'gender'              => (isset($input['sex']) && strtoupper($input['sex']) === 'FEMALE') ? 'FEMALE' : 'MALE',
                 'student_type'        => $input['student_type'] ?? null,
+                'version'             => !empty($input['version']) ? trim($input['version']) : 'Bangla',
                 'blood_type'          => $input['blood_type'] ?? 'A+',
                 'address'             => $input['address'] ?? '',
                 'grade_id'            => $input['grade_id'],
@@ -392,7 +407,7 @@ function updateStudent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'student_type', 'parent_id', 'class_id', 'grade_id'];
+    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'student_type', 'version', 'parent_id', 'class_id', 'grade_id'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
@@ -445,6 +460,7 @@ function updateStudent($db, $id) {
             if (isset($data['blood_type'])) $admData['blood_type'] = $data['blood_type'];
             if (isset($data['sex'])) $admData['gender'] = strtoupper($data['sex']) === 'FEMALE' ? 'FEMALE' : 'MALE';
             if (isset($data['student_type'])) $admData['student_type'] = $data['student_type'];
+            if (isset($data['version'])) $admData['version'] = $data['version'];
             if (isset($data['class_id'])) $admData['class_id'] = $data['class_id'];
             if (isset($data['grade_id'])) $admData['grade_id'] = $data['grade_id'];
             if (isset($data['parent_id'])) $admData['parent_id'] = $data['parent_id'];

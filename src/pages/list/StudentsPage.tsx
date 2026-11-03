@@ -22,6 +22,7 @@ interface Student {
   blood_type: string;
   sex: string;
   student_type?: string;
+  version?: string;
   class_name?: string;
   grade_level?: number;
 }
@@ -66,6 +67,13 @@ const StudentsPage: React.FC = () => {
         <div>
           <h3 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5 flex-wrap">
             <span>{item.name} {item.surname}</span>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
+              (item.version || "Bangla").toLowerCase() === "english"
+                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
+            }`}>
+              {item.version || "Bangla"}
+            </span>
             {item.student_type && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                 {item.student_type}

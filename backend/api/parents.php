@@ -104,9 +104,13 @@ function getParents($db) {
 
         // 1. Fetch enrolled students from students table
         $students = $db->fetchAll(
-            "SELECT s.id, s.name, s.surname, COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type 
+            "SELECT s.id, s.roll, s.name, s.surname, 
+                    COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type,
+                    COALESCE(NULLIF(s.version, ''), a.version, 'Bangla') as version,
+                    c.name as class_name
              FROM students s 
              LEFT JOIN admissions a ON a.enrolled_student_id = s.id
+             LEFT JOIN classes c ON s.class_id = c.id
              WHERE s.parent_id = ? ORDER BY s.name",
             [$parent['id']]
         );
@@ -125,10 +129,11 @@ function getParents($db) {
         // 2. Also include admission applicants linked to this parent (e.g. from new admission form)
         try {
             $admissions = $db->fetchAll(
-                "SELECT id, first_name, last_name, name, surname, enrolled_student_id, student_type 
-                 FROM admissions 
-                 WHERE parent_id = ? 
-                 ORDER BY id DESC",
+                "SELECT a.id, a.first_name, a.last_name, a.name, a.surname, a.enrolled_student_id, a.student_type, a.version, c.name as class_name 
+                 FROM admissions a 
+                 LEFT JOIN classes c ON a.class_id = c.id
+                 WHERE a.parent_id = ? 
+                 ORDER BY a.id DESC",
                 [$parent['id']]
             );
             foreach ($admissions as $adm) {
@@ -143,7 +148,9 @@ function getParents($db) {
                         'id' => $adm['id'],
                         'name' => $stName,
                         'surname' => $stSurname,
-                        'student_type' => $adm['student_type'] ?? null
+                        'student_type' => $adm['student_type'] ?? null,
+                        'version' => !empty($adm['version']) ? $adm['version'] : 'Bangla',
+                        'class_name' => $adm['class_name'] ?? null
                     ];
                     $includedNames[$fullName] = true;
                 }
@@ -187,6 +194,7 @@ function getParent($db, $id) {
     $children = $db->fetchAll(
         "SELECT s.*, 
                 COALESCE(NULLIF(s.student_type, ''), a.student_type) as student_type,
+                COALESCE(NULLIF(s.version, ''), a.version, 'Bangla') as version,
                 c.name as class_name, 
                 g.level as grade_level
          FROM students s
@@ -205,7 +213,7 @@ function getParent($db, $id) {
     // Also include any admission applicants linked to this parent that aren't yet in students
     try {
         $admissions = $db->fetchAll(
-            "SELECT a.*, c.name as class_name, g.level as grade_level
+            "SELECT a.*, COALESCE(NULLIF(a.version, ''), 'Bangla') as version, c.name as class_name, g.level as grade_level
              FROM admissions a
              LEFT JOIN classes c ON a.class_id = c.id
              LEFT JOIN grades g  ON a.grade_id  = g.id
