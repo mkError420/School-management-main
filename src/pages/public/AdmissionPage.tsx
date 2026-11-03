@@ -283,7 +283,7 @@ export const AdmissionPage: React.FC = () => {
   const [copiedAppNo, setCopiedAppNo] = useState<boolean>(false);
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
-  const [pdfVersion, setPdfVersion] = useState<AdmissionPdfVersion>("Bangla");
+  const [pdfVersion, setPdfVersion] = useState<AdmissionPdfVersion>("blank");
 
   const handleDownloadPdfClick = async () => {
     setDownloadingPdf(true);
@@ -1626,10 +1626,21 @@ export const AdmissionPage: React.FC = () => {
                     ? t("বাংলা ভার্সন", "Bangla Version")
                     : pdfVersion === "English"
                     ? t("English Version", "English Version")
-                    : t("উভয় (দ্বিভাষিক)", "Both / Bilingual")}
+                    : t("ব্ল্যাঙ্ক / ফাঁকা (ডিফল্ট)", "Blank / Default")}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPdfVersion("blank")}
+                  className={`py-1.5 px-2 rounded-md text-[11px] font-bold transition text-center cursor-pointer border ${
+                    pdfVersion === "blank" || pdfVersion === "All"
+                      ? "bg-[#006a4e] text-white border-[#006a4e] shadow-xs"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/50 hover:border-emerald-300"
+                  }`}
+                >
+                  {t("ব্ল্যাঙ্ক (ফাঁকা)", "Blank")}
+                </button>
                 <button
                   type="button"
                   onClick={() => setPdfVersion("Bangla")}
@@ -1651,17 +1662,6 @@ export const AdmissionPage: React.FC = () => {
                   }`}
                 >
                   {t("English", "English")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPdfVersion("All")}
-                  className={`py-1.5 px-2 rounded-md text-[11px] font-bold transition text-center cursor-pointer border ${
-                    pdfVersion === "All"
-                      ? "bg-[#006a4e] text-white border-[#006a4e] shadow-xs"
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/50 hover:border-emerald-300"
-                  }`}
-                >
-                  {t("উভয় (Both)", "Both")}
                 </button>
               </div>
             </div>
@@ -1687,7 +1687,7 @@ export const AdmissionPage: React.FC = () => {
                     ? t("বাংলা ভার্সন", "Bangla Version")
                     : pdfVersion === "English"
                     ? t("English Version", "English Version")
-                    : t("বাংলা ও ইংরেজি (উভয়)", "Bangla & English (Both)")}
+                    : t("বাংলা ও ইংরেজি (ফাঁকা চেকবক্স)", "Bangla & English (Blank)")}
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -1877,6 +1877,17 @@ export const AdmissionPage: React.FC = () => {
                   </span>
                   <button
                     type="button"
+                    onClick={() => setPdfVersion("blank")}
+                    className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+                      pdfVersion === "blank" || pdfVersion === "All"
+                        ? "bg-[#006a4e] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {t("ব্ল্যাঙ্ক", "Blank")}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setPdfVersion("Bangla")}
                     className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
                       pdfVersion === "Bangla"
@@ -1896,17 +1907,6 @@ export const AdmissionPage: React.FC = () => {
                     }`}
                   >
                     {t("English", "English")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPdfVersion("All")}
-                    className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
-                      pdfVersion === "All"
-                        ? "bg-[#006a4e] text-white shadow-2xs"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                    }`}
-                  >
-                    {t("উভয়", "Both")}
                   </button>
                 </div>
 

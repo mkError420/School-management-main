@@ -9,14 +9,14 @@ function escapePdfText(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
-export type AdmissionPdfVersion = "Bangla" | "English" | "All";
+export type AdmissionPdfVersion = "blank" | "Bangla" | "English" | "All";
 
 /**
  * Builds a valid, self-contained PDF 1.4 binary string for an official A4 School Admission Application Form.
  */
 export function buildAdmissionFormPdfString(
   content: Partial<SchoolWebsiteContent>,
-  version: AdmissionPdfVersion = "Bangla"
+  version: AdmissionPdfVersion = "blank"
 ): string {
   const schoolName = (content.schoolName || "GOVERNMENT MODEL HIGH SCHOOL & COLLEGE").toUpperCase();
   const address = content.address || "Main Campus, Education Zone, Bangladesh";
@@ -257,7 +257,7 @@ export function buildAdmissionFormPdfString(
 
 export function generateAdmissionFormPdfBlob(
   content: Partial<SchoolWebsiteContent>,
-  version: AdmissionPdfVersion = "Bangla"
+  version: AdmissionPdfVersion = "blank"
 ): Blob {
   const pdfString = buildAdmissionFormPdfString(content, version);
   const bytes = new TextEncoder().encode(pdfString);
@@ -272,7 +272,7 @@ export function getAdmissionFormHtml(
   logoUrl?: string,
   includePrintBar: boolean = false,
   fullDocument: boolean = true,
-  version: AdmissionPdfVersion = "Bangla"
+  version: AdmissionPdfVersion = "blank"
 ): string {
   const schoolNameBn = content.schoolNameBn || "সরকারি মডেল উচ্চ বিদ্যালয় ও কলেজ";
   const schoolNameEn = content.schoolName || "Government Model High School & College";
@@ -778,7 +778,7 @@ export function getAdmissionFormHtml(
 export async function downloadAdmissionFormPdf(
   content: Partial<SchoolWebsiteContent>,
   logoUrl?: string,
-  version: AdmissionPdfVersion = "Bangla"
+  version: AdmissionPdfVersion = "blank"
 ): Promise<void> {
   // 1. If admin uploaded or configured a direct custom PDF file (other than the default placeholder), download that
   const customUrl = content.admissionFormPdfUrl;
@@ -913,7 +913,7 @@ export async function downloadAdmissionFormPdf(
 export function openAdmissionFormPrintWindow(
   content: Partial<SchoolWebsiteContent>,
   logoUrl?: string,
-  version: AdmissionPdfVersion = "Bangla"
+  version: AdmissionPdfVersion = "blank"
 ): void {
   const printWindow = window.open("", "_blank", "width=900,height=1000");
   if (!printWindow) {
