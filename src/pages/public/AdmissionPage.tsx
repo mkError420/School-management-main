@@ -14,6 +14,7 @@ import {
   Eye,
   FileCheck,
   FileText,
+  Globe,
   Home,
   Info,
   Layers,
@@ -37,6 +38,7 @@ import { api } from "@/lib/api";
 import {
   downloadAdmissionFormPdf,
   openAdmissionFormPrintWindow,
+  AdmissionPdfVersion,
 } from "@/lib/admissionPdfGenerator";
 
 type ActiveTab = "apply" | "guidelines" | "track";
@@ -281,14 +283,15 @@ export const AdmissionPage: React.FC = () => {
   const [copiedAppNo, setCopiedAppNo] = useState<boolean>(false);
   const [showPdfModal, setShowPdfModal] = useState<boolean>(false);
   const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
+  const [pdfVersion, setPdfVersion] = useState<AdmissionPdfVersion>("Bangla");
 
   const handleDownloadPdfClick = async () => {
     setDownloadingPdf(true);
     try {
-      await downloadAdmissionFormPdf(content, siteLogo);
+      await downloadAdmissionFormPdf(content, siteLogo, pdfVersion);
     } catch (error) {
       console.error("Direct PDF generation failed, opening print view:", error);
-      openAdmissionFormPrintWindow(content, siteLogo);
+      openAdmissionFormPrintWindow(content, siteLogo, pdfVersion);
     } finally {
       setDownloadingPdf(false);
     }
@@ -1611,8 +1614,60 @@ export const AdmissionPage: React.FC = () => {
               )}
             </p>
 
+            {/* Version Selector */}
+            <div className="mt-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 p-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-gray-800 flex items-center gap-1">
+                  <Globe size={13} className="text-[#006a4e]" />
+                  <span>{t("ভার্সন নির্বাচন:", "Select Version:")}</span>
+                </span>
+                <span className="text-[10px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200 shadow-2xs">
+                  {pdfVersion === "Bangla"
+                    ? t("বাংলা ভার্সন", "Bangla Version")
+                    : pdfVersion === "English"
+                    ? t("English Version", "English Version")
+                    : t("উভয় (দ্বিভাষিক)", "Both / Bilingual")}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPdfVersion("Bangla")}
+                  className={`py-1.5 px-2 rounded-md text-[11px] font-bold transition text-center cursor-pointer border ${
+                    pdfVersion === "Bangla"
+                      ? "bg-[#006a4e] text-white border-[#006a4e] shadow-xs"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/50 hover:border-emerald-300"
+                  }`}
+                >
+                  {t("বাংলা", "Bangla")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdfVersion("English")}
+                  className={`py-1.5 px-2 rounded-md text-[11px] font-bold transition text-center cursor-pointer border ${
+                    pdfVersion === "English"
+                      ? "bg-[#006a4e] text-white border-[#006a4e] shadow-xs"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/50 hover:border-emerald-300"
+                  }`}
+                >
+                  {t("English", "English")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPdfVersion("All")}
+                  className={`py-1.5 px-2 rounded-md text-[11px] font-bold transition text-center cursor-pointer border ${
+                    pdfVersion === "All"
+                      ? "bg-[#006a4e] text-white border-[#006a4e] shadow-xs"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-emerald-50/50 hover:border-emerald-300"
+                  }`}
+                >
+                  {t("উভয় (Both)", "Both")}
+                </button>
+              </div>
+            </div>
+
             {/* Feature specs checklist */}
-            <div className="mt-3.5 space-y-1.5 rounded-lg border border-emerald-100 bg-[#f8fbf9] p-3 text-[11px] text-gray-700 font-medium">
+            <div className="mt-3 space-y-1.5 rounded-lg border border-emerald-100 bg-[#f8fbf9] p-3 text-[11px] text-gray-700 font-medium">
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">{t("ফরমের ফরম্যাট:", "Format:")}</span>
                 <span className="font-bold text-red-700 flex items-center gap-1">
@@ -1623,6 +1678,17 @@ export const AdmissionPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">{t("কাগজের সাইজ:", "Paper Size:")}</span>
                 <span className="font-bold text-gray-800">A4 Portrait (1 Page)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">{t("ভার্সন:", "Version:")}</span>
+                <span className="font-bold text-[#006a4e] flex items-center gap-1">
+                  <Check size={12} className="text-emerald-600" />
+                  {pdfVersion === "Bangla"
+                    ? t("বাংলা ভার্সন", "Bangla Version")
+                    : pdfVersion === "English"
+                    ? t("English Version", "English Version")
+                    : t("বাংলা ও ইংরেজি (উভয়)", "Bangla & English (Both)")}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">{t("শিক্ষাবর্ষ:", "Session:")}</span>
@@ -1656,7 +1722,13 @@ export const AdmissionPage: React.FC = () => {
                 ) : (
                   <>
                     <Download size={15} />
-                    <span>{t("PDF ফরম ডাউনলোড করুন", "Download Admission Form (PDF)")}</span>
+                    <span>
+                      {pdfVersion === "Bangla"
+                        ? t("বাংলা PDF ফরম ডাউনলোড করুন", "Download Bangla Admission Form (PDF)")
+                        : pdfVersion === "English"
+                        ? t("English PDF Form Download", "Download English Admission Form (PDF)")
+                        : t("PDF ফরম ডাউনলোড করুন", "Download Admission Form (PDF)")}
+                    </span>
                   </>
                 )}
               </button>
@@ -1673,7 +1745,7 @@ export const AdmissionPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo)}
+                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo, pdfVersion)}
                   className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50/70 px-3 py-2 text-[11px] font-bold text-[#006a4e] hover:bg-emerald-100/70 shadow-2xs transition cursor-pointer"
                 >
                   <Printer size={13} />
@@ -1797,6 +1869,47 @@ export const AdmissionPage: React.FC = () => {
 
               {/* Action Buttons */}
               <div className="flex shrink-0 items-center gap-2">
+                {/* Version Selector in modal */}
+                <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1 text-xs">
+                  <span className="px-1.5 text-gray-500 text-[11px] font-semibold hidden md:inline-flex items-center gap-1">
+                    <Globe size={12} className="text-[#006a4e]" />
+                    <span>{t("ভার্সন:", "Version:")}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPdfVersion("Bangla")}
+                    className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+                      pdfVersion === "Bangla"
+                        ? "bg-[#006a4e] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {t("বাংলা", "Bangla")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPdfVersion("English")}
+                    className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+                      pdfVersion === "English"
+                        ? "bg-[#006a4e] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {t("English", "English")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPdfVersion("All")}
+                    className={`px-2 py-1 rounded text-[11px] font-bold transition cursor-pointer ${
+                      pdfVersion === "All"
+                        ? "bg-[#006a4e] text-white shadow-2xs"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    }`}
+                  >
+                    {t("উভয়", "Both")}
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={handleDownloadPdfClick}
@@ -1810,7 +1923,7 @@ export const AdmissionPage: React.FC = () => {
 
                 <button
                   type="button"
-                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo)}
+                  onClick={() => openAdmissionFormPrintWindow(content, siteLogo, pdfVersion)}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-700 shadow-2xs hover:bg-gray-50 hover:text-[#006a4e] transition cursor-pointer"
                   title={t("প্রিন্ট / সেভ PDF", "Print / Save as PDF")}
                 >
@@ -1878,6 +1991,23 @@ export const AdmissionPage: React.FC = () => {
                   <div className="flex flex-wrap items-center justify-between border border-gray-300 bg-gray-50 p-2 text-[10.5px] font-semibold mb-3 rounded gap-2">
                     <div>আবেদন ফরম নং (Form No): <span className="font-mono text-gray-600">ADM-2026-______________</span></div>
                     <div>ভর্তিচ্ছু শ্রেণি (Class): <span className="text-gray-600">____________________</span></div>
+                    <div className="flex items-center gap-1">
+                      <span>ভার্সন (Version):</span>
+                      <span className="inline-flex items-center gap-2 font-normal ml-1">
+                        <span className="inline-flex items-center">
+                          <span className="w-3 h-3 border border-gray-600 inline-flex items-center justify-center mr-1 text-[9px] font-black text-[#006a4e] bg-white leading-none">
+                            {pdfVersion === "Bangla" ? "✔" : ""}
+                          </span>
+                          বাংলা
+                        </span>
+                        <span className="inline-flex items-center">
+                          <span className="w-3 h-3 border border-gray-600 inline-flex items-center justify-center mr-1 text-[9px] font-black text-[#006a4e] bg-white leading-none">
+                            {pdfVersion === "English" ? "✔" : ""}
+                          </span>
+                          English
+                        </span>
+                      </span>
+                    </div>
                     <div>তারিখ (Date): <span className="text-gray-600">____/____/২০২৬</span></div>
                   </div>
 
