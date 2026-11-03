@@ -701,6 +701,7 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
 }
 
 .animate-ticker-vertical:hover,
+.ticker-viewport:hover .animate-ticker-vertical,
 .ticker-paused .animate-ticker-vertical {
   animation-play-state: paused !important;
 }

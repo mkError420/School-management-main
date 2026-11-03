@@ -64,6 +64,7 @@ export const HomePage: React.FC = () => {
   const [previewImage, setPreviewImage] = useState<SchoolGalleryItem | null>(null);
   const [dbNotices, setDbNotices] = useState<SchoolNotice[]>([]);
   const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
+  const [isNoticeTickerPaused, setIsNoticeTickerPaused] = useState<boolean>(false);
 
   useEffect(() => {
     let active = true;
@@ -152,6 +153,20 @@ export const HomePage: React.FC = () => {
       return matchesCategory && (!noticeSearch.trim() || titleMatch || contentMatch);
     });
   }, [effectiveNotices, activeNoticeCategory, noticeSearch]);
+
+  const baseNotices = useMemo(() => {
+    if (filteredNotices.length === 0) return [];
+    let base = [...filteredNotices];
+    while (base.length < 5) {
+      base = [...base, ...filteredNotices];
+    }
+    return base;
+  }, [filteredNotices]);
+
+  const noticeTickerDuration = useMemo(() => {
+    const count = baseNotices.length;
+    return Math.max(18, Math.round(count * 5.5));
+  }, [baseNotices]);
 
   // Banner Carousel State
   const bannerImages = useMemo(() => {
@@ -521,118 +536,248 @@ export const HomePage: React.FC = () => {
           <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
             <div className="flex flex-col gap-3 border-b border-[#e2ece5] pb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className="text-xl font-bold text-[#005a40]">
                     {lang === "bn" ? "বিদ্যালয় নোটিশ বোর্ড" : "School Notice Board"}
                   </h3>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-[#006a4e]">
+                    <span className="relative flex h-2 w-2">
+                      <span className={`absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${!isNoticeTickerPaused ? "animate-ping" : ""}`} />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#006a4e]" />
+                    </span>
+                    <span>{lang === "bn" ? "লাইভ নোটিশ টিকার" : "Live Ticker"}</span>
+                  </span>
                 </div>
                 <p className="mt-0.5 text-xs text-gray-500">
                   {lang === "bn" ? "সকল প্রকার ভর্তি, পরীক্ষা, ফলাফল ও প্রাতিষ্ঠানিক নোটিশ" : "All official admission, examination, results & administrative notices"}
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-60">
-                <input
-                  type="text"
-                  value={noticeSearch}
-                  onChange={(e) => setNoticeSearch(e.target.value)}
-                  placeholder={lang === "bn" ? "নোটিশ খুঁজুন..." : "Search notices..."}
-                  className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-1.5 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white"
-                />
-                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <button
+                  type="button"
+                  onClick={() => setIsNoticeTickerPaused((prev) => !prev)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-[#cbe0d3] bg-[#f9fbf9] px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-[#edf5f0] hover:text-[#006a4e] transition shrink-0 cursor-pointer shadow-2xs"
+                  title={isNoticeTickerPaused ? (lang === "bn" ? "টিকার চালু করুন" : "Resume Ticker") : (lang === "bn" ? "টিকার থামান" : "Pause Ticker")}
+                >
+                  {isNoticeTickerPaused ? (
+                    <>
+                      <Play size={13} className="fill-[#006a4e] text-[#006a4e]" />
+                      <span>{lang === "bn" ? "চালু" : "Play"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pause size={13} className="fill-gray-600 text-gray-600" />
+                      <span>{lang === "bn" ? "থামান" : "Pause"}</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="relative w-full sm:w-60">
+                  <input
+                    type="text"
+                    value={noticeSearch}
+                    onChange={(e) => setNoticeSearch(e.target.value)}
+                    placeholder={lang === "bn" ? "নোটিশ খুঁজুন..." : "Search notices..."}
+                    className="w-full rounded-md border border-[#cbe0d3] bg-[#f9fbf9] py-1.5 pl-8 pr-3 text-xs text-gray-900 outline-none transition focus:border-[#006a4e] focus:bg-white"
+                  />
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap gap-1.5 border-b border-gray-100 pb-3">
-              {noticeCategories.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setActiveNoticeCategory(cat)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeNoticeCategory === cat
-                    ? "bg-[#006a4e] text-white shadow-xs"
-                    : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
-                    }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-3">
+              <div className="flex flex-wrap gap-1.5">
+                {noticeCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveNoticeCategory(cat)}
+                    className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${activeNoticeCategory === cat
+                      ? "bg-[#006a4e] text-white shadow-xs"
+                      : "bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-[#006a4e]"
+                      }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                <span className="hidden sm:inline">
+                  {lang === "bn" ? "(মাউস রাখলে টিকার থেমে যাবে)" : "(Hover notice to pause)"}
+                </span>
+                <span className="rounded bg-gray-100 px-2 py-0.5 font-bold text-gray-700">
+                  {formatDigits(filteredNotices.length)} {lang === "bn" ? "টি নোটিশ" : "notices"}
+                </span>
+              </div>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4">
               {loadingNotices && (
-                <div className="flex items-center justify-center py-10 text-xs text-gray-500">
+                <div className="flex items-center justify-center py-16 text-xs text-gray-500">
                   <Loader2 size={16} className="mr-2 animate-spin text-[#006a4e]" />
                   <span>{lang === "bn" ? "নোটিশ লোড হচ্ছে..." : "Loading notices..."}</span>
                 </div>
               )}
 
-              {!loadingNotices && filteredNotices.slice(0, 4).map((notice, index) => {
-                const noticeDate = notice.date ? new Date(notice.date) : new Date();
-                const day = formatDigits(noticeDate.getDate());
-                const month = noticeDate.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { month: "short" });
-                const year = formatDigits(noticeDate.getFullYear());
-
-                return (
-                  <article
-                    key={notice.id || index}
-                    onClick={() => setSelectedNotice(notice)}
-                    className="group flex flex-col gap-3 rounded-lg border border-[#e5eee8] bg-white p-3.5 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-sm sm:flex-row sm:items-center sm:justify-between cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                      <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs">
-                        <span className="text-base font-bold leading-none">{day}</span>
-                        <span className="mt-0.5 text-[10px] font-semibold uppercase">{month}</span>
-                        <span className="text-[9px] text-emerald-200">{year}</span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${notice.categoryEn === "Admission"
-                            ? "bg-purple-100 text-purple-800"
-                            : notice.categoryEn === "Examination"
-                              ? "bg-amber-100 text-amber-900"
-                              : notice.categoryEn === "Academic"
-                                ? "bg-blue-100 text-blue-900"
-                                : "bg-emerald-100 text-emerald-900"
-                            }`}>
-                            {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
-                          </span>
-                          {notice.className && (
-                            <span className="rounded bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[10px] font-medium text-teal-800">
-                              {t(`শ্রেণি: ${notice.className}`, `Class: ${notice.className}`)}
-                            </span>
-                          )}
-                          <span className="text-[11px] text-gray-500">{formatDigits(notice.date)}</span>
-
-                          {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
-                            <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-[#006a4e] border border-emerald-200">
-                              <FileText size={10} className="text-emerald-600" />
-                              <span>{lang === "bn" ? "সংযুক্ত ফাইল" : "Attachment"}</span>
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="mt-1 font-bold text-gray-900 transition group-hover:text-[#006a4e]">
-                          {t(notice.title, notice.titleEn)}
-                        </h4>
-                        {(notice.content || notice.contentEn) && (
-                          <p className="mt-0.5 line-clamp-1 text-xs text-gray-600">
-                            {t(notice.content, notice.contentEn)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex shrink-0 items-center text-gray-400 group-hover:text-[#006a4e] transition self-end sm:self-center">
-                      <ChevronRight size={18} className="transition group-hover:translate-x-0.5" />
-                    </div>
-                  </article>
-                );
-              })}
-
               {!loadingNotices && filteredNotices.length === 0 && (
-                <div className="rounded-md border border-dashed border-gray-300 py-8 text-center text-xs text-gray-500">
+                <div className="rounded-md border border-dashed border-gray-300 py-12 text-center text-xs text-gray-500">
                   {lang === "bn" ? "কোনো নোটিশ পাওয়া যায়নি।" : "No notices found."}
+                </div>
+              )}
+
+              {!loadingNotices && filteredNotices.length > 0 && (
+                <div
+                  className={`ticker-viewport relative h-[420px] overflow-hidden rounded-lg border border-[#e5eee8] bg-[#fbfdfb] p-3 shadow-inner ${isNoticeTickerPaused ? "ticker-paused" : ""}`}
+                >
+                  {/* Top Gradient Fade Mask */}
+                  <div className="pointer-events-none absolute top-0 inset-x-0 h-10 bg-gradient-to-b from-[#fbfdfb] via-[#fbfdfb]/90 to-transparent z-10" />
+
+                  {/* Bottom Gradient Fade Mask */}
+                  <div className="pointer-events-none absolute bottom-0 inset-x-0 h-10 bg-gradient-to-t from-[#fbfdfb] via-[#fbfdfb]/90 to-transparent z-10" />
+
+                  {/* Infinite Scrolling Track (Bottom to Top) */}
+                  <div
+                    key={`${activeNoticeCategory}-${noticeSearch}`}
+                    className="animate-ticker-vertical flex flex-col"
+                    style={{
+                      "--ticker-duration": `${noticeTickerDuration}s`,
+                      animationPlayState: isNoticeTickerPaused ? "paused" : undefined,
+                    } as React.CSSProperties}
+                  >
+                    {/* Track 1 */}
+                    <div className="flex flex-col gap-3 pb-3">
+                      {baseNotices.map((notice, index) => {
+                        const noticeDate = notice.date ? new Date(notice.date) : new Date();
+                        const day = formatDigits(noticeDate.getDate());
+                        const month = noticeDate.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { month: "short" });
+                        const year = formatDigits(noticeDate.getFullYear());
+
+                        return (
+                          <article
+                            key={`notice-a-${notice.id || index}-${index}`}
+                            onClick={() => setSelectedNotice(notice)}
+                            className="group flex flex-col gap-3 rounded-lg border border-[#e5eee8] bg-white p-3.5 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-md sm:flex-row sm:items-center sm:justify-between cursor-pointer"
+                          >
+                            <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                              <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs group-hover:scale-105 transition-transform">
+                                <span className="text-base font-bold leading-none">{day}</span>
+                                <span className="mt-0.5 text-[10px] font-semibold uppercase">{month}</span>
+                                <span className="text-[9px] text-emerald-200">{year}</span>
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${notice.categoryEn === "Admission"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : notice.categoryEn === "Examination"
+                                      ? "bg-amber-100 text-amber-900"
+                                      : notice.categoryEn === "Academic"
+                                        ? "bg-blue-100 text-blue-900"
+                                        : "bg-emerald-100 text-emerald-900"
+                                    }`}>
+                                    {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
+                                  </span>
+                                  {notice.className && (
+                                    <span className="rounded bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[10px] font-medium text-teal-800">
+                                      {t(`শ্রেণি: ${notice.className}`, `Class: ${notice.className}`)}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-gray-500">{formatDigits(notice.date)}</span>
+
+                                  {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
+                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-[#006a4e] border border-emerald-200">
+                                      <FileText size={10} className="text-emerald-600" />
+                                      <span>{lang === "bn" ? "সংযুক্ত ফাইল" : "Attachment"}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="mt-1 font-bold text-gray-900 transition group-hover:text-[#006a4e]">
+                                  {t(notice.title, notice.titleEn)}
+                                </h4>
+                                {(notice.content || notice.contentEn) && (
+                                  <p className="mt-0.5 line-clamp-1 text-xs text-gray-600">
+                                    {t(notice.content, notice.contentEn)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex shrink-0 items-center text-gray-400 group-hover:text-[#006a4e] transition self-end sm:self-center">
+                              <ChevronRight size={18} className="transition group-hover:translate-x-0.5" />
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+
+                    {/* Track 2 (Clone for infinite seamless loop) */}
+                    <div className="flex flex-col gap-3 pb-3" aria-hidden="true">
+                      {baseNotices.map((notice, index) => {
+                        const noticeDate = notice.date ? new Date(notice.date) : new Date();
+                        const day = formatDigits(noticeDate.getDate());
+                        const month = noticeDate.toLocaleDateString(lang === "bn" ? "bn-BD" : "en-US", { month: "short" });
+                        const year = formatDigits(noticeDate.getFullYear());
+
+                        return (
+                          <article
+                            key={`notice-b-${notice.id || index}-${index}`}
+                            onClick={() => setSelectedNotice(notice)}
+                            className="group flex flex-col gap-3 rounded-lg border border-[#e5eee8] bg-white p-3.5 transition hover:border-[#006a4e] hover:bg-[#fafffb] hover:shadow-md sm:flex-row sm:items-center sm:justify-between cursor-pointer"
+                          >
+                            <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                              <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-md border border-emerald-800 bg-[#006a4e] text-white shadow-2xs group-hover:scale-105 transition-transform">
+                                <span className="text-base font-bold leading-none">{day}</span>
+                                <span className="mt-0.5 text-[10px] font-semibold uppercase">{month}</span>
+                                <span className="text-[9px] text-emerald-200">{year}</span>
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${notice.categoryEn === "Admission"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : notice.categoryEn === "Examination"
+                                      ? "bg-amber-100 text-amber-900"
+                                      : notice.categoryEn === "Academic"
+                                        ? "bg-blue-100 text-blue-900"
+                                        : "bg-emerald-100 text-emerald-900"
+                                    }`}>
+                                    {t(notice.category, notice.categoryEn) || (lang === "bn" ? "সাধারণ" : "General")}
+                                  </span>
+                                  {notice.className && (
+                                    <span className="rounded bg-teal-50 border border-teal-200 px-1.5 py-0.5 text-[10px] font-medium text-teal-800">
+                                      {t(`শ্রেণি: ${notice.className}`, `Class: ${notice.className}`)}
+                                    </span>
+                                  )}
+                                  <span className="text-[11px] text-gray-500">{formatDigits(notice.date)}</span>
+
+                                  {notice.fileUrl && notice.fileUrl !== "#" && notice.fileUrl.trim() !== "" && (
+                                    <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-[#006a4e] border border-emerald-200">
+                                      <FileText size={10} className="text-emerald-600" />
+                                      <span>{lang === "bn" ? "সংযুক্ত ফাইল" : "Attachment"}</span>
+                                    </span>
+                                  )}
+                                </div>
+                                <h4 className="mt-1 font-bold text-gray-900 transition group-hover:text-[#006a4e]">
+                                  {t(notice.title, notice.titleEn)}
+                                </h4>
+                                {(notice.content || notice.contentEn) && (
+                                  <p className="mt-0.5 line-clamp-1 text-xs text-gray-600">
+                                    {t(notice.content, notice.contentEn)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex shrink-0 items-center text-gray-400 group-hover:text-[#006a4e] transition self-end sm:self-center">
+                              <ChevronRight size={18} className="transition group-hover:translate-x-0.5" />
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
