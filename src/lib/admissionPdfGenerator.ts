@@ -122,31 +122,37 @@ export function buildAdmissionFormPdfString(
   add("0.0 0.38 0.25 rg 35 496 525 18 re f");
   add("BT /F2 9.5 Tf 1 1 1 rg 42 501 Td (2. PARENTS & LEGAL GUARDIAN INFORMATION) Tj ET");
   add("0.5 w 0.75 0.75 0.75 RG");
-  add("35 474 525 20 re S");
-  add("35 452 525 20 re S");
-  add("35 430 525 20 re S");
-  add("35 408 525 20 re S");
-  add("35 386 525 20 re S");
+  add("35 476 525 18 re S");
+  add("35 456 525 18 re S");
+  add("35 436 525 18 re S");
+  add("35 416 525 18 re S");
+  add("35 396 525 18 re S");
+  add("35 376 525 18 re S");
 
-  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 480 Td (Father's Full Name: ) Tj");
-  add("/F1 8 Tf 95 0 Td (______________________________________) Tj");
-  add("/F2 8 Tf 190 0 Td (Father's NID No: ) Tj");
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 481 Td (Father's Name (Bangla): ) Tj");
+  add("/F1 8 Tf 100 0 Td (____________________________________) Tj");
+  add("/F2 8 Tf 180 0 Td (Father's NID No: ) Tj");
   add("/F1 8 Tf 80 0 Td (_____________________) Tj ET");
 
-  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 458 Td (Mother's Full Name: ) Tj");
-  add("/F1 8 Tf 95 0 Td (______________________________________) Tj");
-  add("/F2 8 Tf 190 0 Td (Mother's NID No: ) Tj");
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 461 Td (Father's Name (English): ) Tj");
+  add("/F1 8 Tf 105 0 Td (___________________________________) Tj");
+  add("/F2 8 Tf 175 0 Td (Father's Occupation: ) Tj");
+  add("/F1 8 Tf 95 0 Td (__________________) Tj ET");
+
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 441 Td (Mother's Name (Bangla): ) Tj");
+  add("/F1 8 Tf 100 0 Td (____________________________________) Tj");
+  add("/F2 8 Tf 180 0 Td (Mother's NID No: ) Tj");
   add("/F1 8 Tf 80 0 Td (_____________________) Tj ET");
 
-  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 436 Td (Primary Guardian Name: ) Tj");
-  add("/F1 8 Tf 105 0 Td (____________________________) Tj");
-  add("/F2 8 Tf 150 0 Td (Guardian Mobile: ) Tj");
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 421 Td (Mother's Name (English): ) Tj");
+  add("/F1 8 Tf 105 0 Td (___________________________________) Tj");
+  add("/F2 8 Tf 175 0 Td (Guardian Mobile: ) Tj");
   add("/F1 8 Tf 80 0 Td (+880 1_________________) Tj ET");
 
-  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 414 Td (Present Address: ) Tj");
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 401 Td (Present Address: ) Tj");
   add("/F1 8 Tf 80 0 Td (House/Vill: ______________________, Post: _______________, Upazila/PS: _____________, Dist: ______________) Tj ET");
 
-  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 392 Td (Permanent Address: ) Tj");
+  add("BT /F2 8 Tf 0.1 0.1 0.1 rg 40 381 Td (Permanent Address: ) Tj");
   add("/F1 8 Tf 90 0 Td (House/Vill: ______________________, Post: _______________, Upazila/PS: _____________, Dist: ______________) Tj ET");
 
   // SECTION 3
@@ -438,22 +444,22 @@ export function getAdmissionFormHtml(
       width: 100%;
     }
     .parent-info-table td.label-cell-left {
-      width: 17%;
+      width: 18%;
       background: #f9fafb;
       font-weight: 600;
       color: #374151;
     }
     .parent-info-table td.value-cell-name {
-      width: 35%;
+      width: 32%;
     }
     .parent-info-table td.label-cell-right {
-      width: 25%;
+      width: 24%;
       background: #f9fafb;
       font-weight: 600;
       color: #374151;
     }
     .parent-info-table td.value-cell-nid {
-      width: 23%;
+      width: 26%;
     }
     .dots {
       border-bottom: 1px dotted #9ca3af;
@@ -651,26 +657,32 @@ export function getAdmissionFormHtml(
       <div class="section-title">২. পিতা, মাতা ও অভিভাবকের বিবরণ (Parent & Guardian Information)</div>
       <table class="grid-table parent-info-table">
         <colgroup>
-          <col style="width: 17%;" />
-          <col style="width: 35%;" />
-          <col style="width: 25%;" />
-          <col style="width: 23%;" />
+          <col style="width: 18%;" />
+          <col style="width: 32%;" />
+          <col style="width: 24%;" />
+          <col style="width: 26%;" />
         </colgroup>
         <tr>
-          <td class="label-cell label-cell-left">পিতার পূর্ণ নাম:</td>
+          <td class="label-cell label-cell-left">পিতার নাম (বাংলায়):</td>
           <td class="value-cell-name"><span class="dots"></span></td>
           <td class="label-cell label-cell-right">পিতার জাতীয় পরিচয়পত্র (NID):</td>
           <td class="value-cell-nid"><span class="dots"></span></td>
         </tr>
         <tr>
-          <td class="label-cell label-cell-left">মাতার পূর্ণ নাম:</td>
+          <td class="label-cell label-cell-left">Father's Name (English):</td>
+          <td class="value-cell-name"><span class="dots" style="font-family: monospace;"></span></td>
+          <td class="label-cell label-cell-right">পিতা/অভিভাবকের পেশা:</td>
+          <td class="value-cell-nid"><span class="dots"></span></td>
+        </tr>
+        <tr>
+          <td class="label-cell label-cell-left">মাতার নাম (বাংলায়):</td>
           <td class="value-cell-name"><span class="dots"></span></td>
           <td class="label-cell label-cell-right">মাতার জাতীয় পরিচয়পত্র (NID):</td>
           <td class="value-cell-nid"><span class="dots"></span></td>
         </tr>
         <tr>
-          <td class="label-cell label-cell-left">পিতা/অভিভাবকের পেশা:</td>
-          <td class="value-cell-name"><span class="dots"></span></td>
+          <td class="label-cell label-cell-left">Mother's Name (English):</td>
+          <td class="value-cell-name"><span class="dots" style="font-family: monospace;"></span></td>
           <td class="label-cell label-cell-right">অভিভাবকের মোবাইল নং:</td>
           <td class="value-cell-nid"><b>+880 1</b>_____________________</td>
         </tr>

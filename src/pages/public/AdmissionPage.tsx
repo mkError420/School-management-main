@@ -2052,27 +2052,33 @@ export const AdmissionPage: React.FC = () => {
                   </div>
                   <table className="w-full border-collapse border border-gray-300 text-[10px] mb-2 table-fixed">
                     <colgroup>
-                      <col className="w-[17%]" />
-                      <col className="w-[35%]" />
-                      <col className="w-[25%]" />
-                      <col className="w-[23%]" />
+                      <col className="w-[18%]" />
+                      <col className="w-[32%]" />
+                      <col className="w-[24%]" />
+                      <col className="w-[26%]" />
                     </colgroup>
                     <tbody>
                       <tr className="border-b border-gray-300">
-                        <td className="w-[17%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার পূর্ণ নাম:</td>
-                        <td className="w-[35%] p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
-                        <td className="w-[25%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার NID নম্বর:</td>
-                        <td className="w-[23%] p-1.5 text-gray-400">............................................</td>
+                        <td className="w-[18%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার নাম (বাংলায়):</td>
+                        <td className="w-[32%] p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
+                        <td className="w-[24%] bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতার NID নম্বর:</td>
+                        <td className="w-[26%] p-1.5 text-gray-400">............................................</td>
                       </tr>
                       <tr className="border-b border-gray-300">
-                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার পূর্ণ নাম:</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">Father's Name (English):</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400 font-mono text-[9px]">(IN BLOCK LETTERS) .................................</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতা/অভিভাবকের পেশা:</td>
+                        <td className="p-1.5 text-gray-400">............................................</td>
+                      </tr>
+                      <tr className="border-b border-gray-300">
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার নাম (বাংলায়):</td>
                         <td className="p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">মাতার NID নম্বর:</td>
                         <td className="p-1.5 text-gray-400">............................................</td>
                       </tr>
                       <tr className="border-b border-gray-300">
-                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">পিতা/অভিভাবকের পেশা:</td>
-                        <td className="p-1.5 border-r border-gray-300 text-gray-400">....................................................................</td>
+                        <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">Mother's Name (English):</td>
+                        <td className="p-1.5 border-r border-gray-300 text-gray-400 font-mono text-[9px]">(IN BLOCK LETTERS) .................................</td>
                         <td className="bg-gray-50 p-1.5 font-semibold text-gray-700 border-r border-gray-300">অভিভাবকের মোবাইল নং:</td>
                         <td className="p-1.5 font-mono font-bold">+880 1........................</td>
                       </tr>
