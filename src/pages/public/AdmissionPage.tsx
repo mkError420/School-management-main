@@ -1014,7 +1014,7 @@ export const AdmissionPage: React.FC = () => {
                             onChange={(e) => setFormData({ ...formData, version: e.target.value })}
                             className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-xs text-gray-900 outline-none transition focus:border-[#006a4e]"
                           >
-                            <option value="Bangla">{t("বাংলা ভার্সন (Bangla Version)", "Bangla Version")}</option>
+                            <option value="Bangla">{t("বাংলা মাধ্যম (Bangla medium)", "Bangla Version")}</option>
                             <option value="English">{t("ইংরেজি ভার্সন (English Version)", "English Version")}</option>
                           </select>
                         </label>

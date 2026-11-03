@@ -9,10 +9,15 @@ function escapePdfText(text: string): string {
   return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
+export type AdmissionPdfVersion = "Bangla" | "English" | "All";
+
 /**
  * Builds a valid, self-contained PDF 1.4 binary string for an official A4 School Admission Application Form.
  */
-export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteContent>): string {
+export function buildAdmissionFormPdfString(
+  content: Partial<SchoolWebsiteContent>,
+  version: AdmissionPdfVersion = "Bangla"
+): string {
   const schoolName = (content.schoolName || "GOVERNMENT MODEL HIGH SCHOOL & COLLEGE").toUpperCase();
   const address = content.address || "Main Campus, Education Zone, Bangladesh";
   const eiin = content.eiin || "108542";
@@ -74,7 +79,9 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   add("42 673 Td (Applied Date: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 65 0 Td (____/____/2026) Tj");
   add("/F2 8.5 Tf 0.1 0.1 0.1 rg 65 0 Td (Version: ) Tj");
-  add("/F1 8.5 Tf 0.3 0.3 0.3 rg 50 0 Td ([ ] Bangla  [ ] English) Tj");
+  const bnMark = version === "Bangla" ? "X" : " ";
+  const enMark = version === "English" ? "X" : " ";
+  add(`/F1 8.5 Tf 0.3 0.3 0.3 rg 50 0 Td ([${bnMark}] Bangla  [${enMark}] English) Tj`);
   add("/F2 8.5 Tf 0.1 0.1 0.1 rg 75 0 Td (Shift: ) Tj");
   add("/F1 8.5 Tf 0.3 0.3 0.3 rg 40 0 Td ([ ] M  [ ] D) Tj");
   add("ET");
@@ -248,8 +255,11 @@ export function buildAdmissionFormPdfString(content: Partial<SchoolWebsiteConten
   return header + objects.slice(1).join("\n") + "\n" + xref + trailer;
 }
 
-export function generateAdmissionFormPdfBlob(content: Partial<SchoolWebsiteContent>): Blob {
-  const pdfString = buildAdmissionFormPdfString(content);
+export function generateAdmissionFormPdfBlob(
+  content: Partial<SchoolWebsiteContent>,
+  version: AdmissionPdfVersion = "Bangla"
+): Blob {
+  const pdfString = buildAdmissionFormPdfString(content, version);
   const bytes = new TextEncoder().encode(pdfString);
   return new Blob([bytes], { type: "application/pdf" });
 }
@@ -261,7 +271,8 @@ export function getAdmissionFormHtml(
   content: Partial<SchoolWebsiteContent>,
   logoUrl?: string,
   includePrintBar: boolean = false,
-  fullDocument: boolean = true
+  fullDocument: boolean = true,
+  version: AdmissionPdfVersion = "Bangla"
 ): string {
   const schoolNameBn = content.schoolNameBn || "সরকারি মডেল উচ্চ বিদ্যালয় ও কলেজ";
   const schoolNameEn = content.schoolName || "Government Model High School & College";
@@ -451,12 +462,18 @@ export function getAdmissionFormHtml(
       min-height: 12px;
     }
     .checkbox-box {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       width: 10px;
       height: 10px;
       border: 1px solid #374151;
       margin-right: 4px;
       vertical-align: -1px;
+      font-size: 8px;
+      line-height: 1;
+      font-weight: bold;
+      color: #005a40;
     }
     .checkbox-item {
       display: inline-flex;
@@ -584,7 +601,7 @@ export function getAdmissionFormHtml(
       <div class="meta-row">
         <div><b>আবেদন ফরম নং (Form No):</b> &nbsp;ADM-2026-______________</div>
         <div><b>ভর্তিচ্ছু শ্রেণি (Class):</b> &nbsp;____________________</div>
-        <div><b>ভার্সন (Version):</b> &nbsp;<span class="checkbox-item"><span class="checkbox-box"></span>বাংলা</span> &nbsp;<span class="checkbox-item"><span class="checkbox-box"></span>English</span></div>
+        <div><b>ভার্সন (Version):</b> &nbsp;<span class="checkbox-item"><span class="checkbox-box">${version === "Bangla" ? "&#10004;" : ""}</span>বাংলা</span> &nbsp;<span class="checkbox-item"><span class="checkbox-box">${version === "English" ? "&#10004;" : ""}</span>English</span></div>
         <div><b>তারিখ (Date):</b> &nbsp;____/____/২০২৬</div>
       </div>
 
@@ -760,7 +777,8 @@ export function getAdmissionFormHtml(
  */
 export async function downloadAdmissionFormPdf(
   content: Partial<SchoolWebsiteContent>,
-  logoUrl?: string
+  logoUrl?: string,
+  version: AdmissionPdfVersion = "Bangla"
 ): Promise<void> {
   // 1. If admin uploaded or configured a direct custom PDF file (other than the default placeholder), download that
   const customUrl = content.admissionFormPdfUrl;
@@ -773,7 +791,12 @@ export async function downloadAdmissionFormPdf(
   ) {
     const a = document.createElement("a");
     a.href = customUrl;
-    a.download = "Admission_Form_2026.pdf";
+    a.download =
+      version === "English"
+        ? "Admission_Form_2026_English_Version.pdf"
+        : version === "Bangla"
+        ? "Admission_Form_2026_Bangla_Version.pdf"
+        : "Admission_Form_2026.pdf";
     a.target = "_blank";
     document.body.appendChild(a);
     a.click();
@@ -813,7 +836,7 @@ export async function downloadAdmissionFormPdf(
   container.style.margin = "0";
   container.style.padding = "0";
 
-  container.innerHTML = getAdmissionFormHtml(content, safeLogoUrl, false, false);
+  container.innerHTML = getAdmissionFormHtml(content, safeLogoUrl, false, false, version);
   document.body.appendChild(container);
 
   try {
@@ -870,7 +893,13 @@ export async function downloadAdmissionFormPdf(
     // Seamlessly fit all content across the full A4 page (210mm x 297mm)
     pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight, undefined, "FAST");
 
-    pdf.save("Admission_Form_2026.pdf");
+    const filename =
+      version === "English"
+        ? "Admission_Form_2026_English_Version.pdf"
+        : version === "Bangla"
+        ? "Admission_Form_2026_Bangla_Version.pdf"
+        : "Admission_Form_2026.pdf";
+    pdf.save(filename);
   } finally {
     if (container.parentNode) {
       container.parentNode.removeChild(container);
@@ -883,7 +912,8 @@ export async function downloadAdmissionFormPdf(
  */
 export function openAdmissionFormPrintWindow(
   content: Partial<SchoolWebsiteContent>,
-  logoUrl?: string
+  logoUrl?: string,
+  version: AdmissionPdfVersion = "Bangla"
 ): void {
   const printWindow = window.open("", "_blank", "width=900,height=1000");
   if (!printWindow) {
@@ -891,7 +921,7 @@ export function openAdmissionFormPrintWindow(
     return;
   }
 
-  const html = getAdmissionFormHtml(content, logoUrl, true, true);
+  const html = getAdmissionFormHtml(content, logoUrl, true, true, version);
   printWindow.document.open();
   printWindow.document.write(html);
   printWindow.document.close();
