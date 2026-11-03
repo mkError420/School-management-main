@@ -73,6 +73,7 @@ import type {
   SchoolWebsiteContent,
   SchoolDownloadItem,
   SchoolGalleryItem,
+  SchoolCampusFacility,
   SchoolCoCurricularItem,
   SchoolQuickLink,
   SchoolTeacherMember,
@@ -622,6 +623,15 @@ const WebsiteContentPage: React.FC = () => {
 
   const updateField = <K extends keyof SchoolWebsiteContent>(key: K, value: SchoolWebsiteContent[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateCampusFacility = (index: number, field: keyof SchoolCampusFacility, value: string) => {
+    setDraft((prev) => ({
+      ...prev,
+      campusFacilities: (prev.campusFacilities || []).map((facility, facilityIndex) =>
+        facilityIndex === index ? { ...facility, [field]: value } : facility
+      ),
+    }));
   };
 
   const inputClass =
@@ -3777,6 +3787,113 @@ const WebsiteContentPage: React.FC = () => {
                           </label>
                         </div>
                       )}
+                    </div>
+
+                    {/* Campus Facilities */}
+                    <div className="border-t pt-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                            ক্যাম্পাস ও আধুনিক সুযোগ-সুবিধা (Campus & Modern Facilities)
+                          </h3>
+                          <p className="mt-1 text-xs text-gray-500">
+                            About পেজের সুবিধাগুলো যোগ, সম্পাদনা বা মুছে দিন। (Manage the facility cards shown on the About page.)
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateField("campusFacilities", [
+                              ...(draft.campusFacilities || []),
+                              { titleBn: "", titleEn: "", descriptionBn: "", descriptionEn: "" },
+                            ])
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-md bg-[#006a4e] px-3 py-2 text-xs font-bold text-white hover:bg-[#00543e]"
+                        >
+                          <Plus size={14} />
+                          সুবিধা যোগ করুন (Add Facility)
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        {(draft.campusFacilities || []).map((facility, index) => (
+                          <div
+                            key={index}
+                            className="rounded-md border border-gray-200 p-3 dark:border-slate-700"
+                          >
+                            <div className="mb-3 flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-gray-700 dark:text-gray-200">
+                                সুবিধা {index + 1} (Facility {index + 1})
+                              </h4>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateField(
+                                    "campusFacilities",
+                                    (draft.campusFacilities || []).filter((_, facilityIndex) => facilityIndex !== index)
+                                  )
+                                }
+                                aria-label={`Remove facility ${index + 1}`}
+                                className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              >
+                                <Trash2 size={13} />
+                                মুছুন (Remove)
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                              {(editLangMode === "bn" || editLangMode === "dual") && (
+                                <div className="space-y-2">
+                                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    শিরোনাম (বাংলা)
+                                    <input
+                                      type="text"
+                                      value={facility.titleBn}
+                                      onChange={(e) => updateCampusFacility(index, "titleBn", e.target.value)}
+                                      className={inputClass}
+                                    />
+                                  </label>
+                                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                    বিবরণ (বাংলা)
+                                    <textarea
+                                      rows={2}
+                                      value={facility.descriptionBn}
+                                      onChange={(e) => updateCampusFacility(index, "descriptionBn", e.target.value)}
+                                      className={textareaClass}
+                                    />
+                                  </label>
+                                </div>
+                              )}
+                              {(editLangMode === "en" || editLangMode === "dual") && (
+                                <div className="space-y-2">
+                                  <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                    Title (English)
+                                    <input
+                                      type="text"
+                                      value={facility.titleEn}
+                                      onChange={(e) => updateCampusFacility(index, "titleEn", e.target.value)}
+                                      className={inputClass}
+                                    />
+                                  </label>
+                                  <label className="block text-xs font-semibold text-blue-800 dark:text-blue-300">
+                                    Description (English)
+                                    <textarea
+                                      rows={2}
+                                      value={facility.descriptionEn}
+                                      onChange={(e) => updateCampusFacility(index, "descriptionEn", e.target.value)}
+                                      className={textareaClass}
+                                    />
+                                  </label>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {draft.campusFacilities.length === 0 && (
+                          <p className="rounded-md border border-dashed border-gray-300 p-4 text-center text-xs text-gray-500 dark:border-slate-700">
+                            No facilities added yet. Use “Add Facility” to create one.
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Mission & Vision */}

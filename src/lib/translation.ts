@@ -504,6 +504,11 @@ export const autoTranslateWebsiteContent = async (
     result.missionTextEn = result.missionTextEn || translateBnToEn(result.missionText);
     result.visionTextEn = result.visionTextEn || translateBnToEn(result.visionText);
     result.campusOverviewEn = result.campusOverviewEn || translateBnToEn(result.campusOverview);
+    result.campusFacilities = (result.campusFacilities || []).map((facility) => ({
+      ...facility,
+      titleEn: facility.titleEn || translateBnToEn(facility.titleBn),
+      descriptionEn: facility.descriptionEn || translateBnToEn(facility.descriptionBn),
+    }));
 
     // 4. Leadership
     result.principalNameEn = result.principalNameEn || translateBnToEn(result.principalName);

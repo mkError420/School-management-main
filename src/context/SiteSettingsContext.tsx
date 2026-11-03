@@ -231,6 +231,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     downloads: cleanList(incoming.downloads, DEFAULT_WEBSITE_CONTENT.downloads),
     gallery: cleanList(incoming.gallery, DEFAULT_WEBSITE_CONTENT.gallery),
     coCurricular: cleanList(incoming.coCurricular, DEFAULT_WEBSITE_CONTENT.coCurricular),
+    campusFacilities: cleanList(incoming.campusFacilities, DEFAULT_WEBSITE_CONTENT.campusFacilities),
     teachers: cleanList(incoming.teachers, DEFAULT_WEBSITE_CONTENT.teachers),
     dynamicStaffDirectory: incoming.dynamicStaffDirectory !== undefined ? Boolean(incoming.dynamicStaffDirectory) : true,
     studyCornerBooks: cleanList(incoming.studyCornerBooks, DEFAULT_WEBSITE_CONTENT.studyCornerBooks),

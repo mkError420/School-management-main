@@ -45,6 +45,13 @@ export interface SchoolCoCurricularItem {
   badgeEn?: string;
 }
 
+export interface SchoolCampusFacility {
+  titleBn: string;
+  titleEn: string;
+  descriptionBn: string;
+  descriptionEn: string;
+}
+
 export interface SchoolTeacherMember {
   id: string;
   name: string;
@@ -154,6 +161,7 @@ export interface SchoolWebsiteContent {
   visionTextEn?: string;
   campusOverview: string;
   campusOverviewEn?: string;
+  campusFacilities: SchoolCampusFacility[];
 
   // 4. Principal, Assistant Principal & Managing Committee
   principalName: string;
@@ -560,6 +568,44 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   visionTextEn: "To become a benchmark institution offering world-class modern education aligned with Smart Bangladesh.",
   campusOverview: "আমাদের বিদ্যালয়ে রয়েছে প্রশস্ত খেলার মাঠ, আধুনিক বহুতল একাডেমিক ভবন, ৫০০০+ বইয়ের সমৃদ্ধ পাঠাগার, শীতাতপ নিয়ন্ত্রিত ডিজিটাল কম্পিউটার ল্যাব এবং সুসজ্জিত বিজ্ঞান গবেষণাগার।",
   campusOverviewEn: "Our campus boasts a vast sports playground, modern multi-storey academic buildings, a library housing 5000+ volumes, air-conditioned digital computer labs, and fully equipped science laboratories.",
+  campusFacilities: [
+    {
+      titleBn: "ডিজিটাল কম্পিউটার ল্যাব",
+      titleEn: "Digital Computer Lab",
+      descriptionBn: "আধুনিক কম্পিউটার, দ্রুতগতির ইন্টারনেট এবং মাল্টিমিডিয়া প্রজেক্টর সংবলিত সুসজ্জিত আইসিটি ল্যাব।",
+      descriptionEn: "Well-equipped ICT lab with modern computers, high-speed internet, and multimedia projectors.",
+    },
+    {
+      titleBn: "বিজ্ঞান গবেষণাগার",
+      titleEn: "Science Laboratories",
+      descriptionBn: "পদার্থবিজ্ঞান, রসায়ন ও জীববিজ্ঞানের সকল প্রয়োজনীয় যন্ত্রপাতি সংবলিত ব্যবহারিক বিজ্ঞানাগার।",
+      descriptionEn: "Practical science laboratories equipped with all necessary instruments for Physics, Chemistry, and Biology.",
+    },
+    {
+      titleBn: "সমৃদ্ধ পাঠাগার",
+      titleEn: "Rich Library",
+      descriptionBn: "৫,০০০ এর অধিক জাতীয়, আন্তর্জাতিক ও রেফারেন্স গ্রন্থের সমন্বয়ে শিক্ষার্থীদের পড়ার উপযোগী লাইব্রেরি।",
+      descriptionEn: "Library suitable for student study with over 5,000 national, international, and reference books.",
+    },
+    {
+      titleBn: "প্রশস্ত খেলার মাঠ",
+      titleEn: "Spacious Playground",
+      descriptionBn: "ফুটবল, ক্রিকেট, ভলিবল সহ প্রাত্যহিক পিটি ও জাতীয় দিবস কুচকাওয়াজের উপযোগী নিজস্ব মাঠ।",
+      descriptionEn: "Dedicated ground suitable for football, cricket, volleyball, daily assembly PT, and national day parades.",
+    },
+    {
+      titleBn: "মাল্টিমিডিয়া ক্লাসরুম",
+      titleEn: "Multimedia Classrooms",
+      descriptionBn: "শিক্ষকদের পাঠদানকে সহজ ও প্রাণবন্ত করতে মাল্টিমিডিয়া ও ডিজিটাল কন্টেন্টভিত্তিক ক্লাসরুম।",
+      descriptionEn: "Multimedia and digital content-based classrooms to make teaching engaging and interactive.",
+    },
+    {
+      titleBn: "সিসিটিভি ও নিরাপত্তা",
+      titleEn: "CCTV & Campus Security",
+      descriptionBn: "সম্পূর্ণ ক্যাম্পাস সার্বক্ষণিক সিসিটিভি ক্যামেরার আওতাভুক্ত এবং সুশৃঙ্খল নিরাপত্তাব্যবস্থা।",
+      descriptionEn: "The entire campus is monitored 24/7 with CCTV cameras and disciplined security arrangements.",
+    },
+  ],
 
   principalName: "মোঃ আবদুর রহমান",
   principalNameEn: "Md. Abdur Rahman",

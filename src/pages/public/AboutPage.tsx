@@ -19,45 +19,6 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 export const AboutPage: React.FC = () => {
   const { websiteContent: content, t, lang, formatDigits, liveCounts } = useSiteSettings();
 
-  const facilities = [
-    {
-      titleBn: "ডিজিটাল কম্পিউটার ল্যাব",
-      titleEn: "Digital Computer Lab",
-      descBn: "আধুনিক কম্পিউটার, দ্রুতগতির ইন্টারনেট এবং মাল্টিমিডিয়া প্রজেক্টর সংবলিত সুসজ্জিত আইসিটি ল্যাব।",
-      descEn: "Well-equipped ICT lab with modern computers, high-speed internet, and multimedia projectors."
-    },
-    {
-      titleBn: "বিজ্ঞান গবেষণাগার",
-      titleEn: "Science Laboratories",
-      descBn: "পদার্থবিজ্ঞান, রসায়ন ও জীববিজ্ঞানের সকল প্রয়োজনীয় যন্ত্রপাতি সংবলিত ব্যবহারিক বিজ্ঞানাগার।",
-      descEn: "Practical science laboratories equipped with all necessary instruments for Physics, Chemistry, and Biology."
-    },
-    {
-      titleBn: "সমৃদ্ধ পাঠাগার",
-      titleEn: "Rich Library",
-      descBn: "৫,০০০ এর অধিক জাতীয়, আন্তর্জাতিক ও রেফারেন্স গ্রন্থের সমন্বয়ে শিক্ষার্থীদের পড়ার উপযোগী লাইব্রেরি।",
-      descEn: "Library suitable for student study with over 5,000 national, international, and reference books."
-    },
-    {
-      titleBn: "প্রশস্ত খেলার মাঠ",
-      titleEn: "Spacious Playground",
-      descBn: "ফুটবল, ক্রিকেট, ভলিবল সহ প্রাত্যহিক পিটি ও জাতীয় দিবস কুচকাওয়াজের উপযোগী নিজস্ব মাঠ।",
-      descEn: "Dedicated ground suitable for football, cricket, volleyball, daily assembly PT, and national day parades."
-    },
-    {
-      titleBn: "মাল্টিমিডিয়া ক্লাসরুম",
-      titleEn: "Multimedia Classrooms",
-      descBn: "শিক্ষকদের পাঠদানকে সহজ ও প্রাণবন্ত করতে মাল্টিমিডিয়া ও ডিজিটাল কন্টেন্টভিত্তিক ক্লাসরুম।",
-      descEn: "Multimedia and digital content-based classrooms to make teaching engaging and interactive."
-    },
-    {
-      titleBn: "সিসিটিভি ও নিরাপত্তা",
-      titleEn: "CCTV & Campus Security",
-      descBn: "সম্পূর্ণ ক্যাম্পাস সার্বক্ষণিক সিসিটিভি ক্যামেরার আওতাভুক্ত এবং সুশৃঙ্খল নিরাপত্তাব্যবস্থা।",
-      descEn: "The entire campus is monitored 24/7 with CCTV cameras and disciplined security arrangements."
-    },
-  ];
-
   return (
     <div className="space-y-8">
       {/* Breadcrumb */}
@@ -134,14 +95,16 @@ export const AboutPage: React.FC = () => {
               {t("ক্যাম্পাস ও আধুনিক সুযোগ-সুবিধা", "Campus & Modern Facilities")}
             </h3>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {facilities.map((item, idx) => (
+              {(content.campusFacilities || [])
+                .filter((item) => item.titleBn?.trim() || item.titleEn?.trim())
+                .map((item, idx) => (
                 <div key={idx} className="rounded-md border border-gray-100 bg-[#fdfdfd] p-3.5">
                   <h5 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
                     <CheckCircle2 size={14} className="text-[#006a4e]" />
                     <span>{t(item.titleBn, item.titleEn)}</span>
                   </h5>
                   <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                    {t(item.descBn, item.descEn)}
+                    {t(item.descriptionBn, item.descriptionEn)}
                   </p>
                 </div>
               ))}
