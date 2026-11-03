@@ -554,7 +554,7 @@ export const HomePage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                <button
+                {/*                 <button
                   type="button"
                   onClick={() => setIsNoticeTickerPaused((prev) => !prev)}
                   className="inline-flex items-center gap-1.5 rounded-md border border-[#cbe0d3] bg-[#f9fbf9] px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-[#edf5f0] hover:text-[#006a4e] transition shrink-0 cursor-pointer shadow-2xs"
@@ -571,7 +571,7 @@ export const HomePage: React.FC = () => {
                       <span>{lang === "bn" ? "থামান" : "Pause"}</span>
                     </>
                   )}
-                </button>
+                </button> */}
 
                 <div className="relative w-full sm:w-60">
                   <input

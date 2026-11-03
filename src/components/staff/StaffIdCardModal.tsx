@@ -10,16 +10,15 @@ import {
   CreditCard,
   Download,
   Eye,
+  FileText,
   Layers,
-  Maximize2,
   Palette,
   Printer,
-  RotateCw,
-  Sliders,
   Sparkles,
   X,
 } from "lucide-react";
 import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 export interface StaffIdCardModalProps {
   staff: StaffMember | null;
@@ -45,6 +44,8 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
   const printAreaRef = useRef<HTMLDivElement>(null);
   const frontCardRef = useRef<HTMLDivElement>(null);
   const backCardRef = useRef<HTMLDivElement>(null);
+  const offscreenFrontRef = useRef<HTMLDivElement>(null);
+  const offscreenBackRef = useRef<HTMLDivElement>(null);
 
   if (!staff) return null;
 
@@ -68,28 +69,147 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
     window.print();
   };
 
-  // Download Front or Back as PNG
-  const handleDownloadPng = async (sideToDownload: "front" | "back") => {
-    const targetRef = sideToDownload === "front" ? frontCardRef : backCardRef;
-    if (!targetRef.current) return;
+  // Clean, high-fidelity capture function that eliminates scroll, offset, and container clipping
+  const captureCardCanvas = async (side: "front" | "back"): Promise<HTMLCanvasElement | null> => {
+    const cardWrapper =
+      (side === "front" ? frontCardRef.current : backCardRef.current) ||
+      (side === "front" ? offscreenFrontRef.current : offscreenBackRef.current);
+    if (!cardWrapper) return null;
+
+    const targetNode = (
+      cardWrapper.querySelector(".staff-id-card-root > div") ||
+      cardWrapper.querySelector(".staff-id-card-root") ||
+      cardWrapper
+    ) as HTMLElement;
+
+    const isLandscape = orientation === "landscape";
+    const targetWidth = isLandscape ? 508 : 320;
+    const targetHeight = isLandscape ? 320 : 508;
+
+    // Create an isolated container directly attached to document.body at (0,0)
+    // with exact CR80 pixel dimensions (508x320 or 320x508).
+    // This isolates rendering completely from modal scroll, parent flex/grid styling, and viewport offsets.
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "0px";
+    container.style.top = "0px";
+    container.style.width = `${targetWidth}px`;
+    container.style.height = `${targetHeight}px`;
+    container.style.zIndex = "-99999";
+    container.style.overflow = "hidden";
+    container.style.pointerEvents = "none";
+    container.style.margin = "0";
+    container.style.padding = "0";
+    container.style.backgroundColor = "transparent";
+
+    // Clone the card element
+    const clone = targetNode.cloneNode(true) as HTMLElement;
+    clone.style.margin = "0";
+    clone.style.transform = "none";
+    clone.style.boxShadow = "none";
+    clone.style.width = `${targetWidth}px`;
+    clone.style.height = `${targetHeight}px`;
+    clone.style.display = "flex";
+
+    container.appendChild(clone);
+    document.body.appendChild(container);
 
     try {
-      setIsExporting(true);
-      const canvas = await html2canvas(targetRef.current, {
+      // Ensure all images are loaded inside the clone
+      const images = Array.from(clone.querySelectorAll("img"));
+      await Promise.all(
+        images.map((img) => {
+          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            setTimeout(resolve, 300);
+          });
+        })
+      );
+
+      // Brief tick to allow browser to lay out the cloned DOM & render SVGs
+      await new Promise((resolve) => setTimeout(resolve, 80));
+
+      const canvas = await html2canvas(clone, {
         scale: 3, // 300 DPI high-definition export
         useCORS: true,
+        allowTaint: true,
         backgroundColor: null,
+        width: targetWidth,
+        height: targetHeight,
+        x: 0,
+        y: 0,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
       });
 
-      const dataUrl = canvas.toDataURL("image/png");
+      return canvas;
+    } finally {
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
+    }
+  };
+
+  // Download Front or Back as PNG
+  const handleDownloadPng = async (sideToDownload: "front" | "back") => {
+    try {
+      setIsExporting(true);
+      const canvas = await captureCardCanvas(sideToDownload);
+      if (!canvas) {
+        alert("Unable to generate card image. You can use 'Print ID Card' instead.");
+        return;
+      }
+
+      const dataUrl = canvas.toDataURL("image/png", 1.0);
       const link = document.createElement("a");
       const safeName = `${staff.name}_${staff.surname}`.replace(/\s+/g, "_");
-      link.download = `ID_Card_${safeName}_${orientation}_${sideToDownload}_${staff.staff_no || "staff"}.png`;
+      link.download = `ID_Card_${safeName}_CR80_${orientation}_${sideToDownload}_${staff.staff_no || "staff"}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
-      console.error("Failed to export ID Card:", err);
+      console.error("Failed to export ID Card PNG:", err);
       alert("Unable to download image right now. You can use 'Print ID Card' instead.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Download CR80 Physical Standard PDF (Front & Back)
+  const handleDownloadPdf = async () => {
+    try {
+      setIsExporting(true);
+      const isLandscape = orientation === "landscape";
+      const format: [number, number] = isLandscape ? [85.6, 54] : [54, 85.6];
+
+      const pdf = new jsPDF({
+        orientation: isLandscape ? "landscape" : "portrait",
+        unit: "mm",
+        format: format,
+      });
+
+      // Front
+      const frontCanvas = await captureCardCanvas("front");
+      if (frontCanvas) {
+        const frontImg = frontCanvas.toDataURL("image/png", 1.0);
+        pdf.addImage(frontImg, "PNG", 0, 0, format[0], format[1]);
+      }
+
+      // Back
+      const backCanvas = await captureCardCanvas("back");
+      if (backCanvas) {
+        pdf.addPage(format, isLandscape ? "landscape" : "portrait");
+        const backImg = backCanvas.toDataURL("image/png", 1.0);
+        pdf.addImage(backImg, "PNG", 0, 0, format[0], format[1]);
+      }
+
+      const safeName = `${staff.name}_${staff.surname}`.replace(/\s+/g, "_");
+      pdf.save(`ID_Card_${safeName}_CR80_${staff.staff_no || "staff"}.pdf`);
+    } catch (err) {
+      console.error("Failed to export ID Card PDF:", err);
+      alert("Unable to export PDF. You can download PNG or use Print.");
     } finally {
       setIsExporting(false);
     }
@@ -133,7 +253,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
 
         {/* MODAL CONTROLS TOOLBAR */}
         <div className="py-3 border-b border-gray-100 dark:border-gray-700/80 grid grid-cols-1 md:grid-cols-12 gap-2.5 text-xs items-center">
-          {/* Orientation Toggle (CR80: 85.6mm x 54mm Landscape vs 54mm x 85.6mm Portrait) */}
+          {/* Orientation Toggle */}
           <div className="md:col-span-3 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
             <button
               onClick={() => setOrientation("landscape")}
@@ -243,17 +363,19 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
                 <div className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
                   <span>Front Side (সম্মুখ ভাগ)</span>
                 </div>
-                <div ref={frontCardRef} className="card-wrapper shadow-xl hover:shadow-2xl transition rounded-2xl">
-                  <StaffIdCard
-                    staff={staff}
-                    side="front"
-                    orientation={orientation}
-                    theme={selectedTheme}
-                    validityYear={validityYear}
-                    issueDate={issueDate}
-                    schoolInfo={schoolInfo}
-                    showStamp={showStamp}
-                  />
+                <div className="card-wrapper shadow-xl hover:shadow-2xl transition rounded-2xl p-0">
+                  <div ref={frontCardRef} className="rounded-2xl overflow-hidden inline-block">
+                    <StaffIdCard
+                      staff={staff}
+                      side="front"
+                      orientation={orientation}
+                      theme={selectedTheme}
+                      validityYear={validityYear}
+                      issueDate={issueDate}
+                      schoolInfo={schoolInfo}
+                      showStamp={showStamp}
+                    />
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -273,17 +395,19 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
                 <div className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
                   <span>Back Side (পেছনের অংশ)</span>
                 </div>
-                <div ref={backCardRef} className="card-wrapper shadow-xl hover:shadow-2xl transition rounded-2xl">
-                  <StaffIdCard
-                    staff={staff}
-                    side="back"
-                    orientation={orientation}
-                    theme={selectedTheme}
-                    validityYear={validityYear}
-                    issueDate={issueDate}
-                    schoolInfo={schoolInfo}
-                    showStamp={showStamp}
-                  />
+                <div className="card-wrapper shadow-xl hover:shadow-2xl transition rounded-2xl p-0">
+                  <div ref={backCardRef} className="rounded-2xl overflow-hidden inline-block">
+                    <StaffIdCard
+                      staff={staff}
+                      side="back"
+                      orientation={orientation}
+                      theme={selectedTheme}
+                      validityYear={validityYear}
+                      issueDate={issueDate}
+                      schoolInfo={schoolInfo}
+                      showStamp={showStamp}
+                    />
+                  </div>
                 </div>
                 <button
                   type="button"
@@ -299,6 +423,34 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
           </div>
         </div>
 
+        {/* OFF-SCREEN CARDS (ALWAYS MOUNTED FOR COMPLETE PDF & PNG EXPORT) */}
+        <div className="fixed -left-[9999px] -top-[9999px] pointer-events-none -z-50" aria-hidden="true">
+          <div ref={offscreenFrontRef}>
+            <StaffIdCard
+              staff={staff}
+              side="front"
+              orientation={orientation}
+              theme={selectedTheme}
+              validityYear={validityYear}
+              issueDate={issueDate}
+              schoolInfo={schoolInfo}
+              showStamp={showStamp}
+            />
+          </div>
+          <div ref={offscreenBackRef}>
+            <StaffIdCard
+              staff={staff}
+              side="back"
+              orientation={orientation}
+              theme={selectedTheme}
+              validityYear={validityYear}
+              issueDate={issueDate}
+              schoolInfo={schoolInfo}
+              showStamp={showStamp}
+            />
+          </div>
+        </div>
+
         {/* FOOTER ACTIONS */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs">
           <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5 text-[11px]">
@@ -308,13 +460,24 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
             <span>• ISO/IEC 7810 ID-1 standard format</span>
           </div>
 
-          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               type="button"
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 font-semibold transition"
             >
               Close
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadPdf}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold shadow-sm transition disabled:opacity-50"
+              title="Download CR80 Physical Standard PDF (Front & Back)"
+            >
+              <FileText size={14} />
+              <span>Download PDF (CR80)</span>
             </button>
 
             <button
