@@ -672,6 +672,38 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     border: none !important;
     border-radius: 0 !important;
   }
+
+  /* ── Staff ID Card Print Isolation ── */
+  body:has(.id-card-print-container) {
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body:has(.id-card-print-container) * {
+    visibility: hidden;
+  }
+
+  body:has(.id-card-print-container) .id-card-print-container,
+  body:has(.id-card-print-container) .id-card-print-container * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body:has(.id-card-print-container) .id-card-print-container {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
 }
 
 /* ==========================================================================

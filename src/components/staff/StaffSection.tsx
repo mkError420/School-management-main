@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   Coins,
+  CreditCard,
   Download,
   Eye,
   EyeOff,
@@ -48,6 +49,8 @@ import {
   StaffStatus,
   StaffType,
 } from "@/types/staff";
+import StaffIdCardModal from "@/components/staff/StaffIdCardModal";
+import StaffBatchIdCardModal from "@/components/staff/StaffBatchIdCardModal";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -270,6 +273,8 @@ const StaffSection: React.FC = () => {
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [detailsItem, setDetailsItem] = useState<StaffMember | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<StaffMember | null>(null);
+  const [idCardStaff, setIdCardStaff] = useState<StaffMember | null>(null);
+  const [batchIdCardOpen, setBatchIdCardOpen] = useState(false);
 
   // Edit image upload handlers
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -800,6 +805,15 @@ const StaffSection: React.FC = () => {
             </button>
 
             <button
+              onClick={() => setBatchIdCardOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold transition shadow-sm shadow-emerald-600/20"
+              title="Generate and print Bangladesh model ID cards for staff in bulk"
+            >
+              <CreditCard size={14} />
+              <span>ID Cards / পরিচয়পত্র</span>
+            </button>
+
+            <button
               onClick={() => {
                 setFormData(emptyStaffForm);
                 setCreateModalOpen(true);
@@ -1157,6 +1171,15 @@ const StaffSection: React.FC = () => {
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* Generate ID Card */}
+                          <button
+                            onClick={() => setIdCardStaff(item)}
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 transition"
+                            title="Generate ID Card / পরিচয়পত্র"
+                          >
+                            <CreditCard size={14} />
+                          </button>
+
                           {/* View details */}
                           <button
                             onClick={() => setDetailsItem(item)}
@@ -1276,8 +1299,16 @@ const StaffSection: React.FC = () => {
                 <div>{getTypeBadge(item.type)}</div>
                 <div className="flex items-center gap-1.5">
                   <button
+                    onClick={() => setIdCardStaff(item)}
+                    className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 transition"
+                    title="Generate ID Card / পরিচয়পত্র"
+                  >
+                    <CreditCard size={13} />
+                  </button>
+                  <button
                     onClick={() => setDetailsItem(item)}
                     className="p-1.5 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 transition"
+                    title="View Staff Profile"
                   >
                     <Eye size={13} />
                   </button>
@@ -2298,6 +2329,17 @@ const StaffSection: React.FC = () => {
                 Close
               </button>
               <button
+                onClick={() => {
+                  const targetMember = detailsItem;
+                  setDetailsItem(null);
+                  setIdCardStaff(targetMember);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-sm transition"
+              >
+                <CreditCard size={14} />
+                <span>ID Card / পরিচয়পত্র</span>
+              </button>
+              <button
                 onClick={() => window.print()}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold shadow-sm transition"
               >
@@ -2340,6 +2382,22 @@ const StaffSection: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 9. SINGLE STAFF ID CARD MODAL */}
+      {idCardStaff && (
+        <StaffIdCardModal
+          staff={idCardStaff}
+          onClose={() => setIdCardStaff(null)}
+        />
+      )}
+
+      {/* 10. BATCH STAFF ID CARD MODAL */}
+      {batchIdCardOpen && (
+        <StaffBatchIdCardModal
+          staffList={staff}
+          onClose={() => setBatchIdCardOpen(false)}
+        />
       )}
     </div>
   );
