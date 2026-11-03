@@ -109,27 +109,43 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
     clone.style.boxShadow = "none";
     clone.style.width = `${targetWidth}px`;
     clone.style.height = `${targetHeight}px`;
-    clone.style.display = "flex";
+    clone.style.minWidth = `${targetWidth}px`;
+    clone.style.minHeight = `${targetHeight}px`;
+    clone.style.maxWidth = `${targetWidth}px`;
+    clone.style.maxHeight = `${targetHeight}px`;
+    clone.style.boxSizing = "border-box";
 
     container.appendChild(clone);
     document.body.appendChild(container);
 
     try {
-      // Ensure all images are loaded inside the clone
+      await document.fonts.ready;
+
       const images = Array.from(clone.querySelectorAll("img"));
       await Promise.all(
-        images.map((img) => {
-          if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
-          return new Promise((resolve) => {
-            img.onload = resolve;
-            img.onerror = resolve;
-            setTimeout(resolve, 300);
-          });
+        images.map(async (img) => {
+          if (!img.complete) {
+            await new Promise<void>((resolve, reject) => {
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener(
+                "error",
+                () => reject(new Error(`Unable to load card image: ${img.src}`)),
+                { once: true }
+              );
+            });
+          }
+
+          if (img.naturalWidth === 0) {
+            throw new Error(`Unable to load card image: ${img.src}`);
+          }
+
+          await img.decode();
         })
       );
 
-      // Brief tick to allow browser to lay out the cloned DOM & render SVGs
-      await new Promise((resolve) => setTimeout(resolve, 80));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve())
+      );
 
       const canvas = await html2canvas(clone, {
         scale: 3, // 300 DPI high-definition export

@@ -705,15 +705,15 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     overflow: visible !important;
   }
 
-  /* Physical CR80 Dimensions in Print (ISO/IEC 7810 ID-1 standard: 85.6mm × 54mm / 3.375in × 2.125in) */
+  /* Scale the complete pixel-based card layout to CR80 instead of shrinking only its outer box. */
   .cr80-landscape-card {
-    width: 85.6mm !important;
-    height: 54mm !important;
-    min-width: 85.6mm !important;
-    min-height: 54mm !important;
-    max-width: 85.6mm !important;
-    max-height: 54mm !important;
-    border-radius: 3.18mm !important;
+    width: 508px !important;
+    height: 320px !important;
+    min-width: 508px !important;
+    min-height: 320px !important;
+    max-width: 508px !important;
+    max-height: 320px !important;
+    zoom: 0.637 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
     page-break-inside: avoid !important;
@@ -721,13 +721,13 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
   }
 
   .cr80-portrait-card {
-    width: 54mm !important;
-    height: 85.6mm !important;
-    min-width: 54mm !important;
-    min-height: 85.6mm !important;
-    max-width: 54mm !important;
-    max-height: 85.6mm !important;
-    border-radius: 3.18mm !important;
+    width: 320px !important;
+    height: 508px !important;
+    min-width: 320px !important;
+    min-height: 508px !important;
+    max-width: 320px !important;
+    max-height: 508px !important;
+    zoom: 0.637 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
     page-break-inside: avoid !important;
@@ -795,4 +795,3 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
 .animate-marquee:hover {
   animation-play-state: paused;
 }
-
