@@ -358,14 +358,14 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
   const cardTitleEn = isTeacher
     ? "TEACHER IDENTITY CARD"
     : staff.type === "ADMINISTRATIVE"
-    ? "OFFICER IDENTITY CARD"
-    : "STAFF IDENTITY CARD";
+      ? "OFFICER IDENTITY CARD"
+      : "STAFF IDENTITY CARD";
 
   const cardTitleBn = isTeacher
     ? "শিক্ষক পরিচয়পত্র"
     : staff.type === "ADMINISTRATIVE"
-    ? "কর্মকর্তা পরিচয়পত্র"
-    : "কর্মচারী পরিচয়পত্র";
+      ? "কর্মকর্তা পরিচয়পত্র"
+      : "কর্মচারী পরিচয়পত্র";
 
   const fullName = `${staff.name || ""} ${staff.surname || ""}`.trim() || "Staff Member";
   const staffId = staff.staff_no || staff.teacher_id || `STF-${staff.id || "001"}`;
@@ -436,14 +436,13 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
           </div>
 
           {/* Govt Monogram / Right Crest */}
-          <div className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20">
+          {/*           <div className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20">
             <BangladeshGovtEmblem size={28} />
-          </div>
+          </div> */}
         </div>
 
         {/* Ribbon Banner: TEACHER / STAFF IDENTITY CARD */}
         <div className="mt-2 -mx-3 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 py-0.5 px-2 flex items-center justify-center gap-1.5 shadow-xs border-y border-red-400/50">
-          <Shield size={10} className="text-amber-200 fill-amber-200" />
           <span className="text-[10px] font-black tracking-wider uppercase text-white drop-shadow-xs">
             {cardTitleEn}
           </span>
@@ -614,7 +613,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
       <div className="flex-1 px-4 py-2 flex flex-col justify-between relative z-10 text-[9px] space-y-2">
         <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2.5 space-y-1.5 text-gray-700">
           <div className="flex items-center gap-1 text-emerald-900 font-extrabold text-[10px] pb-1 border-b border-emerald-200/60">
-            <CheckCircle2 size={12} className="text-emerald-700" />
             <span>নির্দেশনাবলী ও জরুরি তথ্যাবলী (Terms & Info)</span>
           </div>
 
