@@ -35,6 +35,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
     staffList.map((s) => s.id)
   );
   const [typeFilter, setTypeFilter] = useState<"ALL" | StaffType>("ALL");
+  const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedTheme, setSelectedTheme] = useState<CardThemeId>("bd-green");
   const [printSide, setPrintSide] = useState<"front" | "back" | "both">("both");
@@ -112,8 +113,8 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
                 <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-gray-100">
                   Bulk / Batch Staff ID Card Printing
                 </h3>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold">
-                  ব্যাচ প্রিন্ট ও লেমিনেশন
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold font-mono">
+                  CR80: 85.6 mm × 54 mm (3.375" × 2.125")
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -131,7 +132,31 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
         </div>
 
         {/* TOOLBAR CONTROLS */}
-        <div className="py-3.5 border-b border-gray-100 dark:border-gray-700/80 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs items-center">
+        <div className="py-3 border-b border-gray-100 dark:border-gray-700/80 grid grid-cols-1 md:grid-cols-12 gap-2.5 text-xs items-center">
+          {/* Orientation Toggle */}
+          <div className="md:col-span-3 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
+            <button
+              onClick={() => setOrientation("landscape")}
+              className={`flex-1 py-1.5 px-1.5 rounded-lg font-bold text-[11px] transition ${
+                orientation === "landscape"
+                  ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Landscape (85.6×54)
+            </button>
+            <button
+              onClick={() => setOrientation("portrait")}
+              className={`flex-1 py-1.5 px-1.5 rounded-lg font-bold text-[11px] transition ${
+                orientation === "portrait"
+                  ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Portrait (54×85.6)
+            </button>
+          </div>
+
           {/* Search */}
           <div className="md:col-span-3 relative">
             <Search
@@ -143,7 +168,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
               placeholder="Filter by name, ID, role..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none"
+              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none text-[11px]"
             />
           </div>
 
@@ -151,7 +176,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
           <div className="md:col-span-3 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
             <button
               onClick={() => setTypeFilter("ALL")}
-              className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-[11px] transition ${
+              className={`flex-1 py-1 px-1 rounded-lg font-bold text-[10.5px] transition ${
                 typeFilter === "ALL"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -161,7 +186,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
             </button>
             <button
               onClick={() => setTypeFilter("TEACHING")}
-              className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-[11px] transition ${
+              className={`flex-1 py-1 px-1 rounded-lg font-bold text-[10.5px] transition ${
                 typeFilter === "TEACHING"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -171,7 +196,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
             </button>
             <button
               onClick={() => setTypeFilter("ADMINISTRATIVE")}
-              className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-[11px] transition ${
+              className={`flex-1 py-1 px-1 rounded-lg font-bold text-[10.5px] transition ${
                 typeFilter === "ADMINISTRATIVE"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -181,7 +206,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
             </button>
             <button
               onClick={() => setTypeFilter("SUPPORT")}
-              className={`flex-1 py-1 px-1.5 rounded-lg font-bold text-[11px] transition ${
+              className={`flex-1 py-1 px-1 rounded-lg font-bold text-[10.5px] transition ${
                 typeFilter === "SUPPORT"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -192,7 +217,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
           </div>
 
           {/* Theme & Side */}
-          <div className="md:col-span-3 flex items-center gap-2">
+          <div className="md:col-span-3 flex items-center gap-1.5">
             <select
               value={selectedTheme}
               onChange={(e) => setSelectedTheme(e.target.value as CardThemeId)}
@@ -208,24 +233,48 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
             <select
               value={printSide}
               onChange={(e) => setPrintSide(e.target.value as "front" | "back" | "both")}
-              className="w-32 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2 py-1.5 text-[11px] font-medium"
+              className="w-28 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-1.5 py-1.5 text-[11px] font-medium"
             >
-              <option value="both">Both Sides</option>
-              <option value="front">Front Only</option>
-              <option value="back">Back Only</option>
+              <option value="both">Both</option>
+              <option value="front">Front</option>
+              <option value="back">Back</option>
             </select>
           </div>
+        </div>
 
-          {/* Session & Stamp */}
-          <div className="md:col-span-3 flex items-center justify-end gap-2">
+        {/* STAFF SELECTION PILLS BAR */}
+        <div className="py-2 px-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs my-2">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleToggleSelectAll}
+              className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 hover:underline text-[11px]"
+            >
+              {filteredStaff.every((s) => selectedStaffIds.includes(s.id)) ? (
+                <CheckSquare size={14} />
+              ) : (
+                <Square size={14} />
+              )}
+              <span>Select All ({filteredStaff.length})</span>
+            </button>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-600 dark:text-gray-400 font-semibold text-[11px]">
+              To Print:{" "}
+              <strong className="text-emerald-700 dark:text-emerald-300">
+                {selectedStaffIds.length}
+              </strong>{" "}
+              of {staffList.length} staff
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-[11px]">
             <input
               type="text"
               value={validityYear}
               onChange={(e) => setValidityYear(e.target.value)}
-              className="w-24 px-2 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-mono font-bold"
+              className="w-24 px-2 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-[11px] font-mono font-bold"
               placeholder="2026-2028"
             />
-            <label className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-medium text-gray-600 dark:text-gray-300">
+            <label className="flex items-center gap-1 cursor-pointer select-none font-medium text-gray-600 dark:text-gray-300">
               <input
                 type="checkbox"
                 checked={showStamp}
@@ -237,55 +286,6 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
           </div>
         </div>
 
-        {/* STAFF SELECTION PILLS BAR */}
-        <div className="py-2.5 px-3 bg-gray-50 dark:bg-gray-900/60 rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs my-2">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleToggleSelectAll}
-              className="flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
-            >
-              {filteredStaff.every((s) => selectedStaffIds.includes(s.id)) ? (
-                <CheckSquare size={15} />
-              ) : (
-                <Square size={15} />
-              )}
-              <span>Select All Filtered ({filteredStaff.length})</span>
-            </button>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-600 dark:text-gray-400 font-semibold">
-              Selected to Print:{" "}
-              <strong className="text-emerald-700 dark:text-emerald-300">
-                {selectedStaffIds.length}
-              </strong>{" "}
-              of {staffList.length} staff
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 font-medium text-[11px]">Grid per Sheet:</span>
-            <button
-              onClick={() => setCardsPerPage(4)}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                cardsPerPage === 4
-                  ? "bg-emerald-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              4 Cards
-            </button>
-            <button
-              onClick={() => setCardsPerPage(6)}
-              className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                cardsPerPage === 6
-                  ? "bg-emerald-600 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
-              }`}
-            >
-              6 Cards
-            </button>
-          </div>
-        </div>
-
         {/* CARD GRID / PRINT PREVIEW AREA */}
         <div className="id-card-print-container my-2 p-4 overflow-y-auto max-h-[55vh] bg-gray-100/70 dark:bg-gray-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-700">
           {staffToPrint.length === 0 ? (
@@ -293,7 +293,7 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
               No staff members selected. Please select at least one staff member to generate ID cards.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 items-start justify-items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start justify-items-center">
               {staffToPrint.map((staffItem) => (
                 <div
                   key={staffItem.id}
@@ -322,17 +322,17 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
                   </div>
 
                   {/* Render Side(s) with dashed cut-mark borders for physical trimming */}
-                  <div className="flex flex-wrap items-center justify-center gap-6 py-2">
+                  <div className="flex flex-wrap items-center justify-center gap-4 py-2">
                     {/* Front Side */}
                     {(printSide === "front" || printSide === "both") && (
                       <div className="relative p-1 border border-dashed border-gray-300 rounded-2xl">
-                        {/* Cut mark badge */}
                         <div className="absolute -top-2.5 left-4 px-1.5 py-0.2 bg-gray-200 text-gray-600 text-[8px] font-mono rounded print:hidden">
                           FRONT
                         </div>
                         <StaffIdCard
                           staff={staffItem}
                           side="front"
+                          orientation={orientation}
                           theme={selectedTheme}
                           validityYear={validityYear}
                           schoolInfo={schoolInfo}
@@ -344,13 +344,13 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
                     {/* Back Side */}
                     {(printSide === "back" || printSide === "both") && (
                       <div className="relative p-1 border border-dashed border-gray-300 rounded-2xl">
-                        {/* Cut mark badge */}
                         <div className="absolute -top-2.5 left-4 px-1.5 py-0.2 bg-gray-200 text-gray-600 text-[8px] font-mono rounded print:hidden">
                           BACK
                         </div>
                         <StaffIdCard
                           staff={staffItem}
                           side="back"
+                          orientation={orientation}
                           theme={selectedTheme}
                           validityYear={validityYear}
                           schoolInfo={schoolInfo}
@@ -368,8 +368,10 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
         {/* MODAL FOOTER */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs">
           <div className="text-gray-500 dark:text-gray-400 text-[11px]">
-            Tip: In the print dialog, select <strong>"A4"</strong> paper and enable{" "}
-            <strong>"Background graphics"</strong> for best quality output.
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+              Standard Physical Size (CR80): 85.6 mm × 54 mm (or 3.375 in × 2.125 in)
+            </span>
+            {" • "}Select <strong>"A4"</strong> paper and enable <strong>"Background graphics"</strong> in print dialog.
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
@@ -401,4 +403,3 @@ export const StaffBatchIdCardModal: React.FC<StaffBatchIdCardModalProps> = ({
 };
 
 export default StaffBatchIdCardModal;
-

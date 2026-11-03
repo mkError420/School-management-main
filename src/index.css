@@ -704,6 +704,35 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     border: none !important;
     overflow: visible !important;
   }
+
+  /* Physical CR80 Dimensions in Print (ISO/IEC 7810 ID-1 standard: 85.6mm × 54mm / 3.375in × 2.125in) */
+  .cr80-landscape-card {
+    width: 85.6mm !important;
+    height: 54mm !important;
+    min-width: 85.6mm !important;
+    min-height: 54mm !important;
+    max-width: 85.6mm !important;
+    max-height: 54mm !important;
+    border-radius: 3.18mm !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .cr80-portrait-card {
+    width: 54mm !important;
+    height: 85.6mm !important;
+    min-width: 54mm !important;
+    min-height: 85.6mm !important;
+    max-width: 54mm !important;
+    max-height: 85.6mm !important;
+    border-radius: 3.18mm !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 }
 
 /* ==========================================================================

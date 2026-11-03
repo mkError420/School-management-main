@@ -11,6 +11,7 @@ import {
   Download,
   Eye,
   Layers,
+  Maximize2,
   Palette,
   Printer,
   RotateCw,
@@ -32,6 +33,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
   const { siteLogoUrl, websiteContent } = useSiteSettings();
 
   const [activeSide, setActiveSide] = useState<"front" | "back" | "both">("both");
+  const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
   const [selectedTheme, setSelectedTheme] = useState<CardThemeId>("bd-green");
   const [validityYear, setValidityYear] = useState<string>("2026 – 2028");
   const [issueDate, setIssueDate] = useState<string>(
@@ -82,7 +84,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       const safeName = `${staff.name}_${staff.surname}`.replace(/\s+/g, "_");
-      link.download = `ID_Card_${safeName}_${sideToDownload}_${staff.staff_no || "staff"}.png`;
+      link.download = `ID_Card_${safeName}_${orientation}_${sideToDownload}_${staff.staff_no || "staff"}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -95,7 +97,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[95vh] flex flex-col justify-between my-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-5xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[95vh] flex flex-col justify-between my-auto">
         {/* MODAL HEADER */}
         <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-3">
@@ -107,12 +109,12 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
                 <h3 className="font-extrabold text-base sm:text-lg text-gray-900 dark:text-gray-100">
                   Staff & Teacher Digital ID Card
                 </h3>
-                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold">
-                  বাংলাদেশ জাতীয় মডেল
+                <span className="px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold font-mono">
+                  CR80: 85.6 mm × 54 mm (3.375" × 2.125")
                 </span>
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Official Bangladesh institutional format for{" "}
+                Official Bangladesh Institutional Format for{" "}
                 <strong>
                   {staff.name} {staff.surname}
                 </strong>{" "}
@@ -130,23 +132,49 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
         </div>
 
         {/* MODAL CONTROLS TOOLBAR */}
-        <div className="py-3.5 border-b border-gray-100 dark:border-gray-700/80 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs items-center">
+        <div className="py-3 border-b border-gray-100 dark:border-gray-700/80 grid grid-cols-1 md:grid-cols-12 gap-2.5 text-xs items-center">
+          {/* Orientation Toggle (CR80: 85.6mm x 54mm Landscape vs 54mm x 85.6mm Portrait) */}
+          <div className="md:col-span-3 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
+            <button
+              onClick={() => setOrientation("landscape")}
+              className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition text-[11px] flex items-center justify-center gap-1 ${
+                orientation === "landscape"
+                  ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              title="Standard Landscape (85.6 mm × 54 mm)"
+            >
+              <span>Landscape (85.6×54)</span>
+            </button>
+            <button
+              onClick={() => setOrientation("portrait")}
+              className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition text-[11px] flex items-center justify-center gap-1 ${
+                orientation === "portrait"
+                  ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              title="Portrait Badge (54 mm × 85.6 mm)"
+            >
+              <span>Portrait (54×85.6)</span>
+            </button>
+          </div>
+
           {/* Side View Switcher */}
-          <div className="md:col-span-4 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
+          <div className="md:col-span-3 flex items-center bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
             <button
               onClick={() => setActiveSide("both")}
-              className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1 px-1.5 rounded-lg font-bold transition text-[11px] flex items-center justify-center gap-1 ${
                 activeSide === "both"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
               }`}
             >
-              <Layers size={13} />
-              <span>Both Sides</span>
+              <Layers size={12} />
+              <span>Both</span>
             </button>
             <button
               onClick={() => setActiveSide("front")}
-              className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1 px-1.5 rounded-lg font-bold transition text-[11px] flex items-center justify-center gap-1 ${
                 activeSide === "front"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -156,7 +184,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
             </button>
             <button
               onClick={() => setActiveSide("back")}
-              className={`flex-1 py-1.5 px-2 rounded-lg font-bold transition flex items-center justify-center gap-1.5 ${
+              className={`flex-1 py-1 px-1.5 rounded-lg font-bold transition text-[11px] flex items-center justify-center gap-1 ${
                 activeSide === "back"
                   ? "bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -167,14 +195,12 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
           </div>
 
           {/* Theme Palette Switcher */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <span className="text-gray-500 dark:text-gray-400 font-semibold shrink-0 flex items-center gap-1">
-              <Palette size={13} /> Theme:
-            </span>
+          <div className="md:col-span-3 flex items-center gap-1.5">
+            <Palette size={13} className="text-gray-400 shrink-0" />
             <select
               value={selectedTheme}
               onChange={(e) => setSelectedTheme(e.target.value as CardThemeId)}
-              className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2.5 py-1.5 text-gray-800 dark:text-gray-200 font-medium focus:outline-none"
+              className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2 py-1.5 text-[11px] font-medium focus:outline-none"
             >
               {Object.values(CARD_THEMES).map((thm) => (
                 <option key={thm.id} value={thm.id}>
@@ -184,35 +210,31 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
             </select>
           </div>
 
-          {/* Session / Validity Year & Stamp Toggle */}
-          <div className="md:col-span-4 flex items-center justify-end gap-2.5">
-            <div className="flex items-center gap-1.5">
-              <span className="text-gray-500 font-semibold">Session:</span>
-              <input
-                type="text"
-                value={validityYear}
-                onChange={(e) => setValidityYear(e.target.value)}
-                className="w-24 px-2 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-mono font-bold"
-                placeholder="2026-2028"
-              />
-            </div>
-
-            <label className="flex items-center gap-1.5 cursor-pointer text-gray-600 dark:text-gray-300 font-medium select-none">
+          {/* Session & Stamp Toggle */}
+          <div className="md:col-span-3 flex items-center justify-end gap-2">
+            <input
+              type="text"
+              value={validityYear}
+              onChange={(e) => setValidityYear(e.target.value)}
+              className="w-24 px-2 py-1 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-mono font-bold"
+              placeholder="2026-2028"
+            />
+            <label className="flex items-center gap-1 cursor-pointer select-none text-[11px] font-medium text-gray-600 dark:text-gray-300">
               <input
                 type="checkbox"
                 checked={showStamp}
                 onChange={(e) => setShowStamp(e.target.checked)}
-                className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                className="w-3.5 h-3.5 rounded text-emerald-600"
               />
-              <span>Seal Stamp</span>
+              <span>Stamp</span>
             </label>
           </div>
         </div>
 
-        {/* CARD PREVIEW AREA (With Printable ID Selector) */}
+        {/* CARD PREVIEW AREA */}
         <div
           ref={printAreaRef}
-          className="id-card-print-container my-4 py-4 px-2 overflow-x-auto flex items-center justify-center min-h-[530px] bg-gray-100/70 dark:bg-gray-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-700"
+          className="id-card-print-container my-3 py-4 px-2 overflow-x-auto flex items-center justify-center min-h-[420px] bg-gray-100/70 dark:bg-gray-900/50 rounded-2xl border border-gray-200/80 dark:border-gray-700"
         >
           <div className="flex flex-wrap items-center justify-center gap-6">
             {/* FRONT CARD CONTAINER */}
@@ -225,6 +247,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
                   <StaffIdCard
                     staff={staff}
                     side="front"
+                    orientation={orientation}
                     theme={selectedTheme}
                     validityYear={validityYear}
                     issueDate={issueDate}
@@ -254,6 +277,7 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
                   <StaffIdCard
                     staff={staff}
                     side="back"
+                    orientation={orientation}
                     theme={selectedTheme}
                     validityYear={validityYear}
                     issueDate={issueDate}
@@ -278,10 +302,10 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
         {/* FOOTER ACTIONS */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs">
           <div className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5 text-[11px]">
-            <Sparkles size={14} className="text-amber-500 shrink-0" />
-            <span>
-              Standard CR-80 PVC ID Card format (54mm × 85.6mm) • Ready for lanyard or plastic sleeve
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+              Standard Physical Size (CR80): 85.6 mm × 54 mm (or 3.375 in × 2.125 in)
             </span>
+            <span>• ISO/IEC 7810 ID-1 standard format</span>
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
@@ -309,4 +333,3 @@ export const StaffIdCardModal: React.FC<StaffIdCardModalProps> = ({
 };
 
 export default StaffIdCardModal;
-

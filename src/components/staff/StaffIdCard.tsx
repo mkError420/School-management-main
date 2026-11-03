@@ -11,7 +11,6 @@ import {
   Phone,
   QrCode,
   Shield,
-  Sparkles,
 } from "lucide-react";
 
 export type CardThemeId = "bd-green" | "royal-navy" | "classic-maroon" | "academic-teal";
@@ -88,6 +87,7 @@ export const CARD_THEMES: Record<CardThemeId, CardThemeConfig> = {
 export interface StaffIdCardProps {
   staff: StaffMember;
   theme?: CardThemeId;
+  orientation?: "portrait" | "landscape";
   validityYear?: string;
   issueDate?: string;
   schoolInfo?: {
@@ -287,51 +287,10 @@ export const AuthoritySealStamp: React.FC<{
   );
 };
 
-// Bangladesh Government Circular Crest Monogram (Watermark & Header Emblem)
-export const BangladeshGovtEmblem: React.FC<{ size?: number; className?: string }> = ({
-  size = 36,
-  className = "",
-}) => {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
-      className={className}
-      fill="none"
-    >
-      <circle cx="50" cy="50" r="46" fill="#006A4E" stroke="#F42A41" strokeWidth="4" />
-      <circle cx="50" cy="50" r="28" fill="#F42A41" />
-      {/* Four Stars (National Emblem representation) */}
-      <circle cx="20" cy="50" r="3" fill="#FBBF24" />
-      <circle cx="80" cy="50" r="3" fill="#FBBF24" />
-      <circle cx="50" cy="20" r="3" fill="#FBBF24" />
-      <circle cx="50" cy="80" r="3" fill="#FBBF24" />
-      {/* Water Lily Shape */}
-      <path
-        d="M50 34 C 42 45, 38 56, 50 63 C 62 56, 58 45, 50 34 Z"
-        fill="#FFFFFF"
-      />
-      <path
-        d="M40 45 C 32 50, 32 58, 44 61 C 38 55, 38 48, 40 45 Z"
-        fill="#FFFFFF"
-      />
-      <path
-        d="M60 45 C 68 50, 68 58, 56 61 C 62 55, 62 48, 60 45 Z"
-        fill="#FFFFFF"
-      />
-      {/* Rice Sheaves base */}
-      <path
-        d="M36 65 Q 50 72 64 65 Q 50 68 36 65"
-        fill="#FBBF24"
-      />
-    </svg>
-  );
-};
-
 export const StaffIdCard: React.FC<StaffIdCardProps> = ({
   staff,
   theme = "bd-green",
+  orientation = "landscape",
   validityYear = "2026 – 2028",
   issueDate = "01-01-2026",
   schoolInfo = {},
@@ -381,31 +340,299 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
 
   const qrData = `INST:${schoolNameEn} | EIIN:${eiin} | ID:${staffId} | NAME:${fullName} | ROLE:${designation} | DEPT:${department} | BLOOD:${bloodType} | PHONE:${staff.phone || phone} | VALID:${validityYear}`;
 
-  /* ================= FRONT SIDE ================= */
-  const renderFront = () => (
+  /* ================= LANDSCAPE CR80 (85.6mm × 54mm) ================= */
+  const renderLandscapeFront = () => (
     <div
-      className={`relative w-[320px] h-[508px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none print:shadow-none print:border print:m-0`}
+      className="relative w-[508px] h-[320px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none cr80-landscape-card print:shadow-none print:border print:m-0"
       style={{
         borderColor: currentTheme.borderColor,
       }}
     >
-      {/* Top Lanyard Slot Guide / Hole simulation (punch cutout visual) */}
-      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-gray-200/80 border border-gray-300 z-30" />
-
-      {/* Decorative Guilloche / Geometry background overlay */}
+      {/* Decorative Guilloche background */}
       <div className="absolute inset-0 opacity-[0.035] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px]" />
 
-      {/* 1. INSTITUTIONAL BANNER HEADER */}
+      {/* Subtle School Logo Watermark */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="w-56 h-56 object-contain opacity-[0.05] grayscale contrast-125"
+          />
+        ) : (
+          <div className="w-52 h-52 rounded-full border-4 border-gray-300 flex items-center justify-center font-black text-gray-400 text-7xl opacity-[0.06]">
+            {schoolNameEn.charAt(0)}
+          </div>
+        )}
+      </div>
+
+      {/* Header */}
+      <div
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-2.5 pb-2 px-3 text-center relative overflow-hidden`}
+      >
+        <div className="flex items-center justify-between gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-full bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-amber-300">
+            {logo ? (
+              <img
+                src={logo}
+                alt="Logo"
+                className="w-full h-full object-contain rounded-full"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-emerald-800 text-amber-200 font-black text-xs flex items-center justify-center">
+                {schoolNameEn.slice(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 text-left min-w-0">
+            <h2 className="text-[12px] font-black leading-tight tracking-tight drop-shadow-sm line-clamp-1">
+              {schoolNameBn}
+            </h2>
+            <h1 className="text-[10.5px] font-extrabold uppercase tracking-wide opacity-95 leading-tight line-clamp-1">
+              {schoolNameEn}
+            </h1>
+            <p className="text-[8px] opacity-85 font-medium mt-0.5 line-clamp-1">
+              EIIN: <span className="font-bold">{eiin}</span> • CODE: <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
+            </p>
+          </div>
+
+          <div className="shrink-0 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 py-1 px-2.5 rounded-lg text-center shadow-xs border border-red-400/50">
+            <div className="text-[9.5px] font-black tracking-wider uppercase text-white drop-shadow-xs">
+              {cardTitleEn}
+            </div>
+            <div className="text-[8px] font-bold text-amber-200">
+              {cardTitleBn}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 px-3 py-1.5 flex items-stretch gap-3 relative z-10">
+        <div className="w-24 shrink-0 flex flex-col items-center justify-between">
+          <div className="relative mt-0.5">
+            <div className="w-20 h-24 rounded-xl overflow-hidden p-0.5 bg-gradient-to-b from-amber-400 via-gray-200 to-emerald-600 shadow-md border">
+              <img
+                src={avatarUrl}
+                alt={fullName}
+                className="w-full h-full object-cover rounded-lg bg-gray-100"
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-red-600 to-rose-700 text-white px-1.5 py-0.5 rounded-full text-[8.5px] font-black shadow-md flex items-center gap-0.5 border border-white">
+              <Droplet size={8} className="fill-white" />
+              <span>{bloodType}</span>
+            </div>
+          </div>
+
+          <div className="text-center w-full mt-1">
+            <div className="h-4 flex items-end justify-center">
+              <span className="font-serif italic text-[10px] text-gray-600 tracking-wider line-clamp-1">
+                {staff.name || "Holder"}
+              </span>
+            </div>
+            <div className="border-t border-gray-400 mt-0.5 pt-0.5">
+              <p className="text-[7px] font-bold text-gray-500 uppercase leading-none">
+                কার্ডধারীর স্বাক্ষর
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[14px] font-black text-gray-900 tracking-tight leading-snug truncate">
+                {fullName}
+              </h3>
+              <div className="shrink-0 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9.5px] font-bold">
+                {designation}
+              </div>
+            </div>
+
+            <div className="mt-1.5 bg-gray-50/80 rounded-xl p-2 border border-gray-100 text-[9.5px] grid grid-cols-2 gap-x-2 gap-y-1">
+              <div>
+                <span className="text-gray-500 font-semibold block text-[8px]">Staff / Faculty ID:</span>
+                <span className="font-mono font-black text-gray-900 bg-white px-1.5 py-0.2 rounded border border-gray-200 inline-block">
+                  {staffId}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-semibold block text-[8px]">Department:</span>
+                <span className="font-bold text-gray-800 truncate block">
+                  {department}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-semibold block text-[8px]">Contact No:</span>
+                <span className="font-mono font-bold text-gray-800 block">
+                  {staff.phone || phone}
+                </span>
+              </div>
+              <div>
+                <span className="text-emerald-700 font-bold block text-[8px]">Validity / সেশন:</span>
+                <span className="font-bold text-emerald-800 block">{validityYear}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-end justify-end mt-1">
+            <div className="text-center w-28 relative">
+              {showStamp ? (
+                <div className="h-7 flex items-center justify-center -mb-1">
+                  <AuthoritySealStamp
+                    schoolName={schoolNameEn}
+                    inkColor={currentTheme.stampInk}
+                  />
+                </div>
+              ) : (
+                <div className="h-7" />
+              )}
+              <div className="border-t border-gray-400 mt-0.5 pt-0.5">
+                <p className="text-[7.5px] font-black text-emerald-900 uppercase leading-none">
+                  অধ্যক্ষ / প্রধান শিক্ষক
+                </p>
+                <p className="text-[6.5px] text-gray-500 uppercase leading-none">
+                  Principal / Headmaster
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
+      >
+        <span className="truncate max-w-[280px]">{address}</span>
+        <span className="font-mono text-amber-200">CR80 (85.6mm × 54mm) • ID: {staffId}</span>
+      </div>
+    </div>
+  );
+
+  const renderLandscapeBack = () => (
+    <div
+      className="relative w-[508px] h-[320px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none cr80-landscape-card print:shadow-none print:border print:m-0"
+      style={{
+        borderColor: currentTheme.borderColor,
+      }}
+    >
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="w-56 h-56 object-contain opacity-[0.06] grayscale contrast-125"
+          />
+        ) : (
+          <div className="w-52 h-52 rounded-full border-4 border-gray-300 flex items-center justify-center font-black text-gray-400 text-7xl opacity-[0.06]">
+            {schoolNameEn.charAt(0)}
+          </div>
+        )}
+      </div>
+
+      <div
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white py-2 px-3 text-center relative`}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[8.5px] font-bold tracking-widest uppercase text-amber-200">
+            গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
+          </p>
+          <h3 className="text-[11px] font-black uppercase tracking-tight line-clamp-1">
+            {schoolNameEn}
+          </h3>
+        </div>
+      </div>
+
+      <div className="flex-1 px-3 py-1.5 grid grid-cols-12 gap-3 relative z-10 text-[9px] items-center">
+        <div className="col-span-7 bg-emerald-50/70 border border-emerald-200 rounded-xl p-2 space-y-1 text-gray-700">
+          <div className="flex items-center gap-1 text-emerald-900 font-extrabold text-[9.5px] pb-0.5 border-b border-emerald-200/60">
+            <CheckCircle2 size={11} className="text-emerald-700" />
+            <span>নির্দেশনাবলী ও জরুরি তথ্যাবলী (Terms & Info)</span>
+          </div>
+          <ol className="list-decimal pl-3 space-y-0.5 text-[8px] leading-tight text-gray-700 font-medium">
+            <li>পরিচয়পত্রটি প্রতিষ্ঠানের সম্পত্তি। দায়িত্ব পালনকালে সর্বদা বহন করতে হবে।</li>
+            <li>কার্ডটি অহস্তান্তরযোগ্য। অন্য কাউকে ব্যবহারের অনুমতি নিষিদ্ধ।</li>
+            <li>হারিয়ে গেলে সাথে সাথে বিদ্যালয় প্রশাসনকে লিখিতভাবে জানাতে হবে।</li>
+            <li>কার্ডটি পাওয়া গেলে নিকটস্থ ডাকবাক্সে বা নিচের ঠিকানায় ফেরত দিন।</li>
+          </ol>
+          <div className="pt-1 border-t border-emerald-200/50 text-[7.5px] text-gray-600 space-y-0.5">
+            <div className="flex items-center gap-1 font-bold text-gray-800">
+              <MapPin size={8} className="text-emerald-700 shrink-0" />
+              <span className="truncate">{address}</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-500">
+              <span>{phone}</span>
+              <span>•</span>
+              <span>{email}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-span-5 flex flex-col items-center justify-between gap-1.5">
+          <div className="w-full bg-gray-50 border border-gray-200 rounded-xl p-1.5 flex items-center justify-between gap-2">
+            <div className="space-y-0.5 text-left min-w-0">
+              <div className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded bg-emerald-600 text-white text-[7px] font-black uppercase">
+                <QrCode size={8} />
+                <span>SMART ID</span>
+              </div>
+              <p className="text-[7px] text-gray-500 font-mono mt-0.5">
+                Valid: {validityYear}
+              </p>
+            </div>
+            <StaffQrCodeSvg data={qrData} size={54} />
+          </div>
+
+          <div className="w-full bg-white border border-gray-200 rounded-xl p-1 text-center shadow-xs">
+            <StaffBarcodeSvg value={staffId} className="w-full h-5 mx-auto" />
+            <p className="text-[7.5px] font-mono font-black text-gray-700 tracking-wider">
+              *{staffId}*
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white text-center text-[7.5px] font-bold tracking-wider`}
+      >
+        <span>PROPERTY OF {schoolNameEn.toUpperCase()} • CR80 (85.6mm × 54mm) • NON-TRANSFERABLE</span>
+      </div>
+    </div>
+  );
+
+  /* ================= PORTRAIT CR80 (54mm × 85.6mm) ================= */
+  const renderPortraitFront = () => (
+    <div
+      className="relative w-[320px] h-[508px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none cr80-portrait-card print:shadow-none print:border print:m-0"
+      style={{
+        borderColor: currentTheme.borderColor,
+      }}
+    >
+      <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-gray-200/80 border border-gray-300 z-30" />
+      <div className="absolute inset-0 opacity-[0.035] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px]" />
+
+      <div className="absolute -right-3 -top-3 w-24 h-24 opacity-15 pointer-events-none flex items-center justify-center overflow-hidden">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="w-full h-full object-contain filter brightness-200 contrast-125 select-none"
+          />
+        ) : (
+          <div className="w-20 h-20 rounded-full border-2 border-white/40 flex items-center justify-center font-black text-white text-2xl">
+            {schoolNameEn.charAt(0)}
+          </div>
+        )}
+      </div>
+
       <div
         className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-4 pb-2 px-3 text-center relative overflow-hidden`}
       >
-        {/* Background Bangladesh Emblem Watermark */}
-        <div className="absolute -right-4 -top-4 opacity-15 pointer-events-none">
-          <BangladeshGovtEmblem size={90} />
-        </div>
-
         <div className="flex items-center justify-between gap-2 relative z-10">
-          {/* School Logo / Govt Emblem */}
           <div className="w-11 h-11 rounded-full bg-white p-0.5 shadow-md flex items-center justify-center shrink-0 border border-amber-300">
             {logo ? (
               <img
@@ -417,11 +644,12 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
                 }}
               />
             ) : (
-              <BangladeshGovtEmblem size={38} />
+              <div className="w-full h-full rounded-full bg-emerald-800 text-amber-200 font-black text-xs flex items-center justify-center">
+                {schoolNameEn.slice(0, 2).toUpperCase()}
+              </div>
             )}
           </div>
 
-          {/* School Name & Credentials */}
           <div className="flex-1 text-center min-w-0">
             <h2 className="text-[12px] font-black leading-tight tracking-tight drop-shadow-sm line-clamp-1">
               {schoolNameBn}
@@ -434,14 +662,8 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
               <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
             </p>
           </div>
-
-          {/* Govt Monogram / Right Crest */}
-          {/*           <div className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-xs flex items-center justify-center shrink-0 border border-white/20">
-            <BangladeshGovtEmblem size={28} />
-          </div> */}
         </div>
 
-        {/* Ribbon Banner: TEACHER / STAFF IDENTITY CARD */}
         <div className="mt-2 -mx-3 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 py-0.5 px-2 flex items-center justify-center gap-1.5 shadow-xs border-y border-red-400/50">
           <span className="text-[10px] font-black tracking-wider uppercase text-white drop-shadow-xs">
             {cardTitleEn}
@@ -452,9 +674,21 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
         </div>
       </div>
 
-      {/* 2. BODY / PHOTO & DETAILS */}
+      <div className="absolute inset-x-0 bottom-10 top-24 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="w-48 h-48 object-contain opacity-[0.05] grayscale contrast-125"
+          />
+        ) : (
+          <div className="w-44 h-44 rounded-full border-4 border-gray-300 flex items-center justify-center font-black text-gray-400 text-6xl opacity-[0.06]">
+            {schoolNameEn.charAt(0)}
+          </div>
+        )}
+      </div>
+
       <div className="flex-1 px-4 py-2 flex flex-col items-center justify-between relative z-10">
-        {/* Photo Box with Holographic Border */}
         <div className="relative mt-0.5">
           <div
             className="w-24 h-28 rounded-xl overflow-hidden p-1 bg-gradient-to-b from-amber-400 via-gray-200 to-emerald-600 shadow-md border"
@@ -466,22 +700,12 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
             />
           </div>
 
-          {/* Blood Group Badge attached to Photo Corner */}
           <div className="absolute -bottom-1 -right-2 bg-gradient-to-r from-red-600 to-rose-700 text-white px-2 py-0.5 rounded-full text-[9px] font-black shadow-md flex items-center gap-0.5 border border-white">
             <Droplet size={9} className="fill-white" />
             <span>{bloodType}</span>
           </div>
-
-          {/* Security Hologram Sticker Simulation */}
-          <div
-            title="Official Security Hologram"
-            className="absolute -top-1 -left-2 w-6 h-6 rounded-full bg-gradient-to-tr from-amber-300 via-emerald-300 to-cyan-300 border border-white shadow-sm flex items-center justify-center text-[7px] font-bold text-emerald-950 animate-pulse"
-          >
-            <Sparkles size={9} className="text-amber-800" />
-          </div>
         </div>
 
-        {/* Staff Name & Designation Header */}
         <div className="text-center mt-1 w-full">
           <h3 className="text-[14px] font-black text-gray-900 tracking-tight leading-snug line-clamp-1">
             {fullName}
@@ -491,7 +715,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
           </div>
         </div>
 
-        {/* Information Table (Structured Key-Values) */}
         <div className="w-full mt-2 bg-gray-50/80 rounded-xl p-2 border border-gray-100 text-[10px] space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-gray-500 font-semibold">Staff / Faculty ID:</span>
@@ -527,9 +750,7 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
           </div>
         </div>
 
-        {/* Dual Signatures Section */}
         <div className="w-full mt-1.5 pt-1.5 flex items-end justify-between px-1">
-          {/* Cardholder Signature */}
           <div className="text-center w-24">
             <div className="h-6 flex items-end justify-center">
               <span className="font-serif italic text-[11px] text-gray-600 tracking-wider">
@@ -546,7 +767,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
             </div>
           </div>
 
-          {/* Principal / Issuing Authority Official Stamp */}
           <div className="text-center w-28 relative">
             {showStamp ? (
               <div className="h-8 flex items-center justify-center -mb-1">
@@ -570,33 +790,38 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
         </div>
       </div>
 
-      {/* 3. BOTTOM FOOTER ACCENT STRIP */}
       <div
         className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
       >
         <span className="truncate max-w-[180px]">{address}</span>
-        <span className="font-mono text-amber-200">ID: {staffId}</span>
+        <span className="font-mono text-amber-200">CR80 (54mm × 85.6mm) • ID: {staffId}</span>
       </div>
     </div>
   );
 
-  /* ================= BACK SIDE ================= */
-  const renderBack = () => (
+  const renderPortraitBack = () => (
     <div
-      className={`relative w-[320px] h-[508px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none print:shadow-none print:border print:m-0`}
+      className="relative w-[320px] h-[508px] rounded-2xl overflow-hidden bg-white text-gray-800 shadow-xl border-2 flex flex-col justify-between select-none cr80-portrait-card print:shadow-none print:border print:m-0"
       style={{
         borderColor: currentTheme.borderColor,
       }}
     >
-      {/* Top Lanyard Punch Slot Guide */}
       <div className="absolute top-1.5 left-1/2 -translate-x-1/2 w-10 h-1.5 rounded-full bg-gray-200/80 border border-gray-300 z-30" />
 
-      {/* Subtle Background Bangladesh Emblem Watermark */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-        <BangladeshGovtEmblem size={220} />
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none">
+        {logo ? (
+          <img
+            src={logo}
+            alt=""
+            className="w-56 h-56 object-contain opacity-[0.07] grayscale contrast-125"
+          />
+        ) : (
+          <div className="w-52 h-52 rounded-full border-4 border-gray-300 flex items-center justify-center font-black text-gray-400 text-7xl opacity-[0.08]">
+            {schoolNameEn.charAt(0)}
+          </div>
+        )}
       </div>
 
-      {/* 1. BACK HEADER */}
       <div
         className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-4 pb-2 px-3 text-center relative`}
       >
@@ -609,10 +834,10 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
         <p className="text-[8px] opacity-90 line-clamp-1">{schoolNameBn}</p>
       </div>
 
-      {/* 2. TERMS & REGULATIONS (নির্দেশনাবলী) */}
       <div className="flex-1 px-4 py-2 flex flex-col justify-between relative z-10 text-[9px] space-y-2">
         <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-2.5 space-y-1.5 text-gray-700">
           <div className="flex items-center gap-1 text-emerald-900 font-extrabold text-[10px] pb-1 border-b border-emerald-200/60">
+            <CheckCircle2 size={12} className="text-emerald-700" />
             <span>নির্দেশনাবলী ও জরুরি তথ্যাবলী (Terms & Info)</span>
           </div>
 
@@ -632,7 +857,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
           </ol>
         </div>
 
-        {/* QR Code & Digital Verification block */}
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-2 flex items-center justify-between gap-2">
           <div className="space-y-0.5 text-left flex-1 min-w-0">
             <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[7.5px] font-black uppercase tracking-wider">
@@ -650,11 +874,9 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
             </p>
           </div>
 
-          {/* Scannable SVG QR Code */}
           <StaffQrCodeSvg data={qrData} size={68} />
         </div>
 
-        {/* Barcode Graphic with Monospace Staff ID */}
         <div className="bg-white border border-gray-200 rounded-xl p-1.5 text-center shadow-xs">
           <StaffBarcodeSvg value={staffId} className="w-full h-7 mx-auto" />
           <p className="text-[8px] font-mono font-black text-gray-700 tracking-widest mt-0.5">
@@ -662,7 +884,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
           </p>
         </div>
 
-        {/* Campus Address & Contacts */}
         <div className="text-center space-y-0.5 text-[8px] text-gray-600 pt-1 border-t border-gray-100">
           <div className="flex items-center justify-center gap-1 font-bold text-gray-800">
             <MapPin size={9} className="text-emerald-700 shrink-0" />
@@ -680,21 +901,23 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
         </div>
       </div>
 
-      {/* 3. BACK FOOTER STRIP */}
       <div
         className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white text-center text-[7.5px] font-bold tracking-wider`}
       >
-        <span>PROPERTY OF {schoolNameEn.toUpperCase()} • NON-TRANSFERABLE</span>
+        <span>PROPERTY OF {schoolNameEn.toUpperCase()} • CR80 (54mm × 85.6mm) • NON-TRANSFERABLE</span>
       </div>
     </div>
   );
 
   return (
     <div className={`staff-id-card-root ${isPrintVersion ? "print-exact-card" : ""}`}>
-      {side === "front" ? renderFront() : renderBack()}
+      {orientation === "landscape" ? (
+        side === "front" ? renderLandscapeFront() : renderLandscapeBack()
+      ) : (
+        side === "front" ? renderPortraitFront() : renderPortraitBack()
+      )}
     </div>
   );
 };
 
 export default StaffIdCard;
-
