@@ -38,6 +38,7 @@ import {
   openSubmittedAdmissionPrintWindow,
   SubmittedAdmissionFormData,
 } from "@/lib/admissionPdfGenerator";
+import { AdmissionFeeApprovalModal } from "@/components/admissions/AdmissionFeeApprovalModal";
 
 export interface AdmissionItem {
   id: number;
@@ -172,6 +173,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   const [editItem, setEditItem] = useState<AdmissionItem | null>(null);
   const [detailsItem, setDetailsItem] = useState<AdmissionItem | null>(null);
   const [deleteConfirmItem, setDeleteConfirmItem] = useState<AdmissionItem | null>(null);
+  const [approvalModalItem, setApprovalModalItem] = useState<AdmissionItem | null>(null);
 
   // Form State
   const [formData, setFormData] = useState(emptyAdmissionForm);
@@ -1053,9 +1055,9 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                       {item.status === "PENDING" && (
                         <button
                           type="button"
-                          onClick={() => void handleStatusChange(item, "APPROVED")}
+                          onClick={() => setApprovalModalItem(item)}
                           disabled={changingStatusId === item.id}
-                          title="Approve & Enroll Student"
+                          title="Approve & Collect Admission Fee"
                           className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 text-[11px] font-semibold shadow-sm transition disabled:opacity-50"
                         >
                           <UserCheck size={13} />
@@ -2007,7 +2009,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
                   <button
                     type="button"
                     disabled={changingStatusId === detailsItem.id}
-                    onClick={() => void handleStatusChange(detailsItem, "APPROVED")}
+                    onClick={() => setApprovalModalItem(detailsItem)}
                     className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 text-xs font-semibold shadow-sm transition disabled:opacity-50"
                   >
                     <UserCheck size={13} /> Approve &amp; Enroll
@@ -2115,6 +2117,21 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
             </div>
           </div>
         </div>
+      )}
+
+      {/* Admission Fee & Approval Modal */}
+      {approvalModalItem && (
+        <AdmissionFeeApprovalModal
+          admission={approvalModalItem}
+          onClose={() => setApprovalModalItem(null)}
+          onApproved={async (updated) => {
+            showToast(`Application for ${updated.first_name} ${updated.last_name} approved.`);
+            if (detailsItem?.id === updated.id) {
+              setDetailsItem(updated);
+            }
+            await loadAdmissions(true);
+          }}
+        />
       )}
     </section>
   );

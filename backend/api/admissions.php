@@ -775,9 +775,87 @@ function updateAdmission($db, $id) {
         }
     }
 
+    // Optional: Record admission fee from Fees directory if fee payload provided upon approval
+    $feeReceipt = null;
+    $enrolledStudentId = $data['enrolled_student_id'] ?? $existing['enrolled_student_id'];
+    if ($currentStatus === 'APPROVED' && !empty($enrolledStudentId) && !empty($input['admission_fee'])) {
+        try {
+            $feeData = is_array($input['admission_fee']) ? $input['admission_fee'] : json_decode($input['admission_fee'], true);
+            if ($feeData) {
+                $catId = intval($feeData['fee_category_id'] ?? 0);
+                $amount = floatval($feeData['amount'] ?? 0);
+                $discount = floatval($feeData['discount'] ?? 0);
+                $paidNow = floatval($feeData['paid_now'] ?? 0);
+                $method = $feeData['payment_method'] ?? 'CASH';
+                $trxRef = trim($feeData['transaction_ref'] ?? '');
+                $feeNotes = trim($feeData['notes'] ?? 'Admission fee upon enrollment approval');
+                $academicYear = trim($feeData['academic_year'] ?? '2026-2027');
+
+                if (!$catId) {
+                    $admCat = $db->fetchOne("SELECT id, name FROM fee_categories WHERE code = 'ADMS' OR name LIKE '%Admission%' LIMIT 1");
+                    $catId = $admCat ? intval($admCat['id']) : 2;
+                }
+                $catRow = $db->fetchOne("SELECT name FROM fee_categories WHERE id = ?", [$catId]);
+                $catTitle = ($catRow['name'] ?? 'Admission / Enrollment Fee') . ' - ' . date('Y');
+
+                $invCount = $db->fetchOne("SELECT COUNT(*) as total FROM fee_invoices")['total'] ?? 0;
+                $invoiceNo = sprintf('INV-%s-%04d', date('Y'), intval($invCount) + 1);
+                $netAmount = max(0, $amount - $discount);
+                $status = ($paidNow >= $netAmount) ? 'PAID' : (($paidNow > 0) ? 'PARTIAL' : 'UNPAID');
+
+                $invId = $db->insert('fee_invoices', [
+                    'invoice_no' => $invoiceNo,
+                    'student_id' => $enrolledStudentId,
+                    'fee_category_id' => $catId,
+                    'title' => $catTitle,
+                    'due_date' => date('Y-m-d'),
+                    'amount' => $amount,
+                    'discount' => $discount,
+                    'paid_amount' => min($paidNow, $netAmount),
+                    'status' => $status,
+                    'academic_year' => $academicYear,
+                    'notes' => $feeNotes
+                ]);
+
+                $receiptNo = null;
+                if ($paidNow > 0) {
+                    $pCount = $db->fetchOne("SELECT COUNT(*) as total FROM fee_payments")['total'] ?? 0;
+                    $receiptNo = sprintf('REC-%s-%04d', date('Y'), intval($pCount) + 1);
+                    $db->insert('fee_payments', [
+                        'receipt_no' => $receiptNo,
+                        'invoice_id' => $invId,
+                        'student_id' => $enrolledStudentId,
+                        'amount' => min($paidNow, $netAmount),
+                        'payment_method' => $method,
+                        'transaction_ref' => $trxRef ?: ('ADM-' . strtoupper(substr(md5($invoiceNo), 0, 6))),
+                        'payment_date' => date('Y-m-d'),
+                        'notes' => 'Admission registration fee payment'
+                    ]);
+                }
+
+                $feeReceipt = [
+                    'invoice_id' => $invId,
+                    'invoice_no' => $invoiceNo,
+                    'receipt_no' => $receiptNo,
+                    'amount' => $amount,
+                    'discount' => $discount,
+                    'net_amount' => $netAmount,
+                    'paid_amount' => $paidNow,
+                    'status' => $status,
+                    'payment_method' => $method
+                ];
+            }
+        } catch (Exception $feeErr) {
+            error_log('Error generating admission fee invoice: ' . $feeErr->getMessage());
+        }
+    }
+
     try {
         $db->update('admissions', $data, 'id = ?', [$id]);
         $updated = $db->fetchOne("SELECT a.*, COALESCE(NULLIF(a.roll, ''), s.roll) as roll, COALESCE(a.username, s.username) as username, COALESCE(a.img, s.img) as img, COALESCE(NULLIF(a.student_type, ''), s.student_type) as student_type, COALESCE(NULLIF(a.version, ''), s.version, 'Bangla') as version, c.name as class_name, g.level as grade_level, p.name as linked_parent_name, p.surname as linked_parent_surname FROM admissions a LEFT JOIN classes c ON a.class_id = c.id LEFT JOIN grades g ON a.grade_id = g.id LEFT JOIN parents p ON a.parent_id = p.id LEFT JOIN students s ON a.enrolled_student_id = s.id WHERE a.id = ?", [$id]);
+        if ($feeReceipt && $updated) {
+            $updated['fee_receipt'] = $feeReceipt;
+        }
         Response::success('Admission updated successfully', $updated);
     } catch (Exception $e) {
         Response::error('Failed to update admission: ' . $e->getMessage());
