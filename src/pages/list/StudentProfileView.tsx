@@ -8,6 +8,8 @@ import FormModal from "@/components/FormModal";
 import { useAccessRole } from "@/context/AuthContext";
 import ResultSheetModal from "@/components/results/ResultSheetModal";
 import StudentIdCardModal from "@/components/students/StudentIdCardModal";
+import StudentFeesView from "@/components/fees/StudentFeesView";
+import { FeeInvoice } from "@/types/fees";
 
 const localizer = momentLocalizer(moment);
 
@@ -77,6 +79,18 @@ export interface StudentProfileDetails {
   exams: { id: number | string; title: string; start_time: string; lesson_name?: string | null; subject_name?: string | null }[];
   assignments: { id: number | string; title: string; due_date: string; lesson_name?: string | null; subject_name?: string | null }[];
   announcements: { id: number | string; title: string; description?: string | null; date: string; class_name?: string | null }[];
+  fees?: FeeInvoice[];
+  fee_summary?: {
+    total_billed: number;
+    total_paid: number;
+    total_due: number;
+    upcoming_due: number;
+    overdue_due?: number;
+    total_invoices?: number;
+    paid_count?: number;
+    due_count?: number;
+    upcoming_count?: number;
+  };
 }
 
 interface StudentProfileViewProps {
@@ -143,6 +157,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   })), [details.lessons]);
 
   const shortcuts = [
+    { href: "#student-fees", label: "Student's Fees", style: "bg-emerald-100 text-emerald-950 font-bold hover:bg-emerald-200" },
     { href: "#student-lessons", label: "Student's Lessons", style: "bg-sky-100 text-sky-900 hover:bg-sky-200" },
     { href: "#student-teachers", label: "Student's Teachers", style: "bg-rose-100 text-rose-900 hover:bg-rose-200" },
     { href: "#student-exams", label: "Student's Exams", style: "bg-amber-100 text-amber-900 hover:bg-amber-200" },
@@ -295,6 +310,17 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
           </div>
         </section>
       )}
+
+      {/* ── Student's Fees & Invoices ── */}
+      <div id="student-fees">
+        <StudentFeesView
+          studentId={student.id}
+          initialFees={details.fees}
+          initialSummary={details.fee_summary}
+          title={`${fullName}'s Fees & Payment Record`}
+          subtitle="View paid vouchers, outstanding balances, and upcoming scheduled term fees"
+        />
+      </div>
 
       <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <section id="student-lessons" className="min-w-0 rounded-md border border-gray-100 bg-white p-4 shadow-sm">

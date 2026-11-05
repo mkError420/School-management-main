@@ -16,6 +16,7 @@ import {
 import BigCalendar from "@/components/BigCalendar";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
+import StudentFeesView from "@/components/fees/StudentFeesView";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { api } from "@/lib/api";
@@ -317,6 +318,17 @@ const ParentDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── Children Fees & Payment Summary ───────────────────────────── */}
+      <StudentFeesView
+        parentId={user?.id}
+        initialFees={(data as any)?.fees}
+        initialSummary={(data as any)?.fee_summary}
+        childrenStudents={data?.children}
+        showStudentColumn={true}
+        title="Children's Fee Invoices & Payment Record"
+        subtitle="Consolidated fees across all enrolled children — track paid, due, and upcoming term fees"
+      />
 
       {/* ─── Schedule & Announcements ──────────────────────────────────── */}
       <div className="flex flex-col xl:flex-row gap-6">

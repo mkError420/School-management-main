@@ -261,7 +261,64 @@ function getStudent($db, $id) {
          LIMIT 5",
         [$classId]
     );
-    
+
+    // Get student's fee invoices & payment summary
+    $fees = [];
+    $feeSummary = [
+        'total_billed' => 0.0,
+        'total_paid' => 0.0,
+        'total_due' => 0.0,
+        'upcoming_due' => 0.0,
+        'overdue_due' => 0.0,
+        'total_invoices' => 0,
+        'paid_count' => 0,
+        'due_count' => 0,
+        'upcoming_count' => 0,
+    ];
+    try {
+        $today = date('Y-m-d');
+        // Auto update overdue
+        $db->query("UPDATE fee_invoices SET status = 'OVERDUE' WHERE due_date < ? AND status = 'UNPAID'", [$today]);
+
+        $feeRows = $db->fetchAll(
+            "SELECT fi.*, 
+                    fc.name as category_name, fc.code as category_code,
+                    (fi.amount - fi.discount) as net_amount,
+                    ((fi.amount - fi.discount) - fi.paid_amount) as due_amount
+             FROM fee_invoices fi
+             JOIN fee_categories fc ON fi.fee_category_id = fc.id
+             WHERE fi.student_id = ?
+             ORDER BY fi.due_date DESC, fi.id DESC",
+            [$id]
+        );
+
+        foreach ($feeRows as &$inv) {
+            $inv['amount'] = floatval($inv['amount']);
+            $inv['discount'] = floatval($inv['discount']);
+            $inv['paid_amount'] = floatval($inv['paid_amount']);
+            $inv['net_amount'] = floatval($inv['net_amount']);
+            $inv['due_amount'] = max(0, floatval($inv['due_amount']));
+
+            $feeSummary['total_billed'] += $inv['net_amount'];
+            $feeSummary['total_paid'] += $inv['paid_amount'];
+            $feeSummary['total_due'] += $inv['due_amount'];
+            $feeSummary['total_invoices']++;
+
+            if ($inv['status'] === 'PAID') {
+                $feeSummary['paid_count']++;
+            } elseif ($inv['due_amount'] > 0) {
+                $feeSummary['due_count']++;
+                if ($inv['due_date'] >= $today) {
+                    $feeSummary['upcoming_due'] += $inv['due_amount'];
+                    $feeSummary['upcoming_count']++;
+                } else {
+                    $feeSummary['overdue_due'] += $inv['due_amount'];
+                }
+            }
+        }
+        $fees = $feeRows;
+    } catch (Exception $e) {}
+
     Response::success('Student retrieved successfully', [
         'student' => $student,
         'attendance' => $attendance,
@@ -270,7 +327,9 @@ function getStudent($db, $id) {
         'teachers' => $teachers,
         'exams' => $exams,
         'assignments' => $assignments,
-        'announcements' => $announcements
+        'announcements' => $announcements,
+        'fees' => $fees,
+        'fee_summary' => $feeSummary
     ]);
 }
 

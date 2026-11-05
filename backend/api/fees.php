@@ -221,9 +221,14 @@ function seedSampleFeesData($db) {
 }
 
 function handleGet($db, $action, $id) {
-    $user = AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
+    $user = AuthMiddleware::requireAnyRole(['admin', 'super_admin', 'teacher', 'student', 'parent']);
 
     if ($action === 'stats') {
+        if (!in_array($user['role'], ['admin', 'super_admin', 'teacher'])) {
+            // Student or parent requesting stats: return their own summary
+            getInvoices($db, $user);
+            return;
+        }
         getStats($db);
         return;
     }
@@ -234,21 +239,21 @@ function handleGet($db, $action, $id) {
     }
 
     if ($action === 'payments') {
-        getPayments($db);
+        getPayments($db, $user);
         return;
     }
 
     if ($action === 'receipt') {
-        getReceipt($db, $id);
+        getReceipt($db, $id, $user);
         return;
     }
 
     if ($id) {
-        getSingleInvoice($db, $id);
+        getSingleInvoice($db, $id, $user);
         return;
     }
 
-    getInvoices($db);
+    getInvoices($db, $user);
 }
 
 function getStats($db) {
@@ -330,20 +335,34 @@ function getCategories($db) {
     ]);
 }
 
-function getInvoices($db) {
+function getInvoices($db, $user = null) {
+    // Automatically update overdue status for any unpaid invoices past due date
+    $today = date('Y-m-d');
+    $db->query("UPDATE fee_invoices SET status = 'OVERDUE' WHERE due_date < ? AND status = 'UNPAID'", [$today]);
+
     $page = intval($_GET['page'] ?? 1);
     $limit = intval($_GET['limit'] ?? 10);
     $search = trim($_GET['search'] ?? '');
     $status = trim($_GET['status'] ?? '');
+    $scope = strtoupper(trim($_GET['scope'] ?? ''));
     $categoryId = trim($_GET['category_id'] ?? '');
     $classId = trim($_GET['class_id'] ?? '');
     $studentId = trim($_GET['student_id'] ?? '');
+    $parentId = trim($_GET['parent_id'] ?? '');
+
+    // Role-based restrictions
+    if ($user && $user['role'] === 'student') {
+        $studentId = $user['user_id'];
+    } elseif ($user && $user['role'] === 'parent') {
+        $parentId = $user['user_id'];
+    }
 
     $offset = ($page - 1) * $limit;
 
     $sql = "SELECT fi.*, 
                    s.name as student_name, 
                    s.surname as student_surname, 
+                   s.roll as student_roll,
                    s.email as student_email, 
                    s.phone as student_phone,
                    s.img as student_img,
@@ -362,8 +381,9 @@ function getInvoices($db) {
     $params = [];
 
     if (!empty($search)) {
-        $sql .= " AND (fi.invoice_no LIKE ? OR s.name LIKE ? OR s.surname LIKE ? OR s.id LIKE ? OR fi.title LIKE ?)";
+        $sql .= " AND (fi.invoice_no LIKE ? OR s.name LIKE ? OR s.surname LIKE ? OR s.id LIKE ? OR fi.title LIKE ? OR fc.name LIKE ?)";
         $term = "%{$search}%";
+        $params[] = $term;
         $params[] = $term;
         $params[] = $term;
         $params[] = $term;
@@ -374,6 +394,19 @@ function getInvoices($db) {
     if (!empty($status) && $status !== 'ALL') {
         $sql .= " AND fi.status = ?";
         $params[] = $status;
+    }
+
+    if (!empty($scope)) {
+        if ($scope === 'PAID') {
+            $sql .= " AND fi.status = 'PAID'";
+        } elseif ($scope === 'DUE') {
+            $sql .= " AND ((fi.amount - fi.discount) - fi.paid_amount) > 0";
+        } elseif ($scope === 'UPCOMING') {
+            $sql .= " AND fi.due_date >= ? AND fi.status IN ('UNPAID', 'PARTIAL')";
+            $params[] = $today;
+        } elseif ($scope === 'OVERDUE') {
+            $sql .= " AND fi.status = 'OVERDUE'";
+        }
     }
 
     if (!empty($categoryId)) {
@@ -391,10 +424,55 @@ function getInvoices($db) {
         $params[] = $studentId;
     }
 
+    if (!empty($parentId)) {
+        $sql .= " AND s.parent_id = ?";
+        $params[] = $parentId;
+    }
+
     // Count total query
     $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
     $totalRow = $db->fetchOne($countSql, $params);
     $total = intval($totalRow['total'] ?? 0);
+
+    // Summary calculation for this student / parent / filtered subset
+    $sumBaseSql = "SELECT 
+        COALESCE(SUM(fi.amount - fi.discount), 0) as total_billed,
+        COALESCE(SUM(fi.paid_amount), 0) as total_paid,
+        COALESCE(SUM(CASE WHEN (fi.amount - fi.discount - fi.paid_amount) > 0 THEN (fi.amount - fi.discount - fi.paid_amount) ELSE 0 END), 0) as total_due,
+        COALESCE(SUM(CASE WHEN fi.due_date >= ? AND (fi.amount - fi.discount - fi.paid_amount) > 0 THEN (fi.amount - fi.discount - fi.paid_amount) ELSE 0 END), 0) as upcoming_due,
+        COALESCE(SUM(CASE WHEN (fi.status = 'OVERDUE' OR fi.due_date < ?) AND (fi.amount - fi.discount - fi.paid_amount) > 0 THEN (fi.amount - fi.discount - fi.paid_amount) ELSE 0 END), 0) as overdue_due,
+        COUNT(*) as total_invoices,
+        SUM(CASE WHEN fi.status = 'PAID' THEN 1 ELSE 0 END) as paid_count,
+        SUM(CASE WHEN (fi.amount - fi.discount - fi.paid_amount) > 0 THEN 1 ELSE 0 END) as due_count,
+        SUM(CASE WHEN fi.due_date >= ? AND (fi.amount - fi.discount - fi.paid_amount) > 0 THEN 1 ELSE 0 END) as upcoming_count
+    FROM fee_invoices fi
+    JOIN students s ON fi.student_id = s.id
+    WHERE 1=1";
+    $sumParams = [$today, $today, $today];
+    if (!empty($studentId)) {
+        $sumBaseSql .= " AND fi.student_id = ?";
+        $sumParams[] = $studentId;
+    }
+    if (!empty($parentId)) {
+        $sumBaseSql .= " AND s.parent_id = ?";
+        $sumParams[] = $parentId;
+    }
+    if (!empty($classId)) {
+        $sumBaseSql .= " AND s.class_id = ?";
+        $sumParams[] = $classId;
+    }
+    $summaryRow = $db->fetchOne($sumBaseSql, $sumParams) ?: [];
+    $summary = [
+        'total_billed' => floatval($summaryRow['total_billed'] ?? 0),
+        'total_paid' => floatval($summaryRow['total_paid'] ?? 0),
+        'total_due' => floatval($summaryRow['total_due'] ?? 0),
+        'upcoming_due' => floatval($summaryRow['upcoming_due'] ?? 0),
+        'overdue_due' => floatval($summaryRow['overdue_due'] ?? 0),
+        'total_invoices' => intval($summaryRow['total_invoices'] ?? 0),
+        'paid_count' => intval($summaryRow['paid_count'] ?? 0),
+        'due_count' => intval($summaryRow['due_count'] ?? 0),
+        'upcoming_count' => intval($summaryRow['upcoming_count'] ?? 0)
+    ];
 
     // Ordering and pagination
     $sql .= " ORDER BY fi.created_at DESC, fi.id DESC LIMIT ? OFFSET ?";
@@ -414,9 +492,11 @@ function getInvoices($db) {
 
     Response::json([
         'success' => true,
+        'summary' => $summary,
         'data' => [
             'fees' => $invoices,
             'invoices' => $invoices,
+            'summary' => $summary,
             'pagination' => [
                 'total' => $total,
                 'pages' => max(1, ceil($total / $limit)),
@@ -547,8 +627,8 @@ function getPayments($db) {
     ]);
 }
 
-function getReceipt($db, $id) {
-    // ID can be payment ID or invoice ID
+function getReceipt($db, $id, $user = null) {
+    // ID can be payment ID, receipt_no, invoice ID, or invoice_no
     $payment = null;
     if ($id) {
         $payment = $db->fetchOne(
@@ -557,7 +637,7 @@ function getReceipt($db, $id) {
                     fi.discount, fi.paid_amount as total_paid, fi.due_date, fi.academic_year,
                     (fi.amount - fi.discount) as net_amount,
                     ((fi.amount - fi.discount) - fi.paid_amount) as remaining_due,
-                    s.id as student_code, s.name as student_name, s.surname as student_surname,
+                    s.id as student_code, s.name as student_name, s.surname as student_surname, s.roll as student_roll,
                     s.email as student_email, s.phone as student_phone, s.address as student_address,
                     c.name as class_name, g.level as grade_level,
                     p.name as parent_name, p.surname as parent_surname, p.phone as parent_phone,
@@ -569,13 +649,57 @@ function getReceipt($db, $id) {
              LEFT JOIN classes c ON s.class_id = c.id
              LEFT JOIN grades g ON s.grade_id = g.id
              LEFT JOIN parents p ON s.parent_id = p.id
-             WHERE fp.id = ? OR fp.receipt_no = ?",
+             WHERE fp.id = ? OR fp.receipt_no = ? OR fi.id = ? OR fi.invoice_no = ?
+             ORDER BY fp.id DESC LIMIT 1",
+            [$id, $id, $id, $id]
+        );
+    }
+
+    if (!$payment && $id) {
+        // Fallback: generate invoice billing slip / money voucher directly from invoice record
+        $inv = $db->fetchOne(
+            "SELECT fi.id as invoice_id, fi.invoice_no, fi.title as invoice_title, fi.amount as invoice_amount,
+                    fi.discount, fi.paid_amount as total_paid, fi.due_date, fi.academic_year, fi.status,
+                    (fi.amount - fi.discount) as net_amount,
+                    ((fi.amount - fi.discount) - fi.paid_amount) as remaining_due,
+                    fi.paid_amount as amount,
+                    s.id as student_id, s.id as student_code, s.name as student_name, s.surname as student_surname, s.roll as student_roll,
+                    s.email as student_email, s.phone as student_phone, s.address as student_address,
+                    c.name as class_name, g.level as grade_level,
+                    p.name as parent_name, p.surname as parent_surname, p.phone as parent_phone,
+                    fc.name as category_name
+             FROM fee_invoices fi
+             JOIN fee_categories fc ON fi.fee_category_id = fc.id
+             JOIN students s ON fi.student_id = s.id
+             LEFT JOIN classes c ON s.class_id = c.id
+             LEFT JOIN grades g ON s.grade_id = g.id
+             LEFT JOIN parents p ON s.parent_id = p.id
+             WHERE fi.id = ? OR fi.invoice_no = ?",
             [$id, $id]
         );
+        if ($inv) {
+            $inv['receipt_no'] = 'SLIP-' . $inv['invoice_no'];
+            $inv['payment_method'] = ($inv['paid_amount'] > 0) ? 'OFFICIAL_CASH' : 'PENDING';
+            $inv['payment_date'] = date('Y-m-d');
+            $inv['transaction_ref'] = 'INV-' . strtoupper(substr(md5($inv['invoice_no']), 0, 8));
+            $payment = $inv;
+        }
     }
 
     if (!$payment) {
         Response::error('Receipt record not found', 404);
+    }
+
+    // Role check: ensure student or parent only views their own receipt
+    if ($user && $user['role'] === 'student' && ($payment['student_code'] ?? '') !== $user['user_id']) {
+        Response::forbidden('You can only view your own receipts');
+    }
+    if ($user && $user['role'] === 'parent') {
+        $parentStudents = $db->fetchAll("SELECT id FROM students WHERE parent_id = ?", [$user['user_id']]);
+        $allowedIds = array_column($parentStudents, 'id');
+        if (!in_array($payment['student_code'] ?? '', $allowedIds)) {
+            Response::forbidden('You can only view receipts of your children');
+        }
     }
 
     $siteSettings = $db->fetchOne("SELECT setting_value FROM site_settings WHERE setting_key = 'site_name'");

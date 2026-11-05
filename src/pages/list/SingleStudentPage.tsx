@@ -37,6 +37,8 @@ const SingleStudentPage: React.FC = () => {
         exams: response.data.exams || [],
         assignments: response.data.assignments || [],
         announcements: response.data.announcements || [],
+        fees: response.data.fees || [],
+        fee_summary: response.data.fee_summary || undefined,
       });
     }).catch((requestError: unknown) => {
       if (!active) return;

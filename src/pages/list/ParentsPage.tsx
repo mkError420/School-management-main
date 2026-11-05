@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Coins, X } from "lucide-react";
 import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -7,6 +8,7 @@ import TableSearch from "@/components/TableSearch";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
 import { useSearchParamState } from "@/lib/useSearchParamState";
+import StudentFeesView from "@/components/fees/StudentFeesView";
 
 const columns = [
   { header: "Info", accessor: "info" },
@@ -20,6 +22,7 @@ const ParentsPage: React.FC = () => {
   const role = useAccessRole();
   const [search, setSearch] = useSearchParamState();
   const [page, setPage] = useState(1);
+  const [selectedParentForFees, setSelectedParentForFees] = useState<any | null>(null);
   const { data, loading, error, pagination, refresh: fetchData } = useApiList<any>("parents", "parents", page, 10, search);
   useEffect(() => { setPage(1); }, [search]);
 
@@ -90,6 +93,14 @@ const ParentsPage: React.FC = () => {
       <td className="hidden lg:table-cell text-gray-600 dark:text-gray-400 max-w-[160px] truncate">{item.address}</td>
       <td>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSelectedParentForFees(item)}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900 transition"
+            title="View Family Fees & Payment Record"
+          >
+            <Coins size={14} />
+          </button>
           {role === "admin" && (
             <>
               <FormModal table="parent" type="update" data={item} onSuccess={fetchData} />
@@ -111,6 +122,38 @@ const ParentsPage: React.FC = () => {
       </div>
       <Table columns={columns} renderRow={renderRow} data={data} loading={loading} error={error} onRetry={fetchData} emptyMessage="No parents found" />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
+
+      {/* Family Fees Modal */}
+      {selectedParentForFees && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden my-6 border border-gray-100 dark:border-gray-700">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-slate-50 dark:bg-gray-800/80">
+              <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-sm">
+                <Coins size={17} className="text-[#005a40]" />
+                <span>
+                  {selectedParentForFees.name} {selectedParentForFees.surname} — Children Fee Invoices
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedParentForFees(null)}
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1.5 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-3 sm:p-4 max-h-[82vh] overflow-y-auto">
+              <StudentFeesView
+                parentId={selectedParentForFees.id}
+                childrenStudents={selectedParentForFees.students}
+                showStudentColumn={true}
+                title={`${selectedParentForFees.name} ${selectedParentForFees.surname}'s Family Fees`}
+                subtitle="Track paid vouchers, due balances, and upcoming scheduled term fees"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

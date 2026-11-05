@@ -290,7 +290,7 @@ class ApiService {
   }
 
   // Generic CRUD
-  async getAll(resource: string, params: Record<string, string | number> = {}) {
+  async getAll<T = any>(resource: string, params: Record<string, string | number> = {}): Promise<{ success: boolean; data?: T; message?: string }> {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== '') {

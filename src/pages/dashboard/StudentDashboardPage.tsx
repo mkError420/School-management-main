@@ -17,6 +17,7 @@ import {
 import BigCalendar from "@/components/BigCalendar";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
+import StudentFeesView from "@/components/fees/StudentFeesView";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { api } from "@/lib/api";
@@ -276,6 +277,15 @@ const StudentDashboardPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ─── My Fees & Payment Summary ───────────────── */}
+      <StudentFeesView
+        studentId={user?.id}
+        initialFees={(data as any)?.fees}
+        initialSummary={(data as any)?.fee_summary}
+        title="My Fees & Payment History"
+        subtitle="Your paid vouchers, pending dues, and upcoming fees"
+      />
 
       {/* ─── Main Content: Class Schedule + Right Column ───────────────── */}
       <div className="flex flex-col xl:flex-row gap-6">

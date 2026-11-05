@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -146,6 +146,22 @@ const FeesSection: React.FC = () => {
     payment_method: "CASH" as PaymentMethod,
     transaction_ref: "",
   });
+
+  // Autocomplete & Class Filter for Create Student Fee Invoice Modal
+  const [selectedInvoiceClass, setSelectedInvoiceClass] = useState<string>("");
+  const [studentSearchText, setStudentSearchText] = useState<string>("");
+  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState<boolean>(false);
+  const studentDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target as Node)) {
+        setIsStudentDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const [bulkForm, setBulkForm] = useState({
     class_id: "",
@@ -621,6 +637,47 @@ const FeesSection: React.FC = () => {
       rate: r.billed > 0 ? Math.round((r.collected / r.billed) * 100) : 0,
     })).sort((a, b) => b.billed - a.billed);
   }, [invoices]);
+
+  // Filter available students for Create Student Fee Invoice modal by selected class & search text
+  const availableStudentsForInvoice = useMemo(() => {
+    let list = students;
+
+    // Filter by selected class if chosen
+    if (selectedInvoiceClass) {
+      const clsLower = selectedInvoiceClass.trim().toLowerCase();
+      list = list.filter((st) => {
+        const cName = String(st.class_name || "").trim().toLowerCase();
+        const cId = String(st.class_id || "").trim().toLowerCase();
+        return (
+          cName === clsLower ||
+          cName === `class ${clsLower}` ||
+          clsLower === `class ${cName}` ||
+          cId === clsLower
+        );
+      });
+    }
+
+    // Filter by writable search text if admin typed something
+    if (studentSearchText.trim()) {
+      const q = studentSearchText.trim().toLowerCase();
+      const filtered = list.filter((st) => {
+        const fullName = `${st.name || ""} ${st.surname || ""}`.toLowerCase();
+        const roll = String(st.roll || "").toLowerCase();
+        const id = String(st.id || "").toLowerCase();
+        const uname = String(st.username || "").toLowerCase();
+        return (
+          fullName.includes(q) ||
+          roll.includes(q) ||
+          id.includes(q) ||
+          uname.includes(q) ||
+          q.includes(fullName)
+        );
+      });
+      if (filtered.length > 0) return filtered;
+    }
+
+    return list;
+  }, [students, selectedInvoiceClass, studentSearchText]);
 
   // Handlers: Create Invoice
   const handleCreateInvoice = async (e: React.FormEvent) => {
@@ -1224,8 +1281,11 @@ const FeesSection: React.FC = () => {
           <button
             onClick={() => {
               const defaultCat = categories[0] || defaultCategories[0];
+              setSelectedInvoiceClass("");
+              setStudentSearchText("");
+              setIsStudentDropdownOpen(false);
               setInvoiceForm({
-                student_id: students[0]?.id || "",
+                student_id: "",
                 fee_category_id: defaultCat.id,
                 title: `${defaultCat.name} - ${new Date().toLocaleString("default", { month: "short" })}`,
                 amount: defaultCat.default_amount,
@@ -2017,24 +2077,138 @@ const FeesSection: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateInvoice} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-              {/* Student selection */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Select Student <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={invoiceForm.student_id}
-                  onChange={(e) => setInvoiceForm({ ...invoiceForm, student_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                >
-                  <option value="">-- Choose student --</option>
-                  {students.map((st) => (
-                    <option key={st.id} value={st.id}>
-                      {st.name} {st.surname} (ID: {st.id}, Class: {st.class_name || st.class_id})
-                    </option>
-                  ))}
-                </select>
+              {/* Select Class & Student (Writable Autocomplete) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Select Class */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select Class
+                  </label>
+                  <select
+                    value={selectedInvoiceClass}
+                    onChange={(e) => {
+                      const cls = e.target.value;
+                      setSelectedInvoiceClass(cls);
+                      // If student was already selected and does not belong to new class, clear it
+                      if (cls && invoiceForm.student_id) {
+                        const st = students.find((s) => String(s.id) === String(invoiceForm.student_id));
+                        const cName = String(st?.class_name || "").toLowerCase();
+                        const cId = String(st?.class_id || "").toLowerCase();
+                        const clsL = cls.toLowerCase();
+                        if (cName !== clsL && cName !== `class ${clsL}` && cId !== clsL) {
+                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
+                          setStudentSearchText("");
+                        }
+                      }
+                      setIsStudentDropdownOpen(true);
+                    }}
+                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                  >
+                    <option value="">-- All Classes / Choose Class --</option>
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.name || cls.id}>
+                        Class {cls.name || cls.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Select Student * (Writable field with live dropdown underneath) */}
+                <div className="relative" ref={studentDropdownRef}>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select Student <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={studentSearchText}
+                      onChange={(e) => {
+                        setStudentSearchText(e.target.value);
+                        setIsStudentDropdownOpen(true);
+                        if (!e.target.value) {
+                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
+                        }
+                      }}
+                      onFocus={() => setIsStudentDropdownOpen(true)}
+                      placeholder={selectedInvoiceClass ? `Search student in Class ${selectedInvoiceClass}...` : "Write name, roll, or ID..."}
+                      className="w-full pl-9 pr-8 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
+                    />
+                    {studentSearchText && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
+                          setStudentSearchText("");
+                          setIsStudentDropdownOpen(true);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
+                        title="Clear selection"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown list of available students shown under written text */}
+                  {isStudentDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl divide-y divide-gray-50 custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
+                      {availableStudentsForInvoice.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-gray-400">
+                          {selectedInvoiceClass
+                            ? `No students found in Class ${selectedInvoiceClass}${studentSearchText ? ` matching "${studentSearchText}"` : ""}.`
+                            : studentSearchText
+                            ? `No students found matching "${studentSearchText}".`
+                            : "No students available."}
+                        </div>
+                      ) : (
+                        availableStudentsForInvoice.map((st) => (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => {
+                              setInvoiceForm((prev) => ({ ...prev, student_id: String(st.id) }));
+                              const fullName = `${st.name} ${st.surname || ""}`.trim();
+                              const rollText = st.roll ? `(Roll: ${st.roll})` : `(ID: ${st.id})`;
+                              const classText = st.class_name ? `Class ${st.class_name}` : (st.class_id ? `Class ${st.class_id}` : "");
+                              setStudentSearchText(`${fullName} ${rollText} - ${classText}`.trim());
+                              setIsStudentDropdownOpen(false);
+                              if (!selectedInvoiceClass && (st.class_name || st.class_id)) {
+                                setSelectedInvoiceClass(String(st.class_name || st.class_id));
+                              }
+                            }}
+                            className={`w-full text-left p-2.5 hover:bg-[#707E94]/10 flex items-center justify-between gap-2 transition ${
+                              String(invoiceForm.student_id) === String(st.id) ? "bg-[#707E94]/15 font-semibold" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {st.img ? (
+                                <img src={st.img} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-[#707E94]/15 text-[#707E94] flex items-center justify-center font-bold text-xs shrink-0">
+                                  {st.name ? st.name[0].toUpperCase() : "S"}
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-gray-900 truncate">
+                                  {st.name} {st.surname}
+                                </div>
+                                <div className="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
+                                  <span>ID: {st.id}</span>
+                                  {st.roll && <span>• Roll: <strong>{st.roll}</strong></span>}
+                                  <span>• Class: <strong>{st.class_name || st.class_id || "General"}</strong></span>
+                                </div>
+                              </div>
+                            </div>
+                            {String(invoiceForm.student_id) === String(st.id) && (
+                              <Check size={14} className="text-[#005a40] shrink-0" />
+                            )}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Fee Category */}

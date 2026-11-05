@@ -89,6 +89,7 @@ export interface FeeReceiptData extends FeePayment {
   due_date?: string;
   academic_year?: string;
   student_code?: string;
+  student_roll?: string;
   student_email?: string;
   student_phone?: string;
   student_address?: string;
