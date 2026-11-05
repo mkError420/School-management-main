@@ -224,7 +224,7 @@ function getGradingScaleInfo() {
  * Retrieve School / Institute Details for Result Sheet Header
  */
 function getInstituteDetails($db) {
-    $siteName = 'ACADEMIA HIGH SCHOOL & COLLEGE';
+    $siteName = 'School Name';
     try {
         $setting = $db->fetchOne("SELECT setting_value FROM site_settings WHERE setting_key = 'site_name'");
         if ($setting && !empty($setting['setting_value'])) {
@@ -236,13 +236,13 @@ function getInstituteDetails($db) {
     
     return [
         'name' => $siteName,
-        'address' => 'Dhaka, Bangladesh',
-        'eiin' => '134208',
-        'board' => 'Board of Intermediate and Secondary Education, Dhaka',
+        'address' => '',
+        'eiin' => '',
+        'board' => '',
         'curriculum' => 'National Curriculum and Textbook Board (NCTB)',
-        'phone' => '+880 1700-000000',
-        'email' => 'info@academia.edu.bd',
-        'website' => 'www.academia.edu.bd',
+        'phone' => '',
+        'email' => '',
+        'website' => '',
     ];
 }
 
@@ -265,7 +265,8 @@ function getResults($db) {
     $offset = ($page - 1) * $limit;
     
     $sql = "SELECT r.*, 
-                   st.name as student_name, st.surname as student_surname, st.username as student_roll, st.img as student_img,
+                   st.name as student_name, st.surname as student_surname,
+                   COALESCE(NULLIF(st.roll, ''), st.username) as student_roll, st.img as student_img,
                    st.class_id as student_class_id,
                    ex.title as exam_title, ex.total_marks as exam_total_marks,
                    asg.title as assignment_title,
@@ -333,6 +334,26 @@ function getResults($db) {
         $sql .= " AND r.assignment_id = ?";
         $params[] = $assignmentId;
     }
+
+    $fullMarksExpression = "COALESCE(NULLIF(ex.total_marks, 0), NULLIF(r.total_marks, 0), 100)";
+    $scorePercentExpression = "(r.score / {$fullMarksExpression} * 100)";
+    $gradeConditions = [
+        'A+' => "{$scorePercentExpression} >= 80",
+        'A' => "{$scorePercentExpression} >= 70 AND {$scorePercentExpression} < 80",
+        'A-' => "{$scorePercentExpression} >= 60 AND {$scorePercentExpression} < 70",
+        'B' => "{$scorePercentExpression} >= 50 AND {$scorePercentExpression} < 60",
+        'C' => "{$scorePercentExpression} >= 40 AND {$scorePercentExpression} < 50",
+        'D' => "{$scorePercentExpression} >= 33 AND {$scorePercentExpression} < 40",
+        'F' => "{$scorePercentExpression} < 33",
+    ];
+    if (!empty($gradeFilter) && $gradeFilter !== 'all') {
+        $sql .= ' AND ' . ($gradeConditions[$gradeFilter] ?? '1 = 0');
+    }
+    if (!empty($statusFilter) && strtolower($statusFilter) !== 'all') {
+        $sql .= strtolower($statusFilter) === 'passed'
+            ? " AND {$scorePercentExpression} >= 33"
+            : (strtolower($statusFilter) === 'failed' ? " AND {$scorePercentExpression} < 33" : ' AND 1 = 0');
+    }
     
     $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
     $totalResult = $db->fetchOne($countSql, $params);
@@ -373,14 +394,6 @@ function getResults($db) {
         $item['cq_marks'] = isset($item['cq_marks']) ? floatval($item['cq_marks']) : null;
         $item['mcq_marks'] = isset($item['mcq_marks']) ? floatval($item['mcq_marks']) : null;
         $item['practical_marks'] = isset($item['practical_marks']) ? floatval($item['practical_marks']) : null;
-        
-        // Filter by grade or status if applied on decorated fields
-        if (!empty($gradeFilter) && $gradeFilter !== 'all' && $item['grade'] !== $gradeFilter) {
-            continue;
-        }
-        if (!empty($statusFilter) && $statusFilter !== 'all' && strtolower($item['status']) !== strtolower($statusFilter)) {
-            continue;
-        }
         
         $results[] = $item;
     }
@@ -614,11 +627,10 @@ function generateResultSheet($db) {
             'name' => $student['name'],
             'surname' => $student['surname'],
             'full_name' => trim("{$student['name']} {$student['surname']}"),
-            'roll' => $student['username'] ?: $student['id'],
+            'roll' => $student['roll'] ?: ($student['username'] ?: $student['id']),
             'class_id' => $student['class_id'],
             'class_name' => $student['class_name'] ?: 'Standard',
             'grade_level' => $student['grade_level'] ?: '—',
-            'section' => 'A',
             'img' => $student['img'],
             'blood_type' => $student['blood_type'],
             'sex' => $student['sex'],
@@ -913,7 +925,8 @@ function getResult($db, $id) {
     
     $result = $db->fetchOne(
         "SELECT r.*, 
-                st.name as student_name, st.surname as student_surname, st.username as student_roll, st.img as student_img,
+                st.name as student_name, st.surname as student_surname,
+                COALESCE(NULLIF(st.roll, ''), st.username) as student_roll, st.img as student_img,
                 ex.title as exam_title, ex.total_marks as exam_total_marks,
                 asg.title as assignment_title,
                 COALESCE(s_ex.name, s_asg.name) as subject_name,

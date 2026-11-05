@@ -636,6 +636,26 @@ html.dark .login-card .group\/demo:hover .text-gray-700 { color: #707E94 !import
     print-color-adjust: exact !important;
   }
 
+  body:has(#printable-result-sheet) * {
+    visibility: hidden;
+  }
+  body:has(#printable-result-sheet) #printable-result-sheet,
+  body:has(#printable-result-sheet) #printable-result-sheet * {
+    visibility: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body:has(#printable-result-sheet) #printable-result-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
   /* ── Fee Receipt Print Isolation ── */
   body.printing-receipt-active,
   body:has(#printable-receipt) {

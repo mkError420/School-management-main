@@ -101,52 +101,25 @@ export const ResultsPage: React.FC = () => {
 
   // Open individual result sheet modal
   const handleOpenResultSheet = (studentId?: string | number, examId?: string | number) => {
-    setActiveStudentForSheet(studentId || (studentsList[0]?.id));
-    setActiveExamForSheet(examId || (examsList[0]?.id));
+    setActiveStudentForSheet(studentId ?? studentsList[0]?.id);
+    setActiveExamForSheet(examId);
     setSheetModalOpen(true);
   };
 
   const getGradeBadge = (grade: string) => {
-    switch (grade) {
-      case "A+":
-        return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700";
-      case "A":
-        return "bg-green-100 text-green-800 border-green-300 dark:bg-green-950/60 dark:text-green-300 dark:border-green-700";
-      case "A-":
-        return "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-700";
-      case "B":
-        return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-700";
-      case "C":
-        return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700";
-      case "D":
-        return "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-700";
-      case "F":
-      default:
-        return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700";
-    }
+    return grade === "F"
+      ? "bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
+      : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800";
   };
 
-  const tableColumns = [
-    { header: "Student", accessor: "student" },
-    { header: "Class", accessor: "class", className: "hidden md:table-cell" },
-    { header: "Subject", accessor: "subject", className: "hidden sm:table-cell" },
-    { header: "Assessment", accessor: "assessment", className: "hidden lg:table-cell" },
-    { header: "Marks", accessor: "score" },
-    { header: "BD Grade", accessor: "grade" },
-    { header: "Point (GP)", accessor: "point", className: "hidden md:table-cell" },
-    { header: "Status", accessor: "status", className: "hidden sm:table-cell" },
-    { header: "Result Sheet", accessor: "sheet" },
-    { header: "Actions", accessor: "actions" },
-  ];
-
   return (
-    <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-2xl flex-1 m-2 sm:m-4 mt-0 shadow-sm border border-gray-100 dark:border-gray-700/60">
+    <div className="bg-white dark:bg-gray-800 p-3 sm:p-6 rounded-xl flex-1 m-2 sm:m-4 mt-0 shadow-sm border border-gray-200 dark:border-gray-700">
       
       {/* Page Title & Main Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5 border-b-2 border-[#006a4e] pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7] rounded-xl">
+            <div className="p-2 bg-[#006a4e]/10 text-[#006a4e] dark:bg-emerald-950/40 dark:text-emerald-300 rounded-lg">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -155,8 +128,9 @@ export const ResultsPage: React.FC = () => {
               <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 All Results &amp; Marksheets
               </h1>
+              <p className="text-xs font-semibold tracking-wide text-[#006a4e] dark:text-emerald-300">পরীক্ষার ফলাফল</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Bangladesh National Curriculum Grading System (A+, A, A-, B, C, D, F) &amp; Academic Transcripts
+                Bangladesh grading scale · Letter grade, grade point and subject-wise marks
               </p>
             </div>
           </div>
@@ -168,24 +142,24 @@ export const ResultsPage: React.FC = () => {
           <button
             onClick={() => setScaleModalOpen(true)}
             title="View Bangladesh Grading System scale"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
           >
-            <svg className="w-4 h-4 text-[#707E94] dark:text-[#a4b3c7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4 text-[#006a4e] dark:text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span className="hidden sm:inline">BD Grading System</span>
+            <span>Grading scale</span>
           </button>
 
           {/* Result Sheet Button */}
           <button
             onClick={() => handleOpenResultSheet()}
             title="Generate Student Result Sheet / Marksheet"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#D32F45] hover:bg-[#be2035] text-white shadow-xs transition active:scale-95 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-semibold bg-[#006a4e] hover:bg-[#00563f] text-white transition cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <span>Result Sheet (Marksheet)</span>
+            <span>Generate marksheet</span>
           </button>
 
           {/* Class Tabulation Sheet Button */}
@@ -193,7 +167,7 @@ export const ResultsPage: React.FC = () => {
             <button
               onClick={() => setTabulationModalOpen(true)}
               title="Generate Class Broad Sheet (ট্যাবুলেশন শিট)"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -207,7 +181,7 @@ export const ResultsPage: React.FC = () => {
             <button
               onClick={() => setBulkModalOpen(true)}
               title="Batch enter marks for class"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -225,51 +199,51 @@ export const ResultsPage: React.FC = () => {
 
       {/* Bangladesh Quick Analytics Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <div className="p-3.5 rounded-xl bg-primary-50/60 dark:bg-[#1a2332] border border-primary-200/60 dark:border-[#253147]">
-          <span className="text-[11px] font-bold text-[#707E94] dark:text-[#a4b3c7] uppercase tracking-wider block">
-            Total Results
+        <div className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block">
+            Matching results
           </span>
-          <div className="text-xl sm:text-2xl font-black text-[#707E94] dark:text-white mt-0.5">
+          <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
             {stats?.total ?? pagination.total}
           </div>
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">Total subjects assessed</span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400">Across selected filters</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-800/40">
-          <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">
-            Pass Rate (BD)
+        <div className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-[#006a4e] dark:text-emerald-300 uppercase tracking-wide block">
+            Pass rate
           </span>
-          <div className="text-xl sm:text-2xl font-black text-emerald-700 dark:text-emerald-300 mt-0.5">
+          <div className="text-xl sm:text-2xl font-bold text-[#006a4e] dark:text-emerald-300 mt-0.5">
             {stats?.pass_rate !== undefined ? `${stats.pass_rate}%` : "—"}
           </div>
           <span className="text-[10px] text-gray-500 dark:text-gray-400">
-            {stats?.passed ?? 0} Passed / {stats?.failed ?? 0} Failed
+            {stats?.passed ?? 0} passed · {stats?.failed ?? 0} failed on this page
           </span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40">
-          <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider block">
-            GPA 5.00 (A+)
+        <div className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block">
+            A+ subject grades
           </span>
-          <div className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-300 mt-0.5">
+          <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
             {stats?.gpa5_count ?? (stats?.grade_distribution?.["A+"] ?? 0)}
           </div>
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">Outstanding (Golden) standard</span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400">On this page · 5.00 GP</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40">
-          <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider block">
-            A &amp; A- Grades
+        <div className="p-3 rounded-md bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700">
+          <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide block">
+            A and A- grades
           </span>
-          <div className="text-xl sm:text-2xl font-black text-blue-700 dark:text-blue-300 mt-0.5">
+          <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-0.5">
             {(stats?.grade_distribution?.["A"] ?? 0) + (stats?.grade_distribution?.["A-"] ?? 0)}
           </div>
-          <span className="text-[10px] text-gray-500 dark:text-gray-400">Above 60% mark benchmark</span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400">On this page</span>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/60">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-md border border-gray-200 dark:border-gray-700">
         <div className="flex-1 min-w-[200px] max-w-sm">
           <TableSearch
             value={search}
@@ -283,7 +257,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedClass}
             onChange={(e) => setSelectedClass(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
           >
             <option value="all">All Classes</option>
             {classesList.map((c) => (
@@ -297,7 +271,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedExam}
             onChange={(e) => setSelectedExam(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
           >
             <option value="all">All Exams</option>
             {examsList.map((ex) => (
@@ -311,7 +285,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedGrade}
             onChange={(e) => setSelectedGrade(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
           >
             <option value="all">All Grades</option>
             <option value="A+">Grade A+ (80-100%)</option>
@@ -327,7 +301,7 @@ export const ResultsPage: React.FC = () => {
           <select
             value={selectedStatus}
             onChange={(e) => setSelectedStatus(e.target.value)}
-            className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+            className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
           >
             <option value="all">All Status</option>
             <option value="Passed">Passed</option>
@@ -340,7 +314,7 @@ export const ResultsPage: React.FC = () => {
       <div className="overflow-x-auto border border-gray-200 dark:border-gray-700/60 rounded-xl">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-gray-100 dark:bg-gray-800/90 text-gray-700 dark:text-gray-200 font-semibold border-b border-gray-200 dark:border-gray-700">
+            <tr className="bg-[#006a4e] text-white font-semibold border-b border-[#00563f]">
               <th className="py-3 px-3">Student</th>
               <th className="py-3 px-3 hidden md:table-cell">Class</th>
               <th className="py-3 px-3 hidden sm:table-cell">Subject</th>
@@ -382,12 +356,12 @@ export const ResultsPage: React.FC = () => {
               results.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-primary-50/40 dark:hover:bg-[#1a2332] transition even:bg-slate-50/40 dark:even:bg-gray-800/40"
+                  className="hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 transition even:bg-gray-50/60 dark:even:bg-gray-800/40"
                 >
                   {/* Student Name & Roll */}
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#707E94]/15 dark:bg-[#707E94]/20 flex items-center justify-center text-xs font-bold text-[#707E94] dark:text-[#a4b3c7] overflow-hidden flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-bold text-[#006a4e] dark:text-emerald-300 overflow-hidden flex-shrink-0">
                         {item.student_img ? (
                           <img src={item.student_img} alt="" className="w-full h-full object-cover" />
                         ) : (
@@ -455,8 +429,8 @@ export const ResultsPage: React.FC = () => {
                   <td className="py-3 px-3 text-center hidden sm:table-cell">
                     <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
                       item.status === "Passed"
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                        : "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                        : "bg-red-50 text-red-800 border border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
                     }`}>
                       {item.status}
                     </span>
@@ -466,8 +440,8 @@ export const ResultsPage: React.FC = () => {
                   <td className="py-3 px-3 text-center">
                     <button
                       onClick={() => handleOpenResultSheet(item.student_id, item.exam_id)}
-                      title="View Official Bangladesh Result Sheet (Marksheet)"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-primary-100 hover:bg-primary-200 text-[#707E94] dark:bg-[#243044] dark:hover:bg-[#1a2332] dark:text-[#a4b3c7] transition cursor-pointer active:scale-95 shadow-2xs"
+                      title="View Bangladesh-style result sheet (marksheet)"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-white hover:bg-emerald-50 text-[#006a4e] border border-emerald-200 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-emerald-300 dark:border-gray-600 transition cursor-pointer"
                     >
                       <svg className="w-3.5 h-3.5 text-[#707E94] dark:text-[#a4b3c7]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

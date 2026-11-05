@@ -68,6 +68,8 @@ export interface ResultSheetData {
     point: number;
     remarks: string;
     color: string;
+    min?: number;
+    max?: number;
   }>;
   generated_at: string;
 }
@@ -81,13 +83,16 @@ interface ResultSheetModalProps {
   availableStudents?: Array<{ id: string; name: string; surname: string; roll?: string; class_name?: string }>;
 }
 
+const EMPTY_EXAMS: Array<{ id: number | string; title: string }> = [];
+const EMPTY_STUDENTS: Array<{ id: string; name: string; surname: string; roll?: string; class_name?: string }> = [];
+
 export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
   isOpen,
   onClose,
   studentId: initialStudentId,
   examId: initialExamId,
-  availableExams = [],
-  availableStudents = [],
+  availableExams = EMPTY_EXAMS,
+  availableStudents = EMPTY_STUDENTS,
 }) => {
   const [selectedStudentId, setSelectedStudentId] = useState<string | number | undefined>(initialStudentId);
   const [selectedExamId, setSelectedExamId] = useState<string | number | undefined>(initialExamId);
@@ -97,16 +102,18 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
   const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (initialStudentId) setSelectedStudentId(initialStudentId);
-    if (initialExamId) setSelectedExamId(initialExamId);
-  }, [initialStudentId, initialExamId]);
+    setSelectedStudentId(initialStudentId ?? availableStudents[0]?.id);
+    setSelectedExamId(initialExamId);
+  }, [initialStudentId, initialExamId, availableStudents]);
 
   const fetchSheet = async () => {
     if (!selectedStudentId) {
-      if (availableStudents.length > 0) {
-        setSelectedStudentId(availableStudents[0].id);
-        return;
-      }
+      setData(null);
+      setError(
+        availableStudents.length > 0
+          ? "Select a student to generate a result sheet."
+          : "No students are available to generate a result sheet.",
+      );
       return;
     }
 
@@ -132,7 +139,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
     if (isOpen) {
       fetchSheet();
     }
-  }, [isOpen, selectedStudentId, selectedExamId]);
+  }, [isOpen, selectedStudentId, selectedExamId, availableStudents]);
 
   if (!isOpen) return null;
 
@@ -141,44 +148,42 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
   };
 
   const getGradeBadgeColor = (grade: string) => {
-    switch (grade) {
-      case "A+":
-        return "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-700";
-      case "A":
-        return "bg-green-100 text-green-800 border-green-300 dark:bg-green-950 dark:text-green-300 dark:border-green-700";
-      case "A-":
-        return "bg-teal-100 text-teal-800 border-teal-300 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-700";
-      case "B":
-        return "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700";
-      case "C":
-        return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-700";
-      case "D":
-        return "bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-700";
-      case "F":
-      default:
-        return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-700";
-    }
+    return grade === "F"
+      ? "bg-red-50 text-red-800 border-red-200"
+      : "bg-emerald-50 text-emerald-800 border-emerald-200";
   };
+
+  const hasComponentMarks = data?.subjects.some(
+    (subject) => subject.cq_marks != null || subject.mcq_marks != null || subject.practical_marks != null,
+  ) ?? false;
+  const examDateParts = data?.exam.date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const examDate = examDateParts
+    ? new Date(Number(examDateParts[1]), Number(examDateParts[2]) - 1, Number(examDateParts[3]))
+    : data ? new Date(data.exam.date) : null;
+  const examYear = examDate && !Number.isNaN(examDate.getTime()) ? examDate.getFullYear() : "—";
+  const examDateLabel = examDate && !Number.isNaN(examDate.getTime())
+    ? examDate.toLocaleDateString("en-BD", { day: "2-digit", month: "long", year: "numeric" })
+    : "—";
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 print:p-0 print:bg-white print:static print:inset-auto">
       {/* Container */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] flex flex-col border border-gray-200 dark:border-gray-800 print:border-none print:shadow-none print:max-w-none print:max-h-none print:w-full print:rounded-none">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-5xl max-h-[94vh] flex flex-col border border-gray-200 dark:border-gray-800 print:border-none print:shadow-none print:max-w-none print:max-h-none print:w-full print:rounded-none">
         
         {/* Top Control Bar (Hidden on print) */}
         <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/80 rounded-t-2xl print:hidden">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
+            <span className="p-2 rounded-lg bg-emerald-50 text-[#006a4e] border border-emerald-100">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </span>
             <div>
               <h2 className="text-base font-bold text-gray-800 dark:text-gray-100">
-                Bangladesh Academic Transcript / Result Sheet
+                Academic Transcript / নম্বরপত্র
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Official Marks Certificate with National Curriculum (NCTB) Grading System
+                Bangladesh grading scale · GPA out of 5.00
               </p>
             </div>
           </div>
@@ -189,7 +194,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               <select
                 value={selectedStudentId || ""}
                 onChange={(e) => setSelectedStudentId(e.target.value)}
-                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+                className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
               >
                 {availableStudents.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -204,7 +209,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               <select
                 value={selectedExamId || ""}
                 onChange={(e) => setSelectedExamId(e.target.value)}
-                className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#707E94]/30"
+                className="text-xs border border-gray-300 dark:border-gray-700 rounded-md px-2.5 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-[#006a4e]/30"
               >
                 <option value="">All Exams / Latest</option>
                 {availableExams.map((ex) => (
@@ -219,7 +224,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
             <button
               onClick={handlePrint}
               disabled={loading || !data}
-              className="inline-flex items-center gap-1.5 bg-[#D32F45] hover:bg-[#be2035] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-1.5 bg-[#006a4e] hover:bg-[#00563f] text-white text-xs font-semibold px-3.5 py-1.5 rounded-md transition disabled:opacity-50 cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -245,7 +250,7 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
           {loading ? (
             <div className="flex flex-col items-center justify-center min-h-[350px] gap-3 text-gray-500">
               <div className="w-10 h-10 border-4 border-[#707E94] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-sm font-medium">Generating official Bangladesh result sheet...</p>
+              <p className="text-sm font-medium">Preparing Bangladesh-style result sheet...</p>
             </div>
           ) : error ? (
             <div className="p-8 text-center bg-rose-50 dark:bg-rose-950/20 rounded-xl border border-rose-200 dark:border-rose-800">
@@ -267,47 +272,39 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
             <div
               ref={sheetRef}
               id="printable-result-sheet"
-              className="bg-white text-gray-900 p-6 sm:p-8 rounded-xl border-4 border-double border-[#707E94]/40 shadow-sm relative mx-auto max-w-3xl print:border-4 print:border-double print:border-black print:shadow-none print:p-4 print:max-w-none print:w-full print:m-0"
+              className="bg-white text-gray-900 p-5 sm:p-8 rounded-md border border-gray-300 shadow-sm relative mx-auto max-w-4xl print:border print:border-black print:shadow-none print:p-4 print:max-w-none print:w-full print:m-0"
             >
-              {/* Decorative Corner Ornaments (Bangladesh Certificate Aesthetic) */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-t-2 border-l-2 border-[#707E94]/40 pointer-events-none"></div>
-              <div className="absolute top-2 right-2 w-6 h-6 border-t-2 border-r-2 border-[#707E94]/40 pointer-events-none"></div>
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-b-2 border-l-2 border-[#707E94]/40 pointer-events-none"></div>
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-b-2 border-r-2 border-[#707E94]/40 pointer-events-none"></div>
-
-              {/* Institution Header */}
-              <div className="text-center border-b-2 border-[#707E94]/20 pb-4 mb-4">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#707E94]/10 border-2 border-[#707E94]/40 text-[#707E94] font-black text-xl mb-2 shadow-xs">
-                  BD
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-extrabold uppercase tracking-wide text-[#707E94] font-serif">
+              <div className="text-center border-b-2 border-[#006a4e] pb-4 mb-4">
+                <p className="text-xs font-semibold tracking-widest text-[#006a4e]">বাংলাদেশ</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-wide text-gray-900 font-serif mt-1">
                   {data.institute.name}
                 </h1>
-                <p className="text-xs text-gray-600 font-medium">
-                  {data.institute.address} &bull; EIIN: {data.institute.eiin}
-                </p>
-                <p className="text-[11px] text-gray-500 italic mt-0.5">
-                  Affiliated with {data.institute.board}
-                </p>
-
-                {/* Badge Banner */}
-                <div className="mt-3 inline-block">
-                  <span className="bg-[#707E94] text-white font-bold tracking-widest text-xs uppercase px-5 py-1 rounded-full shadow-xs">
-                    Academic Transcript / Marksheet
-                  </span>
+                {(data.institute.address || data.institute.eiin) && (
+                  <p className="text-xs text-gray-600 font-medium mt-1">
+                    {[data.institute.address, data.institute.eiin && `EIIN: ${data.institute.eiin}`].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+                {data.institute.board && (
+                  <p className="text-[11px] text-gray-500 mt-0.5">{data.institute.board}</p>
+                )}
+                {data.institute.curriculum && (
+                  <p className="text-[11px] text-gray-500 mt-0.5">{data.institute.curriculum}</p>
+                )}
+                <div className="mt-3 inline-flex items-center gap-2 border-y border-[#006a4e] px-5 py-1.5">
+                  <span className="h-2 w-2 rounded-full bg-[#f42a41]" aria-hidden="true" />
+                  <span className="font-bold tracking-wide text-sm text-[#006a4e]">Academic Transcript / নম্বরপত্র</span>
+                  <span className="h-2 w-2 rounded-full bg-[#f42a41]" aria-hidden="true" />
                 </div>
-                <p className="text-xs font-semibold text-gray-800 mt-2">
-                  {data.exam.title} &bull; Academic Session {new Date().getFullYear()}
+                <p className="text-sm font-semibold text-gray-800 mt-2">
+                  {data.exam.title} · Academic Session {examYear}
                 </p>
               </div>
 
-              {/* Student Details & Official BD Grading Scale side by side */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 text-xs">
-                {/* Student Info Box (2 cols) */}
-                <div className="md:col-span-2 bg-[#707E94]/10 rounded-lg p-3 border border-[#707E94]/30">
-                  <h3 className="font-bold text-[#707E94] uppercase text-[11px] border-b border-[#707E94]/30 pb-1 mb-2 tracking-wider flex items-center justify-between">
-                    <span>Student Particulars</span>
-                    <span className="text-[10px] text-[#707E94] font-semibold">ID: {data.student.id}</span>
+                <div className="md:col-span-2 rounded-md p-3 border border-gray-300">
+                  <h3 className="font-bold text-[#006a4e] text-[11px] border-b border-gray-300 pb-1 mb-2 tracking-wide flex items-center justify-between">
+                    <span>Student particulars / শিক্ষার্থীর তথ্য</span>
+                    <span className="text-[10px] text-gray-600 font-semibold">ID: {data.student.id}</span>
                   </h3>
                   <div className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-gray-800">
                     <div>
@@ -316,63 +313,70 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                     </div>
                     <div>
                       <span className="text-gray-500 text-[11px] block">Roll Number</span>
-                      <strong className="text-sm font-bold text-[#707E94]">{data.student.roll}</strong>
+                      <strong className="text-sm font-bold text-[#006a4e]">{data.student.roll}</strong>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-[11px] block">Class & Section</span>
-                      <span className="font-semibold text-gray-900">{data.student.class_name} ({data.student.section || "A"})</span>
+                      <span className="text-gray-500 text-[11px] block">Class{data.student.section ? " & Section" : ""}</span>
+                      <span className="font-semibold text-gray-900">
+                        {data.student.class_name}{data.student.section ? ` · ${data.student.section}` : ""}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-[11px] block">Grade Level</span>
-                      <span className="font-semibold text-gray-900">Grade {data.student.grade_level}</span>
+                      <span className="text-gray-500 text-[11px] block">Academic Level</span>
+                      <span className="font-semibold text-gray-900">{data.student.grade_level}</span>
                     </div>
                     <div>
                       <span className="text-gray-500 text-[11px] block">Guardian Name</span>
                       <span className="font-medium text-gray-800">{data.student.parent_name || "—"}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 text-[11px] block">Date of Issue</span>
-                      <span className="font-medium text-gray-800">{data.generated_at}</span>
+                      <span className="text-gray-500 text-[11px] block">Examination Date</span>
+                      <span className="font-medium text-gray-800">{examDateLabel}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Bangladesh 7-tier Grading Scale Table (1 col) */}
-                <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200 text-[10px]">
-                  <h4 className="font-bold text-slate-800 uppercase tracking-wide text-center border-b border-slate-200 pb-1 mb-1">
-                    Grading System (NCTB)
+                <div className="bg-gray-50 rounded-md p-2.5 border border-gray-300 text-[10px]">
+                  <h4 className="font-bold text-gray-800 tracking-wide text-center border-b border-gray-300 pb-1 mb-1">
+                    Bangladesh grading scale
                   </h4>
                   <table className="w-full text-center">
                     <thead>
-                      <tr className="text-slate-500 border-b border-slate-200">
+                      <tr className="text-gray-600 border-b border-gray-300">
                         <th className="py-0.5">Marks Range</th>
                         <th className="py-0.5">Grade</th>
                         <th className="py-0.5">Point</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 font-medium">
-                      <tr><td className="py-0.5">80 - 100%</td><td className="font-bold text-emerald-700">A+</td><td>5.00</td></tr>
-                      <tr><td className="py-0.5">70 - 79%</td><td className="font-bold text-green-700">A</td><td>4.00</td></tr>
-                      <tr><td className="py-0.5">60 - 69%</td><td className="font-bold text-teal-700">A-</td><td>3.50</td></tr>
-                      <tr><td className="py-0.5">50 - 59%</td><td className="font-bold text-blue-700">B</td><td>3.00</td></tr>
-                      <tr><td className="py-0.5">40 - 49%</td><td className="font-bold text-amber-700">C</td><td>2.00</td></tr>
-                      <tr><td className="py-0.5">33 - 39%</td><td className="font-bold text-orange-700">D</td><td>1.00</td></tr>
-                      <tr><td className="py-0.5">00 - 32%</td><td className="font-bold text-rose-700">F</td><td>0.00</td></tr>
+                    <tbody className="divide-y divide-gray-200 font-medium">
+                      {data.grading_scale.map((tier) => (
+                        <tr key={tier.grade}>
+                          <td className="py-0.5">{tier.range}</td>
+                          <td className={`font-bold ${tier.grade === "F" ? "text-red-700" : "text-[#006a4e]"}`}>{tier.grade}</td>
+                          <td>{Number(tier.point).toFixed(2)}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
 
               {/* Subject-wise Marks Table */}
-              <div className="mb-5 overflow-hidden rounded-lg border border-gray-300">
+              <div className="mb-5 overflow-x-auto rounded-md border border-gray-300">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-[#707E94] text-white text-[11px] uppercase tracking-wider font-semibold">
+                    <tr className="bg-[#006a4e] text-white text-[11px] uppercase tracking-wider font-semibold">
                       <th className="py-2 px-3 text-center w-10">Sl</th>
                       <th className="py-2 px-3">Subject Name</th>
                       <th className="py-2 px-2 text-center w-20">Full Marks</th>
+                      {hasComponentMarks && (
+                        <>
+                          <th className="py-2 px-2 text-center w-16">CQ</th>
+                          <th className="py-2 px-2 text-center w-16">MCQ</th>
+                          <th className="py-2 px-2 text-center w-20">Practical</th>
+                        </>
+                      )}
                       <th className="py-2 px-2 text-center w-24">Marks Obtained</th>
-                      <th className="py-2 px-2 text-center w-20">Highest</th>
                       <th className="py-2 px-2 text-center w-16">Grade</th>
                       <th className="py-2 px-2 text-center w-16">GP</th>
                       <th className="py-2 px-3 text-center w-24">Remarks</th>
@@ -381,23 +385,29 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                   <tbody className="divide-y divide-gray-200">
                     {data.subjects.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-6 text-center text-gray-400 italic">
+                        <td colSpan={hasComponentMarks ? 10 : 7} className="py-6 text-center text-gray-400 italic">
                           No subject marks recorded for this assessment.
                         </td>
                       </tr>
                     ) : (
                       data.subjects.map((sub, idx) => (
-                        <tr key={sub.id || idx} className="hover:bg-[#707E94]/10/40 transition">
+                        <tr key={sub.id || idx} className="hover:bg-emerald-50/60 transition">
                           <td className="py-2 px-3 text-center font-medium text-gray-500">{idx + 1}</td>
                           <td className="py-2 px-3 font-semibold text-gray-900">{sub.subject_name}</td>
                           <td className="py-2 px-2 text-center text-gray-600">{sub.total_marks}</td>
+                          {hasComponentMarks && (
+                            <>
+                              <td className="py-2 px-2 text-center text-gray-600">{sub.cq_marks ?? "—"}</td>
+                              <td className="py-2 px-2 text-center text-gray-600">{sub.mcq_marks ?? "—"}</td>
+                              <td className="py-2 px-2 text-center text-gray-600">{sub.practical_marks ?? "—"}</td>
+                            </>
+                          )}
                           <td className="py-2 px-2 text-center font-bold text-gray-950">
                             {sub.score}
                             {sub.total_marks !== 100 && (
                               <span className="text-[10px] text-gray-500 font-normal ml-1">({sub.percentage}%)</span>
                             )}
                           </td>
-                          <td className="py-2 px-2 text-center text-gray-600 font-medium">{sub.highest_in_class}</td>
                           <td className="py-2 px-2 text-center">
                             <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-bold border ${getGradeBadgeColor(sub.grade)}`}>
                               {sub.grade}
@@ -422,10 +432,11 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                         Total Marks:
                       </td>
                       <td className="py-2 px-2 text-center">{data.summary.total_full_marks}</td>
-                      <td className="py-2 px-2 text-center font-black text-[#707E94] text-sm">
+                      {hasComponentMarks && <td colSpan={3} className="py-2 px-2 text-center text-gray-500">Component marks</td>}
+                      <td className="py-2 px-2 text-center font-bold text-[#006a4e] text-sm">
                         {data.summary.total_obtained}
                       </td>
-                      <td colSpan={4} className="py-2 px-3 text-right text-[11px] text-gray-600">
+                      <td colSpan={3} className="py-2 px-3 text-right text-[11px] text-gray-600">
                         Average: {data.summary.percentage}%
                       </td>
                     </tr>
@@ -434,34 +445,34 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               </div>
 
               {/* Bangladesh Overall Result Evaluation Banner */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-[#707E94]/10 border-2 border-[#707E94]/30 mb-6 text-center">
-                <div className="p-2 rounded-lg bg-white shadow-2xs">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 border-y-2 border-[#006a4e] mb-5 text-center">
+                <div className="p-2 border border-gray-200 rounded-md">
                   <span className="text-[10px] font-bold text-gray-500 uppercase block tracking-wider">GPA (5.00 Scale)</span>
-                  <div className={`text-2xl font-black mt-0.5 ${data.summary.has_fail ? "text-rose-600" : "text-[#707E94]"}`}>
+                  <div className={`text-2xl font-bold mt-0.5 ${data.summary.status === "Passed" ? "text-[#006a4e]" : "text-red-700"}`}>
                     {data.summary.gpa}
                   </div>
                   <span className="text-[10px] text-gray-400 font-medium">Grade Point Average</span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-white shadow-2xs">
+                <div className="p-2 border border-gray-200 rounded-md">
                   <span className="text-[10px] font-bold text-gray-500 uppercase block tracking-wider">Final Grade</span>
                   <div className="mt-0.5">
-                    <span className={`inline-block px-3 py-0.5 text-xl font-black rounded-lg border ${getGradeBadgeColor(data.summary.grade)}`}>
+                    <span className={`inline-block px-3 py-0.5 text-xl font-bold rounded-md border ${getGradeBadgeColor(data.summary.grade)}`}>
                       {data.summary.grade}
                     </span>
                   </div>
                   <span className="text-[10px] text-gray-500 font-medium">{data.summary.remarks}</span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-white shadow-2xs">
+                <div className="p-2 border border-gray-200 rounded-md">
                   <span className="text-[10px] font-bold text-gray-500 uppercase block tracking-wider">Result Status</span>
                   <div className="mt-1">
-                    <span className={`inline-block px-3 py-1 text-xs uppercase font-extrabold rounded-full ${
+                    <span className={`inline-block px-3 py-1 text-xs uppercase font-bold rounded-md ${
                       data.summary.status === "Passed"
-                        ? "bg-emerald-600 text-white"
-                        : "bg-rose-600 text-white"
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : "bg-red-50 text-red-800 border border-red-200"
                     }`}>
-                      {data.summary.status === "Passed" ? "PASSED (PROMOTED)" : "FAILED"}
+                      {data.summary.status === "Passed" ? "PASSED" : "FAILED"}
                     </span>
                   </div>
                   <span className="text-[10px] text-gray-400 font-medium mt-0.5 block">
@@ -469,9 +480,9 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                   </span>
                 </div>
 
-                <div className="p-2 rounded-lg bg-white shadow-2xs">
+                <div className="p-2 border border-gray-200 rounded-md">
                   <span className="text-[10px] font-bold text-gray-500 uppercase block tracking-wider">Class Merit Position</span>
-                  <div className="text-2xl font-black text-amber-600 mt-0.5">
+                  <div className="text-2xl font-bold text-[#006a4e] mt-0.5">
                     {data.summary.merit_position}
                   </div>
                   <span className="text-[10px] text-gray-400 font-medium">Class Rank</span>
@@ -479,12 +490,13 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
               </div>
 
               {/* Remarks Note */}
-              <div className="text-[11px] text-gray-600 border border-gray-200 rounded-lg p-2.5 mb-8 bg-gray-50/50">
-                <strong className="text-gray-800">Note:</strong> Bangladesh Grading Rule requires passing all compulsory subjects. A grade of &quot;F&quot; (below 33%) in any subject results in an overall GPA of 0.00 and Final Grade F.
+              <div className="text-[11px] text-gray-600 border border-gray-200 rounded-md p-2.5 mb-8 bg-gray-50">
+                <strong className="text-gray-800">Note:</strong> A grade of F in any recorded subject results in an overall GPA of 0.00 and a failed final result.
               </div>
+              <p className="text-right text-[10px] text-gray-500 -mt-5 mb-5">Generated on {data.generated_at}</p>
 
-              {/* Bangladesh Official Signature Blocks */}
-              <div className="grid grid-cols-3 gap-6 pt-10 border-t border-gray-300 text-center text-xs mt-4">
+              {/* Result approval signatures */}
+              <div className="grid grid-cols-3 gap-6 pt-10 border-t border-gray-300 text-center text-xs mt-4 print-avoid-break">
                 <div>
                   <div className="border-b border-gray-400 w-3/4 mx-auto mb-1"></div>
                   <p className="font-bold text-gray-800">Class Teacher</p>
@@ -493,14 +505,14 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
 
                 <div>
                   <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full mx-auto -mt-6 mb-1 flex items-center justify-center text-[9px] text-gray-400 uppercase font-semibold">
-                    Official Seal
+                    School Seal
                   </div>
                   <p className="font-bold text-gray-800">Institution Seal</p>
                 </div>
 
                 <div>
                   <div className="border-b border-gray-400 w-3/4 mx-auto mb-1"></div>
-                  <p className="font-bold text-[#707E94] font-serif">Headmaster / Principal</p>
+                  <p className="font-bold text-gray-800 font-serif">Headmaster / Principal</p>
                   <p className="text-[10px] text-gray-400">Academic Authority</p>
                 </div>
               </div>

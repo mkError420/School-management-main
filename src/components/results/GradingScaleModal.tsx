@@ -9,13 +9,13 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
   if (!isOpen) return null;
 
   const tiers = [
-    { range: "80% - 100%", grade: "A+", gp: "5.00", remark: "Outstanding / Golden", color: "bg-emerald-100 text-emerald-800 border-emerald-300" },
-    { range: "70% - 79%",  grade: "A",  gp: "4.00", remark: "Excellent",            color: "bg-green-100 text-green-800 border-green-300" },
-    { range: "60% - 69%",  grade: "A-", gp: "3.50", remark: "Very Good",            color: "bg-teal-100 text-teal-800 border-teal-300" },
-    { range: "50% - 59%",  grade: "B",  gp: "3.00", remark: "Good",                 color: "bg-blue-100 text-blue-800 border-blue-300" },
-    { range: "40% - 49%",  grade: "C",  gp: "2.00", remark: "Satisfactory",         color: "bg-amber-100 text-amber-800 border-amber-300" },
-    { range: "33% - 39%",  grade: "D",  gp: "1.00", remark: "Passing",              color: "bg-orange-100 text-orange-800 border-orange-300" },
-    { range: "00% - 32%",  grade: "F",  gp: "0.00", remark: "Failed",               color: "bg-rose-100 text-rose-800 border-rose-300" },
+    { range: "80% - 100%", grade: "A+", gp: "5.00", remark: "Outstanding", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "70% - 79%",  grade: "A",  gp: "4.00", remark: "Excellent", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "60% - 69%",  grade: "A-", gp: "3.50", remark: "Very Good", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "50% - 59%",  grade: "B",  gp: "3.00", remark: "Good", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "40% - 49%",  grade: "C",  gp: "2.00", remark: "Satisfactory", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "33% - 39%",  grade: "D",  gp: "1.00", remark: "Passing", color: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { range: "00% - 32%",  grade: "F",  gp: "0.00", remark: "Failed", color: "bg-red-50 text-red-800 border-red-200" },
   ];
 
   return (
@@ -24,7 +24,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/80">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-[#707E94]/15 text-[#707E94] dark:bg-[#707E94]/20 dark:text-[#a4b3c7]">
+            <span className="p-2 rounded-lg bg-emerald-50 text-[#006a4e] border border-emerald-100">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
@@ -48,7 +48,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#707E94] text-white font-semibold">
+                <tr className="bg-[#006a4e] text-white font-semibold">
                   <th className="py-2.5 px-3">Numerical Score</th>
                   <th className="py-2.5 px-3 text-center">Letter Grade</th>
                   <th className="py-2.5 px-3 text-center">Grade Point</th>
@@ -72,8 +72,8 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
             </table>
           </div>
 
-          <div className="bg-[#707E94]/10 dark:bg-[#707E94]/20 p-3.5 rounded-xl border border-[#707E94]/30 dark:border-[#707E94]/40 space-y-2 text-gray-700 dark:text-gray-300">
-            <h4 className="font-bold text-[#707E94] dark:text-[#a4b3c7] text-xs uppercase tracking-wider">
+          <div className="bg-emerald-50 p-3.5 rounded-md border border-emerald-200 space-y-2 text-gray-700 dark:text-gray-300">
+            <h4 className="font-bold text-[#006a4e] text-xs uppercase tracking-wider">
               Key Evaluation Rules:
             </h4>
             <ul className="list-disc list-inside space-y-1 text-[11px]">
@@ -94,7 +94,7 @@ export const GradingScaleModal: React.FC<GradingScaleModalProps> = ({ isOpen, on
         <div className="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-[#D32F45] hover:bg-[#be2035] text-white rounded-lg text-xs font-semibold cursor-pointer"
+            className="px-4 py-1.5 bg-[#006a4e] hover:bg-[#00563f] text-white rounded-md text-xs font-semibold cursor-pointer"
           >
             Understood
           </button>
