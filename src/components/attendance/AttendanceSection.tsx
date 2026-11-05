@@ -787,6 +787,7 @@ export const AttendanceSection: React.FC = () => {
       {activeTab === "records" && (
         <AttendanceSpreadsheet
           classes={classes}
+          lessons={lessons}
           initialClassId={selectedClass !== "all" ? selectedClass : undefined}
           role={role}
           onRefreshParent={fetchRecords}

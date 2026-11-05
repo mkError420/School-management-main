@@ -41,10 +41,24 @@ export interface AttendanceCell {
   present: boolean;
   notes?: string;
   lesson_id?: number | string;
+  lesson_name?: string;
+}
+
+interface AttendanceLesson {
+  id: number | string;
+  name: string;
+  subject_name?: string;
+  class_id?: number | string;
+  class_name?: string;
+  teacher_name?: string;
+  teacher_surname?: string;
+  start_time?: string;
+  end_time?: string;
 }
 
 interface AttendanceSpreadsheetProps {
   classes: Array<{ id: number | string; name: string }>;
+  lessons: AttendanceLesson[];
   initialClassId?: string | number;
   role?: string;
   onRefreshParent?: () => void;
@@ -52,6 +66,7 @@ interface AttendanceSpreadsheetProps {
 
 export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
   classes,
+  lessons,
   initialClassId,
   role = "admin",
   onRefreshParent,
@@ -71,15 +86,19 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
   );
 
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
+  const [selectedDate, setSelectedDate] = useState<string>(todayYmd);
+  const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
   const [selectedClassId, setSelectedClassId] = useState<string>(
     initialClassId ? String(initialClassId) : "all"
   );
+  const [selectedLessonId, setSelectedLessonId] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
   // Data
   const [dates, setDates] = useState<SpreadsheetDate[]>([]);
   const [students, setStudents] = useState<SpreadsheetStudent[]>([]);
   const [matrix, setMatrix] = useState<Record<string, Record<string, AttendanceCell>>>({});
+  const [lessonMatrix, setLessonMatrix] = useState<Record<string, Record<string, Record<string, AttendanceCell>>>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [columnMenuDate, setColumnMenuDate] = useState<string | null>(null);
@@ -119,9 +138,15 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
       const params: Record<string, any> = {
         month: selectedMonth,
       };
+      const selectedLesson = selectedLessonId === "all"
+        ? undefined
+        : lessons.find((lesson) => String(lesson.id) === selectedLessonId);
       if (selectedClassId && selectedClassId !== "all") {
         params.class_id = selectedClassId;
+      } else if (selectedLesson?.class_id) {
+        params.class_id = selectedLesson.class_id;
       }
+      if (selectedLessonId !== "all") params.lesson_id = selectedLessonId;
       if (search.trim()) {
         params.search = search.trim();
       }
@@ -131,16 +156,23 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         setDates(res.data.dates || []);
         setStudents(res.data.students || []);
         setMatrix(res.data.matrix || {});
+        setLessonMatrix(res.data.lesson_matrix || {});
       } else {
         // Fallback local calendar generation if backend returned empty or offline
         generateFallbackDates(selectedMonth);
+        setStudents([]);
+        setMatrix({});
+        setLessonMatrix({});
       }
     } catch {
       generateFallbackDates(selectedMonth);
+      setStudents([]);
+      setMatrix({});
+      setLessonMatrix({});
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth, selectedClassId, search]);
+  }, [lessons, selectedMonth, selectedClassId, selectedLessonId, search]);
 
   const generateFallbackDates = (monthStr: string) => {
     const [y, m] = monthStr.split("-").map(Number);
@@ -244,9 +276,88 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
     };
   }, [studentStats]);
 
+  const availableLessons = useMemo(
+    () => lessons.filter((lesson) => {
+      if (!lesson.class_id) return false;
+      return selectedClassId === "all" || String(lesson.class_id) === selectedClassId;
+    }),
+    [lessons, selectedClassId]
+  );
+
+  useEffect(() => {
+    if (selectedLessonId !== "all" && !availableLessons.some((lesson) => String(lesson.id) === selectedLessonId)) {
+      setSelectedLessonId("all");
+    }
+  }, [availableLessons, selectedLessonId]);
+
+  const dailyLessonGroups = useMemo(() => availableLessons
+    .filter((lesson) => selectedLessonId === "all" || String(lesson.id) === selectedLessonId)
+    .map((lesson) => {
+      const lessonStudents = students.filter((student) => String(student.class_id) === String(lesson.class_id));
+      const className = lesson.class_name
+        || classes.find((item) => String(item.id) === String(lesson.class_id))?.name
+        || lessonStudents[0]?.class_name
+        || "Class";
+      return {
+        id: String(lesson.id),
+        lesson,
+        className,
+        subjectName: lesson.subject_name || lesson.name || "Subject",
+        students: lessonStudents,
+      };
+    })
+    .filter((group) => group.students.length > 0)
+    .sort((left, right) => {
+      const classOrder = classes.findIndex((item) => String(item.id) === String(left.lesson.class_id))
+        - classes.findIndex((item) => String(item.id) === String(right.lesson.class_id));
+      if (classOrder !== 0) return classOrder;
+      return left.subjectName.localeCompare(right.subjectName) || left.lesson.name.localeCompare(right.lesson.name);
+    }), [availableLessons, classes, selectedLessonId, students]);
+
+  const dailySummary = useMemo(() => {
+    let present = 0;
+    let absent = 0;
+    let marked = 0;
+    const rosterCount = dailyLessonGroups.reduce((count, group) => count + group.students.length, 0);
+
+    dailyLessonGroups.forEach((group) => group.students.forEach((student) => {
+      const attendance = lessonMatrix[student.id]?.[selectedDate]?.[group.id];
+      if (!attendance) return;
+      marked++;
+      if (attendance.present) present++;
+      else absent++;
+    }));
+
+    return {
+      present,
+      absent,
+      marked,
+      unmarked: Math.max(0, rosterCount - marked),
+      rate: marked ? Math.round((present / marked) * 100) : 0,
+    };
+  }, [dailyLessonGroups, lessonMatrix, selectedDate]);
+
+  const selectedDateIsWeekend = [5, 6].includes(new Date(`${selectedDate}T00:00:00`).getDay());
+
+  const setAttendanceDate = (date: string) => {
+    if (!date) return;
+    setSelectedDate(date);
+    setSelectedMonth(date.slice(0, 7));
+  };
+
+  const changeAttendanceDate = (offset: number) => {
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    const date = new Date(year, month - 1, day + offset);
+    setAttendanceDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+  };
+
   // ─── In-Cell Marking & Interactive Toggle ─────────────────────────────────
   const handleCellClick = async (studentId: string, dateStr: string) => {
     if (role !== "admin" && role !== "teacher") return;
+    if (selectedLessonId === "all") {
+      setFeedback({ type: "error", message: "Select a subject to update its monthly attendance register." });
+      return;
+    }
 
     const cellKey = `${studentId}_${dateStr}`;
     setSavingKey(cellKey);
@@ -281,71 +392,148 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
 
     try {
       if (nextStatus !== null) {
-        await api.markAttendanceRecord({
+        const student = students.find((item) => item.id === studentId);
+        const response = await api.markAttendanceRecord({
           student_id: studentId,
           date: dateStr,
           present: nextStatus ? 1 : 0,
-          class_id: selectedClassId !== "all" ? selectedClassId : undefined,
+          lesson_id: selectedLessonId,
+          class_id: student?.class_id || (selectedClassId !== "all" ? selectedClassId : undefined),
         });
+        if (!response.success) throw new Error(response.message || "Failed to save attendance.");
       } else if (currentCell?.id) {
-        // If unmarking an existing DB record, delete it
-        await api.delete("attendance", currentCell.id);
+        const response = await api.delete("attendance", currentCell.id);
+        if (!response.success) throw new Error(response.message || "Failed to clear attendance.");
       }
       if (onRefreshParent) onRefreshParent();
-    } catch {
-      setFeedback({ type: "error", message: "Failed to update attendance cell." });
+      await fetchSpreadsheetData();
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to update attendance cell." });
       fetchSpreadsheetData();
     } finally {
       setSavingKey(null);
     }
   };
 
+  const setDailyAttendance = async (student: SpreadsheetStudent, lesson: AttendanceLesson, present: boolean) => {
+    const lessonId = String(lesson.id);
+    const cellKey = `${student.id}_${selectedDate}_${lessonId}`;
+    setSavingKey(cellKey);
+    try {
+      const currentCell = lessonMatrix[student.id]?.[selectedDate]?.[lessonId];
+      const response = await api.markAttendanceRecord({
+        student_id: student.id,
+        date: selectedDate,
+        present: present ? 1 : 0,
+        lesson_id: lesson.id,
+        class_id: student.class_id || undefined,
+      });
+      if (!response.success) throw new Error(response.message || "Failed to save attendance.");
+      setMatrix((previous) => ({
+        ...previous,
+        [student.id]: {
+          ...(previous[student.id] || {}),
+          [selectedDate]: {
+            ...currentCell,
+            present,
+            lesson_id: currentCell?.lesson_id || lesson?.id,
+          },
+        },
+      }));
+      setLessonMatrix((previous) => ({
+        ...previous,
+        [student.id]: {
+          ...(previous[student.id] || {}),
+          [selectedDate]: {
+            ...(previous[student.id]?.[selectedDate] || {}),
+            [lessonId]: {
+              ...currentCell,
+              present,
+              lesson_id: lesson.id,
+              lesson_name: lesson.name,
+            },
+          },
+        },
+      }));
+      setFeedback({ type: "success", message: `${student.name} ${student.surname} marked ${present ? "present" : "absent"}.` });
+      if (onRefreshParent) onRefreshParent();
+      await fetchSpreadsheetData();
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to save attendance." });
+      await fetchSpreadsheetData();
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
   // ─── Batch Marking: Mark All Students for a Specific Date ─────────────────
-  const handleMarkAllForDate = async (dateStr: string, markPresent: boolean) => {
-    if (students.length === 0) return;
+  const handleMarkAllForDate = async (
+    dateStr: string,
+    markPresent: boolean,
+    roster: SpreadsheetStudent[] = students,
+    lessonGroups: Array<{ lesson: AttendanceLesson; students: SpreadsheetStudent[] }> = dailyLessonGroups
+  ) => {
+    if (roster.length === 0) return;
     setColumnMenuDate(null);
 
-    const batch = students.map((st) => ({
-      student_id: st.id,
-      date: dateStr,
-      present: markPresent ? 1 : 0,
-    }));
+    const batches = lessonGroups.filter((group) => group.students.length > 0);
+    if (batches.length === 0) {
+      setFeedback({ type: "error", message: "No subject lessons are available for this class and date." });
+      return;
+    }
 
     // Optimistic UI update
-    setMatrix((prev) => {
-      const nextMatrix = { ...prev };
-      students.forEach((st) => {
-        nextMatrix[st.id] = {
-          ...(nextMatrix[st.id] || {}),
-          [dateStr]: { present: markPresent, notes: "" },
-        };
+    setLessonMatrix((previous) => {
+      const nextMatrix = { ...previous };
+      batches.forEach(({ lesson, students: lessonStudents }) => {
+        const lessonId = String(lesson.id);
+        lessonStudents.forEach((student) => {
+          nextMatrix[student.id] = { ...(nextMatrix[student.id] || {}) };
+          nextMatrix[student.id][dateStr] = { ...(nextMatrix[student.id][dateStr] || {}) };
+          nextMatrix[student.id][dateStr][lessonId] = {
+            ...nextMatrix[student.id][dateStr][lessonId],
+            present: markPresent,
+            lesson_id: lesson.id,
+            lesson_name: lesson.name,
+          };
+        });
       });
       return nextMatrix;
     });
 
     try {
-      const res = await api.create("attendance", {
-        date: dateStr,
-        class_id: selectedClassId !== "all" ? selectedClassId : undefined,
-        batch,
+      const results = await Promise.all(batches.map(({ lesson, students: classStudents }) =>
+        api.create("attendance", {
+          date: dateStr,
+          class_id: lesson.class_id,
+          batch: classStudents.map((student) => ({
+            student_id: student.id,
+            date: dateStr,
+            present: markPresent ? 1 : 0,
+            lesson_id: lesson.id,
+          })),
+        })
+      ));
+      const failedResult = results.find((result) => !result?.success);
+      if (failedResult) throw new Error(failedResult.message || "Some class attendance could not be saved.");
+      setFeedback({
+        type: "success",
+        message: `Marked ${batches.reduce((count, batch) => count + batch.students.length, 0)} subject attendance records as ${markPresent ? "Present" : "Absent"} for ${dateStr}.`,
       });
-      if (res?.success) {
-        setFeedback({
-          type: "success",
-          message: `Marked all students as ${markPresent ? "Present" : "Absent"} for ${dateStr}.`,
-        });
-        if (onRefreshParent) onRefreshParent();
-      } else {
-        fetchSpreadsheetData();
-      }
-    } catch {
-      setFeedback({ type: "error", message: "Batch mark update failed." });
-      fetchSpreadsheetData();
+      if (onRefreshParent) onRefreshParent();
+      await fetchSpreadsheetData();
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Batch mark update failed." });
+      await fetchSpreadsheetData();
     }
   };
 
   // Clear all markings for a day
   const handleClearAllForDate = async (dateStr: string) => {
+    if (selectedLessonId === "all") {
+      setFeedback({ type: "error", message: "Select a subject before clearing monthly attendance." });
+      return;
+    }
     setColumnMenuDate(null);
     setMatrix((prev) => {
       const nextMatrix = { ...prev };
@@ -365,16 +553,24 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         .map((st) => matrix[st.id]?.[dateStr]?.id)
         .filter(Boolean)
         .map((id) => api.delete("attendance", id!));
-      await Promise.all(deletePromises);
+      const deleteResults = await Promise.all(deletePromises);
+      const failedResult = deleteResults.find((result) => !result?.success);
+      if (failedResult) throw new Error(failedResult.message || "Some attendance marks could not be cleared.");
       setFeedback({ type: "success", message: `Cleared attendance marks for ${dateStr}.` });
       if (onRefreshParent) onRefreshParent();
-    } catch {
-      fetchSpreadsheetData();
+      await fetchSpreadsheetData();
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Failed to clear attendance marks." });
+      await fetchSpreadsheetData();
     }
   };
 
   // ─── Export CSV Spreadsheet ────────────────────────────────────────────────
   const handleExportSpreadsheetCsv = () => {
+    if (selectedLessonId === "all") {
+      setFeedback({ type: "error", message: "Select a subject to export its monthly attendance register." });
+      return;
+    }
     if (students.length === 0 || dates.length === 0) {
       setFeedback({ type: "error", message: "No attendance data to export." });
       return;
@@ -413,7 +609,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `attendance_spreadsheet_${selectedMonth}_class_${selectedClassId || "all"}.csv`;
+    link.download = `attendance_spreadsheet_${selectedMonth}_class_${selectedClassId || "all"}_lesson_${selectedLessonId}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -441,6 +637,31 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         </div>
       )}
 
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs dark:border-gray-700 dark:bg-gray-800 sm:flex-row sm:items-center sm:justify-between print:hidden">
+        <div>
+          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">বাংলাদেশি দৈনিক হাজিরা খাতা</h2>
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Take attendance by class and date · Friday and Saturday are weekly holidays</p>
+        </div>
+        <div className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-gray-700 dark:bg-gray-900" role="group" aria-label="Attendance view">
+          <button
+            type="button"
+            onClick={() => setViewMode("daily")}
+            aria-pressed={viewMode === "daily"}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${viewMode === "daily" ? "bg-[#006a4e] text-white shadow-sm" : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-gray-800"}`}
+          >
+            Daily Roll Call
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("monthly")}
+            aria-pressed={viewMode === "monthly"}
+            className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${viewMode === "monthly" ? "bg-[#006a4e] text-white shadow-sm" : "text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-gray-800"}`}
+          >
+            Monthly Register
+          </button>
+        </div>
+      </div>
+
       {/* ─── Spreadsheet Top Controls & Filter Bar ────────────────────────── */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 flex-wrap print:hidden">
         
@@ -462,6 +683,25 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
               ))}
             </select>
           </div>
+
+          <label className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Subject:</span>
+            <select
+              value={selectedLessonId}
+              onChange={(event) => setSelectedLessonId(event.target.value)}
+              className="max-w-[240px] text-xs md:text-sm font-semibold py-1.5 px-3 rounded-xl bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
+            >
+              <option value="all">All Subjects</option>
+              {availableLessons.map((lesson) => {
+                const className = lesson.class_name
+                  || classes.find((item) => String(item.id) === String(lesson.class_id))?.name
+                  || "";
+                const subjectName = lesson.subject_name || lesson.name;
+                const label = selectedClassId === "all" ? `${subjectName} · Class ${className}` : subjectName;
+                return <option key={lesson.id} value={String(lesson.id)}>{label}</option>;
+              })}
+            </select>
+          </label>
 
           {/* Search Box */}
           <div className="relative flex-1 min-w-[180px] max-w-xs">
@@ -487,37 +727,57 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           </div>
         </div>
 
-        {/* Center: Month Navigator */}
-        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-gray-900 p-1 rounded-xl border border-slate-200 dark:border-gray-700">
-          <button
-            onClick={handlePrevMonth}
-            title="Previous Month"
-            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <div className="flex items-center gap-1.5 px-2">
-            <Calendar size={14} className="text-indigo-600 dark:text-indigo-400" />
-            <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 min-w-[120px] text-center">
-              {formatMonthTitle(selectedMonth)}
-            </span>
-          </div>
-          <button
-            onClick={handleNextMonth}
-            title="Next Month"
-            className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800 text-slate-600 dark:text-slate-300 transition cursor-pointer"
-          >
-            <ChevronRight size={16} />
-          </button>
-          {selectedMonth !== currentMonthStr && (
-            <button
-              onClick={handleCurrentMonth}
-              className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-gray-700 hover:bg-indigo-50 transition ml-1"
-            >
-              Current Month
+        {viewMode === "daily" ? (
+          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 p-1 dark:border-gray-700 dark:bg-gray-900">
+            <button type="button" onClick={() => changeAttendanceDate(-1)} aria-label="Previous day" className="rounded-md p-1.5 text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-gray-800">
+              <ChevronLeft size={16} />
             </button>
-          )}
-        </div>
+            <label className="flex items-center gap-2 px-1.5">
+              <Calendar size={15} className="text-[#006a4e] dark:text-emerald-300" />
+              <span className="sr-only">Attendance date</span>
+              <input type="date" value={selectedDate} onChange={(event) => setAttendanceDate(event.target.value)} className="w-[145px] border-0 bg-transparent p-0 text-xs font-bold text-slate-800 focus:ring-0 dark:text-slate-100" />
+            </label>
+            <button type="button" onClick={() => changeAttendanceDate(1)} aria-label="Next day" className="rounded-md p-1.5 text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-gray-800">
+              <ChevronRight size={16} />
+            </button>
+            {selectedDate !== todayYmd && (
+              <button type="button" onClick={() => setAttendanceDate(todayYmd)} className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#006a4e] hover:bg-emerald-50 dark:border-gray-700 dark:bg-gray-800 dark:text-emerald-300">
+                Today
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-gray-900 p-1 rounded-xl border border-slate-200 dark:border-gray-700">
+            <button
+              onClick={handlePrevMonth}
+              title="Previous Month"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <div className="flex items-center gap-1.5 px-2">
+              <Calendar size={14} className="text-[#006a4e] dark:text-emerald-300" />
+              <span className="text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 min-w-[120px] text-center">
+                {formatMonthTitle(selectedMonth)}
+              </span>
+            </div>
+            <button
+              onClick={handleNextMonth}
+              title="Next Month"
+              className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-gray-800 text-slate-600 dark:text-slate-300 transition cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+            {selectedMonth !== currentMonthStr && (
+              <button
+                onClick={handleCurrentMonth}
+                className="text-[11px] font-semibold text-[#006a4e] dark:text-emerald-300 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-gray-700 hover:bg-emerald-50 transition ml-1"
+              >
+                Current Month
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Right: Legend & Actions */}
         <div className="flex items-center flex-wrap gap-2">
@@ -537,8 +797,9 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           {/* Export & Refresh */}
           <button
             onClick={handleExportSpreadsheetCsv}
+            disabled={selectedLessonId === "all"}
             title="Export Spreadsheet to CSV"
-            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-750 border border-slate-200 dark:border-gray-700 transition cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-gray-900 hover:bg-slate-100 dark:hover:bg-gray-750 border border-slate-200 dark:border-gray-700 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Download size={16} />
           </button>
@@ -560,7 +821,23 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         </div>
       </div>
 
-      {/* ─── Calculated Month Statistics Banner ────────────────────────────── */}
+      {viewMode === "daily" ? (
+        <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs dark:border-gray-700 dark:bg-gray-800 sm:grid-cols-5">
+          {[
+            { label: "Subject roster", value: dailyLessonGroups.reduce((count, group) => count + group.students.length, 0), color: "text-slate-800 dark:text-slate-100" },
+            { label: "Present", value: dailySummary.present, color: "text-emerald-700 dark:text-emerald-300" },
+            { label: "Absent", value: dailySummary.absent, color: "text-rose-700 dark:text-rose-300" },
+            { label: "Not marked", value: dailySummary.unmarked, color: "text-amber-700 dark:text-amber-300" },
+            { label: "Daily attendance", value: `${dailySummary.rate}%`, color: "text-[#006a4e] dark:text-emerald-300" },
+          ].map((item) => (
+            <div key={item.label} className="rounded-md border border-slate-100 px-3 py-2 dark:border-gray-700">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{item.label}</p>
+              <p className={`mt-1 text-xl font-bold ${item.color}`}>{item.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : selectedLessonId !== "all" ? (
+      /* ─── Calculated Month Statistics Banner ────────────────────────────── */
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-xs">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
@@ -615,8 +892,149 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           </div>
         </div>
       </div>
+      ) : null}
 
-      {/* ─── Spreadsheet Matrix Grid ──────────────────────────────────────── */}
+      {viewMode === "daily" ? (
+        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 p-4 dark:border-gray-700 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                Daily class register · {new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-BD", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </h3>
+              <p className={`mt-0.5 text-xs ${selectedDateIsWeekend ? "text-amber-700 dark:text-amber-300" : "text-slate-500 dark:text-slate-400"}`}>
+                {selectedDateIsWeekend ? "Weekly holiday (Friday / Saturday) · Records can still be viewed or updated." : "Select Present or Absent for each student. Unmarked students are not included in the daily rate."}
+              </p>
+            </div>
+            {(role === "admin" || role === "teacher") && dailyLessonGroups.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={loading || students.length === 0}
+                  onClick={() => handleMarkAllForDate(selectedDate, true)}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <UserCheck size={14} /> Mark all present
+                </button>
+                <button
+                  type="button"
+                  disabled={loading || students.length === 0}
+                  onClick={() => handleMarkAllForDate(selectedDate, false)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-rose-200 bg-white px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900 dark:bg-gray-800 dark:text-rose-300"
+                >
+                  <UserX size={14} /> Mark all absent
+                </button>
+              </div>
+            )}
+          </div>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-slate-400">
+              <RefreshCw size={26} className="animate-spin text-[#006a4e]" />
+              <p className="text-xs font-medium">Loading class attendance register...</p>
+            </div>
+          ) : students.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-20 text-slate-400">
+              <Users size={34} className="text-slate-300 dark:text-slate-600" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No students found for this class.</p>
+              <p className="text-xs">Choose another class or add students to the class.</p>
+            </div>
+          ) : dailyLessonGroups.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-20 text-slate-400">
+              <Calendar size={34} className="text-slate-300 dark:text-slate-600" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">No subject lessons are configured for this class.</p>
+              <p className="text-xs">Add a class lesson before recording subject-wise attendance.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              {dailyLessonGroups.map((group) => {
+                const classPresent = group.students.filter((student) => lessonMatrix[student.id]?.[selectedDate]?.[group.id]?.present).length;
+                const classAbsent = group.students.filter((student) => {
+                  const record = lessonMatrix[student.id]?.[selectedDate]?.[group.id];
+                  return record && !record.present;
+                }).length;
+                const classMarked = classPresent + classAbsent;
+                return (
+                  <div key={group.id} className="border-b border-slate-200 last:border-b-0 dark:border-gray-700">
+                    <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50/70 px-4 py-2.5 dark:bg-emerald-950/20">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-[#006a4e] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">Class {group.className}</span>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-100">{group.subjectName}</p>
+                          <p className="text-[10px] text-slate-600 dark:text-slate-300">{group.lesson.name}{group.lesson.start_time ? ` · ${group.lesson.start_time.slice(0, 5)}` : ""} · {group.students.length} students · {classMarked} marked · {classPresent} present · {classAbsent} absent</p>
+                        </div>
+                      </div>
+                      {(role === "admin" || role === "teacher") && (
+                        <div className="flex gap-1.5">
+                          <button type="button" disabled={savingKey !== null} onClick={() => handleMarkAllForDate(selectedDate, true, group.students, [group])} className="rounded border border-emerald-200 bg-white px-2 py-1 text-[10px] font-semibold text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-900 dark:bg-gray-800 dark:text-emerald-300">
+                            Present all
+                          </button>
+                          <button type="button" disabled={savingKey !== null} onClick={() => handleMarkAllForDate(selectedDate, false, group.students, [group])} className="rounded border border-rose-200 bg-white px-2 py-1 text-[10px] font-semibold text-rose-800 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:bg-gray-800 dark:text-rose-300">
+                            Absent all
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <table className="w-full min-w-[620px] border-collapse text-left text-xs">
+                      <thead>
+                        <tr className="bg-white text-[10px] uppercase tracking-wide text-slate-500 dark:bg-gray-800 dark:text-slate-400">
+                          <th className="w-16 px-4 py-2 text-center">Roll</th>
+                          <th className="px-4 py-2">Student name</th>
+                          <th className="w-36 px-4 py-2 text-center">Attendance</th>
+                          <th className="w-56 px-4 py-2 text-right">Mark status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-gray-700">
+                        {group.students.map((student, index) => {
+                          const attendance = lessonMatrix[student.id]?.[selectedDate]?.[group.id];
+                          const saving = savingKey === `${student.id}_${selectedDate}_${group.id}`;
+                          return (
+                            <tr key={student.id} className="hover:bg-slate-50 dark:hover:bg-gray-750">
+                              <td className="px-4 py-3 text-center font-semibold text-slate-600 dark:text-slate-300">{student.roll || index + 1}</td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-[#006a4e] dark:bg-gray-700 dark:text-emerald-300">
+                                    {student.img ? <img src={student.img} alt="" className="h-full w-full object-cover" /> : (student.name?.[0] || "S").toUpperCase()}
+                                  </span>
+                                  <span className="font-semibold text-slate-800 dark:text-slate-100">{student.name} {student.surname}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {saving ? <span className="inline-flex items-center gap-1 text-slate-500"><RefreshCw size={13} className="animate-spin" /> Saving</span> : attendance ? (
+                                  <span className={`inline-flex min-w-20 items-center justify-center rounded-full border px-2.5 py-1 text-[11px] font-bold ${attendance.present ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300" : "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300"}`}>
+                                    {attendance.present ? "উপস্থিত · Present" : "অনুপস্থিত · Absent"}
+                                  </span>
+                                ) : <span className="text-[11px] font-medium text-amber-700 dark:text-amber-300">Not marked</span>}
+                              </td>
+                              <td className="px-4 py-3">
+                                {(role === "admin" || role === "teacher") ? (
+                                  <div className="flex justify-end gap-2">
+                                    <button type="button" disabled={saving || Boolean(attendance?.present)} onClick={() => setDailyAttendance(student, group.lesson, true)} className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold disabled:cursor-default ${attendance?.present ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-200 bg-white text-emerald-800 hover:bg-emerald-50 dark:border-emerald-900 dark:bg-gray-800 dark:text-emerald-300"}`}>
+                                      <CheckCircle2 size={13} /> Present
+                                    </button>
+                                    <button type="button" disabled={saving || Boolean(attendance && !attendance.present)} onClick={() => setDailyAttendance(student, group.lesson, false)} className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11px] font-semibold disabled:cursor-default ${attendance && !attendance.present ? "border-rose-700 bg-rose-700 text-white" : "border-rose-200 bg-white text-rose-800 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-800 dark:text-rose-300"}`}>
+                                      <X size={13} /> Absent
+                                    </button>
+                                  </div>
+                                ) : <p className="text-right text-[11px] text-slate-500">View only</p>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : selectedLessonId === "all" ? (
+        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center dark:border-gray-700 dark:bg-gray-800">
+          <Users size={32} className="text-[#006a4e] dark:text-emerald-300" />
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Choose a subject register</h3>
+          <p className="max-w-md text-xs text-slate-500 dark:text-slate-400">Monthly attendance is maintained separately for each subject. Select a subject above to view or update its register.</p>
+        </div>
+      ) : (
+      /* ─── Monthly Attendance Register ───────────────────────────────────── */
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-200/90 dark:border-gray-700/80 shadow-xs overflow-hidden relative">
         {loading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-3 text-slate-400">
@@ -912,9 +1330,10 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {/* Spreadsheet Instruction Hint */}
-      <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1 print:hidden">
+      {viewMode === "monthly" && <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1 print:hidden">
         <p>
           <strong className="text-slate-700 dark:text-slate-300">Tip:</strong> Click any cell to cycle through:{" "}
           <span className="text-emerald-600 font-semibold">[P] Present</span> &rarr;{" "}
@@ -924,7 +1343,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         <p>
           Use column ▼ dropdown to batch mark the entire class for that date.
         </p>
-      </div>
+      </div>}
     </div>
   );
 };

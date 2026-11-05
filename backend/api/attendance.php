@@ -185,6 +185,7 @@ function getAttendanceSpreadsheet($db) {
             'dates' => $dateList,
             'students' => [],
             'matrix' => new stdClass(),
+            'lesson_matrix' => new stdClass(),
             'student_stats' => new stdClass(),
             'date_stats' => new stdClass(),
             'overall' => ['total_marked' => 0, 'present' => 0, 'absent' => 0, 'rate' => 0]
@@ -204,20 +205,28 @@ function getAttendanceSpreadsheet($db) {
                WHERE a.student_id IN ($placeholders)
                  AND a.date >= ? AND a.date <= ?";
     $attParams = array_merge($studentIds, [$startDate, $endDate]);
+    $lessonId = $_GET['lesson_id'] ?? '';
+    if (!empty($lessonId) && $lessonId !== 'all') {
+        $attSql .= " AND a.lesson_id = ?";
+        $attParams[] = $lessonId;
+    }
     $records = $db->fetchAll($attSql, $attParams);
     
-    // Build matrix [student_id][date]
+    // Keep the legacy date matrix while exposing every subject lesson separately.
     $matrix = [];
+    $lessonMatrix = [];
     foreach ($records as $r) {
         $sId = $r['student_id'];
         $d = $r['date'];
-        $matrix[$sId][$d] = [
+        $cell = [
             'id' => $r['id'],
             'present' => intval($r['present']) == 1,
             'notes' => $r['notes'],
             'lesson_id' => $r['lesson_id'],
             'lesson_name' => $r['lesson_name'] ?? '',
         ];
+        $matrix[$sId][$d] = $cell;
+        $lessonMatrix[$sId][$d][(string)$r['lesson_id']] = $cell;
     }
     
     // Compute student stats & date stats
@@ -278,6 +287,7 @@ function getAttendanceSpreadsheet($db) {
         'dates' => $dateList,
         'students' => $students,
         'matrix' => $matrix,
+        'lesson_matrix' => $lessonMatrix,
         'student_stats' => $studentStats,
         'date_stats' => $dateStats,
         'overall' => [

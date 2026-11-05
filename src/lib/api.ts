@@ -590,6 +590,7 @@ class ApiService {
   // Attendance Spreadsheet & Marking APIs
   async getAttendanceSpreadsheet(params: {
     class_id?: string | number;
+    lesson_id?: string | number;
     month?: string;
     start_date?: string;
     end_date?: string;
