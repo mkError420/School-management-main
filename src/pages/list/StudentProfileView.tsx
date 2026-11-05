@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Views, type View } from "react-big-calendar";
 import moment from "moment";
-import { CalendarDays, GraduationCap, Mail, MapPin, Phone, Trophy, Users } from "lucide-react";
+import { CalendarDays, CreditCard, GraduationCap, Mail, MapPin, Phone, Trophy, Users } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import { useAccessRole } from "@/context/AuthContext";
 import ResultSheetModal from "@/components/results/ResultSheetModal";
+import StudentIdCardModal from "@/components/students/StudentIdCardModal";
 
 const localizer = momentLocalizer(moment);
 
@@ -125,6 +126,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   const navigate = useNavigate();
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [idCardOpen, setIdCardOpen] = useState(false);
   const student = details.student;
   const fullName = `${student.name} ${student.surname}`.trim();
   const presentCount = details.attendance.filter((record) => Boolean(Number(record.present))).length;
@@ -152,7 +154,18 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
     <div className="m-2 sm:m-4 mt-0 flex-1 space-y-3 pb-8">
       <div className="flex items-center justify-between gap-3 py-2">
         <Link to="/list/students" className="text-sm font-medium text-gray-600 hover:text-gray-900">← All students</Link>
-        {role === "admin" && <div className="flex items-center gap-2"><FormModal table="student" type="update" data={student} onSuccess={onReload} /><FormModal table="student" type="delete" id={student.id} onSuccess={() => navigate("/list/students", { replace: true })} /></div>}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIdCardOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition"
+            title="Generate Student ID Card / পরিচয়পত্র"
+          >
+            <CreditCard size={14} />
+            <span>ID Card</span>
+          </button>
+          {role === "admin" && <div className="flex items-center gap-2"><FormModal table="student" type="update" data={student} onSuccess={onReload} /><FormModal table="student" type="delete" id={student.id} onSuccess={() => navigate("/list/students", { replace: true })} /></div>}
+        </div>
       </div>
 
       <div className="grid items-stretch gap-3 xl:grid-cols-3">
@@ -367,6 +380,13 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         onClose={() => setSheetOpen(false)}
         studentId={student.id}
       />
+
+      {idCardOpen && (
+        <StudentIdCardModal
+          student={student}
+          onClose={() => setIdCardOpen(false)}
+        />
+      )}
     </div>
   );
 };

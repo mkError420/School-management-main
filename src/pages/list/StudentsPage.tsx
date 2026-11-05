@@ -7,7 +7,9 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
-import { GraduationCap, ArrowRight, UserPlus } from "lucide-react";
+import { GraduationCap, ArrowRight, UserPlus, CreditCard } from "lucide-react";
+import StudentIdCardModal from "@/components/students/StudentIdCardModal";
+import StudentBatchIdCardModal from "@/components/students/StudentBatchIdCardModal";
 
 interface Student {
   id: string;
@@ -42,6 +44,8 @@ const StudentsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("search") || "");
   const [page, setPage] = useState(1);
+  const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
+  const [batchIdCardOpen, setBatchIdCardOpen] = useState(false);
 
   useEffect(() => {
     const q = searchParams.get("search");
@@ -97,6 +101,14 @@ const StudentsPage: React.FC = () => {
               <Image src="/view.png" alt="view" width={15} height={15} />
             </button>
           </Link>
+          <button
+            type="button"
+            onClick={() => setIdCardStudent(item)}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 transition"
+            title="Generate Student ID Card / পরিচয়পত্র"
+          >
+            <CreditCard size={14} />
+          </button>
           {role === "admin" && (
             <>
               <FormModal table="student" type="update" data={item} onSuccess={fetchStudents} />
@@ -121,8 +133,18 @@ const StudentsPage: React.FC = () => {
             </span>
           )}
         </div>
-        <div className="w-full sm:w-auto">
+        <div className="w-full sm:w-auto flex items-center gap-2">
           <TableSearch value={search} onChange={setSearch} placeholder="Search students..." />
+          <button
+            type="button"
+            onClick={() => setBatchIdCardOpen(true)}
+            disabled={!students || students.length === 0}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-sm shadow-emerald-600/20 transition disabled:opacity-50"
+            title="Batch Print Student ID Cards / একসাথে আইডি কার্ড প্রিন্ট"
+          >
+            <CreditCard size={14} />
+            <span className="hidden sm:inline">Batch ID Cards</span>
+          </button>
         </div>
       </div>
 
@@ -167,6 +189,22 @@ const StudentsPage: React.FC = () => {
         }
       />
       <Pagination page={page} totalPages={pagination.pages} onPageChange={setPage} total={pagination.total} limit={pagination.limit} />
+
+      {/* Student Single ID Card Modal */}
+      {idCardStudent && (
+        <StudentIdCardModal
+          student={idCardStudent}
+          onClose={() => setIdCardStudent(null)}
+        />
+      )}
+
+      {/* Student Batch ID Card Modal */}
+      {batchIdCardOpen && students && (
+        <StudentBatchIdCardModal
+          students={students}
+          onClose={() => setBatchIdCardOpen(false)}
+        />
+      )}
     </div>
   );
 };
