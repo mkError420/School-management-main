@@ -1305,7 +1305,7 @@ const FeesSection: React.FC = () => {
             <div className="text-2xl font-bold text-amber-600">{fmt(stats.total_due)}</div>
             <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
               <span className="font-medium text-amber-600">{stats.partial_count} partial</span>
-              <span>â€¢</span>
+              <span>•</span>
               <span>{stats.unpaid_count} pending</span>
             </div>
           </div>
@@ -1538,7 +1538,7 @@ const FeesSection: React.FC = () => {
                                 {inv.student_name} {inv.student_surname}
                               </div>
                               <div className="text-[11px] text-gray-400">
-                                ID: {inv.student_id} â€¢ {inv.class_name ? `Class ${inv.class_name}` : "General"}
+                                ID: {inv.student_id} • {inv.class_name ? `Class ${inv.class_name}` : "General"}
                               </div>
                             </div>
                           </div>
@@ -1965,13 +1965,13 @@ const FeesSection: React.FC = () => {
                       {row.studentCountNum}
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-gray-900">
-                      ${row.billed.toFixed(2)}
+                      {fmt(row.billed)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-emerald-600">
-                      ${row.collected.toFixed(2)}
+                      {fmt(row.collected)}
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-rose-600">
-                      ${row.due.toFixed(2)}
+                      {fmt(row.due)}
                     </td>
                     <td className="py-3.5 px-4 w-44">
                       <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
@@ -2314,7 +2314,7 @@ const FeesSection: React.FC = () => {
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} (${c.default_amount})
+                      {c.name} ({fmt(c.default_amount)})
                     </option>
                   ))}
                 </select>
@@ -2419,7 +2419,7 @@ const FeesSection: React.FC = () => {
                   {paymentModalInvoice.student_name} {paymentModalInvoice.student_surname}
                 </div>
                 <div className="text-gray-500">
-                  Invoice #{paymentModalInvoice.invoice_no} â€¢ {paymentModalInvoice.title}
+                  Invoice #{paymentModalInvoice.invoice_no} • {paymentModalInvoice.title}
                 </div>
               </div>
               <div className="text-right">
