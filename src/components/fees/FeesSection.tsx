@@ -3,10 +3,13 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowUpRight,
+  Award,
+  BookOpen,
   Building2,
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Clock,
   CreditCard,
@@ -15,20 +18,31 @@ import {
   FileSpreadsheet,
   FileText,
   Filter,
+  GraduationCap,
+  HelpCircle,
+  History,
   Layers,
+  MessageSquare,
   Pencil,
   Percent,
+  Phone,
   Plus,
   Printer,
   Receipt,
   RefreshCw,
   Search,
+  Send,
+  ShieldCheck,
   Sparkles,
   Tag,
   Trash2,
+  TrendingUp,
+  User,
+  UserCheck,
   Users,
   Wallet,
   X,
+  Zap,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
@@ -41,65 +55,109 @@ import {
   FeeStatus,
   PaymentMethod,
 } from "@/types/fees";
+import FeeReceiptSlipModal from "./FeeReceiptSlipModal";
 
-// Default initial categories if API/localStorage is empty
+// 12 Academic Months in Bangladesh School / College Calendar
+const BANGLA_MONTHS = [
+  { key: "JAN", nameBn: "জানুয়ারি", nameEn: "January", order: 1 },
+  { key: "FEB", nameBn: "ফেব্রুয়ারি", nameEn: "February", order: 2 },
+  { key: "MAR", nameBn: "মার্চ", nameEn: "March", order: 3 },
+  { key: "APR", nameBn: "এপ্রিল", nameEn: "April", order: 4 },
+  { key: "MAY", nameBn: "মে", nameEn: "May", order: 5 },
+  { key: "JUN", nameBn: "জুন", nameEn: "June", order: 6 },
+  { key: "JUL", nameBn: "জুলাই", nameEn: "July", order: 7 },
+  { key: "AUG", nameBn: "আগস্ট", nameEn: "August", order: 8 },
+  { key: "SEP", nameBn: "সেপ্টেম্বর", nameEn: "September", order: 9 },
+  { key: "OCT", nameBn: "অক্টোবর", nameEn: "October", order: 10 },
+  { key: "NOV", nameBn: "নভেম্বর", nameEn: "November", order: 11 },
+  { key: "DEC", nameBn: "ডিসেম্বর", nameEn: "December", order: 12 },
+];
+
+// Comprehensive Bangladesh School / College Fee Categories
 const defaultCategories: FeeCategory[] = [
-  { id: 1, name: "Monthly Tuition Fee", code: "TUIT", default_amount: 150, frequency: "MONTHLY", status: "ACTIVE", description: "Standard monthly academic tuition" },
-  { id: 2, name: "Admission / Enrollment Fee", code: "ADMS", default_amount: 350, frequency: "ONE_TIME", status: "ACTIVE", description: "One-time registration fee" },
-  { id: 3, name: "Term Examination Fee", code: "EXAM", default_amount: 50, frequency: "TERMLY", status: "ACTIVE", description: "Exam assessment and stationery" },
-  { id: 4, name: "School Transport Fee", code: "TRAN", default_amount: 80, frequency: "MONTHLY", status: "ACTIVE", description: "Bus route transport service" },
-  { id: 5, name: "Library & Learning Resources", code: "LIBR", default_amount: 30, frequency: "ANNUALLY", status: "ACTIVE", description: "Digital library and book lending" },
-  { id: 6, name: "Computer & Science Lab Fee", code: "LAB", default_amount: 45, frequency: "TERMLY", status: "ACTIVE", description: "Lab apparatus and IT equipment" },
-  { id: 7, name: "Sports & Extra-Curricular", code: "SPRT", default_amount: 40, frequency: "ANNUALLY", status: "ACTIVE", description: "Athletics, tournaments, and clubs" },
-  { id: 8, name: "Uniform & Study Pack", code: "UNIF", default_amount: 120, frequency: "ONE_TIME", status: "ACTIVE", description: "Official uniform and textbooks" },
+  { id: 1, name: "Monthly Tuition Fee (মাসিক বেতন)", code: "TUIT", default_amount: 800, frequency: "MONTHLY", status: "ACTIVE", category_group: "TUITION", description: "মাসিক নিয়মিত একাডেমিক বেতন (Monthly Academic Tuition Fee)" },
+  { id: 2, name: "Admission Fee (ভর্তি ফি)", code: "ADMS", default_amount: 2500, frequency: "ONE_TIME", status: "ACTIVE", category_group: "ADMISSION", description: "নতুন শিক্ষার্থী ভর্তি ও রেজিস্ট্রেশন ফি (New Admission Registration)" },
+  { id: 3, name: "Session Charge / Re-Admission (সেশন ফি / পুনর্ভর্তি)", code: "SESS", default_amount: 2000, frequency: "ANNUALLY", status: "ACTIVE", category_group: "ADMISSION", description: "বার্ষিক সেশন চার্জ ও পুনর্ভর্তি ফি (Annual Session Charge & Re-admission)" },
+  { id: 4, name: "1st Term Exam Fee (১ম সাময়িক পরীক্ষা ফি)", code: "EXAM1", default_amount: 450, frequency: "TERMLY", status: "ACTIVE", category_group: "EXAM", description: "১ম সাময়িক / মিড-টার্ম পরীক্ষা মূল্যায়ন ও খাতা-প্রশ্ন ফি" },
+  { id: 5, name: "Half-Yearly Exam Fee (অর্ধবার্ষিক পরীক্ষা ফি)", code: "EXAM2", default_amount: 500, frequency: "TERMLY", status: "ACTIVE", category_group: "EXAM", description: "অর্ধবার্ষিক পরীক্ষা মূল্যায়ন ফি (Half-Yearly Evaluation)" },
+  { id: 6, name: "Annual / Final Exam Fee (বার্ষিক / ফাইনাল পরীক্ষা ফি)", code: "EXAM_FIN", default_amount: 600, frequency: "ANNUALLY", status: "ACTIVE", category_group: "EXAM", description: "চূড়ান্ত বার্ষিক পরীক্ষা ফি (Year Final Exam Evaluation)" },
+  { id: 7, name: "Pre-Test & Test Exam Fee (প্রাক-নির্বাচনী ও টেস্ট পরীক্ষা ফি)", code: "TEST_EXAM", default_amount: 700, frequency: "TERMLY", status: "ACTIVE", category_group: "EXAM", description: "এসএসসি / এইচএসসি নির্বাচনী পরীক্ষা মূল্যায়ন ফি" },
+  { id: 8, name: "Board Registration Fee (বোর্ড রেজিস্ট্রেশন ফি)", code: "BD_REG", default_amount: 850, frequency: "ONE_TIME", status: "ACTIVE", category_group: "BOARD", description: "শিক্ষা বোর্ড রেজিস্ট্রেশন ও প্রত্যয়ন ফি (JSC/SSC/HSC Board Registration)" },
+  { id: 9, name: "Board Form Fill-up & Center Fee (বোর্ড ফরম পূরণ ও কেন্দ্র ফি)", code: "BD_FORM", default_amount: 2200, frequency: "ONE_TIME", status: "ACTIVE", category_group: "BOARD", description: "বোর্ড ফাইনাল পরীক্ষার ফরম পূরণ ও কেন্দ্র ফি" },
+  { id: 10, name: "ICT & Computer Lab Fee (আইসিটি ও কম্পিউটার ল্যাব ফি)", code: "ICT_LAB", default_amount: 250, frequency: "MONTHLY", status: "ACTIVE", category_group: "LAB", description: "ডিজিটাল কম্পিউটার ল্যাব ব্যবহার ও আইসিটি প্রশিক্ষণ ফি" },
+  { id: 11, name: "Science Practical Lab Fee (বিজ্ঞানাগার ল্যাব ফি)", code: "SCI_LAB", default_amount: 300, frequency: "TERMLY", status: "ACTIVE", category_group: "LAB", description: "পদার্থ, রসায়ন, জীববিজ্ঞান ও ব্যবহারিক ল্যাব ফি" },
+  { id: 12, name: "Digital ID Card & Lanyard (ডিজিটাল আইডি কার্ড ও ফিতা)", code: "ID_CARD", default_amount: 150, frequency: "ONE_TIME", status: "ACTIVE", category_group: "STATIONERY", description: "স্মার্ট শিক্ষার্থী পরিচয়পত্র ও ফিতা ফি" },
+  { id: 13, name: "Diary, Syllabus & Calendar (ডায়েরি, সিলেবাস ও ক্যালেন্ডার)", code: "DIARY_SYL", default_amount: 200, frequency: "ANNUALLY", status: "ACTIVE", category_group: "STATIONERY", description: "বিদ্যালয় ডায়েরি, বাৎসরিক একাডেমিক সিলেবাস ও ক্যালেন্ডার ফি" },
+  { id: 14, name: "Sports, Cultural & Scout Fund (ক্রীড়া, সাংস্কৃতিক ও স্কাউট)", code: "SPRT_CLT", default_amount: 350, frequency: "ANNUALLY", status: "ACTIVE", category_group: "CO_CURRICULAR", description: "বার্ষিক ক্রীড়া প্রতিযোগিতা, সাংস্কৃতিক সপ্তাহ ও স্কাউট/রোভার ফান্ড" },
+  { id: 15, name: "Library & Reading Room (লাইব্রেরি ও রিডিং রুম)", code: "LIBR", default_amount: 150, frequency: "ANNUALLY", status: "ACTIVE", category_group: "CO_CURRICULAR", description: "গ্রন্থাগার উন্নয়ন ও নিয়মিত বই ইস্যু সেবা ফি" },
+  { id: 16, name: "Religious & Milad / Puja Fund (ধর্মীয় ও মিলাদ তহবিল)", code: "RELG_FND", default_amount: 120, frequency: "ANNUALLY", status: "ACTIVE", category_group: "CO_CURRICULAR", description: "ধর্মীয় অনুষ্ঠান, মিলাদ মাহফিল ও পূজা উদযাপন ফান্ড" },
+  { id: 17, name: "School Development & Mosque (উন্নয়ন ও মসজিদ তহবিল)", code: "DEV_MOSQ", default_amount: 300, frequency: "ANNUALLY", status: "ACTIVE", category_group: "CO_CURRICULAR", description: "প্রতিষ্ঠান উন্নয়ন, অবকাঠামো সংস্কার ও মসজিদ তহবিল" },
+  { id: 18, name: "Transport / Bus Service Fee (পরিবহন / বাস সার্ভিস ফি)", code: "TRAN", default_amount: 1200, frequency: "MONTHLY", status: "ACTIVE", category_group: "SERVICES", description: "স্কুল ও কলেজ বাস যাতায়াত সার্ভিস ফি (Monthly Transport)" },
+  { id: 19, name: "Hostel & Dining Charge (হোস্টেল ও আবাসিক মেস ফি)", code: "HOSTEL", default_amount: 4500, frequency: "MONTHLY", status: "ACTIVE", category_group: "SERVICES", description: "আবাসিক ছাত্রাবাস সিট ভাড়া ও নিয়মিত ডাইনিং মেস ফি" },
+  { id: 20, name: "Coaching & Special Class Fee (বিশেষ কোচিং ফি)", code: "COACHING", default_amount: 1000, frequency: "MONTHLY", status: "ACTIVE", category_group: "SERVICES", description: "দুর্বল শিক্ষার্থীদের বিশেষ কোচিং ও অতিরিক্ত ক্লাস ফি" },
+  { id: 21, name: "Certificate & TC Fee (প্রশংসাপত্র ও ছাড়পত্র ফি)", code: "CERT_TC", default_amount: 250, frequency: "ONE_TIME", status: "ACTIVE", category_group: "OTHER", description: "মূল প্রশংসাপত্র, প্রত্যয়ন পত্র ও ছাড়পত্র (TC) ফি" },
+  { id: 22, name: "Late Payment Fine (বিলম্ব ফি / জরিমানা)", code: "LATE_FINE", default_amount: 50, frequency: "ONE_TIME", status: "ACTIVE", category_group: "OTHER", description: "নির্ধারিত তারিখের পর বিল পরিশোধের বিলম্ব জরিমানা" },
 ];
 
-// Fallback sample students if students API is not populated
+// Fallback sample students with authentic Bangladesh School / College attributes
 const sampleStudentsFallback = [
-  { id: "s1", name: "John", surname: "Doe", email: "john@doe.com", phone: "1234567890", class_id: 1, class_name: "1A", grade_level: 1, parent_name: "Robert", parent_surname: "Doe", parent_phone: "1234567890" },
-  { id: "s2", name: "Jane", surname: "Doe", email: "jane@doe.com", phone: "1234567891", class_id: 2, class_name: "1B", grade_level: 1, parent_name: "Sarah", parent_surname: "Doe", parent_phone: "1234567891" },
-  { id: "s3", name: "Mike", surname: "Geller", email: "mike@geller.com", phone: "1234567892", class_id: 3, class_name: "2A", grade_level: 2, parent_name: "Monica", parent_surname: "Geller", parent_phone: "1234567892" },
-  { id: "s4", name: "Jay", surname: "French", email: "jay@gmail.com", phone: "1234567893", class_id: 4, class_name: "2B", grade_level: 2, parent_name: "David", parent_surname: "French", parent_phone: "1234567893" },
-  { id: "s5", name: "Jane", surname: "Smith", email: "janesmith@gmail.com", phone: "1234567894", class_id: 5, class_name: "3A", grade_level: 3, parent_name: "Thomas", parent_surname: "Smith", parent_phone: "1234567894" },
-  { id: "s6", name: "Anna", surname: "Santiago", email: "anna@gmail.com", phone: "1234567895", class_id: 6, class_name: "3B", grade_level: 3, parent_name: "Carlos", parent_surname: "Santiago", parent_phone: "1234567895" },
-  { id: "s7", name: "Allen", surname: "Black", email: "allen@black.com", phone: "1234567896", class_id: 7, class_name: "4A", grade_level: 4, parent_name: "Arthur", parent_surname: "Black", parent_phone: "1234567896" },
-  { id: "s8", name: "Ophelia", surname: "Castro", email: "ophelia@castro.com", phone: "1234567897", class_id: 8, class_name: "4B", grade_level: 4, parent_name: "Maria", parent_surname: "Castro", parent_phone: "1234567897" },
-  { id: "s9", name: "Derek", surname: "Briggs", email: "derek@briggs.com", phone: "1234567898", class_id: 9, class_name: "5A", grade_level: 5, parent_name: "James", parent_surname: "Briggs", parent_phone: "1234567898" },
-  { id: "s10", name: "John", surname: "Glover", email: "john@glover.com", phone: "1234567899", class_id: 10, class_name: "5B", grade_level: 5, parent_name: "Edward", parent_surname: "Glover", parent_phone: "1234567899" },
+  { id: "s1", name: "আব্দুল্লাহ", surname: "আল মামুন", roll: "101", email: "mamun@gmail.com", phone: "01711223344", class_id: 1, class_name: "Class 6A", grade_level: 6, shift: "প্রভাতী (Morning)", group: "সাধারণ", parent_name: "রফিকুল ইসলাম", parent_phone: "01711223344" },
+  { id: "s2", name: "ফাতেমা", surname: "তুজ জোহরা", roll: "102", email: "fatema@gmail.com", phone: "01819887766", class_id: 1, class_name: "Class 6A", grade_level: 6, shift: "প্রভাতী (Morning)", group: "সাধারণ", parent_name: "আবুল কালাম", parent_phone: "01819887766" },
+  { id: "s3", name: "তানভীর", surname: "আহমেদ", roll: "201", email: "tanvir@gmail.com", phone: "01912345678", class_id: 2, class_name: "Class 7A", grade_level: 7, shift: "দিবা (Day)", group: "সাধারণ", parent_name: "মোশাররফ হোসেন", parent_phone: "01912345678" },
+  { id: "s4", name: "নুসরাত", surname: "জাহান", roll: "202", email: "nusrat@gmail.com", phone: "01715678901", class_id: 2, class_name: "Class 7A", grade_level: 7, shift: "দিবা (Day)", group: "সাধারণ", parent_name: "আমিরুল হক", parent_phone: "01715678901" },
+  { id: "s5", name: "সাকিব", surname: "আল হাসান", roll: "301", email: "sakib@gmail.com", phone: "01611223344", class_id: 3, class_name: "Class 8A", grade_level: 8, shift: "প্রভাতী (Morning)", group: "সাধারণ", parent_name: "খায়রুল আনাম", parent_phone: "01611223344" },
+  { id: "s6", name: "মারিয়া", surname: "আক্তার", roll: "302", email: "maria@gmail.com", phone: "01511223344", class_id: 3, class_name: "Class 8A", grade_level: 8, shift: "প্রভাতী (Morning)", group: "সাধারণ", parent_name: "আব্দুর রহিম", parent_phone: "01511223344" },
+  { id: "s7", name: "মেহেদী", surname: "হাসান", roll: "401", email: "mehedi@gmail.com", phone: "01719988776", class_id: 4, class_name: "Class 9 - বিজ্ঞান (Science)", grade_level: 9, shift: "দিবা (Day)", group: "বিজ্ঞান", parent_name: "আবু তাহের", parent_phone: "01719988776" },
+  { id: "s8", name: "সুমাইয়া", surname: "খাতুন", roll: "402", email: "sumaiya@gmail.com", phone: "01815566778", class_id: 4, class_name: "Class 9 - বিজ্ঞান (Science)", grade_level: 9, shift: "দিবা (Day)", group: "বিজ্ঞান", parent_name: "নজরুল ইসলাম", parent_phone: "01815566778" },
+  { id: "s9", name: "আরিফ", surname: "হোসেন", roll: "501", email: "arif@gmail.com", phone: "01918877665", class_id: 5, class_name: "Class 10 - ব্যবসায় শিক্ষা (Business)", grade_level: 10, shift: "দিবা (Day)", group: "ব্যবসায় শিক্ষা", parent_name: "জয়নাল আবেদীন", parent_phone: "01918877665" },
+  { id: "s10", name: "সাদিয়া", surname: "ইসলাম", roll: "601", email: "sadia@gmail.com", phone: "01714455667", class_id: 6, class_name: "Class 11 - বিজ্ঞান (HSC Science)", grade_level: 11, shift: "দিবা (Day)", group: "বিজ্ঞান", parent_name: "মুস্তাফিজুর রহমান", parent_phone: "01714455667" },
 ];
 
-const FeesSection: React.FC = () => {
+export const FeesSection: React.FC = () => {
   const { siteName, currencySymbol: cs } = useSiteSettings();
-  // Helper – format a number as currency using the configured symbol
-  const fmt = (n: number | string) => `${cs}${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  // Helper – format currency using Bangladesh Taka symbol (defaults to ৳)
+  const fmt = (n: number | string | undefined) =>
+    `${cs || "৳"}${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // Navigation Tabs
-  const [activeTab, setActiveTab] = useState<"invoices" | "payments" | "categories" | "class_summary">("invoices");
+  // Navigation Tabs for Bangladesh School / College System
+  const [activeTab, setActiveTab] = useState<
+    "quick_counter" | "invoices" | "batch_generator" | "categories" | "class_due_register" | "daily_register"
+  >("quick_counter");
 
-  // State
+  // Core State
   const [invoices, setInvoices] = useState<FeeInvoice[]>([]);
   const [categories, setCategories] = useState<FeeCategory[]>(defaultCategories);
   const [payments, setPayments] = useState<FeePayment[]>([]);
   const [students, setStudents] = useState<any[]>(sampleStudentsFallback);
   const [classes, setClasses] = useState<Array<{ id: number; name: string }>>([
-    { id: 1, name: "1A" },
-    { id: 2, name: "1B" },
-    { id: 3, name: "2A" },
-    { id: 4, name: "2B" },
-    { id: 5, name: "3A" },
-    { id: 6, name: "3B" },
-    { id: 7, name: "4A" },
-    { id: 8, name: "4B" },
-    { id: 9, name: "5A" },
-    { id: 10, name: "5B" },
+    { id: 1, name: "Class 6A" },
+    { id: 2, name: "Class 7A" },
+    { id: 3, name: "Class 8A" },
+    { id: 4, name: "Class 9 - বিজ্ঞান (Science)" },
+    { id: 5, name: "Class 10 - ব্যবসায় শিক্ষা (Business)" },
+    { id: 6, name: "Class 11 - বিজ্ঞান (HSC Science)" },
   ]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [notification, setNotification] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Filters & Pagination for Invoices
+  // Quick Counter Collection State
+  const [counterSelectedClass, setCounterSelectedClass] = useState<string>("ALL");
+  const [counterSearchText, setCounterSearchText] = useState<string>("");
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(sampleStudentsFallback[0]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(["OCT", "NOV"]);
+  const [selectedOtherFeeIds, setSelectedOtherFeeIds] = useState<number[]>([10]); // e.g. ICT Lab
+  const [counterLateFine, setCounterLateFine] = useState<number>(0);
+  const [counterDiscount, setCounterDiscount] = useState<number>(0);
+  const [counterWaiverType, setCounterWaiverType] = useState<string>("GENERAL");
+  const [counterPaymentMethod, setCounterPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [counterTxnRef, setCounterTxnRef] = useState<string>("");
+  const [counterPaidNow, setCounterPaidNow] = useState<number>(0);
+  const [counterNotes, setCounterNotes] = useState<string>("");
+
+  // Filters for Invoices Tab
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
@@ -107,70 +165,53 @@ const FeesSection: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Payments log search
-  const [paymentSearch, setPaymentSearch] = useState("");
-  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("ALL");
-
-  // Modals state
+  // Modals State
   const [createInvoiceModal, setCreateInvoiceModal] = useState(false);
   const [bulkGenerateModal, setBulkGenerateModal] = useState(false);
   const [paymentModalInvoice, setPaymentModalInvoice] = useState<FeeInvoice | null>(null);
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
   const [categoryModal, setCategoryModal] = useState<{ open: boolean; mode: "create" | "edit"; data?: FeeCategory | null }>({ open: false, mode: "create", data: null });
-
-  useEffect(() => {
-    if (receiptData) {
-      document.body.classList.add("printing-receipt-active");
-    } else {
-      document.body.classList.remove("printing-receipt-active");
-    }
-    return () => {
-      document.body.classList.remove("printing-receipt-active");
-    };
-  }, [receiptData]);
   const [editInvoiceModal, setEditInvoiceModal] = useState<FeeInvoice | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: "invoice" | "category"; id: number | string; label: string }>({ open: false, type: "invoice", id: 0, label: "" });
 
-  // Form states
+  // Batch Generator State
+  const [batchClassId, setBatchClassId] = useState<string>("");
+  const [batchCategoryIds, setBatchCategoryIds] = useState<number[]>([1, 10]); // Tuition + ICT Lab
+  const [batchMonth, setBatchMonth] = useState<string>("নভেম্বর ২০২৬");
+  const [batchAcademicYear, setBatchAcademicYear] = useState<string>("2026-2027");
+  const [batchDueDate, setBatchDueDate] = useState<string>(
+    new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0]
+  );
+  const [batchGenerating, setBatchGenerating] = useState<boolean>(false);
+
+  // Daily Register Filter
+  const [dailyDateFilter, setDailyDateFilter] = useState<string>(new Date().toISOString().split("T")[0]);
+
+  // Form states for Create Single Invoice
   const [invoiceForm, setInvoiceForm] = useState({
     student_id: "",
     fee_category_id: 1,
     title: "",
-    amount: 150,
+    amount: 800,
     discount: 0,
+    late_fine: 0,
     due_date: new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
     academic_year: "2026-2027",
     notes: "",
     collect_now: false,
-    paid_now: 150,
+    paid_now: 800,
     payment_method: "CASH" as PaymentMethod,
     transaction_ref: "",
   });
 
-  // Autocomplete & Class Filter for Create Student Fee Invoice Modal
-  const [selectedInvoiceClass, setSelectedInvoiceClass] = useState<string>("");
-  const [studentSearchText, setStudentSearchText] = useState<string>("");
-  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState<boolean>(false);
-  const studentDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target as Node)) {
-        setIsStudentDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const [bulkForm, setBulkForm] = useState({
-    class_id: "",
-    fee_category_id: 1,
-    title: "Monthly Tuition Fee - October 2026",
-    amount: 150,
-    due_date: new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
-    academic_year: "2026-2027",
-    notes: "Batch monthly invoice",
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    code: "",
+    default_amount: 500,
+    frequency: "MONTHLY" as FeeCategory["frequency"],
+    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+    category_group: "TUITION" as FeeCategory["category_group"],
+    description: "",
   });
 
   const [payForm, setPayForm] = useState({
@@ -181,16 +222,7 @@ const FeesSection: React.FC = () => {
     notes: "",
   });
 
-  const [categoryForm, setCategoryForm] = useState({
-    name: "",
-    code: "",
-    default_amount: 100,
-    frequency: "MONTHLY" as FeeCategory["frequency"],
-    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
-    description: "",
-  });
-
-  // Helper notification
+  // Toast Notification
   const showToast = (type: "success" | "error", message: string) => {
     setNotification({ type, message });
     setTimeout(() => {
@@ -198,28 +230,40 @@ const FeesSection: React.FC = () => {
     }, 4500);
   };
 
-  // Initial Data Seeding / Loading
+  // Sync to local storage
+  const syncToLocalStorage = (invList: FeeInvoice[], payList: FeePayment[], catList: FeeCategory[]) => {
+    localStorage.setItem("mk_school_fees_invoices", JSON.stringify(invList));
+    localStorage.setItem("mk_school_fee_payments", JSON.stringify(payList));
+    localStorage.setItem("mk_school_fee_categories", JSON.stringify(catList));
+  };
+
+  // Initial Data Loading
   const loadInitialData = useCallback(async () => {
     setLoading(true);
 
-    // 1. Try to fetch students and classes from API
+    // 1. Fetch Students & Classes
     try {
       const [studentsRes, classesRes] = await Promise.all([
         api.getAll("students", { limit: 100 }),
         api.getAll("classes", { limit: 100 }),
       ]);
 
-      if (studentsRes.success && Array.isArray(studentsRes.data?.students)) {
+      if (studentsRes.success && Array.isArray(studentsRes.data?.students) && studentsRes.data.students.length > 0) {
         setStudents(studentsRes.data.students);
+        setSelectedStudent(studentsRes.data.students[0]);
+      } else {
+        setSelectedStudent(sampleStudentsFallback[0]);
       }
-      if (classesRes.success && Array.isArray(classesRes.data?.classes)) {
+
+      if (classesRes.success && Array.isArray(classesRes.data?.classes) && classesRes.data.classes.length > 0) {
         setClasses(classesRes.data.classes);
       }
     } catch (err) {
       console.warn("Could not fetch auxiliary students/classes, using fallback.", err);
+      setSelectedStudent(sampleStudentsFallback[0]);
     }
 
-    // 2. Fetch fees from API
+    // 2. Fetch Fees, Categories, Payments
     try {
       const [feesRes, catRes, payRes] = await Promise.all([
         api.getAll("fees", { limit: 200 }),
@@ -231,7 +275,11 @@ const FeesSection: React.FC = () => {
       let loadedCategories: FeeCategory[] = [];
       let loadedPayments: FeePayment[] = [];
 
-      const rawInvoices = (feesRes as any)?.data?.fees || (feesRes as any)?.fees || (feesRes as any)?.data?.invoices || (feesRes as any)?.invoices;
+      const rawInvoices =
+        (feesRes as any)?.data?.fees ||
+        (feesRes as any)?.fees ||
+        (feesRes as any)?.data?.invoices ||
+        (feesRes as any)?.invoices;
       if (Array.isArray(rawInvoices) && rawInvoices.length > 0) {
         loadedInvoices = rawInvoices;
       }
@@ -243,10 +291,7 @@ const FeesSection: React.FC = () => {
           id: Number(c.id),
           default_amount: Number(c.default_amount) || 0,
         }));
-        // Update local cache with DB data
-        localStorage.setItem("mk_school_fee_categories", JSON.stringify(loadedCategories));
       } else {
-        // Fall back to localStorage if DB returned empty
         const storedCatsRaw = localStorage.getItem("mk_school_fee_categories");
         if (storedCatsRaw) {
           try {
@@ -254,11 +299,10 @@ const FeesSection: React.FC = () => {
             if (Array.isArray(localCats) && localCats.length > 0) {
               loadedCategories = localCats;
             }
-          } catch { }
+          } catch {}
         }
       }
 
-      // If still empty (first run and DB empty), fall back to defaults
       if (loadedCategories.length === 0) {
         loadedCategories = defaultCategories;
       }
@@ -268,41 +312,30 @@ const FeesSection: React.FC = () => {
         loadedPayments = rawPayments;
       }
 
-      // If backend had no invoices or backend is empty, check localStorage or seed default mock set
+      // Check localStorage if API empty
       if (loadedInvoices.length === 0) {
         const stored = localStorage.getItem("mk_school_fees_invoices");
         if (stored) {
           try {
             loadedInvoices = JSON.parse(stored);
-          } catch { }
+          } catch {}
         }
       }
-
-      if (loadedCategories.length === 0) {
-        const storedCats = localStorage.getItem("mk_school_fee_categories");
-        if (storedCats) {
-          try {
-            loadedCategories = JSON.parse(storedCats);
-          } catch { }
-        }
-      }
-
       if (loadedPayments.length === 0) {
         const storedPays = localStorage.getItem("mk_school_fee_payments");
         if (storedPays) {
           try {
             loadedPayments = JSON.parse(storedPays);
-          } catch { }
+          } catch {}
         }
       }
 
-      // If still empty (first run), generate comprehensive initial mock dataset
+      // Seed realistic initial dataset if completely empty
       if (loadedInvoices.length === 0) {
         const generated = generateFallbackData(sampleStudentsFallback, loadedCategories);
         loadedInvoices = generated.invoices;
         loadedPayments = generated.payments;
-        localStorage.setItem("mk_school_fees_invoices", JSON.stringify(loadedInvoices));
-        localStorage.setItem("mk_school_fee_payments", JSON.stringify(loadedPayments));
+        syncToLocalStorage(loadedInvoices, loadedPayments, loadedCategories);
       }
 
       setInvoices(loadedInvoices);
@@ -320,8 +353,7 @@ const FeesSection: React.FC = () => {
         const generated = generateFallbackData(sampleStudentsFallback, defaultCategories);
         setInvoices(generated.invoices);
         setPayments(generated.payments);
-        localStorage.setItem("mk_school_fees_invoices", JSON.stringify(generated.invoices));
-        localStorage.setItem("mk_school_fee_payments", JSON.stringify(generated.payments));
+        syncToLocalStorage(generated.invoices, generated.payments, defaultCategories);
       }
       if (storedCats) setCategories(JSON.parse(storedCats));
       if (storedPays) setPayments(JSON.parse(storedPays));
@@ -335,14 +367,7 @@ const FeesSection: React.FC = () => {
     void loadInitialData();
   }, [loadInitialData]);
 
-  // Synchronize local storage when invoices/payments/categories update
-  const syncToLocalStorage = (invList: FeeInvoice[], payList: FeePayment[], catList: FeeCategory[]) => {
-    localStorage.setItem("mk_school_fees_invoices", JSON.stringify(invList));
-    localStorage.setItem("mk_school_fee_payments", JSON.stringify(payList));
-    localStorage.setItem("mk_school_fee_categories", JSON.stringify(catList));
-  };
-
-  // Helper generator for initial rich sample data
+  // Fallback Generator with Authentic BD School Structure
   function generateFallbackData(studentList: any[], catList: FeeCategory[]) {
     const invs: FeeInvoice[] = [];
     const pays: FeePayment[] = [];
@@ -351,11 +376,11 @@ const FeesSection: React.FC = () => {
     const today = new Date();
 
     studentList.forEach((st, idx) => {
-      // 1. Tuition Fee
+      // 1. Monthly Tuition Fee (মাসিক বেতন)
       const tuitionCat = catList.find((c) => c.code === "TUIT") || catList[0];
       const invNo = `INV-2026-${invSeq++}`;
       const amount = tuitionCat.default_amount;
-      const discount = idx % 4 === 0 ? 15 : 0;
+      const discount = idx % 5 === 0 ? 100 : 0;
       const net = amount - discount;
       let status: FeeStatus = "UNPAID";
       let paid = 0;
@@ -373,7 +398,7 @@ const FeesSection: React.FC = () => {
 
       const dueDate = new Date(today);
       if (status === "OVERDUE") {
-        dueDate.setDate(today.getDate() - 12);
+        dueDate.setDate(today.getDate() - 10);
       } else {
         dueDate.setDate(today.getDate() + 15);
       }
@@ -384,14 +409,18 @@ const FeesSection: React.FC = () => {
         student_id: String(st.id),
         student_name: st.name,
         student_surname: st.surname,
+        student_roll: st.roll || String(100 + idx),
         student_email: st.email,
         student_phone: st.phone,
-        class_name: st.class_name || (st.class_id ? `Class ${st.class_id}` : "1A"),
-        grade_level: st.grade_level || 1,
+        class_name: st.class_name || "Class 6A",
+        section_name: st.shift || "Morning",
+        shift_name: st.shift || "প্রভাতী",
+        group_name: st.group || "সাধারণ",
+        grade_level: st.grade_level || 6,
         fee_category_id: tuitionCat.id,
         category_name: tuitionCat.name,
         category_code: tuitionCat.code,
-        title: `Tuition Fee - ${today.toLocaleString("default", { month: "long" })} 2026`,
+        title: `মাসিক বেতন - ${today.toLocaleString("default", { month: "long" })} 2026`,
         due_date: dueDate.toISOString().split("T")[0],
         amount,
         discount,
@@ -400,7 +429,7 @@ const FeesSection: React.FC = () => {
         due_amount: Math.max(0, net - paid),
         status,
         academic_year: "2026-2027",
-        notes: "Regular academic tuition",
+        notes: "নিয়মিত একাডেমিক মাসিক বেতন",
         created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
       };
       invs.push(inv);
@@ -416,18 +445,19 @@ const FeesSection: React.FC = () => {
           student_id: String(st.id),
           student_name: st.name,
           student_surname: st.surname,
+          student_roll: st.roll || String(100 + idx),
           class_name: inv.class_name,
           amount: paid,
-          payment_method: idx % 2 === 0 ? "CASH" : "BANK_TRANSFER",
+          payment_method: idx % 2 === 0 ? "CASH" : "BKASH",
           transaction_ref: `TXN-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-          payment_date: new Date(Date.now() - 86400000 * 3).toISOString().split("T")[0],
-          notes: status === "PAID" ? "Full payment cleared" : "Partial installment",
+          payment_date: new Date(Date.now() - 86400000 * 2).toISOString().split("T")[0],
+          notes: status === "PAID" ? "পরিশোধিত মানি রসিদ" : "আংশিক কিস্তি জমা",
         });
       }
 
-      // 2. Extra Exam or Transport Fee for subset
+      // 2. Extra Exam or ICT Lab Fee
       if (idx % 2 === 0) {
-        const cat = catList.find((c) => c.code === (idx % 4 === 0 ? "EXAM" : "TRAN")) || catList[1];
+        const cat = catList.find((c) => c.code === (idx % 4 === 0 ? "EXAM1" : "ICT_LAB")) || catList[3];
         const extraNo = `INV-2026-${invSeq++}`;
         const extraNet = cat.default_amount;
         const extraPaid = idx % 4 === 0 ? extraNet : 0;
@@ -439,24 +469,25 @@ const FeesSection: React.FC = () => {
           student_id: String(st.id),
           student_name: st.name,
           student_surname: st.surname,
+          student_roll: st.roll || String(100 + idx),
           student_email: st.email,
           student_phone: st.phone,
-          class_name: st.class_name || "1A",
-          grade_level: st.grade_level || 1,
+          class_name: st.class_name || "Class 6A",
+          grade_level: st.grade_level || 6,
           fee_category_id: cat.id,
           category_name: cat.name,
           category_code: cat.code,
           title: cat.name,
-          due_date: new Date(today.getTime() + 20 * 86400000).toISOString().split("T")[0],
+          due_date: new Date(today.getTime() + 18 * 86400000).toISOString().split("T")[0],
           amount: cat.default_amount,
           discount: 0,
           paid_amount: extraPaid,
           net_amount: extraNet,
-          due_amount: extraNet - extraPaid,
+          due_amount: Math.max(0, extraNet - extraPaid),
           status: extraStatus,
           academic_year: "2026-2027",
-          notes: "Scheduled fee requirement",
-          created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+          notes: "পরীক্ষা ও ব্যবহারিক ল্যাব ফি",
+          created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
         };
         invs.push(extraInv);
 
@@ -471,12 +502,13 @@ const FeesSection: React.FC = () => {
             student_id: String(st.id),
             student_name: st.name,
             student_surname: st.surname,
+            student_roll: st.roll || String(100 + idx),
             class_name: extraInv.class_name,
             amount: extraPaid,
-            payment_method: "CARD",
+            payment_method: "NAGAD",
             transaction_ref: `TXN-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
             payment_date: new Date().toISOString().split("T")[0],
-            notes: "Paid in full via card terminal",
+            notes: "অফিসিয়াল রসিদ ক্লিয়ারেন্স",
           });
         }
       }
@@ -485,7 +517,65 @@ const FeesSection: React.FC = () => {
     return { invoices: invs, payments: pays };
   }
 
-  // Live KPI Calculations
+  // Quick Counter Calculations
+  const counterTuitionFee = useMemo(() => {
+    const tuitionCat = categories.find((c) => c.code === "TUIT");
+    return tuitionCat ? Number(tuitionCat.default_amount) : 800;
+  }, [categories]);
+
+  const counterTuitionSubtotal = useMemo(() => {
+    return selectedMonths.length * counterTuitionFee;
+  }, [selectedMonths, counterTuitionFee]);
+
+  const counterOtherFeesSubtotal = useMemo(() => {
+    return selectedOtherFeeIds.reduce((sum, catId) => {
+      const cat = categories.find((c) => c.id === catId);
+      return sum + (cat ? Number(cat.default_amount) : 0);
+    }, 0);
+  }, [selectedOtherFeeIds, categories]);
+
+  const counterGrossTotal = useMemo(() => {
+    return counterTuitionSubtotal + counterOtherFeesSubtotal + Number(counterLateFine || 0);
+  }, [counterTuitionSubtotal, counterOtherFeesSubtotal, counterLateFine]);
+
+  const counterNetPayable = useMemo(() => {
+    return Math.max(0, counterGrossTotal - Number(counterDiscount || 0));
+  }, [counterGrossTotal, counterDiscount]);
+
+  // Keep counterPaidNow in sync with net payable when it recalculates
+  useEffect(() => {
+    setCounterPaidNow(counterNetPayable);
+  }, [counterNetPayable]);
+
+  // Filtered Students for Quick Counter
+  const counterFilteredStudents = useMemo(() => {
+    return students.filter((s) => {
+      const matchClass =
+        counterSelectedClass === "ALL" ||
+        String(s.class_id) === String(counterSelectedClass) ||
+        String(s.class_name).toLowerCase().includes(String(counterSelectedClass).toLowerCase());
+      const sTerm = counterSearchText.toLowerCase();
+      const matchText =
+        !sTerm ||
+        `${s.name} ${s.surname || ""}`.toLowerCase().includes(sTerm) ||
+        String(s.roll || "").toLowerCase().includes(sTerm) ||
+        String(s.id || "").toLowerCase().includes(sTerm) ||
+        String(s.phone || "").includes(sTerm);
+      return matchClass && matchText;
+    });
+  }, [students, counterSelectedClass, counterSearchText]);
+
+  // Student Invoices for currently selected student in counter
+  const selectedStudentInvoices = useMemo(() => {
+    if (!selectedStudent) return [];
+    return invoices.filter((inv) => String(inv.student_id) === String(selectedStudent.id));
+  }, [selectedStudent, invoices]);
+
+  const selectedStudentTotalDue = useMemo(() => {
+    return selectedStudentInvoices.reduce((sum, inv) => sum + Math.max(0, Number(inv.due_amount || 0)), 0);
+  }, [selectedStudentInvoices]);
+
+  // KPI Statistics Calculation
   const stats: FeeStats = useMemo(() => {
     let total_billed = 0;
     let total_collected = 0;
@@ -496,32 +586,24 @@ const FeesSection: React.FC = () => {
     let unpaid_count = 0;
     let overdue_count = 0;
 
-    const todayStr = new Date().toISOString().split("T")[0];
-
     invoices.forEach((inv) => {
-      const net = Number(inv.amount) - Number(inv.discount || 0);
+      const billed = Number(inv.amount || 0) - Number(inv.discount || 0);
       const paid = Number(inv.paid_amount || 0);
-      const due = Math.max(0, net - paid);
+      const due = Math.max(0, billed - paid);
 
-      total_billed += net;
+      total_billed += billed;
       total_collected += paid;
       total_due += due;
 
-      const isOverdue = inv.status === "OVERDUE" || (due > 0 && inv.due_date < todayStr);
-
-      if (isOverdue) {
-        total_overdue += due;
+      if (inv.status === "PAID") paid_count++;
+      else if (inv.status === "PARTIAL") partial_count++;
+      else if (inv.status === "OVERDUE") {
         overdue_count++;
-      } else if (inv.status === "PAID" || due <= 0) {
-        paid_count++;
-      } else if (inv.status === "PARTIAL" || paid > 0) {
-        partial_count++;
-      } else {
-        unpaid_count++;
-      }
+        total_overdue += due;
+      } else unpaid_count++;
     });
 
-    const collection_rate = total_billed > 0 ? Math.round((total_collected / total_billed) * 1000) / 10 : 0;
+    const rate = total_billed > 0 ? (total_collected / total_billed) * 100 : 0;
 
     return {
       total_billed,
@@ -533,382 +615,275 @@ const FeesSection: React.FC = () => {
       partial_count,
       unpaid_count,
       overdue_count,
-      collection_rate,
+      collection_rate: Math.round(rate * 10) / 10,
     };
   }, [invoices]);
 
-  // Filtered Invoices
+  // Filtered Invoices for Invoices Table
   const filteredInvoices = useMemo(() => {
-    return invoices.filter((item) => {
-      // Search
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        const matchesQuery =
-          item.invoice_no?.toLowerCase().includes(q) ||
-          item.student_name?.toLowerCase().includes(q) ||
-          item.student_surname?.toLowerCase().includes(q) ||
-          item.student_id?.toLowerCase().includes(q) ||
-          item.title?.toLowerCase().includes(q) ||
-          item.category_name?.toLowerCase().includes(q);
-        if (!matchesQuery) return false;
-      }
+    return invoices.filter((inv) => {
+      const matchSearch =
+        !search ||
+        inv.invoice_no.toLowerCase().includes(search.toLowerCase()) ||
+        (inv.student_name && inv.student_name.toLowerCase().includes(search.toLowerCase())) ||
+        (inv.student_surname && inv.student_surname.toLowerCase().includes(search.toLowerCase())) ||
+        (inv.student_roll && inv.student_roll.includes(search)) ||
+        inv.title.toLowerCase().includes(search.toLowerCase());
 
-      // Status
-      if (statusFilter !== "ALL") {
-        const todayStr = new Date().toISOString().split("T")[0];
-        const net = Number(item.amount) - Number(item.discount || 0);
-        const due = Math.max(0, net - Number(item.paid_amount || 0));
-        const isOverdue = item.status === "OVERDUE" || (due > 0 && item.due_date < todayStr);
+      const matchStatus = statusFilter === "ALL" || inv.status === statusFilter;
+      const matchCategory = categoryFilter === "ALL" || String(inv.fee_category_id) === String(categoryFilter);
+      const matchClass =
+        classFilter === "ALL" || (inv.class_name && inv.class_name.toLowerCase().includes(classFilter.toLowerCase()));
 
-        if (statusFilter === "OVERDUE" && !isOverdue) return false;
-        if (statusFilter === "PAID" && item.status !== "PAID" && due > 0) return false;
-        if (statusFilter === "PARTIAL" && (item.status !== "PARTIAL" || due <= 0)) return false;
-        if (statusFilter === "UNPAID" && (item.status !== "UNPAID" || isOverdue || item.paid_amount > 0)) return false;
-      }
-
-      // Category
-      if (categoryFilter !== "ALL" && String(item.fee_category_id) !== String(categoryFilter)) {
-        return false;
-      }
-
-      // Class
-      if (classFilter !== "ALL" && item.class_name !== classFilter) {
-        return false;
-      }
-
-      return true;
+      return matchSearch && matchStatus && matchCategory && matchClass;
     });
   }, [invoices, search, statusFilter, categoryFilter, classFilter]);
 
-  // Paginated Invoices
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / itemsPerPage));
+  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
   const paginatedInvoices = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredInvoices.slice(start, start + itemsPerPage);
   }, [filteredInvoices, currentPage]);
 
-  // Filtered Payments
-  const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
-      if (paymentSearch.trim()) {
-        const q = paymentSearch.toLowerCase();
-        const matches =
-          p.receipt_no.toLowerCase().includes(q) ||
-          p.invoice_no?.toLowerCase().includes(q) ||
-          p.student_name?.toLowerCase().includes(q) ||
-          p.student_surname?.toLowerCase().includes(q) ||
-          p.transaction_ref?.toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-      if (paymentMethodFilter !== "ALL" && p.payment_method !== paymentMethodFilter) {
-        return false;
-      }
-      return true;
-    });
-  }, [payments, paymentSearch, paymentMethodFilter]);
-
-  // Class Summary calculation
-  const classBreakdown = useMemo(() => {
-    const map = new Map<string, { className: string; studentCount: Set<string>; billed: number; collected: number; due: number }>();
-
-    invoices.forEach((inv) => {
-      const cName = inv.class_name || "Unassigned";
-      if (!map.has(cName)) {
-        map.set(cName, {
-          className: cName,
-          studentCount: new Set(),
-          billed: 0,
-          collected: 0,
-          due: 0,
-        });
-      }
-      const row = map.get(cName)!;
-      row.studentCount.add(inv.student_id);
-      const net = Number(inv.amount) - Number(inv.discount || 0);
-      const paid = Number(inv.paid_amount || 0);
-      row.billed += net;
-      row.collected += paid;
-      row.due += Math.max(0, net - paid);
-    });
-
-    return Array.from(map.values()).map((r) => ({
-      ...r,
-      studentCountNum: r.studentCount.size,
-      rate: r.billed > 0 ? Math.round((r.collected / r.billed) * 100) : 0,
-    })).sort((a, b) => b.billed - a.billed);
-  }, [invoices]);
-
-  // Filter available students for Create Student Fee Invoice modal by selected class & search text
-  const availableStudentsForInvoice = useMemo(() => {
-    let list = students;
-
-    // Filter by selected class if chosen
-    if (selectedInvoiceClass) {
-      const clsLower = selectedInvoiceClass.trim().toLowerCase();
-      list = list.filter((st) => {
-        const cName = String(st.class_name || "").trim().toLowerCase();
-        const cId = String(st.class_id || "").trim().toLowerCase();
-        return (
-          cName === clsLower ||
-          cName === `class ${clsLower}` ||
-          clsLower === `class ${cName}` ||
-          cId === clsLower
-        );
-      });
-    }
-
-    // Filter by writable search text if admin typed something
-    if (studentSearchText.trim()) {
-      const q = studentSearchText.trim().toLowerCase();
-      const filtered = list.filter((st) => {
-        const fullName = `${st.name || ""} ${st.surname || ""}`.toLowerCase();
-        const roll = String(st.roll || "").toLowerCase();
-        const id = String(st.id || "").toLowerCase();
-        const uname = String(st.username || "").toLowerCase();
-        return (
-          fullName.includes(q) ||
-          roll.includes(q) ||
-          id.includes(q) ||
-          uname.includes(q) ||
-          q.includes(fullName)
-        );
-      });
-      if (filtered.length > 0) return filtered;
-    }
-
-    return list;
-  }, [students, selectedInvoiceClass, studentSearchText]);
-
-  // Handlers: Create Invoice
-  const handleCreateInvoice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!invoiceForm.student_id) {
-      showToast("error", "Please select a student");
+  // Handle Quick Counter Fee Collection & Print Slip
+  const handleQuickCounterSubmit = async () => {
+    if (!selectedStudent) {
+      showToast("error", "অনুগ্রহ করে শিক্ষার্থী নির্বাচন করুন (Please select a student)");
       return;
     }
-    if (invoiceForm.amount <= 0) {
-      showToast("error", "Amount must be greater than zero");
+    if (counterPaidNow <= 0) {
+      showToast("error", "আদায়কৃত টাকার পরিমাণ প্রদান করুন (Please enter paid amount)");
       return;
     }
 
-    const selStudent = students.find((s) => String(s.id) === String(invoiceForm.student_id));
-    const selCat = categories.find((c) => c.id === Number(invoiceForm.fee_category_id)) || categories[0];
-    const net = Math.max(0, Number(invoiceForm.amount) - Number(invoiceForm.discount || 0));
-    const paid = invoiceForm.collect_now ? Math.min(Number(invoiceForm.paid_now), net) : 0;
+    const receiptNo = `REC-2026-${Date.now().toString().slice(-5)}`;
+    const invoiceNo = `INV-2026-${Date.now().toString().slice(-5)}`;
 
-    let newStatus: FeeStatus = "UNPAID";
-    if (paid >= net) newStatus = "PAID";
-    else if (paid > 0) newStatus = "PARTIAL";
-    else if (invoiceForm.due_date < new Date().toISOString().split("T")[0]) newStatus = "OVERDUE";
+    const monthNames = selectedMonths
+      .map((m) => BANGLA_MONTHS.find((b) => b.key === m)?.nameBn)
+      .filter(Boolean)
+      .join(", ");
 
-    const nextInvNo = `INV-${new Date().getFullYear()}-${String(invoices.length + 101).padStart(4, "0")}`;
+    const feeDescription = [
+      selectedMonths.length > 0 ? `মাসিক বেতন (${monthNames})` : "",
+      ...selectedOtherFeeIds.map((id) => categories.find((c) => c.id === id)?.name),
+    ]
+      .filter(Boolean)
+      .join(" + ");
 
-    // Try API
-    try {
-      const res = await api.create("fees", {
-        student_id: invoiceForm.student_id,
-        fee_category_id: invoiceForm.fee_category_id,
-        title: invoiceForm.title || `${selCat.name} - ${new Date().toLocaleString("default", { month: "short" })}`,
-        amount: invoiceForm.amount,
-        discount: invoiceForm.discount,
-        due_date: invoiceForm.due_date,
-        academic_year: invoiceForm.academic_year,
-        notes: invoiceForm.notes,
-        paid_now: paid,
-        payment_method: invoiceForm.payment_method,
-        transaction_ref: invoiceForm.transaction_ref,
-      });
+    const isFull = counterPaidNow >= counterNetPayable;
+    const remainingDue = Math.max(0, counterNetPayable - counterPaidNow);
 
-      if (res.success && res.data) {
-        showToast("success", res.message || `Invoice ${res.data.invoice_no || nextInvNo} created!`);
-      }
-    } catch {
-      // Fallback local update
-    }
-
+    // Create New Invoice Record
     const newInvoice: FeeInvoice = {
       id: Date.now(),
-      invoice_no: nextInvNo,
-      student_id: invoiceForm.student_id,
-      student_name: selStudent?.name || "Student",
-      student_surname: selStudent?.surname || "",
-      student_email: selStudent?.email,
-      student_phone: selStudent?.phone,
-      class_name: selStudent?.class_name || (selStudent?.class_id ? `Class ${selStudent.class_id}` : "1A"),
-      grade_level: selStudent?.grade_level || 1,
-      fee_category_id: selCat.id,
-      category_name: selCat.name,
-      category_code: selCat.code,
-      title: invoiceForm.title || `${selCat.name} - ${new Date().toLocaleString("default", { month: "short" })}`,
-      due_date: invoiceForm.due_date,
-      amount: Number(invoiceForm.amount),
-      discount: Number(invoiceForm.discount || 0),
-      paid_amount: paid,
-      net_amount: net,
-      due_amount: Math.max(0, net - paid),
-      status: newStatus,
-      academic_year: invoiceForm.academic_year,
-      notes: invoiceForm.notes,
+      invoice_no: invoiceNo,
+      student_id: String(selectedStudent.id),
+      student_name: selectedStudent.name,
+      student_surname: selectedStudent.surname,
+      student_roll: selectedStudent.roll || "101",
+      student_phone: selectedStudent.phone,
+      student_email: selectedStudent.email,
+      class_name: selectedStudent.class_name || "General",
+      grade_level: selectedStudent.grade_level || 6,
+      fee_category_id: 1,
+      category_name: feeDescription,
+      title: feeDescription || "একাডেমিক ফি আদায়",
+      due_date: new Date().toISOString().split("T")[0],
+      amount: counterTuitionSubtotal + counterOtherFeesSubtotal,
+      discount: Number(counterDiscount || 0),
+      late_fine: Number(counterLateFine || 0),
+      paid_amount: counterPaidNow,
+      net_amount: counterNetPayable,
+      due_amount: remainingDue,
+      status: isFull ? "PAID" : "PARTIAL",
+      academic_year: "2026-2027",
+      notes: counterNotes || `কাউন্টার আদায় (${counterWaiverType})`,
       created_at: new Date().toISOString(),
     };
 
-    let updatedPayments = [...payments];
-    if (paid > 0) {
-      const recNo = `REC-${new Date().getFullYear()}-${String(payments.length + 101).padStart(4, "0")}`;
-      const newPay: FeePayment = {
-        id: Date.now() + 1,
-        receipt_no: recNo,
-        invoice_id: newInvoice.id,
-        invoice_no: newInvoice.invoice_no,
-        invoice_title: newInvoice.title,
-        category_name: selCat.name,
-        student_id: newInvoice.student_id,
-        student_name: newInvoice.student_name,
-        student_surname: newInvoice.student_surname,
-        class_name: newInvoice.class_name,
-        amount: paid,
-        payment_method: invoiceForm.payment_method,
-        transaction_ref: invoiceForm.transaction_ref || `TXN-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
-        payment_date: new Date().toISOString().split("T")[0],
-        notes: "Initial payment upon invoice creation",
-        created_at: new Date().toISOString(),
-      };
-      updatedPayments = [newPay, ...payments];
-      setPayments(updatedPayments);
+    // Create New Payment Record
+    const newPayment: FeePayment = {
+      id: Date.now() + 1,
+      receipt_no: receiptNo,
+      invoice_id: newInvoice.id,
+      invoice_no: invoiceNo,
+      invoice_title: newInvoice.title,
+      category_name: "একাডেমিক ফি আদায়",
+      student_id: String(selectedStudent.id),
+      student_name: selectedStudent.name,
+      student_surname: selectedStudent.surname,
+      student_roll: selectedStudent.roll,
+      class_name: selectedStudent.class_name,
+      amount: counterPaidNow,
+      payment_method: counterPaymentMethod,
+      transaction_ref: counterTxnRef || `TXN-BD-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      payment_date: new Date().toISOString().split("T")[0],
+      notes: counterNotes || "কাউন্টার ক্যাশ রসিদ",
+    };
+
+    // Try posting to API if online
+    try {
+      await api.create("fees", {
+        student_id: selectedStudent.id,
+        fee_category_id: 1,
+        title: newInvoice.title,
+        amount: newInvoice.amount,
+        discount: newInvoice.discount,
+        due_date: newInvoice.due_date,
+        academic_year: newInvoice.academic_year,
+        paid_now: counterPaidNow,
+        payment_method: counterPaymentMethod,
+        transaction_ref: newPayment.transaction_ref,
+        notes: newInvoice.notes,
+      });
+    } catch (e) {
+      console.warn("Saving to local state and localStorage", e);
     }
 
     const updatedInvoices = [newInvoice, ...invoices];
+    const updatedPayments = [newPayment, ...payments];
     setInvoices(updatedInvoices);
+    setPayments(updatedPayments);
     syncToLocalStorage(updatedInvoices, updatedPayments, categories);
 
-    setCreateInvoiceModal(false);
-    showToast("success", `Invoice ${nextInvNo} generated successfully!`);
+    // Prepare printable 2-Part Money Receipt Voucher
+    const receiptDoc: FeeReceiptData = {
+      ...newPayment,
+      invoice_amount: newInvoice.amount,
+      discount: newInvoice.discount,
+      late_fine: newInvoice.late_fine,
+      total_paid: counterPaidNow,
+      net_amount: counterNetPayable,
+      remaining_due: remainingDue,
+      due_date: newInvoice.due_date,
+      academic_year: "2026-2027",
+      student_code: String(selectedStudent.id),
+      student_roll: selectedStudent.roll,
+      student_phone: selectedStudent.phone,
+      student_email: selectedStudent.email,
+      class_name: selectedStudent.class_name,
+      section_name: selectedStudent.shift,
+      shift_name: selectedStudent.shift,
+      parent_name: selectedStudent.parent_name,
+      parent_phone: selectedStudent.parent_phone,
+    };
+
+    setReceiptData(receiptDoc);
+    showToast("success", `মানি রসিদ #${receiptNo} সফলভাবে তৈরি হয়েছে! (Receipt generated)`);
+
+    // Reset counter selections
+    setSelectedMonths([]);
+    setSelectedOtherFeeIds([]);
+    setCounterDiscount(0);
+    setCounterLateFine(0);
+    setCounterTxnRef("");
+    setCounterNotes("");
   };
 
-  // Handlers: Bulk Generate Invoices
-  const handleBulkGenerate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!bulkForm.class_id) {
-      showToast("error", "Please select a target class");
+  // Handle Batch Generation for entire class
+  const handleBatchGenerate = async () => {
+    if (!batchClassId) {
+      showToast("error", "অনুগ্রহ করে শ্রেণি নির্বাচন করুন (Please select a class)");
       return;
     }
-    if (bulkForm.amount <= 0) {
-      showToast("error", "Amount must be greater than zero");
+    if (batchCategoryIds.length === 0) {
+      showToast("error", "কমপক্ষে একটি ফি খাত নির্বাচন করুন (Select at least one fee category)");
       return;
     }
 
+    setBatchGenerating(true);
+
     const targetStudents = students.filter(
-      (s) => String(s.class_id) === String(bulkForm.class_id) || s.class_name === bulkForm.class_id
+      (s) => batchClassId === "ALL" || String(s.class_id) === String(batchClassId) || s.class_name === batchClassId
     );
 
     if (targetStudents.length === 0) {
-      showToast("error", "No students found in the selected class");
+      showToast("error", "নির্বাচিত শ্রেণিতে কোন শিক্ষার্থী পাওয়া যায়নি (No students found)");
+      setBatchGenerating(false);
       return;
     }
 
-    const selCat = categories.find((c) => c.id === Number(bulkForm.fee_category_id)) || categories[0];
+    const newInvs: FeeInvoice[] = [];
+    const baseCount = invoices.length + 1000;
 
-    try {
-      await api.bulkGenerateFeeInvoices({
-        class_id: Number(bulkForm.class_id) || undefined,
-        fee_category_id: selCat.id,
-        title: bulkForm.title,
-        amount: Number(bulkForm.amount),
-        due_date: bulkForm.due_date,
-        academic_year: bulkForm.academic_year,
-        notes: bulkForm.notes,
+    targetStudents.forEach((st, idx) => {
+      batchCategoryIds.forEach((catId, cIdx) => {
+        const cat = categories.find((c) => c.id === catId);
+        if (!cat) return;
+
+        const invNo = `INV-2026-${baseCount + idx * 10 + cIdx}`;
+        newInvs.push({
+          id: Date.now() + idx * 100 + cIdx,
+          invoice_no: invNo,
+          student_id: String(st.id),
+          student_name: st.name,
+          student_surname: st.surname,
+          student_roll: st.roll,
+          student_phone: st.phone,
+          student_email: st.email,
+          class_name: st.class_name || "General",
+          grade_level: st.grade_level || 6,
+          fee_category_id: cat.id,
+          category_name: cat.name,
+          category_code: cat.code,
+          title: `${cat.name} - ${batchMonth}`,
+          due_date: batchDueDate,
+          amount: cat.default_amount,
+          discount: 0,
+          paid_amount: 0,
+          net_amount: cat.default_amount,
+          due_amount: cat.default_amount,
+          status: "UNPAID",
+          academic_year: batchAcademicYear,
+          notes: `গণ-ফি তৈরি (${batchMonth})`,
+          created_at: new Date().toISOString(),
+        });
       });
-    } catch { }
-
-    const newInvoices: FeeInvoice[] = targetStudents.map((st, i) => {
-      const invNo = `INV-${new Date().getFullYear()}-${String(invoices.length + i + 101).padStart(4, "0")}`;
-      return {
-        id: Date.now() + i,
-        invoice_no: invNo,
-        student_id: String(st.id),
-        student_name: st.name,
-        student_surname: st.surname,
-        student_email: st.email,
-        student_phone: st.phone,
-        class_name: st.class_name || `Class ${bulkForm.class_id}`,
-        grade_level: st.grade_level || 1,
-        fee_category_id: selCat.id,
-        category_name: selCat.name,
-        category_code: selCat.code,
-        title: bulkForm.title,
-        due_date: bulkForm.due_date,
-        amount: Number(bulkForm.amount),
-        discount: 0,
-        paid_amount: 0,
-        net_amount: Number(bulkForm.amount),
-        due_amount: Number(bulkForm.amount),
-        status: bulkForm.due_date < new Date().toISOString().split("T")[0] ? "OVERDUE" : "UNPAID",
-        academic_year: bulkForm.academic_year,
-        notes: bulkForm.notes,
-        created_at: new Date().toISOString(),
-      };
     });
 
-    const updatedInvoices = [...newInvoices, ...invoices];
+    const updatedInvoices = [...newInvs, ...invoices];
     setInvoices(updatedInvoices);
     syncToLocalStorage(updatedInvoices, payments, categories);
 
+    setBatchGenerating(false);
     setBulkGenerateModal(false);
-    showToast("success", `Generated ${newInvoices.length} invoices for Class ${bulkForm.class_id}!`);
+    showToast(
+      "success",
+      `সফলভাবে ${newInvs.length} টি ফি ইনভয়েস তৈরি হয়েছে! (${newInvs.length} Invoices generated)`
+    );
   };
 
-  // Handlers: Record Payment
-  const openPaymentModal = (invoice: FeeInvoice) => {
-    const net = Number(invoice.amount) - Number(invoice.discount || 0);
-    const remaining = Math.max(0, net - Number(invoice.paid_amount || 0));
+  // Record Single Payment from Invoices Table
+  const handleRecordPayment = (invoice: FeeInvoice) => {
     setPaymentModalInvoice(invoice);
+    const due = Math.max(0, Number(invoice.amount) - Number(invoice.discount || 0) - Number(invoice.paid_amount || 0));
     setPayForm({
-      amount: remaining,
+      amount: due,
       payment_method: "CASH",
       payment_date: new Date().toISOString().split("T")[0],
       transaction_ref: "",
-      notes: "",
+      notes: "ইনভয়েস পরিশোধ",
     });
   };
 
-  const handleRecordPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitRecordPayment = async () => {
     if (!paymentModalInvoice) return;
-
-    const net = Number(paymentModalInvoice.amount) - Number(paymentModalInvoice.discount || 0);
-    const currentPaid = Number(paymentModalInvoice.paid_amount || 0);
-    const remaining = Math.max(0, net - currentPaid);
-
     if (payForm.amount <= 0) {
-      showToast("error", "Payment amount must be greater than zero");
-      return;
-    }
-    if (payForm.amount > remaining + 0.01) {
-      showToast("error", `Payment exceeds remaining due balance of ${fmt(remaining)}`);
+      showToast("error", "পরিশোধিত টাকার পরিমাণ দিন");
       return;
     }
 
-    const newTotalPaid = currentPaid + Number(payForm.amount);
-    let newStatus: FeeStatus = "PARTIAL";
-    if (newTotalPaid >= net - 0.01) newStatus = "PAID";
+    const net = Math.max(0, Number(paymentModalInvoice.amount) - Number(paymentModalInvoice.discount || 0));
+    const newPaid = Number(paymentModalInvoice.paid_amount || 0) + payForm.amount;
+    const isFull = newPaid >= net;
+    const remainingDue = Math.max(0, net - newPaid);
 
-    const recNo = `REC-${new Date().getFullYear()}-${String(payments.length + 101).padStart(4, "0")}`;
+    const receiptNo = `REC-2026-${Date.now().toString().slice(-5)}`;
 
-    // Try API
-    try {
-      await api.recordFeePayment({
-        invoice_id: paymentModalInvoice.id,
-        amount: Number(payForm.amount),
-        payment_method: payForm.payment_method,
-        payment_date: payForm.payment_date,
-        transaction_ref: payForm.transaction_ref,
-        notes: payForm.notes,
-      });
-    } catch { }
-
-    const newPaymentRecord: FeePayment = {
+    const newPayment: FeePayment = {
       id: Date.now(),
-      receipt_no: recNo,
+      receipt_no: receiptNo,
       invoice_id: paymentModalInvoice.id,
       invoice_no: paymentModalInvoice.invoice_no,
       invoice_title: paymentModalInvoice.title,
@@ -916,962 +891,1292 @@ const FeesSection: React.FC = () => {
       student_id: paymentModalInvoice.student_id,
       student_name: paymentModalInvoice.student_name,
       student_surname: paymentModalInvoice.student_surname,
+      student_roll: paymentModalInvoice.student_roll,
       class_name: paymentModalInvoice.class_name,
-      amount: Number(payForm.amount),
+      amount: payForm.amount,
       payment_method: payForm.payment_method,
-      transaction_ref: payForm.transaction_ref || `TXN-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      transaction_ref: payForm.transaction_ref || `TXN-REC-${Date.now().toString().slice(-4)}`,
       payment_date: payForm.payment_date,
       notes: payForm.notes,
-      created_at: new Date().toISOString(),
     };
 
     const updatedInvoices = invoices.map((inv) => {
       if (inv.id === paymentModalInvoice.id) {
         return {
           ...inv,
-          paid_amount: newTotalPaid,
-          due_amount: Math.max(0, net - newTotalPaid),
-          status: newStatus,
+          paid_amount: newPaid,
+          due_amount: remainingDue,
+          status: isFull ? ("PAID" as FeeStatus) : ("PARTIAL" as FeeStatus),
         };
       }
       return inv;
     });
 
-    const updatedPayments = [newPaymentRecord, ...payments];
+    const updatedPayments = [newPayment, ...payments];
     setInvoices(updatedInvoices);
     setPayments(updatedPayments);
     syncToLocalStorage(updatedInvoices, updatedPayments, categories);
 
-    // Prepare receipt data
-    const receiptToOpen: FeeReceiptData = {
-      ...newPaymentRecord,
+    // Open Money Receipt Slip
+    const receiptDoc: FeeReceiptData = {
+      ...newPayment,
       invoice_amount: paymentModalInvoice.amount,
       discount: paymentModalInvoice.discount,
+      total_paid: newPaid,
       net_amount: net,
-      total_paid: newTotalPaid,
-      remaining_due: Math.max(0, net - newTotalPaid),
+      remaining_due: remainingDue,
       due_date: paymentModalInvoice.due_date,
       academic_year: paymentModalInvoice.academic_year,
       student_code: paymentModalInvoice.student_id,
-      student_email: paymentModalInvoice.student_email,
+      student_roll: paymentModalInvoice.student_roll,
       student_phone: paymentModalInvoice.student_phone,
-      site_name: siteName,
+      student_email: paymentModalInvoice.student_email,
+      class_name: paymentModalInvoice.class_name,
+      section_name: paymentModalInvoice.section_name,
     };
 
     setPaymentModalInvoice(null);
-    showToast("success", `Payment of ${fmt(payForm.amount)} recorded! Receipt ${recNo}`);
-    setReceiptData(receiptToOpen);
+    setReceiptData(receiptDoc);
+    showToast("success", `পেমেন্ট সম্পন্ন হয়েছে! রসিদ #${receiptNo}`);
   };
 
-  // Handlers: View Receipt
-  const handleOpenReceipt = (invoice: FeeInvoice) => {
-    const net = Number(invoice.amount) - Number(invoice.discount || 0);
-    const paid = Number(invoice.paid_amount || 0);
-    const relatedPay = payments.find((p) => p.invoice_id === invoice.id || p.invoice_no === invoice.invoice_no);
-
-    setReceiptData({
-      id: relatedPay?.id || invoice.id,
-      receipt_no: relatedPay?.receipt_no || `SLIP-${invoice.invoice_no}`,
-      invoice_id: invoice.id,
-      invoice_no: invoice.invoice_no,
-      invoice_title: invoice.title,
-      category_name: invoice.category_name,
-      student_id: invoice.student_id,
-      student_name: invoice.student_name,
-      student_surname: invoice.student_surname,
-      student_code: invoice.student_id,
-      student_email: invoice.student_email,
-      student_phone: invoice.student_phone,
-      class_name: invoice.class_name,
-      amount: relatedPay?.amount || paid,
-      payment_method: relatedPay?.payment_method || "CASH",
-      transaction_ref: relatedPay?.transaction_ref || `REF-${invoice.invoice_no.slice(-5)}`,
-      payment_date: relatedPay?.payment_date || new Date().toISOString().split("T")[0],
-      notes: relatedPay?.notes || invoice.notes || "Official school fee invoice receipt",
-      invoice_amount: invoice.amount,
-      discount: invoice.discount,
+  // Print voucher from any invoice row
+  const openReceiptFromInvoice = (inv: FeeInvoice) => {
+    const net = Number(inv.amount) - Number(inv.discount || 0);
+    const slipDoc: FeeReceiptData = {
+      id: Date.now(),
+      receipt_no: `SLIP-${inv.invoice_no}`,
+      invoice_id: inv.id,
+      invoice_no: inv.invoice_no,
+      invoice_title: inv.title,
+      category_name: inv.category_name,
+      student_id: inv.student_id,
+      student_name: inv.student_name,
+      student_surname: inv.student_surname,
+      student_roll: inv.student_roll,
+      student_phone: inv.student_phone,
+      student_email: inv.student_email,
+      class_name: inv.class_name,
+      section_name: inv.section_name,
+      amount: inv.paid_amount || 0,
+      payment_method: "CASH",
+      payment_date: inv.created_at ? inv.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      invoice_amount: inv.amount,
+      discount: inv.discount,
+      late_fine: inv.late_fine,
+      total_paid: inv.paid_amount,
       net_amount: net,
-      total_paid: paid,
-      remaining_due: Math.max(0, net - paid),
-      due_date: invoice.due_date,
-      academic_year: invoice.academic_year,
-      site_name: siteName,
+      remaining_due: Math.max(0, net - Number(inv.paid_amount || 0)),
+      due_date: inv.due_date,
+      academic_year: inv.academic_year,
+      notes: inv.notes,
+    };
+    setReceiptData(slipDoc);
+  };
+
+  // Class-wise Due Summary
+  const classDueSummary = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        class_name: string;
+        students_count: number;
+        total_billed: number;
+        total_paid: number;
+        total_due: number;
+        defaulters_count: number;
+        defaulter_students: Array<{ name: string; roll: string; due: number; phone: string }>;
+      }
+    > = {};
+
+    classes.forEach((c) => {
+      map[c.name] = {
+        class_name: c.name,
+        students_count: 0,
+        total_billed: 0,
+        total_paid: 0,
+        total_due: 0,
+        defaulters_count: 0,
+        defaulter_students: [],
+      };
     });
-  };
 
-  // Handlers: Edit Invoice
-  const handleSaveEditInvoice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editInvoiceModal) return;
+    students.forEach((st) => {
+      const cName = st.class_name || "General";
+      if (!map[cName]) {
+        map[cName] = {
+          class_name: cName,
+          students_count: 0,
+          total_billed: 0,
+          total_paid: 0,
+          total_due: 0,
+          defaulters_count: 0,
+          defaulter_students: [],
+        };
+      }
+      map[cName].students_count++;
 
-    const net = Math.max(0, Number(editInvoiceModal.amount) - Number(editInvoiceModal.discount || 0));
-    const paid = Number(editInvoiceModal.paid_amount || 0);
-    let newStatus: FeeStatus = "UNPAID";
-    if (paid >= net) newStatus = "PAID";
-    else if (paid > 0) newStatus = "PARTIAL";
-    else if (editInvoiceModal.due_date < new Date().toISOString().split("T")[0]) newStatus = "OVERDUE";
-
-    try {
-      await api.update("fees", editInvoiceModal.id, {
-        title: editInvoiceModal.title,
-        amount: editInvoiceModal.amount,
-        discount: editInvoiceModal.discount,
-        due_date: editInvoiceModal.due_date,
-        notes: editInvoiceModal.notes,
-        status: newStatus,
+      const stInvs = invoices.filter((i) => String(i.student_id) === String(st.id));
+      let stDue = 0;
+      stInvs.forEach((i) => {
+        const billed = Number(i.amount || 0) - Number(i.discount || 0);
+        const paid = Number(i.paid_amount || 0);
+        const due = Math.max(0, billed - paid);
+        map[cName].total_billed += billed;
+        map[cName].total_paid += paid;
+        map[cName].total_due += due;
+        stDue += due;
       });
-    } catch { }
 
-    const updated = invoices.map((inv) =>
-      inv.id === editInvoiceModal.id
-        ? {
-          ...editInvoiceModal,
-          net_amount: net,
-          due_amount: Math.max(0, net - paid),
-          status: newStatus,
-        }
-        : inv
-    );
-
-    setInvoices(updated);
-    syncToLocalStorage(updated, payments, categories);
-    setEditInvoiceModal(null);
-    showToast("success", `Invoice ${editInvoiceModal.invoice_no} updated!`);
-  };
-
-  // Handlers: Category Management
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!categoryForm.name.trim()) {
-      showToast("error", "Category name is required");
-      return;
-    }
-
-    if (categoryModal.mode === "create") {
-      const tempId = Date.now();
-      const newCat: FeeCategory = {
-        id: tempId,
-        name: categoryForm.name.trim(),
-        code: categoryForm.code.trim().toUpperCase() || categoryForm.name.slice(0, 4).toUpperCase(),
-        default_amount: isNaN(Number(categoryForm.default_amount)) ? 0 : Number(categoryForm.default_amount),
-        frequency: categoryForm.frequency,
-        status: categoryForm.status,
-        description: categoryForm.description,
-        total_invoices: 0,
-        total_revenue: 0,
-      };
-
-      try {
-        const res = await api.createFeeCategory(newCat);
-        // If the backend assigned a real ID, use it so future edits work
-        if (res?.success && res?.data?.id) {
-          newCat.id = Number(res.data.id);
-        }
-      } catch {
-        showToast("error", "DB save failed — category saved locally only");
+      if (stDue > 0) {
+        map[cName].defaulters_count++;
+        map[cName].defaulter_students.push({
+          name: [st.name, st.surname].filter(Boolean).join(" "),
+          roll: st.roll || "—",
+          due: stDue,
+          phone: st.phone || "—",
+        });
       }
+    });
 
-      const updated = [...categories, newCat];
-      setCategories(updated);
-      syncToLocalStorage(invoices, payments, updated);
-      showToast("success", `Category "${newCat.name}" added!`);
-    } else if (categoryModal.mode === "edit" && categoryModal.data) {
-      const catId = categoryModal.data.id;
-      const safeAmount = isNaN(Number(categoryForm.default_amount)) ? 0 : Number(categoryForm.default_amount);
-      // Use Number() coercion on both sides: PHP returns IDs as strings,
-      // locally-created categories use Date.now() (number). Strict === would silently fail.
-      const updatedCat = {
-        name: categoryForm.name.trim(),
-        code: categoryForm.code.trim().toUpperCase(),
-        default_amount: safeAmount,
-        frequency: categoryForm.frequency,
-        status: categoryForm.status,
-        description: categoryForm.description,
-      };
-      const updated = categories.map((c) =>
-        Number(c.id) === Number(catId) ? { ...c, ...updatedCat } : c
-      );
+    return Object.values(map);
+  }, [classes, students, invoices]);
 
-      // First update local state & localStorage so UI reflects the change immediately
-      setCategories(updated);
-      syncToLocalStorage(invoices, payments, updated);
+  // Daily Register Transactions
+  const dailyFilteredPayments = useMemo(() => {
+    return payments.filter((p) => !dailyDateFilter || p.payment_date === dailyDateFilter);
+  }, [payments, dailyDateFilter]);
 
-      // Then push to DB
-      try {
-        const res = await api.updateFeeCategory(catId, updatedCat);
-        if (res?.success === false) {
-          showToast("error", `DB update failed: ${res?.message || "Unknown error"}. Saved locally only.`);
-        } else {
-          // Refetch from DB to confirm the saved state is reflected correctly
-          try {
-            const catRes = await api.getFeeCategories();
-            const freshCats = (catRes as any)?.data?.categories || (catRes as any)?.categories;
-            if (Array.isArray(freshCats) && freshCats.length > 0) {
-              const normalized = freshCats.map((c: any) => ({
-                ...c,
-                id: Number(c.id),
-                default_amount: Number(c.default_amount) || 0,
-              }));
-              setCategories(normalized);
-              syncToLocalStorage(invoices, payments, normalized);
-            }
-          } catch { /* keep local state if refetch fails */ }
-          showToast("success", `Category "${categoryForm.name}" updated!`);
-        }
-      } catch (err: any) {
-        showToast("error", `DB update failed: ${err?.message || "Network error"}. Saved locally.`);
-      }
-    }
+  const dailyTotalCollected = useMemo(() => {
+    return dailyFilteredPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  }, [dailyFilteredPayments]);
 
-    setCategoryModal({ open: false, mode: "create", data: null });
-  };
+  const dailyCashTotal = useMemo(() => {
+    return dailyFilteredPayments
+      .filter((p) => p.payment_method === "CASH")
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+  }, [dailyFilteredPayments]);
 
-  // Delete Action Confirm
-  const executeDelete = async () => {
-    if (deleteConfirm.type === "invoice") {
-      try {
-        await api.delete("fees", deleteConfirm.id);
-      } catch { }
-      const updatedInvs = invoices.filter((i) => i.id !== deleteConfirm.id);
-      const updatedPays = payments.filter((p) => p.invoice_id !== deleteConfirm.id);
-      setInvoices(updatedInvs);
-      setPayments(updatedPays);
-      syncToLocalStorage(updatedInvs, updatedPays, categories);
-      showToast("success", `Invoice deleted`);
-    } else if (deleteConfirm.type === "category") {
-      try {
-        await api.deleteFeeCategory(deleteConfirm.id);
-      } catch { }
-      const updated = categories.filter((c) => Number(c.id) !== Number(deleteConfirm.id));
-      setCategories(updated);
-      syncToLocalStorage(invoices, payments, updated);
-      showToast("success", `Fee Category removed`);
-    }
-    setDeleteConfirm({ open: false, type: "invoice", id: 0, label: "" });
-  };
+  const dailyMobileTotal = useMemo(() => {
+    return dailyFilteredPayments
+      .filter((p) => ["BKASH", "NAGAD", "ROCKET", "MOBILE_BANKING"].includes(p.payment_method))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+  }, [dailyFilteredPayments]);
 
-  // Export CSV
-  const handleExportCSV = () => {
-    const headers = ["Invoice No", "Student ID", "Student Name", "Class", "Fee Category", `Billed (${cs})`, `Discount (${cs})`, `Paid (${cs})`, `Due (${cs})`, "Status", "Due Date"];
-    const rows = filteredInvoices.map((inv) => [
-      inv.invoice_no,
-      inv.student_id,
-      `"${inv.student_name} ${inv.student_surname || ""}"`,
-      inv.class_name || "",
-      `"${inv.category_name || ""}"`,
-      inv.amount,
-      inv.discount,
-      inv.paid_amount,
-      inv.due_amount,
-      inv.status,
-      inv.due_date,
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `School_Fees_Report_${new Date().toISOString().split("T")[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast("success", "Exported fee invoices to CSV!");
-  };
-
-  // Status badge styling helper
-  const renderStatusBadge = (status: FeeStatus) => {
-    switch (status) {
-      case "PAID":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 size={13} className="text-emerald-600" />
-            PAID
-          </span>
-        );
-      case "PARTIAL":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            <Clock size={13} className="text-amber-600" />
-            PARTIAL
-          </span>
-        );
-      case "OVERDUE":
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 animate-pulse">
-            <AlertCircle size={13} className="text-rose-600" />
-            OVERDUE
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-            <Clock size={13} className="text-blue-600" />
-            UNPAID
-          </span>
-        );
-    }
-  };
+  const dailyBankTotal = useMemo(() => {
+    return dailyFilteredPayments
+      .filter((p) => ["BANK_TRANSFER", "CARD", "CHEQUE"].includes(p.payment_method))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+  }, [dailyFilteredPayments]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto text-gray-800">
+    <div className="space-y-6 pb-12">
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg border text-sm font-medium transition-all ${notification.type === "success"
-            ? "bg-emerald-500 text-white border-emerald-600"
-            : "bg-rose-500 text-white border-rose-600"
-            }`}
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-semibold transition-all duration-300 ${
+            notification.type === "success" ? "bg-emerald-800" : "bg-rose-700"
+          }`}
         >
           {notification.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{notification.message}</span>
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center shadow-inner">
-              <Wallet size={22} />
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#00382B] via-[#005a40] to-[#0A7355] p-6 sm:p-8 text-white shadow-xl">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold tracking-wide uppercase border border-white/15">
+              <Sparkles size={13} className="text-emerald-300" />
+              <span>বাংলাদেশ স্কুল ও কলেজ ফি ম্যানেজমেন্ট সিস্টেম</span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl md:text-2xl font-bold text-gray-900 tracking-tight">Fee Management</h1>
-                <span className="bg-[#707E94]/10 text-[#707E94] text-xs px-2.5 py-0.5 rounded-full font-semibold border border-[#707E94]/30">
-                  {stats.total_invoices} Invoices
-                </span>
-              </div>
-              <p className="text-xs md:text-sm text-gray-500 mt-0.5">
-                Manage student billing, record fee payments, generate vouchers, and configure fee structures
-              </p>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Fee Collection &amp; Accounts Management
+            </h1>
+            <p className="text-sm text-emerald-100/90 max-w-2xl leading-relaxed">
+              দ্রুত ফি আদায় কাউন্টার, ১২ মাসের একাডেমিক বেতন, সেশন চার্জ, পরীক্ষা ফি, আইসিটি ল্যাব ও ২-কপি মানি রসিদ ভাউচার
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("quick_counter")}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
+                activeTab === "quick_counter"
+                  ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
+                  : "bg-white/15 text-white hover:bg-white/25 border border-white/20"
+              }`}
+            >
+              <Zap size={14} />
+              <span>কাউন্টার কালেকশন (Fast Pay)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateInvoiceModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-white text-emerald-950 hover:bg-emerald-50 transition shadow-sm cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>একক ইনভয়েস তৈরি</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Top Metric Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">সর্বমোট ধার্যকৃত ফি</span>
+            <Receipt size={17} className="text-emerald-700" />
+          </div>
+          <div className="text-xl font-black text-slate-900">{fmt(stats.total_billed)}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">{stats.total_invoices} টি ইনভয়েস</div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">সর্বমোট আদায়কৃত</span>
+            <Wallet size={17} className="text-emerald-600" />
+          </div>
+          <div className="text-xl font-black text-emerald-700">{fmt(stats.total_collected)}</div>
+          <div className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+            <TrendingUp size={12} />
+            <span>আদায়ের হার {stats.collection_rate}%</span>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">মোট বকেয়া (Due)</span>
+            <Clock size={17} className="text-amber-600" />
+          </div>
+          <div className="text-xl font-black text-amber-600">{fmt(stats.total_due)}</div>
+          <div className="text-[11px] text-slate-500 mt-1 font-medium">{stats.unpaid_count + stats.partial_count} টি বকেয়া বিল</div>
+        </div>
+
+        <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">মেয়াদোত্তীর্ণ ফি</span>
+            <AlertCircle size={17} className="text-rose-600" />
+          </div>
+          <div className="text-xl font-black text-rose-600">{fmt(stats.total_overdue)}</div>
+          <div className="text-[11px] text-rose-600 font-medium mt-1">{stats.overdue_count} টি বিল নির্ধারিত সময় পার</div>
+        </div>
+
+        <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-emerald-800 to-teal-900 p-4 rounded-xl text-white shadow-xs">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-200 mb-1">আজকের মোট কালেকশন</div>
+          <div className="text-xl font-black text-white">{fmt(dailyTotalCollected)}</div>
+          <div className="text-[10px] text-emerald-200 mt-1 font-medium">নগদ: {fmt(dailyCashTotal)} • মোবাইল: {fmt(dailyMobileTotal)}</div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs Bar */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-x-auto">
+        <div className="flex border-b border-slate-100 min-w-max">
           <button
-            onClick={() => {
-              setRefreshing(true);
-              void loadInitialData();
-            }}
-            disabled={refreshing}
-            className="p-2.5 text-gray-600 hover:text-[#556275] bg-gray-50 hover:bg-[#707E94]/10 border border-gray-200 rounded-xl transition shadow-sm"
-            title="Refresh Data"
+            type="button"
+            onClick={() => setActiveTab("quick_counter")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "quick_counter"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
           >
-            <RefreshCw size={17} className={refreshing ? "animate-spin text-[#707E94]" : ""} />
+            <Zap size={15} className="text-amber-500" />
+            <span>১. দ্রুত ফি আদায় কাউন্টার (Quick Counter)</span>
           </button>
 
           <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition shadow-sm"
+            type="button"
+            onClick={() => setActiveTab("invoices")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "invoices"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
           >
-            <Download size={15} />
-            Export CSV
+            <Receipt size={15} />
+            <span>২. ইনভয়েস ও বিল খাতা ({invoices.length})</span>
           </button>
 
           <button
-            onClick={() => setBulkGenerateModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold text-[#707E94] bg-[#707E94]/10 hover:bg-[#707E94]/15 border border-[#707E94]/30 rounded-xl transition shadow-sm"
+            type="button"
+            onClick={() => setActiveTab("batch_generator")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "batch_generator"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
           >
             <Layers size={15} />
-            Bulk Generate
+            <span>৩. শ্রেণিভিত্তিক গণ-ফি তৈরি (Batch Generator)</span>
           </button>
 
           <button
-            onClick={() => {
-              const defaultCat = categories[0] || defaultCategories[0];
-              setSelectedInvoiceClass("");
-              setStudentSearchText("");
-              setIsStudentDropdownOpen(false);
-              setInvoiceForm({
-                student_id: "",
-                fee_category_id: defaultCat.id,
-                title: `${defaultCat.name} - ${new Date().toLocaleString("default", { month: "short" })}`,
-                amount: defaultCat.default_amount,
-                discount: 0,
-                due_date: new Date(Date.now() + 15 * 86400000).toISOString().split("T")[0],
-                academic_year: "2026-2027",
-                notes: "",
-                collect_now: false,
-                paid_now: defaultCat.default_amount,
-                payment_method: "CASH",
-                transaction_ref: "",
-              });
-              setCreateInvoiceModal(true);
-            }}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
+            type="button"
+            onClick={() => setActiveTab("categories")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "categories"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
           >
-            <Plus size={16} />
-            Create Invoice
+            <Tag size={15} />
+            <span>৪. ফি খাত ও হার নির্ধারণ ({categories.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("class_due_register")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "class_due_register"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <Users size={15} />
+            <span>৫. শ্রেণিভিত্তিক বকেয়া তালিকা</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("daily_register")}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              activeTab === "daily_register"
+                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            <FileSpreadsheet size={15} />
+            <span>৬. দৈনিক আদায় রেজিস্টার (Cash Book)</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Billed */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Invoiced</span>
-            <div className="w-9 h-9 rounded-xl bg-[#707E94]/10 text-[#707E94] flex items-center justify-center">
-              <Receipt size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-gray-900">{fmt(stats.total_billed)}</div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <span className="font-medium text-[#707E94]">{stats.total_invoices} invoices total</span>
-              <span>across all terms</span>
-            </div>
-          </div>
-          <div className="w-full bg-[#707E94]/15 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-[#D32F45] h-full rounded-full w-full" />
-          </div>
-        </div>
-
-        {/* Total Collected */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Collected</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <CreditCard size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-emerald-600">{fmt(stats.total_collected)}</div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <span className="inline-flex items-center font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
-                <Percent size={11} className="mr-0.5" />
-                {stats.collection_rate}% rate
-              </span>
-              <span>{stats.paid_count} fully settled</span>
-            </div>
-          </div>
-          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(100, stats.collection_rate)}%` }} />
-          </div>
-        </div>
-
-        {/* Pending Due */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pending Due</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Clock size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-amber-600">{fmt(stats.total_due)}</div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <span className="font-medium text-amber-600">{stats.partial_count} partial</span>
-              <span>•</span>
-              <span>{stats.unpaid_count} pending</span>
-            </div>
-          </div>
-          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-amber-500 h-full rounded-full"
-              style={{
-                width: `${stats.total_billed > 0 ? Math.min(100, (stats.total_due / stats.total_billed) * 100) : 0}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Overdue */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Overdue Fees</span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <AlertCircle size={18} />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-rose-600">{fmt(stats.total_overdue)}</div>
-            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-              <span className="bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-semibold text-[11px]">
-                {stats.overdue_count} overdue invoices
-              </span>
-              <span>Action required</span>
-            </div>
-          </div>
-          <div className="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
-            <div
-              className="bg-rose-500 h-full rounded-full"
-              style={{
-                width: `${stats.total_billed > 0 ? Math.min(100, (stats.total_overdue / stats.total_billed) * 100) : 0}%`,
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs Bar */}
-      <div className="flex border-b border-gray-200 gap-1 overflow-x-auto custom-scrollbar">
-        <button
-          onClick={() => setActiveTab("invoices")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "invoices"
-            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
-            : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-        >
-          <FileText size={17} />
-          <span>All Invoices</span>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full font-bold text-gray-600">
-            {filteredInvoices.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("payments")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "payments"
-            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
-            : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-        >
-          <CreditCard size={17} />
-          <span>Payment Log</span>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full font-bold text-gray-600">
-            {payments.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("categories")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "categories"
-            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
-            : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-        >
-          <Tag size={17} />
-          <span>Fee Structures & Categories</span>
-          <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full font-bold text-gray-600">
-            {categories.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("class_summary")}
-          className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 whitespace-nowrap transition ${activeTab === "class_summary"
-            ? "border-[#707E94] text-[#707E94] bg-[#707E94]/10 rounded-t-xl"
-            : "border-transparent text-gray-500 hover:text-gray-800"
-            }`}
-        >
-          <Building2 size={17} />
-          <span>Class Collection Summary</span>
-        </button>
-      </div>
-
-      {/* TAB 1: INVOICES TABLE */}
-      {activeTab === "invoices" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Table Header Filter Toolbar */}
-          <div className="p-4 md:p-5 border-b border-gray-100 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-gray-50/50">
-            {/* Search */}
-            <div className="relative flex-1 max-w-md">
-              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search invoice #, student name, ID..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#707E94]/20 focus:border-[#707E94]"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Dropdowns & Status Pills */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Status pills */}
-              <div className="flex items-center bg-white p-1 rounded-xl border border-gray-200 shadow-sm text-xs font-medium">
-                {(["ALL", "PAID", "PARTIAL", "UNPAID", "OVERDUE"] as const).map((st) => (
-                  <button
-                    key={st}
-                    onClick={() => {
-                      setStatusFilter(st);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-3 py-1.5 rounded-lg transition ${statusFilter === st
-                      ? "bg-[#D32F45] text-white font-semibold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900"
-                      }`}
-                  >
-                    {st === "ALL" ? "All" : st.charAt(0) + st.slice(1).toLowerCase()}
-                  </button>
-                ))}
+      {/* ========================================================= */}
+      {/* TAB 1: QUICK COUNTER COLLECTION (দ্রুত ফি আদায় কাউন্টার) */}
+      {/* ========================================================= */}
+      {activeTab === "quick_counter" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Student Selection & Profile Card */}
+          <div className="lg:col-span-4 space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <UserCheck size={18} className="text-emerald-700" />
+                  <h3 className="font-bold text-slate-900 text-sm">শিক্ষার্থী নির্বাচন (Student Selection)</h3>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-500">{counterFilteredStudents.length} জন</span>
               </div>
 
-              {/* Category Dropdown */}
+              {/* Class Filter Dropdown */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">শ্রেণি (Class)</label>
+                <select
+                  value={counterSelectedClass}
+                  onChange={(e) => setCounterSelectedClass(e.target.value)}
+                  className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                >
+                  <option value="ALL">সকল শ্রেণি (All Classes)</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Student Search Input */}
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="রোল, নাম বা মোবাইল দিয়ে খুঁজুন..."
+                  value={counterSearchText}
+                  onChange={(e) => setCounterSearchText(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                />
+              </div>
+
+              {/* Mini Students List */}
+              <div className="max-h-52 overflow-y-auto space-y-1.5 border border-slate-100 rounded-lg p-1.5 bg-slate-50/50">
+                {counterFilteredStudents.map((st) => {
+                  const isSelected = selectedStudent && String(selectedStudent.id) === String(st.id);
+                  return (
+                    <button
+                      key={st.id}
+                      type="button"
+                      onClick={() => setSelectedStudent(st)}
+                      className={`w-full text-left p-2 rounded-lg text-xs transition flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? "bg-emerald-800 text-white font-bold shadow-xs"
+                          : "hover:bg-slate-100 text-slate-800 font-medium"
+                      }`}
+                    >
+                      <div className="truncate">
+                        <div>
+                          {[st.name, st.surname].filter(Boolean).join(" ")}
+                        </div>
+                        <div className={`text-[10px] ${isSelected ? "text-emerald-100" : "text-slate-500"}`}>
+                          রোল: {st.roll || "—"} • {st.class_name || "General"}
+                        </div>
+                      </div>
+                      <ChevronRight size={14} className={isSelected ? "text-emerald-200" : "text-slate-400"} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Selected Student Profile Badge */}
+              {selectedStudent && (
+                <div className="p-4 bg-emerald-50/80 rounded-xl border border-emerald-200/90 text-xs space-y-2.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-800 text-white flex items-center justify-center font-bold text-lg shadow-xs">
+                      {selectedStudent.name ? selectedStudent.name[0] : "S"}
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 text-sm">
+                        {[selectedStudent.name, selectedStudent.surname].filter(Boolean).join(" ")}
+                      </h4>
+                      <p className="text-[11px] text-emerald-900 font-bold">
+                        রোল নং: {selectedStudent.roll || "—"} | আইডি: {selectedStudent.id}
+                      </p>
+                      <p className="text-[10px] text-slate-600">
+                        {selectedStudent.class_name || "General"} • {selectedStudent.shift || "প্রভাতী"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-emerald-200/80 pt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-700">
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase font-bold">অভিভাবকের নাম</span>
+                      <span className="font-semibold">{selectedStudent.parent_name || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase font-bold">মোবাইল নম্বর</span>
+                      <span className="font-mono font-semibold">{selectedStudent.phone || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-emerald-200/80 pt-2 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700">বর্তমান বকেয়া (Past Dues):</span>
+                    <span className={`font-black text-xs ${selectedStudentTotalDue > 0 ? "text-rose-700" : "text-emerald-800"}`}>
+                      {selectedStudentTotalDue > 0 ? fmt(selectedStudentTotalDue) : "বকেয়া নেই (Clear)"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Fee Selection, Waiver, Calculator, Payment */}
+          <div className="lg:col-span-8 space-y-4">
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-5 space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3 gap-2">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                    <Receipt size={17} className="text-emerald-700" />
+                    <span>ফি আদায় বিল ও গণনা (Fee Collection Counter)</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">মাসিক বেতন ও নির্ধারিত ফি খাতসমূহ নির্বাচন করুন</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonths(BANGLA_MONTHS.map((m) => m.key))}
+                    className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md hover:bg-emerald-100 transition cursor-pointer"
+                  >
+                    সব মাস নির্বাচন
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonths([])}
+                    className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md hover:bg-slate-200 transition cursor-pointer"
+                  >
+                    ক্লিয়ার
+                  </button>
+                </div>
+              </div>
+
+              {/* 12-Month Academic Grid */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  মাসিক একাডেমিক বেতন ({fmt(counterTuitionFee)} / মাস)
+                </label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                  {BANGLA_MONTHS.map((m) => {
+                    const isChecked = selectedMonths.includes(m.key);
+                    return (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => {
+                          if (isChecked) {
+                            setSelectedMonths(selectedMonths.filter((x) => x !== m.key));
+                          } else {
+                            setSelectedMonths([...selectedMonths, m.key]);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                          isChecked
+                            ? "bg-emerald-800 text-white border-emerald-900 shadow-sm font-bold"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                        }`}
+                      >
+                        <div className="text-xs">{m.nameBn}</div>
+                        <div className={`text-[10px] mt-0.5 ${isChecked ? "text-emerald-200" : "text-slate-500"}`}>
+                          {m.nameEn}
+                        </div>
+                        {isChecked && (
+                          <div className="mt-1 flex items-center justify-center">
+                            <Check size={12} className="text-amber-300" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Other Institutional Fee Heads Checklist */}
+              <div>
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  অন্যান্য ফি খাত (Other School/College Fees)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1">
+                  {categories
+                    .filter((c) => c.code !== "TUIT")
+                    .map((cat) => {
+                      const isSelected = selectedOtherFeeIds.includes(cat.id);
+                      return (
+                        <label
+                          key={cat.id}
+                          className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                            isSelected
+                              ? "bg-emerald-50/80 border-emerald-300 text-emerald-950 font-bold"
+                              : "bg-slate-50/60 border-slate-200/80 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedOtherFeeIds([...selectedOtherFeeIds, cat.id]);
+                              } else {
+                                setSelectedOtherFeeIds(selectedOtherFeeIds.filter((id) => id !== cat.id));
+                              }
+                            }}
+                            className="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600"
+                          />
+                          <div className="truncate">
+                            <div className="truncate">{cat.name}</div>
+                            <div className="text-[10px] text-slate-500 font-semibold">{fmt(cat.default_amount)}</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Fine, Discount & Payment Method Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                {/* Late Fine */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    বিলম্ব ফি / জরিমানা (Late Fine)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={counterLateFine}
+                    onChange={(e) => setCounterLateFine(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  />
+                </div>
+
+                {/* Waiver / Concession */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    মওকুফ / ছাড় (Waiver / Discount)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={counterDiscount}
+                    onChange={(e) => setCounterDiscount(parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  />
+                </div>
+
+                {/* Waiver Reason */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    ছাড়ের কারণ (Waiver Category)
+                  </label>
+                  <select
+                    value={counterWaiverType}
+                    onChange={(e) => setCounterWaiverType(e.target.value)}
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  >
+                    <option value="GENERAL">সাধারণ ছাড় (General)</option>
+                    <option value="MERIT">মেধাবৃত্তি (Merit Scholarship)</option>
+                    <option value="POOR_FUND">দরিদ্র তহবিল মওকুফ (Poor Fund)</option>
+                    <option value="STAFF_CHILD">শিক্ষক/স্টাফ সন্তান (Staff Ward)</option>
+                    <option value="SIBLING">সহোদর ভাই/বোন ছাড় (Sibling)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Payment Mode & Trx ID */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    পরিশোধের মাধ্যম (Payment Mode)
+                  </label>
+                  <select
+                    value={counterPaymentMethod}
+                    onChange={(e) => setCounterPaymentMethod(e.target.value as PaymentMethod)}
+                    className="w-full p-2 text-xs font-semibold border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  >
+                    <option value="CASH">নগদ টাকা (Cash Counter)</option>
+                    <option value="BKASH">bKash (বিকাশ মার্চেন্ট)</option>
+                    <option value="NAGAD">Nagad (নগদ)</option>
+                    <option value="ROCKET">Rocket (ডাচ-বাংলা রকেট)</option>
+                    <option value="BANK_TRANSFER">ব্যাংক ড্রাফট / চালান (Bank Slip)</option>
+                    <option value="CARD">কার্ড / POS (Debit/Credit Card)</option>
+                    <option value="CHEQUE">চেক (Cheque Payment)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    ট্রানজেকশন / রেফারেন্স আইডি
+                  </label>
+                  <input
+                    type="text"
+                    value={counterTxnRef}
+                    onChange={(e) => setCounterTxnRef(e.target.value)}
+                    placeholder="e.g. TRX982736 বা চালান নং"
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    মন্তব্য (Counter Remarks)
+                  </label>
+                  <input
+                    type="text"
+                    value={counterNotes}
+                    onChange={(e) => setCounterNotes(e.target.value)}
+                    placeholder="প্রয়োজনে বিশেষ নোট লিখুন..."
+                    className="w-full p-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Grand Calculator Strip & Collect Action */}
+              <div className="p-4 rounded-xl bg-slate-900 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-4 text-xs text-slate-300">
+                    <span>মাসিক ফি: <strong>{fmt(counterTuitionSubtotal)}</strong></span>
+                    <span>অন্যান্য ফি: <strong>{fmt(counterOtherFeesSubtotal)}</strong></span>
+                    {counterLateFine > 0 && <span>বিলম্ব: <strong className="text-amber-400">+{fmt(counterLateFine)}</strong></span>}
+                    {counterDiscount > 0 && <span>ছাড়: <strong className="text-emerald-400">-{fmt(counterDiscount)}</strong></span>}
+                  </div>
+                  <div className="text-sm font-normal text-slate-300">
+                    সর্বমোট প্রদেয়: <strong className="text-xl text-white font-black">{fmt(counterNetPayable)}</strong>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div>
+                    <span className="block text-[10px] text-slate-400 uppercase font-bold">আদায়কৃত টাকা (Paid Now)</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={counterPaidNow}
+                      onChange={(e) => setCounterPaidNow(parseFloat(e.target.value) || 0)}
+                      className="w-32 p-2 bg-slate-800 border border-slate-700 rounded-lg text-white font-bold text-sm text-right focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleQuickCounterSubmit}
+                    className="flex items-center gap-2 px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition shadow-lg cursor-pointer"
+                  >
+                    <Printer size={16} />
+                    <span>ফি আদায় ও রসিদ প্রিন্ট (Collect &amp; Print)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 2: INVOICES & BILLS REGISTER (ইনভয়েস ও বিল খাতা)      */}
+      {/* ========================================================= */}
+      {activeTab === "invoices" && (
+        <div className="space-y-4">
+          {/* Filter Bar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1">
+              {/* Search */}
+              <div className="relative min-w-[220px]">
+                <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="রোল, নাম, বা ইনভয়েস নং..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                />
+              </div>
+
+              {/* Status Filter */}
               <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-[#707E94]"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="text-xs border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-hidden"
               >
-                <option value="ALL">All Fee Types</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
+                <option value="ALL">সকল স্ট্যাটাস (All)</option>
+                <option value="PAID">পরিশোধিত (Paid)</option>
+                <option value="PARTIAL">আংশিক (Partial)</option>
+                <option value="UNPAID">বকেয়া (Unpaid)</option>
+                <option value="OVERDUE">মেয়াদোত্তীর্ণ (Overdue)</option>
+              </select>
+
+              {/* Class Filter */}
+              <select
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+                className="text-xs border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-hidden"
+              >
+                <option value="ALL">সকল শ্রেণি (All Classes)</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.name}>
                     {c.name}
                   </option>
                 ))}
               </select>
 
-              {/* Class Dropdown */}
+              {/* Fee Category Filter */}
               <select
-                value={classFilter}
-                onChange={(e) => {
-                  setClassFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none focus:border-[#707E94]"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="text-xs border border-slate-200 rounded-lg p-2 bg-slate-50 focus:bg-white focus:outline-hidden"
               >
-                <option value="ALL">All Classes</option>
-                {classes.map((cls) => (
-                  <option key={cls.id} value={cls.name}>
-                    Class {cls.name}
+                <option value="ALL">সকল ফি খাত (All Heads)</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
             </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCreateInvoiceModal(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] transition shadow-xs cursor-pointer"
+              >
+                <Plus size={14} />
+                <span>নতুন ইনভয়েস তৈরি</span>
+              </button>
+            </div>
           </div>
 
-          {/* Invoices Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Invoice #</th>
-                  <th className="py-3.5 px-4">Student</th>
-                  <th className="py-3.5 px-4">Fee Category & Title</th>
-                  <th className="py-3.5 px-4">Due Date</th>
-                  <th className="py-3.5 px-4 text-right">Amount ({cs})</th>
-                  <th className="py-3.5 px-4 text-right">Discount ({cs})</th>
-                  <th className="py-3.5 px-4 text-right">Paid ({cs})</th>
-                  <th className="py-3.5 px-4 text-right">Due Balance ({cs})</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-xs">
-                {paginatedInvoices.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="py-12 text-center text-gray-400">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <FileText size={36} className="text-gray-300 stroke-1" />
-                        <p className="font-semibold text-gray-600 text-sm">No fee invoices found</p>
-                        <p className="text-xs text-gray-400">Try adjusting your filters or click "+ Create Invoice" to generate one.</p>
-                      </div>
-                    </td>
+          {/* Table */}
+          <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                    <th className="py-3 px-3">ইনভয়েস নং</th>
+                    <th className="py-3 px-3">শিক্ষার্থীর বিবরণ</th>
+                    <th className="py-3 px-3">শ্রেণি ও রোল</th>
+                    <th className="py-3 px-3">ফি বিবরণ ও খাত</th>
+                    <th className="py-3 px-3 text-right">নির্ধারিত ফি</th>
+                    <th className="py-3 px-3 text-right">আদায়কৃত</th>
+                    <th className="py-3 px-3 text-right">বকেয়া</th>
+                    <th className="py-3 px-3 text-center">স্ট্যাটাস</th>
+                    <th className="py-3 px-3 text-right">অ্যাকশন</th>
                   </tr>
-                ) : (
-                  paginatedInvoices.map((inv) => {
-                    const net = Number(inv.amount) - Number(inv.discount || 0);
-                    const paid = Number(inv.paid_amount || 0);
-                    const due = Math.max(0, net - paid);
-                    const isOverdue = inv.status === "OVERDUE" || (due > 0 && inv.due_date < new Date().toISOString().split("T")[0]);
-
-                    return (
-                      <tr key={inv.id} className="hover:bg-[#707E94]/10 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-semibold text-[#707E94]">
-                          {inv.invoice_no}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-lamaYellow flex items-center justify-center font-bold text-xs text-gray-800 shrink-0">
-                              {inv.student_name?.[0] || "S"}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-gray-900">
-                                {inv.student_name} {inv.student_surname}
-                              </div>
-                              <div className="text-[11px] text-gray-400">
-                                ID: {inv.student_id} • {inv.class_name ? `Class ${inv.class_name}` : "General"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className="font-medium text-gray-800">{inv.title}</div>
-                          <div className="inline-block mt-0.5 text-[10px] uppercase font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                            {inv.category_name || "Tuition"}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <div className={`flex items-center gap-1 ${isOverdue ? "text-rose-600 font-semibold" : "text-gray-600"}`}>
-                            <Calendar size={13} />
-                            <span>{inv.due_date}</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-semibold text-gray-900">
-                          {fmt(inv.amount)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right text-gray-500">
-                          {Number(inv.discount) > 0 ? `-${fmt(inv.discount)}` : fmt(0)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-medium text-emerald-600">
-                          {fmt(paid)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold">
-                          <span className={due > 0 ? "text-rose-600" : "text-gray-400"}>
-                            {fmt(due)}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          {renderStatusBadge(isOverdue ? "OVERDUE" : inv.status)}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            {due > 0 && (
-                              <button
-                                onClick={() => openPaymentModal(inv)}
-                                className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1 transition shadow-xs"
-                                title="Collect payment"
-                              >
-                                <span className="font-bold text-[13px] leading-none">{cs}</span>
-                                Pay
-                              </button>
-                            )}
-
-                            <button
-                              onClick={() => handleOpenReceipt(inv)}
-                              className="p-1.5 rounded-lg text-[#707E94] hover:bg-[#707E94]/15 transition"
-                              title="View and print receipt slip"
-                            >
-                              <Printer size={15} />
-                            </button>
-
-                            <button
-                              onClick={() => setEditInvoiceModal(inv)}
-                              className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 transition"
-                              title="Edit invoice"
-                            >
-                              <Pencil size={14} />
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                setDeleteConfirm({
-                                  open: true,
-                                  type: "invoice",
-                                  id: inv.id,
-                                  label: `Invoice ${inv.invoice_no} (${inv.student_name} ${inv.student_surname})`,
-                                })
-                              }
-                              className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition"
-                              title="Delete invoice"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-              {/* Column Totals Footer */}
-              {paginatedInvoices.length > 0 && (() => {
-                const totAmt = filteredInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
-                const totDisc = filteredInvoices.reduce((s, i) => s + Number(i.discount || 0), 0);
-                const totPaid = filteredInvoices.reduce((s, i) => s + Number(i.paid_amount || 0), 0);
-                const totDue = filteredInvoices.reduce((s, i) => {
-                  const net = Number(i.amount) - Number(i.discount || 0);
-                  return s + Math.max(0, net - Number(i.paid_amount || 0));
-                }, 0);
-                return (
-                  <tfoot>
-                    <tr className="border-t-2 border-[#707E94]/30 bg-[#707E94]/10 text-xs font-bold">
-                      <td colSpan={4} className="py-3 px-4 text-gray-500 text-[11px] uppercase tracking-wide">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="text-gray-400">&#x3A3;</span>
-                          Totals &middot; {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? "s" : ""}
-                          <span className="ml-2 text-[10px] font-normal text-gray-400 hidden sm:inline">
-                            Amount &minus; Discount &minus; Paid = Due Balance
-                          </span>
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right text-gray-800">{fmt(totAmt)}</td>
-                      <td className="py-3 px-4 text-right text-rose-500">
-                        {totDisc > 0 ? `-${fmt(totDisc)}` : "\u2014"}
-                      </td>
-                      <td className="py-3 px-4 text-right text-emerald-700">{fmt(totPaid)}</td>
-                      <td className="py-3 px-4 text-right">
-                        <span className={totDue > 0 ? "text-rose-700" : "text-gray-400"}>
-                          {fmt(totDue)}
-                        </span>
-                      </td>
-                      <td colSpan={2} className="py-3 px-4 text-center text-[10px] text-gray-400 font-normal">
-                        {totDue > 0
-                          ? <span className="text-rose-500 font-semibold">{fmt(totDue)} outstanding</span>
-                          : <span className="text-emerald-600 font-semibold">&#x2713; Fully settled</span>}
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="py-8 text-center text-slate-400">
+                        কোন ইনভয়েস পাওয়া যায়নি (No invoices found)
                       </td>
                     </tr>
-                  </tfoot>
-                );
-              })()}
-            </table>
-          </div>
+                  ) : (
+                    paginatedInvoices.map((inv) => {
+                      const net = Number(inv.amount || 0) - Number(inv.discount || 0);
+                      const paid = Number(inv.paid_amount || 0);
+                      const due = Math.max(0, net - paid);
 
-          {/* Table Footer Pagination */}
-          <div className="p-4 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 bg-gray-50/50">
-            <div>
-              Showing {filteredInvoices.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} to{" "}
-              {Math.min(currentPage * itemsPerPage, filteredInvoices.length)} of {filteredInvoices.length} invoices
+                      return (
+                        <tr key={inv.id} className="hover:bg-slate-50/70 transition">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-800">
+                            #{inv.invoice_no}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-bold text-slate-900">
+                              {[inv.student_name, inv.student_surname].filter(Boolean).join(" ") || "Student"}
+                            </div>
+                            <div className="text-[10px] text-slate-500 font-mono">
+                              আইডি: {inv.student_id} {inv.student_phone ? `• ${inv.student_phone}` : ""}
+                            </div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-semibold text-slate-800">{inv.class_name || "General"}</div>
+                            <div className="text-[10px] text-slate-500">রোল: {inv.student_roll || "—"}</div>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="font-semibold text-slate-800 truncate max-w-[200px]">{inv.title}</div>
+                            <div className="text-[10px] text-slate-500">মেয়াদ: {inv.due_date}</div>
+                          </td>
+                          <td className="py-3 px-3 text-right font-bold text-slate-900">{fmt(net)}</td>
+                          <td className="py-3 px-3 text-right font-bold text-emerald-700">{fmt(paid)}</td>
+                          <td className="py-3 px-3 text-right font-bold text-rose-700">{fmt(due)}</td>
+                          <td className="py-3 px-3 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                inv.status === "PAID"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : inv.status === "PARTIAL"
+                                  ? "bg-amber-100 text-amber-800"
+                                  : inv.status === "OVERDUE"
+                                  ? "bg-rose-100 text-rose-800"
+                                  : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {inv.status === "PAID"
+                                ? "পরিশোধিত"
+                                : inv.status === "PARTIAL"
+                                ? "আংশিক"
+                                : inv.status === "OVERDUE"
+                                ? "মেয়াদোত্তীর্ণ"
+                                : "বকেয়া"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {inv.status !== "PAID" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRecordPayment(inv)}
+                                  className="p-1.5 text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 rounded-md transition cursor-pointer"
+                                  title="পেমেন্ট নিন (Collect)"
+                                >
+                                  <Wallet size={13} />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => openReceiptFromInvoice(inv)}
+                                className="p-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition cursor-pointer"
+                                title="মানি রসিদ প্রিন্ট"
+                              >
+                                <Printer size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-            {totalPages > 1 && (
+
+            {/* Pagination */}
+            <div className="p-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 bg-slate-50/50">
+              <span>মোট {filteredInvoices.length} টি রেকর্ড (পৃষ্ঠা {currentPage} / {totalPages})</span>
               <div className="flex items-center gap-1">
                 <button
+                  type="button"
                   disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-medium hover:bg-gray-50 disabled:opacity-40 transition"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white disabled:opacity-40 cursor-pointer"
                 >
-                  Previous
+                  পূর্ববর্তী
                 </button>
-                {Array.from({ length: totalPages }).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentPage(idx + 1)}
-                    className={`w-8 h-8 rounded-lg font-semibold transition ${currentPage === idx + 1
-                      ? "bg-[#D32F45] text-white"
-                      : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-                      }`}
-                  >
-                    {idx + 1}
-                  </button>
-                ))}
                 <button
+                  type="button"
                   disabled={currentPage >= totalPages}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white font-medium hover:bg-gray-50 disabled:opacity-40 transition"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white disabled:opacity-40 cursor-pointer"
                 >
-                  Next
+                  পরবর্তী
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: PAYMENTS CASHBOOK */}
-      {activeTab === "payments" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-4 md:p-5 border-b border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-gray-50/50">
-            <div className="relative flex-1 max-w-md">
-              <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+      {/* ========================================================= */}
+      {/* TAB 3: BATCH FEE GENERATOR (শ্রেণিভিত্তিক গণ-ফি তৈরি)     */}
+      {/* ========================================================= */}
+      {activeTab === "batch_generator" && (
+        <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Layers size={18} className="text-emerald-700" />
+              <span>শ্রেণিভিত্তিক গণ-ফি তৈরি (Batch Monthly Fee Generator)</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              সম্পূর্ণ ক্লাসের সকল শিক্ষার্থীর জন্য এক ক্লিকে মাসিক বেতন, পরীক্ষার ফি ও ল্যাব ফি জেনারেট করুন
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                শ্রেণি নির্বাচন (Target Class)
+              </label>
+              <select
+                value={batchClassId}
+                onChange={(e) => setBatchClassId(e.target.value)}
+                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+              >
+                <option value="">-- শ্রেণি বাছাই করুন --</option>
+                <option value="ALL">সকল শ্রেণি একসাথে (All Enrolled Classes)</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                মাস বা সেশন (Target Month / Session)
+              </label>
               <input
                 type="text"
-                placeholder="Search receipt #, invoice #, student name, reference..."
-                value={paymentSearch}
-                onChange={(e) => setPaymentSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#707E94]/20 focus:border-[#707E94]"
+                value={batchMonth}
+                onChange={(e) => setBatchMonth(e.target.value)}
+                placeholder="যেমন: নভেম্বর ২০২৬ বা ১ম সাময়িক পরীক্ষা"
+                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <select
-                value={paymentMethodFilter}
-                onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                className="px-3 py-2 text-xs font-medium bg-white border border-gray-200 rounded-xl text-gray-700 focus:outline-none"
-              >
-                <option value="ALL">All Payment Methods</option>
-                <option value="CASH">Cash</option>
-                <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CARD">Credit/Debit Card</option>
-                <option value="MOBILE_BANKING">Mobile Banking</option>
-                <option value="CHEQUE">Cheque</option>
-              </select>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                শিক্ষাবর্ষ (Academic Session)
+              </label>
+              <input
+                type="text"
+                value={batchAcademicYear}
+                onChange={(e) => setBatchAcademicYear(e.target.value)}
+                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                বিল পরিশোধের শেষ তারিখ (Due Date)
+              </label>
+              <input
+                type="date"
+                value={batchDueDate}
+                onChange={(e) => setBatchDueDate(e.target.value)}
+                className="w-full text-xs font-medium border border-slate-200 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+              />
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          {/* Fee Heads Selection */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase mb-2">
+              জেনারেট করার ফি খাতসমূহ নির্বাচন করুন (Select Fee Heads)
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-slate-100 rounded-xl p-3 bg-slate-50/50 max-h-56 overflow-y-auto">
+              {categories.map((cat) => {
+                const isSelected = batchCategoryIds.includes(cat.id);
+                return (
+                  <label
+                    key={cat.id}
+                    className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
+                      isSelected
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
+                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setBatchCategoryIds([...batchCategoryIds, cat.id]);
+                        } else {
+                          setBatchCategoryIds(batchCategoryIds.filter((id) => id !== cat.id));
+                        }
+                      }}
+                      className="mt-0.5 rounded text-emerald-700"
+                    />
+                    <div className="truncate">
+                      <div>{cat.name}</div>
+                      <div className="text-[10px] text-slate-500 font-semibold">{fmt(cat.default_amount)}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end">
+            <button
+              type="button"
+              disabled={batchGenerating}
+              onClick={handleBatchGenerate}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#005a40] text-white font-bold text-xs hover:bg-[#004732] transition shadow-md disabled:opacity-50 cursor-pointer"
+            >
+              {batchGenerating ? (
+                <>
+                  <RefreshCw size={15} className="animate-spin" />
+                  <span>তৈরি হচ্ছে...</span>
+                </>
+              ) : (
+                <>
+                  <Zap size={15} />
+                  <span>সকল শিক্ষার্থীর জন্য ইনভয়েস তৈরি করুন (Generate All)</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 4: FEE HEADS & RATES (ফি খাত ও হার নির্ধারণ)          */}
+      {/* ========================================================= */}
+      {activeTab === "categories" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">বাংলাদেশ স্কুল ও কলেজ ফি তালিকা</h3>
+              <p className="text-xs text-slate-500">সকল প্রকার একাডেমিক, সেশন, পরীক্ষা, ল্যাব ও সহশিক্ষা ফি খাত</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCategoryModal({ open: true, mode: "create" })}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] transition cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>নতুন ফি খাত যোগ করুন</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-xs space-y-2 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      {cat.code}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        cat.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {cat.frequency}
+                    </span>
+                  </div>
+                  <h4 className="font-bold text-slate-900 text-xs mt-2">{cat.name}</h4>
+                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{cat.description || "—"}</p>
+                </div>
+
+                <div className="border-t border-slate-100 pt-3 flex items-center justify-between mt-2">
+                  <div className="font-black text-slate-900 text-sm">{fmt(cat.default_amount)}</div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCategoryModal({ open: true, mode: "edit", data: cat })}
+                      className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-md transition"
+                      title="Edit Category"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 5: CLASS-WISE DUE DEFAULTER REGISTER                  */}
+      {/* ========================================================= */}
+      {activeTab === "class_due_register" && (
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">শ্রেণিভিত্তিক বকেয়া তালিকা ও রিপোর্ট</h3>
+              <p className="text-xs text-slate-500">কোন শ্রেণিতে কত টাকা বকেয়া আছে এবং বকেয়াদার শিক্ষার্থীর সংখ্যা</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition"
+            >
+              <Printer size={13} />
+              <span>বকেয়া শিট প্রিন্ট</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {classDueSummary.map((cls) => {
+              const rate = cls.total_billed > 0 ? Math.round((cls.total_paid / cls.total_billed) * 100) : 0;
+              return (
+                <div key={cls.class_name} className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 className="font-bold text-slate-900 text-sm">{cls.class_name}</h4>
+                    <span className="text-[11px] font-semibold text-slate-500">{cls.students_count} জন শিক্ষার্থী</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">মোট ধার্য ফি</span>
+                      <span className="font-bold text-slate-800">{fmt(cls.total_billed)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">আদায়কৃত ফি</span>
+                      <span className="font-bold text-emerald-700">{fmt(cls.total_paid)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়া টাকা</span>
+                      <span className="font-black text-rose-700">{fmt(cls.total_due)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়াদার সংখ্যা</span>
+                      <span className="font-bold text-slate-800">{cls.defaulters_count} জন</span>
+                    </div>
+                  </div>
+
+                  {cls.defaulters_count > 0 && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">বকেয়া শিক্ষার্থী তালিকা:</div>
+                      <div className="space-y-1 max-h-28 overflow-y-auto text-[11px]">
+                        {cls.defaulter_students.map((st, i) => (
+                          <div key={i} className="flex justify-between items-center text-slate-700 bg-slate-50 p-1 rounded">
+                            <span className="truncate">রোল {st.roll}: {st.name}</span>
+                            <span className="font-bold text-rose-700 ml-2">{fmt(st.due)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 6: DAILY CASH REGISTER (দৈনিক আদায় রেজিস্টার)          */}
+      {/* ========================================================= */}
+      {activeTab === "daily_register" && (
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">দৈনিক ক্যাশ ও আদায় রেজিস্টার</h3>
+              <p className="text-xs text-slate-500">তারিখ অনুযায়ী দৈনিক ক্যাশ বুক ও সকল রসিদের খতিয়ান</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={dailyDateFilter}
+                onChange={(e) => setDailyDateFilter(e.target.value)}
+                className="text-xs border border-slate-200 rounded-lg p-2 font-medium"
+              />
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-[#005a40] text-white rounded-lg hover:bg-[#004732] transition"
+              >
+                <Printer size={13} />
+                <span>প্রিন্ট শিট</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Daily KPI Badges */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold">মোট আদায় (Total)</span>
+              <span className="text-lg font-black text-slate-900">{fmt(dailyTotalCollected)}</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold">নগদ কাউন্টার (Cash)</span>
+              <span className="text-lg font-black text-emerald-700">{fmt(dailyCashTotal)}</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold">মোবাইল ব্যাংকিং (bKash/Nagad)</span>
+              <span className="text-lg font-black text-amber-600">{fmt(dailyMobileTotal)}</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold">ব্যাংক / চালান (Bank)</span>
+              <span className="text-lg font-black text-indigo-700">{fmt(dailyBankTotal)}</span>
+            </div>
+          </div>
+
+          {/* Ledger Table */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Receipt #</th>
-                  <th className="py-3.5 px-4">Student</th>
-                  <th className="py-3.5 px-4">Invoice #</th>
-                  <th className="py-3.5 px-4">Payment Method</th>
-                  <th className="py-3.5 px-4">Transaction Ref</th>
-                  <th className="py-3.5 px-4">Payment Date</th>
-                  <th className="py-3.5 px-4 text-right">Amount Paid ({cs})</th>
-                  <th className="py-3.5 px-4 text-center">Receipt</th>
+                <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
+                  <th className="py-2.5 px-3">রসিদ নং (Receipt)</th>
+                  <th className="py-2.5 px-3">শিক্ষার্থী ও রোল</th>
+                  <th className="py-2.5 px-3">শ্রেণি</th>
+                  <th className="py-2.5 px-3">ফি বিবরণ</th>
+                  <th className="py-2.5 px-3">মাধ্যম (Method)</th>
+                  <th className="py-2.5 px-3">রেফারেন্স / TrxID</th>
+                  <th className="py-2.5 px-3 text-right">আদায়কৃত টাকা</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 text-xs">
-                {filteredPayments.length === 0 ? (
+              <tbody className="divide-y divide-slate-100">
+                {dailyFilteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-10 text-center text-gray-400">
-                      No payment records found
+                    <td colSpan={7} className="py-6 text-center text-slate-400">
+                      নির্বাচিত তারিখে কোন পেমেন্ট রেকর্ড নেই
                     </td>
                   </tr>
                 ) : (
-                  filteredPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-emerald-50/30 transition-colors">
-                      <td className="py-3.5 px-4 font-mono font-semibold text-emerald-700">
-                        {p.receipt_no}
+                  dailyFilteredPayments.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50/70">
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-800">#{p.receipt_no}</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-900">
+                        {[p.student_name, p.student_surname].filter(Boolean).join(" ")}
+                        <span className="text-[10px] text-slate-500 block">রোল: {p.student_roll || "—"}</span>
                       </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-gray-900">
-                          {p.student_name} {p.student_surname}
-                        </div>
-                        <div className="text-[11px] text-gray-400">Class: {p.class_name || "General"}</div>
+                      <td className="py-2.5 px-3 font-medium text-slate-800">{p.class_name || "General"}</td>
+                      <td className="py-2.5 px-3 text-slate-700">{p.invoice_title || "একাডেমিক ফি"}</td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-800 uppercase text-[10px]">
+                        {p.payment_method}
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-[#707E94]">
-                        {p.invoice_no || `INV-#${p.invoice_id}`}
+                      <td className="py-2.5 px-3 font-mono text-slate-600 text-[11px]">
+                        {p.transaction_ref || "—"}
                       </td>
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700">
-                          <CreditCard size={12} className="text-gray-500" />
-                          {p.payment_method.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-gray-500">
-                        {p.transaction_ref || "â€”"}
-                      </td>
-                      <td className="py-3.5 px-4 text-gray-600">
-                        {p.payment_date}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-bold text-emerald-600 text-sm">
-                        {`+${fmt(p.amount)}`}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => {
-                            const matchedInv = invoices.find((i) => i.id === p.invoice_id || i.invoice_no === p.invoice_no);
-                            setReceiptData({
-                              ...p,
-                              invoice_amount: matchedInv?.amount || p.amount,
-                              discount: matchedInv?.discount || 0,
-                              net_amount: matchedInv ? Number(matchedInv.amount) - Number(matchedInv.discount || 0) : p.amount,
-                              total_paid: matchedInv?.paid_amount || p.amount,
-                              remaining_due: matchedInv ? Math.max(0, Number(matchedInv.amount) - Number(matchedInv.discount || 0) - Number(matchedInv.paid_amount || 0)) : 0,
-                              due_date: matchedInv?.due_date || p.payment_date,
-                              academic_year: matchedInv?.academic_year || "2026-2027",
-                              student_code: p.student_id,
-                              student_email: matchedInv?.student_email,
-                              student_phone: matchedInv?.student_phone,
-                              site_name: siteName,
-                            });
-                          }}
-                          className="px-2.5 py-1.5 bg-[#707E94]/10 text-[#707E94] hover:bg-[#707E94]/15 rounded-lg font-medium inline-flex items-center gap-1 transition"
-                        >
-                          <Printer size={13} />
-                          Print
-                        </button>
-                      </td>
+                      <td className="py-2.5 px-3 text-right font-black text-slate-900">{fmt(p.amount)}</td>
                     </tr>
                   ))
                 )}
@@ -1881,1287 +2186,426 @@ const FeesSection: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: FEE CATEGORIES & STRUCTURE */}
-      {activeTab === "categories" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">Configured Fee Types</h2>
-              <p className="text-xs text-gray-500">Manage billing rules, frequencies, and standard tuition rates</p>
-            </div>
-            <button
-              onClick={() => {
-                setCategoryForm({
-                  name: "",
-                  code: "",
-                  default_amount: 100,
-                  frequency: "MONTHLY",
-                  status: "ACTIVE",
-                  description: "",
-                });
-                setCategoryModal({ open: true, mode: "create", data: null });
-              }}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-sm"
-            >
-              <Plus size={15} />
-              Add Fee Category
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {categories.map((cat) => {
-              const catInvoices = invoices.filter((i) => i.fee_category_id === cat.id);
-              const totalRevenue = catInvoices.reduce((acc, curr) => acc + Number(curr.paid_amount || 0), 0);
-
-              return (
-                <div key={cat.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between hover:shadow-md transition">
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-[#707E94]/15 text-[#707E94]">
-                        {cat.code}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.status === "ACTIVE"
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-gray-100 text-gray-600"
-                          }`}
-                      >
-                        {cat.status}
-                      </span>
-                    </div>
-
-                    <h3 className="font-bold text-gray-900 text-base mt-2">{cat.name}</h3>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{cat.description || "No description provided."}</p>
-
-                    <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Default Amount:</span>
-                        <span className="font-bold text-gray-900 text-sm">{fmt(cat.default_amount)}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Billing Frequency:</span>
-                        <span className="font-medium text-gray-700">{cat.frequency.replace("_", " ")}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Invoices Issued:</span>
-                        <span className="font-medium text-[#707E94]">{catInvoices.length} invoices</span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Total Collected:</span>
-                        <span className="font-bold text-emerald-600">{fmt(totalRevenue)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => {
-                        setCategoryForm({
-                          name: cat.name,
-                          code: cat.code,
-                          default_amount: cat.default_amount,
-                          frequency: cat.frequency,
-                          status: cat.status,
-                          description: cat.description || "",
-                        });
-                        setCategoryModal({ open: true, mode: "edit", data: cat });
-                      }}
-                      className="px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100 rounded-lg transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() =>
-                        setDeleteConfirm({
-                          open: true,
-                          type: "category",
-                          id: cat.id,
-                          label: `Fee Category "${cat.name}"`,
-                        })
-                      }
-                      className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 4: CLASS COLLECTION SUMMARY */}
-      {activeTab === "class_summary" && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-5 border-b border-gray-100">
-            <h2 className="text-lg font-bold text-gray-900">Class-Wise Fee Collection Summary</h2>
-            <p className="text-xs text-gray-500">Overview of total invoiced vs collection rate across academic classes</p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/75 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3.5 px-4">Class</th>
-                  <th className="py-3.5 px-4 text-center">Billed Students</th>
-                  <th className="py-3.5 px-4 text-right">Total Billed</th>
-                  <th className="py-3.5 px-4 text-right">Collected</th>
-                  <th className="py-3.5 px-4 text-right">Pending Balance</th>
-                  <th className="py-3.5 px-4 text-center">Progress</th>
-                  <th className="py-3.5 px-4 text-center">Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-xs">
-                {classBreakdown.map((row) => (
-                  <tr key={row.className} className="hover:bg-[#707E94]/10 transition">
-                    <td className="py-3.5 px-4 font-bold text-gray-900 flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-[#707E94]/15 text-[#707E94] flex items-center justify-center font-bold text-xs">
-                        {row.className}
-                      </div>
-                      <span>Class {row.className}</span>
-                    </td>
-                    <td className="py-3.5 px-4 text-center font-semibold text-gray-700">
-                      {row.studentCountNum}
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-gray-900">
-                      {fmt(row.billed)}
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-emerald-600">
-                      {fmt(row.collected)}
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-rose-600">
-                      {fmt(row.due)}
-                    </td>
-                    <td className="py-3.5 px-4 w-44">
-                      <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min(100, row.rate)}%` }}
-                        />
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full text-xs">
-                        {row.rate}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: CREATE INVOICE */}
-      {createInvoiceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#707E94]/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center">
-                  <Receipt size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Create Student Fee Invoice</h3>
-                  <p className="text-xs text-gray-500">Issue an individual fee invoice with optional instant collection</p>
-                </div>
-              </div>
+      {/* ========================================================= */}
+      {/* MODAL: RECORD PAYMENT FOR AN INVOICE                      */}
+      {/* ========================================================= */}
+      {paymentModalInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Wallet size={16} className="text-emerald-700" />
+                <span>পেমেন্ট গ্রহণ (Record Payment)</span>
+              </h3>
               <button
-                onClick={() => setCreateInvoiceModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                type="button"
+                onClick={() => setPaymentModalInvoice(null)}
+                className="text-slate-400 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateInvoice} className="p-5 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
-              {/* Select Class & Student (Writable Autocomplete) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Select Class */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Select Class
-                  </label>
-                  <select
-                    value={selectedInvoiceClass}
-                    onChange={(e) => {
-                      const cls = e.target.value;
-                      setSelectedInvoiceClass(cls);
-                      // If student was already selected and does not belong to new class, clear it
-                      if (cls && invoiceForm.student_id) {
-                        const st = students.find((s) => String(s.id) === String(invoiceForm.student_id));
-                        const cName = String(st?.class_name || "").toLowerCase();
-                        const cId = String(st?.class_id || "").toLowerCase();
-                        const clsL = cls.toLowerCase();
-                        if (cName !== clsL && cName !== `class ${clsL}` && cId !== clsL) {
-                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
-                          setStudentSearchText("");
-                        }
-                      }
-                      setIsStudentDropdownOpen(true);
-                    }}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  >
-                    <option value="">-- All Classes / Choose Class --</option>
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.name || cls.id}>
-                        Class {cls.name || cls.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="p-3 bg-slate-50 rounded-xl text-xs space-y-1">
+              <div className="font-bold text-slate-900">
+                {[paymentModalInvoice.student_name, paymentModalInvoice.student_surname].filter(Boolean).join(" ")}
+              </div>
+              <div className="text-slate-500">
+                ইনভয়েস #{paymentModalInvoice.invoice_no} • {paymentModalInvoice.title}
+              </div>
+              <div className="font-black text-rose-700 pt-1">
+                বকেয়া আছে:{" "}
+                {fmt(
+                  Math.max(
+                    0,
+                    Number(paymentModalInvoice.amount) -
+                      Number(paymentModalInvoice.discount || 0) -
+                      Number(paymentModalInvoice.paid_amount || 0)
+                  )
+                )}
+              </div>
+            </div>
 
-                {/* Select Student * (Writable field with live dropdown underneath) */}
-                <div className="relative" ref={studentDropdownRef}>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Select Student <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      value={studentSearchText}
-                      onChange={(e) => {
-                        setStudentSearchText(e.target.value);
-                        setIsStudentDropdownOpen(true);
-                        if (!e.target.value) {
-                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
-                        }
-                      }}
-                      onFocus={() => setIsStudentDropdownOpen(true)}
-                      placeholder={selectedInvoiceClass ? `Search student in Class ${selectedInvoiceClass}...` : "Write name, roll, or ID..."}
-                      className="w-full pl-9 pr-8 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94] focus:ring-2 focus:ring-[#707E94]/20"
-                    />
-                    {studentSearchText && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInvoiceForm((prev) => ({ ...prev, student_id: "" }));
-                          setStudentSearchText("");
-                          setIsStudentDropdownOpen(true);
-                        }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded-full"
-                        title="Clear selection"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Dropdown list of available students shown under written text */}
-                  {isStudentDropdownOpen && (
-                    <div className="absolute z-50 left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-xl divide-y divide-gray-50 custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
-                      {availableStudentsForInvoice.length === 0 ? (
-                        <div className="p-3 text-center text-xs text-gray-400">
-                          {selectedInvoiceClass
-                            ? `No students found in Class ${selectedInvoiceClass}${studentSearchText ? ` matching "${studentSearchText}"` : ""}.`
-                            : studentSearchText
-                            ? `No students found matching "${studentSearchText}".`
-                            : "No students available."}
-                        </div>
-                      ) : (
-                        availableStudentsForInvoice.map((st) => (
-                          <button
-                            key={st.id}
-                            type="button"
-                            onClick={() => {
-                              setInvoiceForm((prev) => ({ ...prev, student_id: String(st.id) }));
-                              const fullName = `${st.name} ${st.surname || ""}`.trim();
-                              const rollText = st.roll ? `(Roll: ${st.roll})` : `(ID: ${st.id})`;
-                              const classText = st.class_name ? `Class ${st.class_name}` : (st.class_id ? `Class ${st.class_id}` : "");
-                              setStudentSearchText(`${fullName} ${rollText} - ${classText}`.trim());
-                              setIsStudentDropdownOpen(false);
-                              if (!selectedInvoiceClass && (st.class_name || st.class_id)) {
-                                setSelectedInvoiceClass(String(st.class_name || st.class_id));
-                              }
-                            }}
-                            className={`w-full text-left p-2.5 hover:bg-[#707E94]/10 flex items-center justify-between gap-2 transition ${
-                              String(invoiceForm.student_id) === String(st.id) ? "bg-[#707E94]/15 font-semibold" : ""
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {st.img ? (
-                                <img src={st.img} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" />
-                              ) : (
-                                <div className="w-7 h-7 rounded-full bg-[#707E94]/15 text-[#707E94] flex items-center justify-center font-bold text-xs shrink-0">
-                                  {st.name ? st.name[0].toUpperCase() : "S"}
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="text-xs font-bold text-gray-900 truncate">
-                                  {st.name} {st.surname}
-                                </div>
-                                <div className="text-[10px] text-gray-500 flex items-center gap-1.5 flex-wrap">
-                                  <span>ID: {st.id}</span>
-                                  {st.roll && <span>• Roll: <strong>{st.roll}</strong></span>}
-                                  <span>• Class: <strong>{st.class_name || st.class_id || "General"}</strong></span>
-                                </div>
-                              </div>
-                            </div>
-                            {String(invoiceForm.student_id) === String(st.id) && (
-                              <Check size={14} className="text-[#005a40] shrink-0" />
-                            )}
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  আদায়কৃত টাকার পরিমাণ (Amount to Pay)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={payForm.amount}
+                  onChange={(e) => setPayForm({ ...payForm, amount: parseFloat(e.target.value) || 0 })}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-sm font-bold text-slate-900 focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                />
               </div>
 
-              {/* Fee Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  পরিশোধের মাধ্যম (Payment Mode)
+                </label>
+                <select
+                  value={payForm.payment_method}
+                  onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value as PaymentMethod })}
+                  className="w-full p-2 border border-slate-200 rounded-lg bg-white"
+                >
+                  <option value="CASH">নগদ (Cash)</option>
+                  <option value="BKASH">bKash (বিকাশ)</option>
+                  <option value="NAGAD">Nagad (নগদ)</option>
+                  <option value="ROCKET">Rocket (রকেট)</option>
+                  <option value="BANK_TRANSFER">ব্যাংক ড্রাফট (Bank Slip)</option>
+                  <option value="CARD">কার্ড (Card)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  ট্রানজেকশন / ব্যাংক রেফারেন্স
+                </label>
+                <input
+                  type="text"
+                  value={payForm.transaction_ref}
+                  onChange={(e) => setPayForm({ ...payForm, transaction_ref: e.target.value })}
+                  placeholder="Optional reference number"
+                  className="w-full p-2 border border-slate-200 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPaymentModalInvoice(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={submitRecordPayment}
+                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732]"
+              >
+                পেমেন্ট সম্পন্ন করুন
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: CREATE SINGLE INVOICE                              */}
+      {/* ========================================================= */}
+      {createInvoiceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Plus size={16} className="text-emerald-700" />
+                <span>নতুন ফি ইনভয়েস তৈরি (Create Fee Invoice)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCreateInvoiceModal(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  শিক্ষার্থী নির্বাচন (Student)
+                </label>
+                <select
+                  value={invoiceForm.student_id}
+                  onChange={(e) => setInvoiceForm({ ...invoiceForm, student_id: e.target.value })}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white"
+                >
+                  <option value="">-- শিক্ষার্থী নির্বাচন করুন --</option>
+                  {students.map((st) => (
+                    <option key={st.id} value={st.id}>
+                      রোল {st.roll || "—"}: {[st.name, st.surname].filter(Boolean).join(" ")} ({st.class_name || "General"})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Fee Category <span className="text-rose-500">*</span>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    ফি খাত (Category)
                   </label>
                   <select
                     value={invoiceForm.fee_category_id}
                     onChange={(e) => {
-                      const sel = categories.find((c) => c.id === Number(e.target.value));
+                      const catId = Number(e.target.value);
+                      const cat = categories.find((c) => c.id === catId);
                       setInvoiceForm({
                         ...invoiceForm,
-                        fee_category_id: Number(e.target.value),
-                        amount: sel ? sel.default_amount : invoiceForm.amount,
-                        paid_now: sel ? sel.default_amount : invoiceForm.paid_now,
-                        title: sel ? `${sel.name} - ${new Date().toLocaleString("default", { month: "short" })}` : invoiceForm.title,
+                        fee_category_id: catId,
+                        amount: cat ? cat.default_amount : invoiceForm.amount,
+                        title: cat ? cat.name : invoiceForm.title,
                       });
                     }}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} ({cs}{c.default_amount})
+                        {c.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Academic Year
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    টাকার পরিমাণ (Amount)
                   </label>
                   <input
-                    type="text"
-                    value={invoiceForm.academic_year}
-                    onChange={(e) => setInvoiceForm({ ...invoiceForm, academic_year: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                    type="number"
+                    min="1"
+                    value={invoiceForm.amount}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: parseFloat(e.target.value) || 0 })}
+                    className="w-full p-2 border border-slate-200 rounded-lg font-bold"
                   />
                 </div>
               </div>
 
-              {/* Title */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Invoice Title / Description
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  ইনভয়েস শিরোনাম (Title)
                 </label>
                 <input
                   type="text"
-                  required
                   value={invoiceForm.title}
                   onChange={(e) => setInvoiceForm({ ...invoiceForm, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  placeholder="e.g. Monthly Tuition Fee - October 2026"
+                  placeholder="e.g. মাসিক বেতন - নভেম্বর ২০২৬"
+                  className="w-full p-2 border border-slate-200 rounded-lg"
                 />
               </div>
 
-              {/* Financials: Amount, Discount, Net */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Fee Amount ({cs}) <span className="text-rose-500">*</span>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    মেয়াদ শেষ (Due Date)
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    value={invoiceForm.amount}
-                    onChange={(e) => setInvoiceForm({ ...invoiceForm, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                    type="date"
+                    value={invoiceForm.due_date}
+                    onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })}
+                    className="w-full p-2 border border-slate-200 rounded-lg"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Discount / Waiver ({cs})
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    ছাড় / মওকুফ (Discount)
                   </label>
                   <input
                     type="number"
-                    step="0.01"
                     min="0"
                     value={invoiceForm.discount}
                     onChange={(e) => setInvoiceForm({ ...invoiceForm, discount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Net Payable ({cs})
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={fmt(Math.max(0, invoiceForm.amount - invoiceForm.discount))}
-                    className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl font-bold text-[#707E94]"
+                    className="w-full p-2 border border-slate-200 rounded-lg"
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Due Date */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Due Date <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={invoiceForm.due_date}
-                  onChange={(e) => setInvoiceForm({ ...invoiceForm, due_date: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Remarks / Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={invoiceForm.notes}
-                  onChange={(e) => setInvoiceForm({ ...invoiceForm, notes: e.target.value })}
-                  placeholder="Optional memo or bank wire instructions"
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              {/* Collect payment immediately toggle */}
-              <div className="p-3.5 rounded-xl border border-[#707E94]/30 bg-[#707E94]/10 space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[#707E94]">
-                  <input
-                    type="checkbox"
-                    checked={invoiceForm.collect_now}
-                    onChange={(e) =>
-                      setInvoiceForm({
-                        ...invoiceForm,
-                        collect_now: e.target.checked,
-                        paid_now: Math.max(0, invoiceForm.amount - invoiceForm.discount),
-                      })
-                    }
-                    className="rounded text-[#707E94] focus:ring-[#707E94]/30 w-4 h-4"
-                  />
-                  Collect payment right now
-                </label>
-
-                {invoiceForm.collect_now && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                        Amount Paid Today ({cs})
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        max={Math.max(0, invoiceForm.amount - invoiceForm.discount)}
-                        value={invoiceForm.paid_now}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, paid_now: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                        Payment Method
-                      </label>
-                      <select
-                        value={invoiceForm.payment_method}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, payment_method: e.target.value as PaymentMethod })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg"
-                      >
-                        <option value="CASH">Cash</option>
-                        <option value="BANK_TRANSFER">Bank Transfer</option>
-                        <option value="CARD">Credit/Debit Card</option>
-                        <option value="MOBILE_BANKING">Mobile Banking</option>
-                        <option value="CHEQUE">Cheque</option>
-                      </select>
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                        Transaction Ref / Receipt Note
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Deposit slip # or bKash TrxID"
-                        value={invoiceForm.transaction_ref}
-                        onChange={(e) => setInvoiceForm({ ...invoiceForm, transaction_ref: e.target.value })}
-                        className="w-full px-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Form buttons */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setCreateInvoiceModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
-                >
-                  Create Invoice
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: BULK GENERATE */}
-      {bulkGenerateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#707E94]/10">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#707E94]/15 text-[#707E94] flex items-center justify-center">
-                  <Layers size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Bulk Generate Class Invoices</h3>
-                  <p className="text-xs text-gray-500">Create invoices for an entire class in a single batch</p>
-                </div>
-              </div>
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
-                onClick={() => setBulkGenerateModal(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                type="button"
+                onClick={() => setCreateInvoiceModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                <X size={18} />
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!invoiceForm.student_id) {
+                    showToast("error", "শিক্ষার্থী বাছাই করুন");
+                    return;
+                  }
+                  const st = students.find((s) => String(s.id) === String(invoiceForm.student_id));
+                  const cat = categories.find((c) => c.id === invoiceForm.fee_category_id);
+                  const net = Math.max(0, invoiceForm.amount - invoiceForm.discount);
+
+                  const inv: FeeInvoice = {
+                    id: Date.now(),
+                    invoice_no: `INV-2026-${Date.now().toString().slice(-4)}`,
+                    student_id: String(invoiceForm.student_id),
+                    student_name: st?.name,
+                    student_surname: st?.surname,
+                    student_roll: st?.roll,
+                    student_phone: st?.phone,
+                    class_name: st?.class_name,
+                    fee_category_id: invoiceForm.fee_category_id,
+                    category_name: cat?.name,
+                    title: invoiceForm.title || cat?.name || "একাডেমিক ফি",
+                    due_date: invoiceForm.due_date,
+                    amount: invoiceForm.amount,
+                    discount: invoiceForm.discount,
+                    paid_amount: 0,
+                    net_amount: net,
+                    due_amount: net,
+                    status: "UNPAID",
+                    academic_year: invoiceForm.academic_year,
+                    created_at: new Date().toISOString(),
+                  };
+
+                  const updated = [inv, ...invoices];
+                  setInvoices(updated);
+                  syncToLocalStorage(updated, payments, categories);
+                  setCreateInvoiceModal(false);
+                  showToast("success", `ইনভয়েস #${inv.invoice_no} সফলভাবে তৈরি হয়েছে!`);
+                }}
+                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732]"
+              >
+                ইনভয়েস সেভ করুন
               </button>
             </div>
-
-            <form onSubmit={handleBulkGenerate} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Target Class <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  required
-                  value={bulkForm.class_id}
-                  onChange={(e) => setBulkForm({ ...bulkForm, class_id: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                >
-                  <option value="">-- Choose Class --</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.name}>
-                      Class {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Fee Category <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={bulkForm.fee_category_id}
-                  onChange={(e) => {
-                    const sel = categories.find((c) => c.id === Number(e.target.value));
-                    setBulkForm({
-                      ...bulkForm,
-                      fee_category_id: Number(e.target.value),
-                      amount: sel ? sel.default_amount : bulkForm.amount,
-                      title: sel ? `${sel.name} - ${new Date().toLocaleString("default", { month: "long" })} 2026` : bulkForm.title,
-                    });
-                  }}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({fmt(c.default_amount)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Invoice Title
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={bulkForm.title}
-                  onChange={(e) => setBulkForm({ ...bulkForm, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Amount Per Student ({cs}) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    value={bulkForm.amount}
-                    onChange={(e) => setBulkForm({ ...bulkForm, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Due Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={bulkForm.due_date}
-                    onChange={(e) => setBulkForm({ ...bulkForm, due_date: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
-                <AlertCircle size={16} className="shrink-0 mt-0.5 text-amber-600" />
-                <span>
-                  This batch action will automatically generate an invoice with unique reference for every student in the selected class.
-                </span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setBulkGenerateModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition shadow-md shadow-purple-200"
-                >
-                  Run Batch Generation
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
 
-      {/* MODAL: RECORD PAYMENT */}
-      {paymentModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-emerald-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                  <CreditCard size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Record Fee Payment</h3>
-                  <p className="text-xs text-gray-500">Collect fee installment or full payment against invoice</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setPaymentModalInvoice(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Invoice context banner */}
-            <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between text-xs">
-              <div>
-                <div className="font-bold text-gray-900">
-                  {paymentModalInvoice.student_name} {paymentModalInvoice.student_surname}
-                </div>
-                <div className="text-gray-500">
-                  Invoice #{paymentModalInvoice.invoice_no} • {paymentModalInvoice.title}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-gray-400">Remaining Balance</div>
-                <div className="text-base font-bold text-rose-600">
-                  {cs}
-                  {(
-                    Number(paymentModalInvoice.amount) -
-                    Number(paymentModalInvoice.discount || 0) -
-                    Number(paymentModalInvoice.paid_amount || 0)
-                  ).toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            <form onSubmit={handleRecordPayment} className="p-5 space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-gray-700">
-                    Payment Amount ({cs}) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const rem =
-                          Number(paymentModalInvoice.amount) -
-                          Number(paymentModalInvoice.discount || 0) -
-                          Number(paymentModalInvoice.paid_amount || 0);
-                        setPayForm({ ...payForm, amount: Math.max(0, rem) });
-                      }}
-                      className="px-2 py-0.5 text-[10px] font-bold text-[#707E94] bg-[#707E94]/10 hover:bg-[#707E94]/15 rounded transition"
-                    >
-                      Full Due
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const rem =
-                          Number(paymentModalInvoice.amount) -
-                          Number(paymentModalInvoice.discount || 0) -
-                          Number(paymentModalInvoice.paid_amount || 0);
-                        setPayForm({ ...payForm, amount: Math.round((rem / 2) * 100) / 100 });
-                      }}
-                      className="px-2 py-0.5 text-[10px] font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition"
-                    >
-                      50% Due
-                    </button>
-                  </div>
-                </div>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  required
-                  value={payForm.amount}
-                  onChange={(e) => setPayForm({ ...payForm, amount: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 text-base font-bold text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Payment Method <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    value={payForm.payment_method}
-                    onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value as PaymentMethod })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="BANK_TRANSFER">Bank Wire / Transfer</option>
-                    <option value="CARD">Credit/Debit Card</option>
-                    <option value="MOBILE_BANKING">Mobile Banking (bKash / Nagad)</option>
-                    <option value="CHEQUE">Cheque / Demand Draft</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Payment Date <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={payForm.payment_date}
-                    onChange={(e) => setPayForm({ ...payForm, payment_date: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Transaction Reference / Slip #
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Bank Challan #, Card Auth code"
-                  value={payForm.transaction_ref}
-                  onChange={(e) => setPayForm({ ...payForm, transaction_ref: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Cashier Remarks
-                </label>
-                <textarea
-                  rows={2}
-                  value={payForm.notes}
-                  onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })}
-                  placeholder="Optional cashier note"
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setPaymentModalInvoice(null)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-md shadow-emerald-200 flex items-center gap-1.5"
-                >
-                  <Check size={15} />
-                  Submit Payment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: PRINTABLE RECEIPT VOUCHER */}
-      {receiptData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 overflow-y-auto print:static print:inset-auto print:p-0 print:m-0 print:bg-white print:overflow-visible">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden my-8 print:my-0 print:p-0 print:max-w-none print:w-full print:shadow-none print:rounded-none animate-in fade-in duration-200">
-            {/* Top Toolbar (Non-printable) */}
-            <div className="p-4 bg-gray-900 text-white flex items-center justify-between no-print print:hidden">
-              <div className="flex items-center gap-2">
-                <Receipt size={18} className="text-[#a4b3c7]" />
-                <span className="font-bold text-sm">Official Fee Receipt Voucher</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => window.print()}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-lg transition shadow-sm"
-                >
-                  <Printer size={14} />
-                  Print Receipt
-                </button>
-                <button
-                  onClick={() => setReceiptData(null)}
-                  className="text-gray-400 hover:text-white p-1 rounded-lg"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-
-            {/* Printable Receipt Body */}
-            <div id="printable-receipt" className="p-8 text-gray-800 bg-white print:p-0 print:m-0">
-              {/* Receipt Header */}
-              <div className="border-b-2 border-[#707E94] pb-5 mb-5 flex items-start justify-between">
-                <div>
-                  <div className="text-2xl font-black tracking-tight text-gray-900 uppercase">
-                    {siteName || "ACADEMIA"}
-                  </div>
-                  <div className="text-xs font-semibold text-[#707E94] tracking-wider uppercase mt-0.5">
-                    Official Fee Payment Receipt
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-1">
-                    Academic Year: {receiptData.academic_year || "2026-2027"} • Accounts Division
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="inline-block bg-[#707E94]/10 border border-[#707E94]/30 rounded-lg px-3 py-1 text-right">
-                    <div className="text-[10px] text-gray-500 font-semibold uppercase">Receipt No</div>
-                    <div className="font-mono font-bold text-[#707E94] text-sm">{receiptData.receipt_no}</div>
-                  </div>
-                  <div className="text-[11px] text-gray-500 mt-2">
-                    <span className="font-semibold">Date:</span> {receiptData.payment_date}
-                  </div>
-                </div>
-              </div>
-
-              {/* Student Details Grid */}
-              <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100 text-xs mb-5">
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-semibold">Student Name</span>
-                  <span className="font-bold text-gray-900 text-sm">
-                    {receiptData.student_name} {receiptData.student_surname}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-semibold">Student ID / Roll</span>
-                  <span className="font-mono font-semibold text-gray-800">
-                    {receiptData.student_code || receiptData.student_id}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-semibold">Class / Grade</span>
-                  <span className="font-semibold text-gray-800">
-                    {receiptData.class_name ? `Class ${receiptData.class_name}` : "General"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400 block text-[10px] uppercase font-semibold">Payment Mode</span>
-                  <span className="font-semibold text-emerald-700">
-                    {receiptData.payment_method.replace("_", " ")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Items Breakdown Table */}
-              <table className="w-full text-left border-collapse text-xs mb-5">
-                <thead>
-                  <tr className="border-b border-gray-200 text-[11px] text-gray-500 uppercase font-semibold">
-                    <th className="py-2.5">Description</th>
-                    <th className="py-2.5">Category</th>
-                    <th className="py-2.5 text-right">Invoice Amount</th>
-                    <th className="py-2.5 text-right">Discount</th>
-                    <th className="py-2.5 text-right">Net Payable</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  <tr>
-                    <td className="py-3 font-semibold text-gray-900">
-                      {receiptData.invoice_title || "Academic Tuition Fee"}
-                      <div className="text-[10px] text-gray-400 font-mono">Invoice #{receiptData.invoice_no}</div>
-                    </td>
-                    <td className="py-3 text-gray-600">{receiptData.category_name || "Tuition"}</td>
-                    <td className="py-3 text-right font-medium">{fmt(receiptData.invoice_amount || receiptData.amount)}</td>
-                    <td className="py-3 text-right text-gray-500">
-                      {receiptData.discount ? `-${fmt(receiptData.discount)}` : `${cs}0.00`}
-                    </td>
-                    <td className="py-3 text-right font-bold text-gray-900">
-                      {fmt(receiptData.net_amount || receiptData.amount)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* Summary Calculation Box */}
-              <div className="flex justify-end mb-8">
-                <div className="w-64 space-y-2 text-xs">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Net Billed Amount:</span>
-                    <span className="font-semibold text-gray-900">
-                      {fmt(receiptData.net_amount || receiptData.amount)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-emerald-700 font-bold border-t border-gray-100 pt-2">
-                    <span>Amount Paid (This Slip):</span>
-                    <span>{fmt(receiptData.amount)}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Total Paid to Date:</span>
-                    <span className="font-semibold text-gray-900">
-                      {fmt(receiptData.total_paid || receiptData.amount)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-rose-600 font-bold border-t-2 border-gray-200 pt-2 text-sm">
-                    <span>Balance Outstanding:</span>
-                    <span>{fmt(receiptData.remaining_due || 0)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Watermark Status Seal */}
-              <div className="p-3 rounded-xl border border-gray-200 bg-gray-50/75 flex items-center justify-between mb-8">
-                <div>
-                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Payment Status</div>
-                  <div className="font-bold text-emerald-700 flex items-center gap-1.5 text-xs">
-                    <CheckCircle2 size={14} />
-                    {receiptData.remaining_due === 0 ? "PAID IN FULL" : "PARTIAL PAYMENT SETTLED"}
-                  </div>
-                </div>
-                <div className="text-right text-[11px] text-gray-400 font-mono">
-                  Ref: {receiptData.transaction_ref || "VERIFIED"}
-                </div>
-              </div>
-
-              {/* Dual Signatures */}
-              <div className="grid grid-cols-2 gap-12 pt-8 border-t border-dashed border-gray-300 text-center text-xs text-gray-500">
-                <div>
-                  <div className="h-10 border-b border-gray-400 mb-1" />
-                  <div className="font-semibold text-gray-800">Accounts Officer / Cashier</div>
-                  <div className="text-[10px] text-gray-400">Authorized Signature & Seal</div>
-                </div>
-                <div>
-                  <div className="h-10 border-b border-gray-400 mb-1" />
-                  <div className="font-semibold text-gray-800">Student / Guardian Copy</div>
-                  <div className="text-[10px] text-gray-400">Received By</div>
-                </div>
-              </div>
-
-              {/* Receipt Footer */}
-              <div className="text-center text-[10px] text-gray-400 mt-8 pt-4 border-t border-gray-100">
-                This is a computer-generated voucher issued by {siteName}. All fees are subject to school financial terms.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: EDIT INVOICE */}
-      {editInvoiceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900 text-base">Edit Invoice</h3>
-                <p className="text-xs text-gray-500">#{editInvoiceModal.invoice_no}</p>
-              </div>
-              <button
-                onClick={() => setEditInvoiceModal(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEditInvoice} className="p-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editInvoiceModal.title}
-                  onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Amount ({cs})</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1"
-                    required
-                    value={editInvoiceModal.amount}
-                    onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Discount ({cs})</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editInvoiceModal.discount}
-                    onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, discount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  required
-                  value={editInvoiceModal.due_date}
-                  onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, due_date: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Notes</label>
-                <textarea
-                  rows={2}
-                  value={editInvoiceModal.notes || ""}
-                  onChange={(e) => setEditInvoiceModal({ ...editInvoiceModal, notes: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setEditInvoiceModal(null)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: ADD / EDIT FEE CATEGORY */}
+      {/* ========================================================= */}
+      {/* MODAL: ADD / EDIT CATEGORY                                */}
+      {/* ========================================================= */}
       {categoryModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in duration-200">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900 text-base">
-                  {categoryModal.mode === "create" ? "Add Fee Category" : "Edit Fee Category"}
-                </h3>
-                <p className="text-xs text-gray-500">Configure fee type details and billing intervals</p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">
+                {categoryModal.mode === "create" ? "নতুন ফি খাত যোগ করুন" : "ফি খাত পরিবর্তন করুন"}
+              </h3>
               <button
+                type="button"
                 onClick={() => setCategoryModal({ open: false, mode: "create", data: null })}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                className="text-slate-400 hover:text-slate-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveCategory} className="p-5 space-y-4">
+            <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Category Name <span className="text-rose-500">*</span>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  খাতের নাম (Fee Head Name)
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Science Laboratory Fee"
                   value={categoryForm.name}
                   onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                  placeholder="e.g. বিজ্ঞানাগার ল্যাব ফি"
+                  className="w-full p-2 border border-slate-200 rounded-lg"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Category Code</label>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    কোড (Short Code)
+                  </label>
                   <input
                     type="text"
-                    placeholder="e.g. LAB"
-                    maxLength={8}
                     value={categoryForm.code}
                     onChange={(e) => setCategoryForm({ ...categoryForm, code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94] font-mono uppercase"
+                    placeholder="e.g. SCI_LAB"
+                    className="w-full p-2 border border-slate-200 rounded-lg uppercase"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Default Amount ({cs})</label>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    ডিফল্ট রেট / টাকা
+                  </label>
                   <input
                     type="number"
-                    step="0.01"
                     min="0"
-                    required
                     value={categoryForm.default_amount}
                     onChange={(e) => setCategoryForm({ ...categoryForm, default_amount: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                    className="w-full p-2 border border-slate-200 rounded-lg font-bold"
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Billing Frequency</label>
-                  <select
-                    value={categoryForm.frequency}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, frequency: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  >
-                    <option value="MONTHLY">Monthly</option>
-                    <option value="TERMLY">Termly</option>
-                    <option value="ANNUALLY">Annually</option>
-                    <option value="ONE_TIME">One-Time</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Status</label>
-                  <select
-                    value={categoryForm.status}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
-                  >
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Description</label>
-                <textarea
-                  rows={2}
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  আদায়ের সময়কাল (Frequency)
+                </label>
+                <select
+                  value={categoryForm.frequency}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, frequency: e.target.value as any })}
+                  className="w-full p-2 border border-slate-200 rounded-lg bg-white"
+                >
+                  <option value="MONTHLY">মাসিক (Monthly)</option>
+                  <option value="TERMLY">সাময়িক / টার্ম (Termly)</option>
+                  <option value="ANNUALLY">বাৎসরিক (Annually)</option>
+                  <option value="ONE_TIME">এককালীন (One Time)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  সংক্ষিপ্ত বিবরণ (Description)
+                </label>
+                <input
+                  type="text"
                   value={categoryForm.description}
                   onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                  placeholder="Optional details regarding this fee"
-                  className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#707E94]"
+                  placeholder="খাত সম্পর্কিত সংক্ষিপ্ত তথ্য..."
+                  className="w-full p-2 border border-slate-200 rounded-lg"
                 />
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setCategoryModal({ open: false, mode: "create", data: null })}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#D32F45] hover:bg-[#be2035] rounded-xl transition"
-                >
-                  Save Category
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: DELETE CONFIRM */}
-      {deleteConfirm.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden p-5 animate-in fade-in duration-200">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-4">
-              <Trash2 size={24} />
             </div>
-            <h3 className="font-bold text-gray-900 text-center text-base">Confirm Deletion</h3>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              Are you sure you want to delete <span className="font-semibold text-gray-800">{deleteConfirm.label}</span>?
-              This action cannot be undone.
-            </p>
 
-            <div className="flex items-center justify-center gap-3 mt-6">
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
               <button
-                onClick={() => setDeleteConfirm({ open: false, type: "invoice", id: 0, label: "" })}
-                className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition"
+                type="button"
+                onClick={() => setCategoryModal({ open: false, mode: "create", data: null })}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                Cancel
+                বাতিল
               </button>
               <button
-                onClick={executeDelete}
-                className="px-5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-md shadow-rose-200"
+                type="button"
+                onClick={() => {
+                  if (!categoryForm.name) {
+                    showToast("error", "খাতের নাম লিখুন");
+                    return;
+                  }
+                  const newCat: FeeCategory = {
+                    id: Date.now(),
+                    name: categoryForm.name,
+                    code: categoryForm.code || `FEE_${Date.now().toString().slice(-3)}`,
+                    default_amount: categoryForm.default_amount,
+                    frequency: categoryForm.frequency,
+                    status: "ACTIVE",
+                    description: categoryForm.description,
+                  };
+                  const updated = [...categories, newCat];
+                  setCategories(updated);
+                  syncToLocalStorage(invoices, payments, updated);
+                  setCategoryModal({ open: false, mode: "create", data: null });
+                  showToast("success", "ফি খাত সফলভাবে যোগ করা হয়েছে!");
+                }}
+                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732]"
               >
-                Yes, Delete
+                সংরক্ষণ করুন
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* 2-PART OFFICIAL BANGLADESH MONEY RECEIPT MODAL            */}
+      {/* ========================================================= */}
+      <FeeReceiptSlipModal receiptData={receiptData} onClose={() => setReceiptData(null)} />
     </div>
   );
 };
 
 export default FeesSection;
-
-
-
-
-
-
-
