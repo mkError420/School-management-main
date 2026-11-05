@@ -176,23 +176,18 @@ export const ResultsPage: React.FC = () => {
             </button>
           )}
 
-          {/* Bulk Marks Entry */}
+          {/* Bangladesh class marksheet entry */}
           {(role === "admin" || role === "teacher") && (
             <button
+              type="button"
               onClick={() => setBulkModalOpen(true)}
-              title="Batch enter marks for class"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-semibold bg-[#006a4e] hover:bg-[#00563f] text-white transition"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Bulk Marks Entry</span>
+              <span>Create Result</span>
             </button>
-          )}
-
-          {/* Standard Single Create Modal */}
-          {(role === "admin" || role === "teacher") && (
-            <FormModal table="result" type="create" onSuccess={fetchResults} />
           )}
         </div>
       </div>

@@ -477,7 +477,19 @@ function generateResultSheet($db) {
     // Fetch exam info if available
     $exam = null;
     if ($examId) {
-        $exam = $db->fetchOne("SELECT * FROM exams WHERE id = ?", [$examId]);
+        $exam = $db->fetchOne(
+            "SELECT ex.*,
+                    COALESCE(s_direct.name, s_lesson.name) as subject_name,
+                    COALESCE(c_direct.name, c_lesson.name) as class_name
+             FROM exams ex
+             LEFT JOIN lessons l ON ex.lesson_id = l.id
+             LEFT JOIN subjects s_direct ON ex.subject_id = s_direct.id
+             LEFT JOIN subjects s_lesson ON l.subject_id = s_lesson.id
+             LEFT JOIN classes c_direct ON ex.class_id = c_direct.id
+             LEFT JOIN classes c_lesson ON l.class_id = c_lesson.id
+             WHERE ex.id = ?",
+            [$examId]
+        );
     }
     
     // Query all results of this student for this exam (or all exams if none specified)
@@ -642,6 +654,8 @@ function generateResultSheet($db) {
             'title' => $exam['title'],
             'date' => $exam['start_time'] ?? date('Y-m-d'),
             'total_marks' => $exam['total_marks'] ?? 100,
+            'subject_name' => $exam['subject_name'] ?? '',
+            'class_name' => $exam['class_name'] ?? '',
         ] : [
             'id' => 0,
             'title' => 'Annual Examination / Final Assessment',
