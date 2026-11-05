@@ -75,6 +75,13 @@ function ensureFeesTables($db) {
             INDEX idx_pay_date (payment_date)
         )");
 
+        // Ensure all fee tables are UTF-8 Multibyte (utf8mb4) to properly store Bengali text
+        try {
+            $db->query("ALTER TABLE fee_categories CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $db->query("ALTER TABLE fee_invoices CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $db->query("ALTER TABLE fee_payments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        } catch (Exception $e) {}
+
         // Modify payment_method to VARCHAR(50) if it was previously an enum
         try {
             $db->query("ALTER TABLE fee_payments MODIFY payment_method VARCHAR(50) NOT NULL DEFAULT 'CASH'");
@@ -133,10 +140,17 @@ function ensureFeesTables($db) {
             ['Late Payment Fine (বিলম্ব ফি / জরিমানা)', 'LATE_FINE', 'নির্ধারিত তারিখের পর বিল পরিশোধের বিলম্ব জরিমানা', 50.00, 'ONE_TIME', 'ACTIVE']
         ];
 
-        // Seed default categories if empty or insert any missing categories
+        // Seed or update categories with clean UTF-8 Bengali names
         foreach ($bangladeshFeeCategories as $cat) {
-            $db->query("INSERT IGNORE INTO fee_categories (name, code, description, default_amount, frequency, status) VALUES (?, ?, ?, ?, ?, ?)", $cat);
+            $db->query("INSERT INTO fee_categories (name, code, description, default_amount, frequency, status) 
+                        VALUES (?, ?, ?, ?, ?, ?) 
+                        ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description)", $cat);
         }
+
+        // Clean up any corrupted question mark titles in existing fee_invoices
+        try {
+            $db->query("UPDATE fee_invoices fi JOIN fee_categories fc ON fi.fee_category_id = fc.id SET fi.title = fc.name WHERE fi.title LIKE '%?%'");
+        } catch (Exception $e) {}
 
         // Seed initial invoices and payments if invoices empty and students exist
         $invCount = $db->fetchOne("SELECT COUNT(*) as total FROM fee_invoices")['total'] ?? 0;

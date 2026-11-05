@@ -56,6 +56,7 @@ import {
   PaymentMethod,
 } from "@/types/fees";
 import FeeReceiptSlipModal from "./FeeReceiptSlipModal";
+import { cleanFeeTitle } from "@/lib/cleanFeeText";
 
 // 12 Academic Months in Bangladesh School / College Calendar
 const BANGLA_MONTHS = [
@@ -299,7 +300,7 @@ export const FeesSection: React.FC = () => {
             if (Array.isArray(localCats) && localCats.length > 0) {
               loadedCategories = localCats;
             }
-          } catch {}
+          } catch { }
         }
       }
 
@@ -318,7 +319,7 @@ export const FeesSection: React.FC = () => {
         if (stored) {
           try {
             loadedInvoices = JSON.parse(stored);
-          } catch {}
+          } catch { }
         }
       }
       if (loadedPayments.length === 0) {
@@ -326,7 +327,7 @@ export const FeesSection: React.FC = () => {
         if (storedPays) {
           try {
             loadedPayments = JSON.parse(storedPays);
-          } catch {}
+          } catch { }
         }
       }
 
@@ -337,6 +338,19 @@ export const FeesSection: React.FC = () => {
         loadedPayments = generated.payments;
         syncToLocalStorage(loadedInvoices, loadedPayments, loadedCategories);
       }
+
+      // Sanitize titles from legacy question marks
+      loadedInvoices = loadedInvoices.map((inv) => ({
+        ...inv,
+        title: cleanFeeTitle(inv.title),
+        category_name: cleanFeeTitle(inv.category_name),
+      }));
+
+      loadedCategories = loadedCategories.map((cat) => ({
+        ...cat,
+        name: cleanFeeTitle(cat.name),
+        description: cleanFeeTitle(cat.description),
+      }));
 
       setInvoices(loadedInvoices);
       setCategories(loadedCategories);
@@ -664,12 +678,14 @@ export const FeesSection: React.FC = () => {
       .filter(Boolean)
       .join(", ");
 
-    const feeDescription = [
-      selectedMonths.length > 0 ? `মাসিক বেতন (${monthNames})` : "",
-      ...selectedOtherFeeIds.map((id) => categories.find((c) => c.id === id)?.name),
-    ]
-      .filter(Boolean)
-      .join(" + ");
+    const feeDescription = cleanFeeTitle(
+      [
+        selectedMonths.length > 0 ? `মাসিক বেতন (${monthNames})` : "",
+        ...selectedOtherFeeIds.map((id) => cleanFeeTitle(categories.find((c) => c.id === id)?.name)),
+      ]
+        .filter(Boolean)
+        .join(" + ")
+    );
 
     const isFull = counterPaidNow >= counterNetPayable;
     const remainingDue = Math.max(0, counterNetPayable - counterPaidNow);
@@ -920,6 +936,8 @@ export const FeesSection: React.FC = () => {
     // Open Money Receipt Slip
     const receiptDoc: FeeReceiptData = {
       ...newPayment,
+      invoice_title: cleanFeeTitle(paymentModalInvoice.title),
+      category_name: cleanFeeTitle(paymentModalInvoice.category_name),
       invoice_amount: paymentModalInvoice.amount,
       discount: paymentModalInvoice.discount,
       total_paid: newPaid,
@@ -948,8 +966,8 @@ export const FeesSection: React.FC = () => {
       receipt_no: `SLIP-${inv.invoice_no}`,
       invoice_id: inv.id,
       invoice_no: inv.invoice_no,
-      invoice_title: inv.title,
-      category_name: inv.category_name,
+      invoice_title: cleanFeeTitle(inv.title),
+      category_name: cleanFeeTitle(inv.category_name),
       student_id: inv.student_id,
       student_name: inv.student_name,
       student_surname: inv.student_surname,
@@ -1074,9 +1092,8 @@ export const FeesSection: React.FC = () => {
       {/* Toast Notification */}
       {notification && (
         <div
-          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-semibold transition-all duration-300 ${
-            notification.type === "success" ? "bg-emerald-800" : "bg-rose-700"
-          }`}
+          className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white text-sm font-semibold transition-all duration-300 ${notification.type === "success" ? "bg-emerald-800" : "bg-rose-700"
+            }`}
         >
           {notification.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
           <span>{notification.message}</span>
@@ -1088,7 +1105,6 @@ export const FeesSection: React.FC = () => {
         <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-emerald-200 text-xs font-semibold tracking-wide uppercase border border-white/15">
-              <Sparkles size={13} className="text-emerald-300" />
               <span>বাংলাদেশ স্কুল ও কলেজ ফি ম্যানেজমেন্ট সিস্টেম</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
@@ -1103,13 +1119,11 @@ export const FeesSection: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab("quick_counter")}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${
-                activeTab === "quick_counter"
-                  ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
-                  : "bg-white/15 text-white hover:bg-white/25 border border-white/20"
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer ${activeTab === "quick_counter"
+                ? "bg-amber-400 text-slate-950 hover:bg-amber-300"
+                : "bg-white/15 text-white hover:bg-white/25 border border-white/20"
+                }`}
             >
-              <Zap size={14} />
               <span>কাউন্টার কালেকশন (Fast Pay)</span>
             </button>
             <button
@@ -1178,24 +1192,21 @@ export const FeesSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("quick_counter")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "quick_counter"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "quick_counter"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
-            <Zap size={15} className="text-amber-500" />
             <span>১. দ্রুত ফি আদায় কাউন্টার (Quick Counter)</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab("invoices")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "invoices"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "invoices"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
             <Receipt size={15} />
             <span>২. ইনভয়েস ও বিল খাতা ({invoices.length})</span>
@@ -1204,11 +1215,10 @@ export const FeesSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("batch_generator")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "batch_generator"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "batch_generator"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
             <Layers size={15} />
             <span>৩. শ্রেণিভিত্তিক গণ-ফি তৈরি (Batch Generator)</span>
@@ -1217,11 +1227,10 @@ export const FeesSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("categories")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "categories"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "categories"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
             <Tag size={15} />
             <span>৪. ফি খাত ও হার নির্ধারণ ({categories.length})</span>
@@ -1230,11 +1239,10 @@ export const FeesSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("class_due_register")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "class_due_register"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "class_due_register"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
             <Users size={15} />
             <span>৫. শ্রেণিভিত্তিক বকেয়া তালিকা</span>
@@ -1243,11 +1251,10 @@ export const FeesSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("daily_register")}
-            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${
-              activeTab === "daily_register"
-                ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
-                : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-            }`}
+            className={`flex items-center gap-2 px-5 py-3.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeTab === "daily_register"
+              ? "border-emerald-700 text-emerald-800 bg-emerald-50/50"
+              : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+              }`}
           >
             <FileSpreadsheet size={15} />
             <span>৬. দৈনিক আদায় রেজিস্টার (Cash Book)</span>
@@ -1309,11 +1316,10 @@ export const FeesSection: React.FC = () => {
                       key={st.id}
                       type="button"
                       onClick={() => setSelectedStudent(st)}
-                      className={`w-full text-left p-2 rounded-lg text-xs transition flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? "bg-emerald-800 text-white font-bold shadow-xs"
-                          : "hover:bg-slate-100 text-slate-800 font-medium"
-                      }`}
+                      className={`w-full text-left p-2 rounded-lg text-xs transition flex items-center justify-between cursor-pointer ${isSelected
+                        ? "bg-emerald-800 text-white font-bold shadow-xs"
+                        : "hover:bg-slate-100 text-slate-800 font-medium"
+                        }`}
                     >
                       <div className="truncate">
                         <div>
@@ -1419,11 +1425,10 @@ export const FeesSection: React.FC = () => {
                             setSelectedMonths([...selectedMonths, m.key]);
                           }
                         }}
-                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
-                          isChecked
-                            ? "bg-emerald-800 text-white border-emerald-900 shadow-sm font-bold"
-                            : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
-                        }`}
+                        className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${isChecked
+                          ? "bg-emerald-800 text-white border-emerald-900 shadow-sm font-bold"
+                          : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700"
+                          }`}
                       >
                         <div className="text-xs">{m.nameBn}</div>
                         <div className={`text-[10px] mt-0.5 ${isChecked ? "text-emerald-200" : "text-slate-500"}`}>
@@ -1453,11 +1458,10 @@ export const FeesSection: React.FC = () => {
                       return (
                         <label
                           key={cat.id}
-                          className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
-                            isSelected
-                              ? "bg-emerald-50/80 border-emerald-300 text-emerald-950 font-bold"
-                              : "bg-slate-50/60 border-slate-200/80 text-slate-700 hover:bg-slate-100"
-                          }`}
+                          className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition ${isSelected
+                            ? "bg-emerald-50/80 border-emerald-300 text-emerald-950 font-bold"
+                            : "bg-slate-50/60 border-slate-200/80 text-slate-700 hover:bg-slate-100"
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -1750,23 +1754,22 @@ export const FeesSection: React.FC = () => {
                           <td className="py-3 px-3 text-right font-bold text-rose-700">{fmt(due)}</td>
                           <td className="py-3 px-3 text-center">
                             <span
-                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                inv.status === "PAID"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : inv.status === "PARTIAL"
+                              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${inv.status === "PAID"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : inv.status === "PARTIAL"
                                   ? "bg-amber-100 text-amber-800"
                                   : inv.status === "OVERDUE"
-                                  ? "bg-rose-100 text-rose-800"
-                                  : "bg-slate-100 text-slate-700"
-                              }`}
+                                    ? "bg-rose-100 text-rose-800"
+                                    : "bg-slate-100 text-slate-700"
+                                }`}
                             >
                               {inv.status === "PAID"
                                 ? "পরিশোধিত"
                                 : inv.status === "PARTIAL"
-                                ? "আংশিক"
-                                : inv.status === "OVERDUE"
-                                ? "মেয়াদোত্তীর্ণ"
-                                : "বকেয়া"}
+                                  ? "আংশিক"
+                                  : inv.status === "OVERDUE"
+                                    ? "মেয়াদোত্তীর্ণ"
+                                    : "বকেয়া"}
                             </span>
                           </td>
                           <td className="py-3 px-3 text-right">
@@ -1909,11 +1912,10 @@ export const FeesSection: React.FC = () => {
                 return (
                   <label
                     key={cat.id}
-                    className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${
-                      isSelected
-                        ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
-                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
+                    className={`flex items-start gap-2.5 p-2 rounded-lg border text-xs cursor-pointer transition ${isSelected
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-bold"
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      }`}
                   >
                     <input
                       type="checkbox"
@@ -1992,9 +1994,8 @@ export const FeesSection: React.FC = () => {
                       {cat.code}
                     </span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        cat.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
-                      }`}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cat.status === "ACTIVE" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"
+                        }`}
                     >
                       {cat.frequency}
                     </span>
@@ -2219,8 +2220,8 @@ export const FeesSection: React.FC = () => {
                   Math.max(
                     0,
                     Number(paymentModalInvoice.amount) -
-                      Number(paymentModalInvoice.discount || 0) -
-                      Number(paymentModalInvoice.paid_amount || 0)
+                    Number(paymentModalInvoice.discount || 0) -
+                    Number(paymentModalInvoice.paid_amount || 0)
                   )
                 )}
               </div>
