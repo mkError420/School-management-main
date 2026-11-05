@@ -165,7 +165,7 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
   // Options
   const [classes, setClasses] = useState<Array<{ id: string | number; name: string; grade_id?: number }>>([]);
   const [grades, setGrades] = useState<Array<{ id: string | number; level: number }>>([]);
-  const [parents, setParents] = useState<Array<{ id: string | number; name: string; surname: string; nid?: string }>>([]);
+  const [parents, setParents] = useState<Array<{ id: string | number; name: string; surname: string; nid?: string; phone?: string; email?: string }>>([]);
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -494,43 +494,58 @@ const AdmissionSection: React.FC<AdmissionSectionProps> = ({ maxItems, showViewA
       let resolvedParentId = formData.parent_id;
 
       if (parentMode === "new") {
-        let parentRes;
-        if (selectedParentImage) {
-          const pfd = new FormData();
-          pfd.append("username", parentForm.username.trim());
-          pfd.append("password", parentForm.password.trim());
-          pfd.append("name", parentForm.name.trim());
-          pfd.append("surname", parentForm.surname.trim());
-          if (parentForm.email.trim()) pfd.append("email", parentForm.email.trim());
-          pfd.append("phone", parentForm.phone.trim());
-          pfd.append("nid", parentForm.nid.trim());
-          pfd.append("address", parentForm.address.trim());
-          pfd.append("img", selectedParentImage, selectedParentImage.name);
-          parentRes = await api.create("parents", pfd);
+        const phoneTrimmed = parentForm.phone.trim();
+        const emailTrimmed = parentForm.email.trim();
+
+        // Check if an existing parent has this phone or email
+        const matchedParent = parents.find(
+          (p) =>
+            (phoneTrimmed && p.phone && p.phone.trim() === phoneTrimmed) ||
+            (emailTrimmed && p.email && p.email.trim().toLowerCase() === emailTrimmed.toLowerCase())
+        );
+
+        if (matchedParent) {
+          // Re-use existing parent without triggering duplicate key error
+          resolvedParentId = String(matchedParent.id);
         } else {
-          parentRes = await api.create("parents", {
-            username: parentForm.username.trim(),
-            password: parentForm.password.trim(),
-            name: parentForm.name.trim(),
-            surname: parentForm.surname.trim(),
-            email: parentForm.email.trim() || null,
-            phone: parentForm.phone.trim(),
-            nid: parentForm.nid.trim(),
-            address: parentForm.address.trim(),
-          });
+          let parentRes;
+          if (selectedParentImage) {
+            const pfd = new FormData();
+            pfd.append("username", parentForm.username.trim());
+            pfd.append("password", parentForm.password.trim());
+            pfd.append("name", parentForm.name.trim());
+            pfd.append("surname", parentForm.surname.trim());
+            if (emailTrimmed) pfd.append("email", emailTrimmed);
+            pfd.append("phone", phoneTrimmed);
+            if (parentForm.nid.trim()) pfd.append("nid", parentForm.nid.trim());
+            pfd.append("address", parentForm.address.trim());
+            pfd.append("img", selectedParentImage, selectedParentImage.name);
+            parentRes = await api.create("parents", pfd);
+          } else {
+            parentRes = await api.create("parents", {
+              username: parentForm.username.trim(),
+              password: parentForm.password.trim(),
+              name: parentForm.name.trim(),
+              surname: parentForm.surname.trim(),
+              email: emailTrimmed || null,
+              phone: phoneTrimmed,
+              nid: parentForm.nid.trim() || null,
+              address: parentForm.address.trim(),
+            });
+          }
+          if (!parentRes.success) {
+            setFormError(parentRes.message || "Failed to create parent. Please try again.");
+            setSubmitting(false); return;
+          }
+          const newParentId = parentRes.data?.id;
+          if (!newParentId) {
+            setFormError("Parent was created but ID could not be retrieved.");
+            setSubmitting(false); return;
+          }
+          resolvedParentId = String(newParentId);
+          const refreshed = await api.getAll("parents", { limit: 1000 });
+          if (refreshed.success && refreshed.data?.parents) setParents(refreshed.data.parents);
         }
-        if (!parentRes.success) {
-          setFormError(parentRes.message || "Failed to create parent. Please try again.");
-          setSubmitting(false); return;
-        }
-        const newParentId = parentRes.data?.id;
-        if (!newParentId) {
-          setFormError("Parent was created but ID could not be retrieved.");
-          setSubmitting(false); return;
-        }
-        resolvedParentId = String(newParentId);
-        const refreshed = await api.getAll("parents", { limit: 1000 });
-        if (refreshed.success && refreshed.data?.parents) setParents(refreshed.data.parents);
       }
 
       let res;

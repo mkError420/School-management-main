@@ -568,6 +568,8 @@ function createAdmission($db) {
 
     $studentType = trim($input['student_type'] ?? '');
     $version = !empty($input['version']) ? trim($input['version']) : 'Bangla';
+    $studentEmail = !empty(trim($input['email'] ?? '')) ? trim($input['email']) : null;
+    $studentPhone = !empty(trim($input['phone'] ?? '')) ? trim($input['phone']) : null;
 
     $data = [
         'application_no' => $appNo,
@@ -576,8 +578,8 @@ function createAdmission($db) {
         'password' => $hashedPassword,
         'first_name' => $firstName,
         'last_name' => $lastName,
-        'email' => $input['email'] ?? null,
-        'phone' => $input['phone'] ?? null,
+        'email' => $studentEmail,
+        'phone' => $studentPhone,
         'date_of_birth' => !empty($input['date_of_birth']) ? $input['date_of_birth'] : null,
         'gender' => $gender,
         'student_type' => !empty($studentType) ? $studentType : null,
@@ -588,8 +590,8 @@ function createAdmission($db) {
         'grade_id' => $gradeId,
         'class_id' => $classId,
         'parent_name' => $parentName,
-        'parent_phone' => $parentPhone,
-        'parent_email' => $parentEmail,
+        'parent_phone' => !empty($parentPhone) ? $parentPhone : null,
+        'parent_email' => !empty($parentEmail) ? $parentEmail : null,
         'parent_id' => $parentId,
         'parent_nid' => !empty($parentNid) ? $parentNid : null,
         'previous_school' => $input['previous_school'] ?? null,
@@ -815,15 +817,25 @@ function enrollStudentFromAdmission($db, $data) {
             $parts = explode(' ', $parentName);
             $pFirst = $parts[0] ?? 'Parent';
             $pLast = count($parts) > 1 ? end($parts) : 'Guardian';
-            $pPhone = !empty($data['parent_phone']) ? $data['parent_phone'] : '+1 555-' . rand(1000, 9999);
-            $pEmail = !empty($data['parent_email']) ? $data['parent_email'] : 'parent.' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $pFirst)) . rand(10, 99) . '@example.com';
+            $pPhone = !empty($data['parent_phone']) ? trim($data['parent_phone']) : '+1 555-' . rand(1000, 9999);
+            $pEmail = !empty($data['parent_email']) ? trim($data['parent_email']) : null;
 
-            $existingParent = $db->fetchOne("SELECT id FROM parents WHERE phone = ? OR email = ? LIMIT 1", [$pPhone, $pEmail]);
+            $existingParent = $db->fetchOne("SELECT id FROM parents WHERE phone = ? LIMIT 1", [$pPhone]);
             if ($existingParent) {
                 $parentId = $existingParent['id'];
-            } else {
+            } else if (!empty($pEmail)) {
+                $existingParent = $db->fetchOne("SELECT id FROM parents WHERE email = ? LIMIT 1", [$pEmail]);
+                if ($existingParent) {
+                    $parentId = $existingParent['id'];
+                }
+            }
+
+            if (empty($parentId)) {
                 $parentId = uniqid('prt_');
                 $pUsername = 'p.' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $pFirst)) . rand(100, 999);
+                while ($db->fetchOne("SELECT id FROM parents WHERE username = ? LIMIT 1", [$pUsername])) {
+                    $pUsername = 'p.' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $pFirst)) . rand(1000, 9999);
+                }
                 $db->insert('parents', [
                     'id' => $parentId,
                     'username' => $pUsername,
@@ -865,9 +877,8 @@ function enrollStudentFromAdmission($db, $data) {
         $username = !empty($data['username']) ? $data['username'] : ($cleanFirst . '.' . $cleanLast . rand(10, 99));
 
         // Check if username already exists for another student
-        $existingUser = $db->fetchOne("SELECT id FROM students WHERE username = ?", [$username]);
-        if ($existingUser) {
-            $username = $username . rand(10, 99);
+        while ($db->fetchOne("SELECT id FROM students WHERE username = ? LIMIT 1", [$username])) {
+            $username = $cleanFirst . '.' . $cleanLast . rand(100, 9999);
         }
 
         $hashedPass = !empty($data['password'])
@@ -880,6 +891,16 @@ function enrollStudentFromAdmission($db, $data) {
         $roll = $idInfo['roll'];
         $gender = ($data['gender'] === 'FEMALE' || (isset($data['sex']) && strtoupper($data['sex']) === 'FEMALE')) ? 'FEMALE' : 'MALE';
 
+        $studentEmail = !empty($data['email']) ? trim($data['email']) : ($username . '@school.edu');
+        if ($db->fetchOne("SELECT id FROM students WHERE email = ? LIMIT 1", [$studentEmail])) {
+            $studentEmail = $username . '.' . rand(100, 999) . '@school.edu';
+        }
+
+        $studentPhone = !empty($data['phone']) ? trim($data['phone']) : null;
+        if (!empty($studentPhone) && $db->fetchOne("SELECT id FROM students WHERE phone = ? LIMIT 1", [$studentPhone])) {
+            $studentPhone = null; // Prevent unique constraint failure on student phone
+        }
+
         $db->insert('students', [
             'id' => $studentId,
             'roll' => $roll,
@@ -887,8 +908,8 @@ function enrollStudentFromAdmission($db, $data) {
             'password' => $hashedPass,
             'name' => $data['first_name'],
             'surname' => $data['last_name'],
-            'email' => $data['email'] ?: ($username . '@school.edu'),
-            'phone' => $data['phone'] ?: ($data['parent_phone'] ?? null),
+            'email' => $studentEmail,
+            'phone' => $studentPhone,
             'address' => $data['address'] ?: 'Springfield',
             'img' => $data['img'] ?? null,
             'blood_type' => $data['blood_type'] ?: 'AB+',

@@ -3,6 +3,7 @@
 $db = Database::getInstance();
 ensureParentImgColumn($db);
 ensureParentNidColumn($db);
+ensureParentUniqueIntegrity($db);
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
@@ -63,6 +64,16 @@ function ensureParentNidColumn($db) {
         if (empty($cols)) {
             $db->query("ALTER TABLE parents ADD COLUMN nid VARCHAR(50) NULL AFTER phone");
         }
+    } catch (Exception $e) {
+        // Non-fatal
+    }
+}
+
+// Convert any legacy empty string emails or nids to NULL to prevent UNIQUE key collisions
+function ensureParentUniqueIntegrity($db) {
+    try {
+        $db->query("UPDATE parents SET email = NULL WHERE email IS NOT NULL AND (email = '' OR email = ' ')");
+        $db->query("UPDATE parents SET nid = NULL WHERE nid IS NOT NULL AND (nid = '' OR nid = ' ')");
     } catch (Exception $e) {
         // Non-fatal
     }
@@ -256,19 +267,61 @@ function createParent($db) {
     $isMultipart = stripos($_SERVER['CONTENT_TYPE'] ?? '', 'multipart/form-data') !== false;
     $input = $isMultipart ? $_POST : (json_decode(file_get_contents('php://input'), true) ?? []);
 
-    $required = ['username', 'password', 'name', 'surname', 'address', 'phone'];
+    $required = ['name', 'surname', 'address', 'phone'];
     foreach ($required as $field) {
-        if (empty($input[$field])) {
+        if (empty(trim($input[$field] ?? ''))) {
             Response::error("Field '{$field}' is required");
         }
     }
 
-    if (strlen($input['password']) < 6) {
-        Response::error('Password must be at least 6 characters');
+    $name = trim($input['name']);
+    $surname = trim($input['surname']);
+    $phone = trim($input['phone']);
+    $address = trim($input['address']);
+    $email = !empty(trim($input['email'] ?? '')) ? trim($input['email']) : null;
+    $nid = !empty(trim($input['nid'] ?? '')) ? trim($input['nid']) : null;
+
+    // Check if parent already exists with this phone number; if so, link to existing parent
+    if (!empty($phone)) {
+        $existing = $db->fetchOne("SELECT * FROM parents WHERE phone = ? LIMIT 1", [$phone]);
+        if ($existing) {
+            unset($existing['password']);
+            Response::success('Parent already registered with this phone number; linking existing parent.', $existing, 200);
+            return;
+        }
     }
 
-    $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
-    $id = uniqid();
+    // Check if parent already exists with this email (when email is provided)
+    if (!empty($email)) {
+        $existing = $db->fetchOne("SELECT * FROM parents WHERE email = ? LIMIT 1", [$email]);
+        if ($existing) {
+            unset($existing['password']);
+            Response::success('Parent already registered with this email; linking existing parent.', $existing, 200);
+            return;
+        }
+    }
+
+    // Generate or ensure unique username
+    $username = trim($input['username'] ?? '');
+    if (empty($username)) {
+        $cleanFirst = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $name));
+        $cleanLast = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $surname));
+        $username = ($cleanFirst ?: 'parent') . '.' . ($cleanLast ?: 'user') . rand(10, 99);
+    }
+    // Auto-resolve username conflict
+    $baseUsername = $username;
+    $counter = 1;
+    while ($db->fetchOne("SELECT id FROM parents WHERE username = ? LIMIT 1", [$username])) {
+        $counter++;
+        $username = $baseUsername . $counter;
+    }
+
+    $rawPassword = !empty($input['password']) ? $input['password'] : 'Parent123!';
+    if (strlen($rawPassword) < 6) {
+        Response::error('Password must be at least 6 characters');
+    }
+    $hashedPassword = password_hash($rawPassword, PASSWORD_DEFAULT);
+    $id = uniqid('prt_');
 
     // Handle photo upload (multipart only)
     $uploadedImage = null;
@@ -279,15 +332,15 @@ function createParent($db) {
     try {
         $db->insert('parents', [
             'id'       => $id,
-            'username' => $input['username'],
+            'username' => $username,
             'password' => $hashedPassword,
-            'name'     => $input['name'],
-            'surname'  => $input['surname'],
-            'email'    => $input['email'] ?? null,
-            'phone'    => $input['phone'],
-            'nid'      => $input['nid'] ?? null,
-            'address'  => $input['address'],
-            'img'      => $uploadedImage ?? ($input['img'] ?? null),
+            'name'     => $name,
+            'surname'  => $surname,
+            'email'    => $email,
+            'phone'    => $phone,
+            'nid'      => $nid,
+            'address'  => $address,
+            'img'      => $uploadedImage ?? (!empty($input['img']) ? $input['img'] : null),
         ]);
 
         $parent = $db->fetchOne("SELECT * FROM parents WHERE id = ?", [$id]);
@@ -297,7 +350,15 @@ function createParent($db) {
 
     } catch (Exception $e) {
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-            Response::error('Username, email, or phone already exists', 409);
+            if (stripos($e->getMessage(), 'phone') !== false) {
+                Response::error("A parent with phone number '{$phone}' already exists. Please select them from existing parents.", 409);
+            } else if (stripos($e->getMessage(), 'email') !== false && !empty($email)) {
+                Response::error("A parent with email address '{$email}' already exists.", 409);
+            } else if (stripos($e->getMessage(), 'username') !== false) {
+                Response::error("Parent username '{$username}' is already in use. Please choose a different username.", 409);
+            } else {
+                Response::error('A parent with this information already exists in the system.', 409);
+            }
         }
         Response::error('Failed to create parent: ' . $e->getMessage());
     }
@@ -320,11 +381,24 @@ function updateParent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['name', 'surname', 'email', 'phone', 'nid', 'address', 'img'];
+    $allowedFields = ['name', 'surname', 'address', 'img'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
         }
+    }
+
+    if (array_key_exists('email', $input)) {
+        $data['email'] = !empty(trim($input['email'] ?? '')) ? trim($input['email']) : null;
+    }
+    if (array_key_exists('phone', $input)) {
+        $phoneVal = trim($input['phone'] ?? '');
+        if (!empty($phoneVal)) {
+            $data['phone'] = $phoneVal;
+        }
+    }
+    if (array_key_exists('nid', $input)) {
+        $data['nid'] = !empty(trim($input['nid'] ?? '')) ? trim($input['nid']) : null;
     }
 
     // Handle photo upload (multipart only)
@@ -360,7 +434,13 @@ function updateParent($db, $id) {
 
     } catch (Exception $e) {
         if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
-            Response::error('Username, email, or phone already exists', 409);
+            if (stripos($e->getMessage(), 'phone') !== false) {
+                Response::error("Another parent already has this phone number.", 409);
+            } else if (stripos($e->getMessage(), 'email') !== false) {
+                Response::error("Another parent already has this email address.", 409);
+            } else {
+                Response::error('Duplicate parent information detected.', 409);
+            }
         }
         Response::error('Failed to update parent: ' . $e->getMessage());
     }

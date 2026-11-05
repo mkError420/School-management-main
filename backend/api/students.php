@@ -21,6 +21,10 @@ try {
         $db->query("ALTER TABLE students ADD COLUMN version VARCHAR(50) DEFAULT 'Bangla' AFTER student_type");
     }
 } catch (Exception $e) {}
+try {
+    $db->query("UPDATE students SET email = NULL WHERE email IS NOT NULL AND (email = '' OR email = ' ')");
+    $db->query("UPDATE students SET phone = NULL WHERE phone IS NOT NULL AND (phone = '' OR phone = ' ')");
+} catch (Exception $e) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
@@ -304,6 +308,30 @@ function createStudent($db) {
     // Hash password
     $hashedPassword = password_hash($input['password'], PASSWORD_DEFAULT);
 
+    // Check student unique constraints explicitly
+    $studentUsername = trim($input['username'] ?? '');
+    $studentEmail = !empty(trim($input['email'] ?? '')) ? trim($input['email']) : null;
+    $studentPhone = !empty(trim($input['phone'] ?? '')) ? trim($input['phone']) : null;
+
+    if (!empty($studentUsername)) {
+        $existing = $db->fetchOne("SELECT id FROM students WHERE username = ? LIMIT 1", [$studentUsername]);
+        if ($existing) {
+            Response::error("Student username '{$studentUsername}' is already taken. Please choose a different username.", 409);
+        }
+    }
+    if (!empty($studentEmail)) {
+        $existing = $db->fetchOne("SELECT id FROM students WHERE email = ? LIMIT 1", [$studentEmail]);
+        if ($existing) {
+            Response::error("A student with email address '{$studentEmail}' already exists.", 409);
+        }
+    }
+    if (!empty($studentPhone)) {
+        $existing = $db->fetchOne("SELECT id FROM students WHERE phone = ? LIMIT 1", [$studentPhone]);
+        if ($existing) {
+            Response::error("A student with phone number '{$studentPhone}' already exists.", 409);
+        }
+    }
+
     // Generate student ID based on: Current Year, Class, Roll (e.g. 20261A01)
     $idInfo = StudentIdGenerator::generate($db, $input['class_id'], $input['roll'] ?? null);
     $id = $idInfo['id'];
@@ -319,12 +347,12 @@ function createStudent($db) {
         $db->insert('students', [
             'id'         => $id,
             'roll'       => $roll,
-            'username'   => $input['username'],
+            'username'   => $studentUsername,
             'password'   => $hashedPassword,
             'name'       => $input['name'],
             'surname'    => $input['surname'],
-            'email'      => $input['email'] ?? null,
-            'phone'      => $input['phone'] ?? null,
+            'email'      => $studentEmail,
+            'phone'      => $studentPhone,
             'address'    => $input['address'],
             'img'        => $uploadedImage ?? ($input['img'] ?? null),
             'blood_type' => $input['blood_type'],
@@ -407,11 +435,18 @@ function updateStudent($db, $id) {
     $data = [];
 
     // Build update data
-    $allowedFields = ['roll', 'name', 'surname', 'email', 'phone', 'address', 'img', 'blood_type', 'sex', 'student_type', 'version', 'parent_id', 'class_id', 'grade_id'];
+    $allowedFields = ['roll', 'name', 'surname', 'address', 'img', 'blood_type', 'sex', 'student_type', 'version', 'parent_id', 'class_id', 'grade_id'];
     foreach ($allowedFields as $field) {
         if (isset($input[$field])) {
             $data[$field] = $input[$field];
         }
+    }
+
+    if (array_key_exists('email', $input)) {
+        $data['email'] = !empty(trim($input['email'] ?? '')) ? trim($input['email']) : null;
+    }
+    if (array_key_exists('phone', $input)) {
+        $data['phone'] = !empty(trim($input['phone'] ?? '')) ? trim($input['phone']) : null;
     }
 
     // If class_id was updated and grade_id not provided, automatically sync grade_id with the class
