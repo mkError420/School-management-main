@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { BdGovEmblem, SmartBdBadge } from "@/components/government/GovtEmblem";
-import type { SchoolNotice, SchoolDownloadItem, SchoolGalleryItem } from "@/types/site";
+import { isBreakingNewsActive, type SchoolNotice, type SchoolDownloadItem, type SchoolGalleryItem } from "@/types/site";
 
 const EMERGENCY_HOTLINES = [
   { number: "৯৯৯", enNumber: "999", title: "জাতীয় জরুরি সেবা", desc: "পুলিশ, অ্যাম্বুলেন্স, ফায়ার সার্ভিস", color: "from-red-600 to-rose-700" },
@@ -81,6 +81,16 @@ export const PublicSchoolWebsite: React.FC = () => {
   const [isPlayingAnthem, setIsPlayingAnthem] = useState<boolean>(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   const [lang, setLang] = useState<"bn" | "en">("bn");
+  const [tickerNow, setTickerNow] = useState<number>(Date.now());
+
+  // Periodically re-evaluate ticker timer when expiry is set
+  useEffect(() => {
+    if (!content.breakingNewsExpiresAt) return;
+    const interval = setInterval(() => {
+      setTickerNow(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [content.breakingNewsExpiresAt]);
 
   const t = (bnText?: string, enText?: string) => {
     if (lang === "en") return enText || bnText || "";
@@ -253,8 +263,8 @@ export const PublicSchoolWebsite: React.FC = () => {
       });
     }
 
-    // 2. Breaking News
-    if (content.breakingNews && content.breakingNews.trim() !== "") {
+    // 2. Breaking News (if active & not expired)
+    if (isBreakingNewsActive(content, tickerNow)) {
       items.push({
         id: "__breaking__",
         type: "breaking",
@@ -276,7 +286,7 @@ export const PublicSchoolWebsite: React.FC = () => {
     }
 
     return items;
-  }, [content.tickerItems, content.breakingNews, content.notices, content.tickerIncludeNotices]);
+  }, [content.tickerItems, content.breakingNews, content.breakingNewsEn, content.breakingNewsExpiresAt, content.notices, content.tickerIncludeNotices, tickerNow]);
 
   const tickerDuration = useMemo(() => {
     const basePerItem = content.tickerSpeed === "fast" ? 5 : content.tickerSpeed === "slow" ? 11 : 8;

@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useSiteSettings, resolveLogoUrl } from "@/context/SiteSettingsContext";
 import { api } from "@/lib/api";
-import type { SchoolNotice } from "@/types/site";
+import { isBreakingNewsActive, type SchoolNotice } from "@/types/site";
 import { SmartBdBadge } from "@/components/government/GovtEmblem";
 
 export const PublicWebsiteLayout: React.FC = () => {
@@ -48,7 +48,17 @@ export const PublicWebsiteLayout: React.FC = () => {
   const [anthemSourceIdx, setAnthemSourceIdx] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [liveNotices, setLiveNotices] = useState<SchoolNotice[]>([]);
+  const [tickerNow, setTickerNow] = useState<number>(Date.now());
   const location = useLocation();
+
+  // Periodically re-evaluate ticker timer when expiry is set
+  useEffect(() => {
+    if (!content.breakingNewsExpiresAt) return;
+    const interval = setInterval(() => {
+      setTickerNow(Date.now());
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [content.breakingNewsExpiresAt]);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const mobileBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -353,8 +363,8 @@ export const PublicWebsiteLayout: React.FC = () => {
       });
     }
 
-    // 2. Breaking News text (if configured)
-    if (content.breakingNews && content.breakingNews.trim() !== "") {
+    // 2. Breaking News text (if configured & active/not expired)
+    if (isBreakingNewsActive(content, tickerNow)) {
       items.push({
         id: "__breaking__",
         type: "breaking",
@@ -380,7 +390,7 @@ export const PublicWebsiteLayout: React.FC = () => {
     }
 
     return items;
-  }, [content.tickerItems, content.breakingNews, liveNotices, content.tickerIncludeNotices]);
+  }, [content.tickerItems, content.breakingNews, content.breakingNewsEn, content.breakingNewsExpiresAt, liveNotices, content.tickerIncludeNotices, tickerNow]);
 
   // Duration scales with speed setting and number of items
   const tickerDuration = useMemo(() => {

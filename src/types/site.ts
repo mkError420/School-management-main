@@ -125,6 +125,7 @@ export interface SchoolWebsiteContent {
   facebookUrl: string;
   breakingNews: string;
   breakingNewsEn?: string;
+  breakingNewsExpiresAt?: string;
 
   // Header & Navigation Branding Background
   headerBgImage?: string;
@@ -532,6 +533,7 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   facebookUrl: "https://facebook.com",
   breakingNews: "২০২৬ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি আবেদন চলমান রয়েছে · আগামী ১৫ অক্টোবর বার্ষিক ক্রীড়া প্রতিযোগিতা অনুষ্ঠিত হবে",
   breakingNewsEn: "Admission applications for Classes 6 to 9 for Academic Year 2026 are ongoing · Annual Sports Competition will be held on October 15",
+  breakingNewsExpiresAt: "",
 
   headerBgImage: "",
   headerBgOverlay: "light",
@@ -1060,4 +1062,26 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
       status: "read",
     },
   ],
+};
+
+/**
+ * Checks whether breaking news is currently active and eligible to be displayed on the frontend.
+ * Returns true if breakingNews text is non-empty AND (no expiry timer is set OR expiry time is in the future).
+ * Returns false if text is empty OR expiry time has passed (expired).
+ */
+export const isBreakingNewsActive = (
+  content?: Partial<SchoolWebsiteContent> | null,
+  currentNow = Date.now()
+): boolean => {
+  if (!content) return false;
+  const text = (content.breakingNews || "").trim();
+  if (!text) return false;
+
+  const expiry = (content.breakingNewsExpiresAt || "").trim();
+  if (!expiry) return true; // No timer set -> always show
+
+  const expiryTime = new Date(expiry).getTime();
+  if (isNaN(expiryTime)) return true; // Fallback if invalid format
+
+  return expiryTime > currentNow;
 };

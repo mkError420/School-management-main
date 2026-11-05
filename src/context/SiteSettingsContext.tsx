@@ -265,6 +265,7 @@ const normalizeContent = (incoming?: Partial<SchoolWebsiteContent> | null): Scho
     headerBgImage: incoming.headerBgImage !== undefined ? cleanStr(incoming.headerBgImage, "") : (DEFAULT_WEBSITE_CONTENT.headerBgImage || ""),
     headerBgOverlay: (incoming.headerBgOverlay as any) || DEFAULT_WEBSITE_CONTENT.headerBgOverlay || "light",
     loginBgImage: incoming.loginBgImage !== undefined ? cleanStr(incoming.loginBgImage, "/images/bgimage2.jpg") : (DEFAULT_WEBSITE_CONTENT.loginBgImage || "/images/bgimage2.jpg"),
+    breakingNewsExpiresAt: incoming.breakingNewsExpiresAt !== undefined ? cleanStr(incoming.breakingNewsExpiresAt, "") : (DEFAULT_WEBSITE_CONTENT.breakingNewsExpiresAt || ""),
   };
 };
 

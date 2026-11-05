@@ -87,12 +87,13 @@ import type {
   StudyCornerTip,
   ContactSubmission,
 } from "@/types/site";
-import { DEFAULT_ADMISSION_SEAT_MATRIX, DEFAULT_WEBSITE_CONTENT } from "@/types/site";
+import { DEFAULT_ADMISSION_SEAT_MATRIX, DEFAULT_WEBSITE_CONTENT, isBreakingNewsActive } from "@/types/site";
 import {
   autoTranslateWebsiteContent,
   translateBnToEn,
   translateEnToBn,
   toEnglishDigits,
+  toBengaliDigits,
 } from "@/lib/translation";
 
 const BOOK_CATEGORY_PRESETS = [
@@ -137,6 +138,252 @@ type ContentTab =
   | "contact";
 
 type EditLangMode = "bn" | "en" | "dual";
+
+interface BreakingNewsTimerControlProps {
+  expiresAt?: string;
+  onChange: (val: string) => void;
+  breakingNewsText?: string;
+}
+
+const formatForDateTimeLocal = (date: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = date.getFullYear();
+  const m = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const mm = pad(date.getMinutes());
+  return `${y}-${m}-${d}T${hh}:${mm}`;
+};
+
+const BreakingNewsTimerControl: React.FC<BreakingNewsTimerControlProps> = ({
+  expiresAt,
+  onChange,
+  breakingNewsText,
+}) => {
+  const [now, setNow] = useState<number>(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const expiryMs = expiresAt && expiresAt.trim() ? new Date(expiresAt).getTime() : NaN;
+  const hasTimer = Boolean(expiresAt && expiresAt.trim() && !isNaN(expiryMs));
+  const diff = hasTimer ? expiryMs - now : 0;
+  const isExpired = hasTimer && diff <= 0;
+  const isActive = hasTimer && diff > 0;
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diff / (1000 * 60)) % 60);
+  const seconds = Math.floor((diff / 1000) % 60);
+
+  const presets = [
+    { label: "+১ ঘণ্টা", hours: 1 },
+    { label: "+৩ ঘণ্টা", hours: 3 },
+    { label: "+৬ ঘণ্টা", hours: 6 },
+    { label: "+১২ ঘণ্টা", hours: 12 },
+    { label: "+২৪ ঘণ্টা", hours: 24 },
+    { label: "+৩ দিন", hours: 72 },
+    { label: "+৭ দিন", hours: 168 },
+  ];
+
+  const handleSetPreset = (hoursToAdd: number) => {
+    const target = new Date(Date.now() + hoursToAdd * 60 * 60 * 1000);
+    onChange(formatForDateTimeLocal(target));
+  };
+
+  const handleExtendCurrent = (hoursToAdd: number) => {
+    const base = isExpired || !hasTimer ? Date.now() : expiryMs;
+    const target = new Date(base + hoursToAdd * 60 * 60 * 1000);
+    onChange(formatForDateTimeLocal(target));
+  };
+
+  const formattedDate = hasTimer
+    ? new Date(expiresAt!).toLocaleString("bn-BD", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
+      })
+    : "";
+
+  return (
+    <div className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3.5 transition-all dark:border-amber-900/40 dark:bg-amber-950/20 shadow-xs">
+      {/* Header with Title and Live Status Badge */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/60 pb-2.5 dark:border-amber-900/40">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white shadow-xs">
+            <Clock size={13} />
+          </span>
+          <div>
+            <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+              <span>জরুরি স্ক্রলিং সংবাদ প্রদর্শন সময়সীমা (Timer / Expiry)</span>
+            </h4>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+              নির্ধারিত সময় শেষ হলে সংবাদটি ওয়েবসাইটের ফ্রন্টএন্ড থেকে স্বয়ংক্রিয়ভাবে লুকানো হবে, তবে ড্যাশবোর্ড ও ডাটাবেজে অক্ষত থাকবে।
+            </p>
+          </div>
+        </div>
+
+        {/* Live Badge */}
+        <div>
+          {isExpired ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-[11px] font-bold text-red-700 border border-red-200 dark:bg-red-950/60 dark:text-red-300 dark:border-red-900/40 animate-pulse">
+              <AlertCircle size={11} />
+              <span>মেয়াদ উত্তীর্ণ (Expired) — ফ্রন্টএন্ডে লুকানো</span>
+            </span>
+          ) : isActive ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-[#006a4e] border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900/40">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
+              <span>সক্রিয় (Active) — ওয়েবসাইটে প্রদর্শিত</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
+              <span>সর্বদা সক্রিয় (কোনো সময়সীমা নেই)</span>
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Status Details / Countdown Box */}
+      <div className="mt-3">
+        {isExpired ? (
+          <div className="rounded-md border border-red-200 bg-red-50/80 p-2.5 text-xs text-red-900 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={15} className="text-red-600 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">
+                  এই জরুরি সংবাদের প্রদর্শনের সময় শেষ হয়ে গেছে!
+                </p>
+                <p className="text-[11px] text-red-700 dark:text-red-300">
+                  ওয়েবসাইটের ভিজিটররা এই সংবাদটি বর্তমানে দেখতে পাচ্ছেন না। তবে আপনার ড্যাশবোর্ড ও ডাটাবেজে এটি অক্ষত ও সংরক্ষিত আছে। সংবাদটি আবার ওয়েবসাইটে প্রদর্শন করতে সময় বাড়ান বা নতুন সময় নির্ধারণ করুন।
+                </p>
+                {formattedDate && (
+                  <p className="text-[10px] font-mono opacity-80">
+                    মেয়াদ শেষ হওয়ার সময় ছিল: {formattedDate}
+                  </p>
+                )}
+                <div className="pt-1.5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleExtendCurrent(24)}
+                    className="inline-flex items-center gap-1 rounded bg-red-600 px-2.5 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-red-700"
+                  >
+                    <span>+২৪ ঘণ্টার জন্য পুনরায় চালু করুন</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange("")}
+                    className="inline-flex items-center gap-1 rounded border border-red-300 bg-white px-2 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-slate-900 dark:text-red-300"
+                  >
+                    <span>টাইমার বন্ধ করুন (সর্বদা দেখাবে)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : isActive ? (
+          <div className="rounded-md border border-emerald-200 bg-emerald-50/60 p-2.5 text-xs text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-bold flex items-center gap-1.5">
+                  <Clock size={13} className="text-emerald-700 dark:text-emerald-300" />
+                  <span>অবশিষ্ট সময় (Time Remaining):</span>
+                  <span className="font-mono text-sm font-extrabold text-[#006a4e] dark:text-emerald-400">
+                    {days > 0 && `${toBengaliDigits(String(days))} দিন `}
+                    {toBengaliDigits(String(hours).padStart(2, "0"))} ঘণ্টা {toBengaliDigits(String(minutes).padStart(2, "0"))} মিনিট {toBengaliDigits(String(seconds).padStart(2, "0"))} সেকেন্ড
+                  </span>
+                </p>
+                {formattedDate && (
+                  <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-0.5">
+                    মেয়াদ শেষ হবে: <span className="font-semibold text-gray-800 dark:text-gray-200">{formattedDate}</span>
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleExtendCurrent(1)}
+                  className="rounded border border-emerald-300 bg-white px-2 py-0.5 text-[10px] font-bold text-[#006a4e] hover:bg-emerald-50 dark:border-emerald-800 dark:bg-slate-900 dark:text-emerald-300"
+                >
+                  +১ ঘণ্টা বাড়ান
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExtendCurrent(24)}
+                  className="rounded border border-emerald-300 bg-white px-2 py-0.5 text-[10px] font-bold text-[#006a4e] hover:bg-emerald-50 dark:border-emerald-800 dark:bg-slate-900 dark:text-emerald-300"
+                >
+                  +১ দিন বাড়ান
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChange("")}
+                  className="rounded border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300"
+                >
+                  টাইমার মুছুন
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-md border border-slate-200 bg-white/70 p-2 text-xs text-gray-600 dark:border-slate-800 dark:bg-slate-900/60 dark:text-gray-400">
+            <span className="flex items-center gap-1.5">
+              <Info size={13} className="text-gray-500" />
+              <span>কোনো সময়সীমা নির্ধারিত নেই। সংবাদটি ওয়েবসাইটে স্থায়ীভাবে স্ক্রল করতে থাকবে। নির্দিষ্ট সময়ের পর বন্ধ করতে নিচের ক্যালেন্ডার বা বাটন ব্যবহার করুন।</span>
+            </span>
+          </div>
+        )}
+
+        {/* Input & Preset Controls */}
+        <div className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-12 sm:items-center">
+          <div className="sm:col-span-5">
+            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+              নির্দিষ্ট তারিখ ও সময় বেছে নিন (End Date & Time):
+            </label>
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={expiresAt ? expiresAt.slice(0, 16) : ""}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-800 focus:border-[#006a4e] focus:outline-none focus:ring-1 focus:ring-[#006a4e] dark:border-slate-700 dark:bg-slate-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="sm:col-span-7">
+            <label className="block text-[11px] font-bold text-gray-700 dark:text-gray-300 mb-1">
+              দ্রুত সময়সীমা নির্বাচন (Quick Presets):
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {presets.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => handleSetPreset(p.hours)}
+                  className="rounded border border-amber-300 bg-white px-2 py-1 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-900/60 dark:bg-slate-900 dark:text-amber-200 dark:hover:bg-amber-950/40"
+                >
+                  {p.label}
+                </button>
+              ))}
+              {hasTimer && (
+                <button
+                  type="button"
+                  onClick={() => onChange("")}
+                  className="rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-100 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+                >
+                  বাতিল (Clear)
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const WebsiteContentPage: React.FC = () => {
   const { canManageWebsiteContent, isLoading: isAuthLoading } = useAuth();
@@ -2917,6 +3164,13 @@ const WebsiteContentPage: React.FC = () => {
                       </div>
                     )}
 
+                    {/* Breaking News Timer & Auto-Expiry Controller */}
+                    <BreakingNewsTimerControl
+                      expiresAt={draft.breakingNewsExpiresAt}
+                      onChange={(newVal) => updateField("breakingNewsExpiresAt", newVal)}
+                      breakingNewsText={draft.breakingNews}
+                    />
+
                     {/* Direct Link to Dedicated Ticker Tab */}
                     <div className="sm:col-span-2 flex items-center justify-between rounded-md border border-emerald-200 bg-emerald-50/40 p-3 dark:border-slate-700 dark:bg-slate-800/40">
                       <div className="flex items-center gap-2">
@@ -2986,30 +3240,76 @@ const WebsiteContentPage: React.FC = () => {
                             } as React.CSSProperties}
                           >
                             {/* Repeat items for continuous infinite scroll */}
-                            {[
-                              ...(draft.tickerItems || []).filter((i) => i.isActive !== false),
-                              ...(draft.tickerItems || []).filter((i) => i.isActive !== false),
-                            ].map((item, idx) => (
-                              <span key={idx} className="shrink-0 inline-flex items-center gap-1.5">
-                                <span className="text-amber-500 font-bold">★</span>
-                                {item.badge && (
-                                  <span
-                                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
-                                      ? "bg-[#da291c] text-white"
-                                      : item.priority === "important"
-                                        ? "bg-amber-200 text-amber-900"
-                                        : "bg-emerald-100 text-[#006a4e]"
-                                      }`}
-                                  >
-                                    {editLangMode === "en" ? item.badgeEn || item.badge : item.badge}
-                                  </span>
-                                )}
-                                <span>{editLangMode === "en" ? item.textEn || item.text : item.text}</span>
-                              </span>
-                            ))}
+                            {(() => {
+                              const activeTickerItems = (draft.tickerItems || []).filter((i) => i.isActive !== false);
+                              const bActive = isBreakingNewsActive(draft);
+                              const bItem = bActive && draft.breakingNews?.trim() ? [
+                                {
+                                  badge: "ব্রেকিং",
+                                  badgeEn: "Breaking",
+                                  text: draft.breakingNews,
+                                  textEn: draft.breakingNewsEn || draft.breakingNews,
+                                  priority: "urgent" as const,
+                                }
+                              ] : [];
+                              const allItems = [...bItem, ...activeTickerItems];
+                              const repeated = allItems.length > 0 ? [...allItems, ...allItems] : [];
+                              return repeated.map((item, idx) => (
+                                <span key={idx} className="shrink-0 inline-flex items-center gap-1.5">
+                                  <span className="text-amber-500 font-bold">★</span>
+                                  {item.badge && (
+                                    <span
+                                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${item.priority === "urgent"
+                                        ? "bg-[#da291c] text-white"
+                                        : item.priority === "important"
+                                          ? "bg-amber-200 text-amber-900"
+                                          : "bg-emerald-100 text-[#006a4e]"
+                                        }`}
+                                    >
+                                      {editLangMode === "en" ? item.badgeEn || item.badge : item.badge}
+                                    </span>
+                                  )}
+                                  <span>{editLangMode === "en" ? item.textEn || item.text : item.text}</span>
+                                </span>
+                              ));
+                            })()}
                           </div>
                         </div>
                       </div>
+                    </div>
+
+                    {/* Status bar for Tab 1's Breaking News */}
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-gray-200 bg-gray-50/80 px-3 py-2 text-xs text-gray-700 dark:border-slate-800 dark:bg-slate-800/50 dark:text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
+                          জরুরি স্ক্রলিং সংবাদ (ব্রেকিং নিউজ):
+                        </span>
+                        {isBreakingNewsActive(draft) ? (
+                          <span className="inline-flex items-center gap-1 font-bold text-[#006a4e] dark:text-emerald-400">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <span>সক্রিয় (Active)</span>
+                            {draft.breakingNewsExpiresAt && (
+                              <span className="text-[10px] text-gray-500">
+                                (মেয়াদ: {new Date(draft.breakingNewsExpiresAt).toLocaleTimeString("bn-BD", { hour: "numeric", minute: "numeric", hour12: true })})
+                              </span>
+                            )}
+                          </span>
+                        ) : draft.breakingNewsExpiresAt && new Date(draft.breakingNewsExpiresAt).getTime() <= Date.now() ? (
+                          <span className="inline-flex items-center gap-1 font-bold text-red-600 dark:text-red-400">
+                            <AlertCircle size={12} />
+                            <span>সময় শেষ (Expired) — ফ্রন্টএন্ডে লুকানো, ড্যাশবোর্ডে সংরক্ষিত</span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-500">কোনো সময়সীমা নেই (সবসময় দৃশ্যমান)</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("identity")}
+                        className="text-[11px] font-bold text-[#006a4e] hover:underline dark:text-emerald-400"
+                      >
+                        বিদ্যালয় পরিচয় সেকশনে টাইমার পরিচালনা করুন →
+                      </button>
                     </div>
                   </div>
 
