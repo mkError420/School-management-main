@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Views, type View } from "react-big-calendar";
 import moment from "moment";
-import { CalendarDays, CreditCard, GraduationCap, Mail, MapPin, Phone, Trophy, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, GraduationCap, Mail, MapPin, Phone, Trophy, Users, X } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import FormModal from "@/components/FormModal";
 import { useAccessRole } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import ResultSheetModal from "@/components/results/ResultSheetModal";
 import StudentIdCardModal from "@/components/students/StudentIdCardModal";
 import StudentFeesView from "@/components/fees/StudentFeesView";
@@ -106,6 +107,20 @@ interface ScheduleEvent {
   resource: StudentProfileDetails["lessons"][number];
 }
 
+interface AttendanceRecord {
+  id: number | string;
+  date: string;
+  present: boolean | number | string;
+  lesson_name?: string | null;
+}
+
+interface StudentAttendanceCalendarProps {
+  studentId: string;
+  studentName: string;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 const dayIndex: Record<string, number> = {
   SUNDAY: 0,
   MONDAY: 1,
@@ -128,17 +143,207 @@ const makeCalendarDate = (day: string, value: string) => {
   return date;
 };
 
-const StatCard: React.FC<{ icon: React.ReactNode; value: string | number; label: string; tint: string }> = ({ icon, value, label, tint }) => (
-  <div className="flex min-h-[76px] items-center gap-3 rounded-md border border-gray-100 bg-white px-4 py-3 shadow-sm">
-    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${tint}`}>{icon}</span>
-    <div className="min-w-0"><p className="text-xl font-semibold leading-tight text-gray-900">{value}</p><p className="mt-0.5 text-xs text-gray-500">{label}</p></div>
-  </div>
-);
+const formatMonthValue = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const StudentAttendanceCalendar: React.FC<StudentAttendanceCalendarProps> = ({ studentId, studentName, isOpen, onClose }) => {
+  const [selectedMonth, setSelectedMonth] = useState(() => formatMonthValue(new Date()));
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let active = true;
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const startDate = `${selectedMonth}-01`;
+    const endDate = `${selectedMonth}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`;
+
+    setLoading(true);
+    setRecords([]);
+    setError(null);
+    api.getAll<{ attendance?: AttendanceRecord[] }>("attendance", {
+      student_id: studentId,
+      start_date: startDate,
+      end_date: endDate,
+      limit: 1000,
+    }).then((response) => {
+      if (!active) return;
+      if (!response.success || !response.data) {
+        setRecords([]);
+        setError(response.message || "Unable to load attendance for this month.");
+        return;
+      }
+      setRecords(response.data.attendance || []);
+    }).catch((requestError: unknown) => {
+      if (!active) return;
+      setRecords([]);
+      setError(requestError instanceof Error ? requestError.message : "Unable to load attendance for this month.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, selectedMonth, studentId, retryCount]);
+
+  if (!isOpen) return null;
+
+  const [year, month] = selectedMonth.split("-").map(Number);
+  const monthStart = new Date(year, month - 1, 1);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const calendarOffset = monthStart.getDay();
+  const attendanceByDay = new Map<number, AttendanceRecord[]>();
+
+  records.forEach((record) => {
+    const day = Number(record.date.slice(8, 10));
+    if (!Number.isInteger(day) || day < 1 || day > daysInMonth) return;
+    const dayRecords = attendanceByDay.get(day) || [];
+    dayRecords.push(record);
+    attendanceByDay.set(day, dayRecords);
+  });
+
+  const presentCount = records.filter((record) => Number(record.present) === 1).length;
+  const absentCount = records.length - presentCount;
+  const attendanceRate = records.length ? Math.round((presentCount / records.length) * 100) : null;
+  const monthLabel = monthStart.toLocaleDateString("en-BD", { month: "long", year: "numeric" });
+
+  const changeMonth = (offset: number) => {
+    setSelectedMonth(formatMonthValue(new Date(year, month - 1 + offset, 1)));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-5" role="presentation" onMouseDown={(event) => {
+      if (event.target === event.currentTarget) onClose();
+    }}>
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="student-attendance-title"
+        className="my-auto w-full max-w-3xl rounded-xl border border-gray-200 bg-white p-4 shadow-2xl dark:border-gray-700 dark:bg-gray-900 sm:p-6"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 pb-4 dark:border-gray-700">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Monthly attendance</p>
+            <h2 id="student-attendance-title" className="mt-1 text-lg font-bold text-gray-900 dark:text-white">{studentName}</h2>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close attendance calendar" className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-gray-800 dark:hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => changeMonth(-1)} aria-label="Previous month" className="rounded-md border border-gray-300 p-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+              <ChevronLeft size={17} />
+            </button>
+            <h3 className="min-w-36 text-center text-base font-semibold text-gray-900 dark:text-white">{monthLabel}</h3>
+            <button type="button" onClick={() => changeMonth(1)} aria-label="Next month" className="rounded-md border border-gray-300 p-2 text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800">
+              <ChevronRight size={17} />
+            </button>
+          </div>
+          <input
+            type="month"
+            aria-label="Choose attendance month"
+            value={selectedMonth}
+            onChange={(event) => {
+              if (event.target.value) setSelectedMonth(event.target.value);
+            }}
+            className="rounded-md border border-gray-300 px-2.5 py-2 text-sm text-gray-800 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: "Attendance rate", value: attendanceRate === null ? "—" : `${attendanceRate}%`, color: "text-gray-900 dark:text-white" },
+            { label: "Present", value: presentCount, color: "text-emerald-700 dark:text-emerald-300" },
+            { label: "Absent", value: absentCount, color: "text-red-700 dark:text-red-300" },
+            { label: "Marked sessions", value: records.length, color: "text-gray-900 dark:text-white" },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+              <p className="text-[11px] text-gray-500 dark:text-gray-400">{stat.label}</p>
+              <p className={`mt-0.5 text-lg font-bold ${stat.color}`}>{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {error ? (
+          <div role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+            <p>{error}</p>
+            <button type="button" onClick={() => setRetryCount((count) => count + 1)} className="mt-2 font-semibold underline">Try again</button>
+          </div>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-600 dark:text-gray-300">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => <div key={day} className="py-2">{day}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1" aria-busy={loading}>
+              {Array.from({ length: calendarOffset }, (_, index) => <div key={`empty-${index}`} aria-hidden="true" className="min-h-[70px] rounded-md bg-gray-50/60 dark:bg-gray-800/30 sm:min-h-[82px]" />)}
+              {Array.from({ length: daysInMonth }, (_, index) => {
+                const day = index + 1;
+                const dayRecords = attendanceByDay.get(day) || [];
+                const dayPresent = dayRecords.filter((record) => Number(record.present) === 1).length;
+                const dayAbsent = dayRecords.length - dayPresent;
+                const dayStatus = dayRecords.length === 0 ? null : dayPresent === dayRecords.length ? "Present" : dayAbsent === dayRecords.length ? "Absent" : "Mixed";
+                const weekend = [5, 6].includes(new Date(year, month - 1, day).getDay());
+                const statusClass = dayStatus === "Present"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300"
+                  : dayStatus === "Absent"
+                    ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+                    : dayStatus === "Mixed"
+                      ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300"
+                      : "border-gray-200 bg-white text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300";
+                const tooltip = dayRecords.map((record) => `${record.lesson_name || "Attendance"}: ${Number(record.present) === 1 ? "Present" : "Absent"}`).join("\n");
+                return (
+                  <div key={day} title={tooltip || "No attendance recorded"} className={`min-h-[70px] rounded-md border p-1.5 sm:min-h-[82px] sm:p-2 ${dayStatus ? statusClass : weekend ? "border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800" : statusClass}`}>
+                    <span className="text-xs font-semibold">{day}</span>
+                    {loading ? <span className="mt-2 block text-[10px] text-gray-400">Loading</span> : dayRecords.length > 0 ? (
+                      <span className="mt-1 block text-[10px] font-semibold leading-tight">
+                        {dayStatus === "Mixed" ? `${dayPresent} P · ${dayAbsent} A` : dayStatus}
+                        <span className="mt-0.5 block font-normal opacity-80">{dayRecords.length} {dayRecords.length === 1 ? "session" : "sessions"}</span>
+                      </span>
+                    ) : <span className="mt-2 block text-[10px] text-gray-400">—</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-gray-600 dark:text-gray-300">
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Present</span>
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-red-500" />Absent</span>
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-amber-500" />Mixed sessions</span>
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-gray-300" />No record</span>
+            </div>
+          </>
+        )}
+      </section>
+    </div>
+  );
+};
+
+const StatCard: React.FC<{ icon: React.ReactNode; value: string | number; label: string; tint: string; onClick?: () => void }> = ({ icon, value, label, tint, onClick }) => {
+  const className = "flex min-h-[76px] items-center gap-3 rounded-md border border-gray-100 bg-white px-4 py-3 text-left shadow-sm";
+  const content = (
+    <>
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${tint}`}>{icon}</span>
+      <div className="min-w-0"><p className="text-xl font-semibold leading-tight text-gray-900">{value}</p><p className="mt-0.5 text-xs text-gray-500">{label}</p></div>
+    </>
+  );
+  return onClick ? (
+    <button type="button" onClick={onClick} className={`${className} w-full cursor-pointer transition hover:border-sky-200 hover:bg-sky-50/40 focus:outline-none focus:ring-2 focus:ring-sky-500`} aria-label={`${label}: ${value}. View monthly attendance calendar`}>
+      {content}
+    </button>
+  ) : (
+    <div className={className}>{content}</div>
+  );
+};
 
 const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onReload }) => {
   const role = useAccessRole();
   const navigate = useNavigate();
   const [calendarView, setCalendarView] = useState<View>(Views.WEEK);
+  const [attendanceCalendarOpen, setAttendanceCalendarOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [idCardOpen, setIdCardOpen] = useState(false);
   const student = details.student;
@@ -237,7 +442,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         </section>
 
         <section className="grid grid-cols-2 gap-3">
-          <StatCard icon={<CalendarDays size={17} />} value={attendanceRate === null ? "—" : `${attendanceRate}%`} label="Attendance" tint="bg-sky-50 text-sky-700" />
+          <StatCard icon={<CalendarDays size={17} />} value={attendanceRate === null ? "—" : `${attendanceRate}%`} label="Attendance · View monthly" tint="bg-sky-50 text-sky-700" onClick={() => setAttendanceCalendarOpen(true)} />
           <StatCard icon={<Trophy size={17} />} value={student.roll || "—"} label="Roll No." tint="bg-violet-50 text-violet-700" />
           <StatCard icon={<CalendarDays size={17} />} value={details.lessons.length} label="Lessons" tint="bg-amber-50 text-amber-700" />
           <StatCard icon={<Users size={17} />} value={student.class_name || "—"} label="Class" tint="bg-rose-50 text-rose-700" />
@@ -405,6 +610,13 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         isOpen={sheetOpen}
         onClose={() => setSheetOpen(false)}
         studentId={student.id}
+      />
+
+      <StudentAttendanceCalendar
+        studentId={student.id}
+        studentName={fullName}
+        isOpen={attendanceCalendarOpen}
+        onClose={() => setAttendanceCalendarOpen(false)}
       />
 
       {idCardOpen && (

@@ -72,7 +72,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
 
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [selectedClassId, setSelectedClassId] = useState<string>(
-    initialClassId ? String(initialClassId) : classes[0]?.id ? String(classes[0].id) : ""
+    initialClassId ? String(initialClassId) : "all"
   );
   const [search, setSearch] = useState<string>("");
 
@@ -84,13 +84,6 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [columnMenuDate, setColumnMenuDate] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
-
-  // Update selectedClassId when classes load
-  useEffect(() => {
-    if (!selectedClassId && classes.length > 0) {
-      setSelectedClassId(String(classes[0].id));
-    }
-  }, [classes, selectedClassId]);
 
   // Month navigation helpers
   const handlePrevMonth = () => {
