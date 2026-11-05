@@ -182,29 +182,29 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 w-full h-full p-5 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex flex-col justify-between">
+    <div className="bg-white dark:bg-gray-800 w-full min-w-0 p-3 sm:p-5 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm flex flex-col">
       {/* HEADER SECTION */}
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-gray-700/60">
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
                 <Scale size={18} />
               </div>
               <h1 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100">
                 Financial Performance
               </h1>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+              <span className="text-[10px] sm:text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
                 Fees as Income vs. Expenses
               </span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
               Monthly overview of collected school fees (revenue) paired against operating expenditures.
             </p>
           </div>
 
           {/* CONTROLS */}
-          <div className="flex items-center gap-2">
+          <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-2">
             {/* Year Selector */}
             <div className="relative flex items-center">
               <Calendar size={13} className="absolute left-2.5 text-gray-400 pointer-events-none" />
@@ -263,7 +263,7 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
         </div>
 
         {/* SUMMARY STATS TILES */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-3 gap-3 my-4">
           {/* Income (Fees) */}
           <div className="p-3 rounded-xl bg-gradient-to-br from-indigo-50/70 to-[#707E94]/10 dark:from-indigo-950/30 dark:to-[#707E94]/10 border border-indigo-100/80 dark:border-indigo-800/40 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -372,24 +372,26 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
       )}
 
       {/* CHART CANVAS */}
-      <div className="w-full flex-1 min-h-[300px] pt-1">
+      <div className="relative w-full min-w-0 h-[320px] sm:h-[360px] lg:h-[420px] shrink-0 pt-1">
         <ResponsiveContainer width="100%" height="100%">
           {chartType === "line" ? (
             <LineChart
               data={data}
-              margin={{ top: 10, right: 25, left: 0, bottom: 5 }}
+              margin={{ top: 10, right: 8, left: 0, bottom: 2 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
               <XAxis
                 dataKey="name"
                 axisLine={false}
-                tick={{ fill: tickColor, fontSize: 12 }}
+                tick={{ fill: tickColor, fontSize: 10 }}
                 tickLine={false}
-                tickMargin={10}
+                tickMargin={6}
+                minTickGap={8}
               />
               <YAxis
+                width={48}
                 axisLine={false}
-                tick={{ fill: tickColor, fontSize: 12 }}
+                tick={{ fill: tickColor, fontSize: 10 }}
                 tickLine={false}
                 tickFormatter={formatYAxis}
               />
@@ -397,10 +399,10 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
               <Legend
                 align="center"
                 verticalAlign="top"
-                wrapperStyle={{ paddingBottom: "14px" }}
+                wrapperStyle={{ paddingBottom: "8px" }}
                 formatter={(value: string) => {
-                  if (value === "income") return <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Fees Collected (Income)</span>;
-                  if (value === "expense") return <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Expenses</span>;
+                  if (value === "income") return <span className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300">Income</span>;
+                  if (value === "expense") return <span className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300">Expenses</span>;
                   return value;
                 }}
               />
@@ -426,19 +428,21 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
           ) : (
             <BarChart
               data={data}
-              margin={{ top: 10, right: 25, left: 0, bottom: 5 }}
+              margin={{ top: 10, right: 8, left: 0, bottom: 2 }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
               <XAxis
                 dataKey="name"
                 axisLine={false}
-                tick={{ fill: tickColor, fontSize: 12 }}
+                tick={{ fill: tickColor, fontSize: 10 }}
                 tickLine={false}
-                tickMargin={10}
+                tickMargin={6}
+                minTickGap={8}
               />
               <YAxis
+                width={48}
                 axisLine={false}
-                tick={{ fill: tickColor, fontSize: 12 }}
+                tick={{ fill: tickColor, fontSize: 10 }}
                 tickLine={false}
                 tickFormatter={formatYAxis}
               />
@@ -446,10 +450,10 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
               <Legend
                 align="center"
                 verticalAlign="top"
-                wrapperStyle={{ paddingBottom: "14px" }}
+                wrapperStyle={{ paddingBottom: "8px" }}
                 formatter={(value: string) => {
-                  if (value === "income") return <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Fees Collected (Income)</span>;
-                  if (value === "expense") return <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Expenses</span>;
+                  if (value === "income") return <span className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300">Income</span>;
+                  if (value === "expense") return <span className="text-[10px] sm:text-xs font-semibold text-gray-700 dark:text-gray-300">Expenses</span>;
                   return value;
                 }}
               />
@@ -473,12 +477,12 @@ const FinanceChart: React.FC<FinanceChartProps> = ({ initialYear }) => {
       </div>
 
       {/* FOOTER CAPTION */}
-      <div className="flex flex-wrap items-center justify-between text-[11px] text-gray-400 dark:text-gray-500 pt-3 border-t border-gray-100 dark:border-gray-800 mt-2">
+      <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center justify-between gap-2 text-[11px] text-gray-400 dark:text-gray-500 pt-3 border-t border-gray-100 dark:border-gray-800 mt-2">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>Real-time aggregation from verified Fee Payments &amp; Operating Expenses.</span>
         </span>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <Link to="/fees" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
             Fees Breakdown &rarr;
           </Link>
