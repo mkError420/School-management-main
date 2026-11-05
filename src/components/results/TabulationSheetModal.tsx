@@ -58,7 +58,23 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    const printStyles = document.createElement("style");
+    printStyles.textContent = "@page { size: landscape; margin: 8mm; }";
+
+    const cleanup = () => {
+      printStyles.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    document.head.appendChild(printStyles);
+    window.addEventListener("afterprint", cleanup, { once: true });
+
+    try {
+      window.print();
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
   };
 
   const getGradeColor = (grade: string) => {
@@ -167,7 +183,10 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
               </button>
             </div>
           ) : data ? (
-            <div className="bg-white text-gray-900 p-4 sm:p-6 rounded-xl border border-gray-300 shadow-xs print:border-none print:shadow-none print:p-0">
+            <div
+              id="printable-tabulation-sheet"
+              className="bg-white text-gray-900 p-4 sm:p-6 rounded-xl border border-gray-300 shadow-xs print:border-none print:shadow-none print:p-0"
+            >
               {/* Institution Header */}
               <div className="text-center border-b pb-3 mb-4">
                 <h1 className="text-xl sm:text-2xl font-bold uppercase tracking-wider text-gray-900 font-serif">
@@ -221,7 +240,7 @@ export const TabulationSheetModal: React.FC<TabulationSheetModalProps> = ({
               </div>
 
               {/* Broad Sheet Table */}
-              <div className="overflow-x-auto border border-gray-300 rounded-lg">
+              <div className="overflow-x-auto border border-gray-300 rounded-lg print:overflow-visible">
                 <table className="w-full text-left border-collapse text-[11px] whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-800 text-white font-semibold">
