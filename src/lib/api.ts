@@ -94,6 +94,19 @@ class ApiService {
     });
   }
 
+  async updateProfileImage(payload: FormData | { img?: string; action?: string; remove?: boolean }) {
+    if (payload instanceof FormData) {
+      return this.request<{ img: string | null; user: any }>('auth?action=update-profile-image', {
+        method: 'POST',
+        body: payload,
+      });
+    }
+    return this.request<{ img: string | null; user: any }>('auth?action=update-profile-image', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
   async switchRole(role: string, userId?: string) {
     return this.request<{
       token: string;

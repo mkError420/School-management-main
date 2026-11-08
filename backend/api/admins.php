@@ -30,13 +30,27 @@ switch ($method) {
 }
 
 /**
- * Ensure dashboard_sections column and flexible role support
+ * Ensure dashboard_sections, img, name columns and flexible role support
  */
 function ensureAdminsSchema($db) {
     try {
         $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'dashboard_sections'");
         if (empty($cols)) {
             $db->query("ALTER TABLE admins ADD COLUMN dashboard_sections TEXT NULL");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'img'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN img VARCHAR(255) NULL AFTER email");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'name'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN name VARCHAR(255) NULL AFTER username");
         }
     } catch (Exception $e) {}
 
@@ -48,7 +62,7 @@ function ensureAdminsSchema($db) {
 function getAdmins($db) {
     AuthMiddleware::requireRole('super_admin');
     $admins = $db->fetchAll(
-        "SELECT id, username, email, role, dashboard_sections, created_at FROM admins ORDER BY (CASE WHEN role = 'super_admin' THEN 0 WHEN role = 'admin' THEN 1 ELSE 2 END), username ASC"
+        "SELECT id, username, email, role, img, dashboard_sections, created_at FROM admins ORDER BY (CASE WHEN role = 'super_admin' THEN 0 WHEN role = 'admin' THEN 1 ELSE 2 END), username ASC"
     );
     foreach ($admins as &$a) {
         if (!empty($a['dashboard_sections'])) {

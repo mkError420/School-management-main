@@ -90,11 +90,11 @@ const DashboardLayoutContent: React.FC = () => {
               className="flex items-center gap-2.5 min-w-0 flex-1 hover:opacity-90 transition"
             >
               <Image
-                src="/avatar.png"
-                alt="Avatar"
+                src={user?.img || "/avatar.png"}
+                alt={user?.name || user?.username || "Avatar"}
                 width={34}
                 height={34}
-                className="rounded-full ring-2 ring-[#707E94] shrink-0"
+                className="w-8 h-8 rounded-full ring-2 ring-[#707E94] shrink-0 object-cover"
               />
               <div className="min-w-0 flex-1 text-left">
                 <p className="text-xs font-bold text-gray-900 dark:text-white truncate">

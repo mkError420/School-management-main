@@ -4,8 +4,14 @@ require_once __DIR__ . '/../utils/StudentIdGenerator.php';
 $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Get request data
-$input = json_decode(file_get_contents('php://input'), true);
+// Ensure admins schema has necessary columns
+ensureAdminsSchema($db);
+
+// Get request data (support JSON and multipart/form-data)
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+if (empty($input) && !empty($_POST)) {
+    $input = $_POST;
+}
 
 switch ($method) {
     case 'POST':
@@ -23,6 +29,9 @@ switch ($method) {
                 break;
             case 'change-password':
                 handleChangePassword($db, $input);
+                break;
+            case 'update-profile-image':
+                handleUpdateProfileImage($db, $input);
                 break;
             default:
                 Response::error('Invalid action', 400);
@@ -422,4 +431,310 @@ function handleGetCurrentUser($db) {
         'user' => $userData,
         'role' => $user['role']
     ]);
+}
+
+/**
+ * Ensure admins schema has necessary columns (dashboard_sections, img, name)
+ */
+function ensureAdminsSchema($db) {
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'dashboard_sections'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN dashboard_sections TEXT NULL");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'img'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN img VARCHAR(255) NULL AFTER email");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'name'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN name VARCHAR(255) NULL AFTER username");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $db->query("ALTER TABLE admins MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'admin'");
+    } catch (Exception $e) {}
+}
+
+/**
+ * Handle changing/updating or removing login profile image for any role
+ */
+function handleUpdateProfileImage($db, $input) {
+    $user = AuthMiddleware::authenticate();
+
+    $role = $user['role'] ?? 'admin';
+    $userId = $user['user_id'] ?? '';
+
+    if (empty($userId)) {
+        Response::error('User ID not found in token', 400);
+    }
+
+    // Role table mapping
+    $tables = [
+        'admin'       => 'admins',
+        'super_admin' => 'admins',
+        'teacher'     => 'teachers',
+        'student'     => 'students',
+        'parent'      => 'parents',
+    ];
+    $table = $tables[$role] ?? null;
+    if (!$table) {
+        Response::error('Invalid account role for profile image update', 400);
+    }
+
+    // Check if user is a simulated preview user
+    if (!empty($user['is_impersonating']) && str_ends_with($userId, '_preview_user')) {
+        $simulatedImg = !empty($input['img']) ? $input['img'] : '/images/avatar.png';
+        Response::success('Profile image updated (preview mode)', [
+            'img'  => $simulatedImg,
+            'user' => [
+                'id'       => $userId,
+                'username' => $user['username'] ?? $role,
+                'name'     => ucfirst($role) . ' Preview',
+                'role'     => $role,
+                'img'      => $simulatedImg,
+            ],
+        ]);
+        return;
+    }
+
+    // Ensure table has img column
+    ensureAdminsSchema($db);
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM {$table} LIKE 'img'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE {$table} ADD COLUMN img VARCHAR(255) NULL");
+        }
+    } catch (Exception $e) {}
+
+    // Check if user requested to remove photo
+    $isRemove = (!empty($input['action']) && $input['action'] === 'remove') ||
+                (!empty($input['remove']) && ($input['remove'] === true || $input['remove'] === 'true' || $input['remove'] === 1 || $input['remove'] === '1')) ||
+                (isset($input['img']) && trim($input['img']) === '');
+
+    if ($isRemove) {
+        // Fetch current image to delete file if it's a custom upload
+        $current = $db->fetchOne("SELECT img FROM {$table} WHERE id = ?", [$userId]);
+        if (!empty($current['img'])) {
+            deleteUploadedProfileImage($current['img']);
+        }
+
+        $db->update($table, ['img' => null], 'id = ?', [$userId]);
+
+        // Synchronize linked records
+        if ($role === 'teacher') {
+            @$db->query("UPDATE staff SET img = NULL WHERE teacher_id = ?", [$userId]);
+        } elseif ($role === 'student') {
+            @$db->query("UPDATE admissions SET img = NULL WHERE enrolled_student_id = ?", [$userId]);
+        } elseif (in_array($role, ['admin', 'super_admin'], true)) {
+            @$db->query("UPDATE staff SET img = NULL WHERE admin_id = ?", [$userId]);
+        }
+
+        $updatedUser = $db->fetchOne("SELECT * FROM {$table} WHERE id = ?", [$userId]);
+        if ($updatedUser) {
+            unset($updatedUser['password']);
+        }
+
+        Response::success('Profile image removed successfully', [
+            'img'  => null,
+            'user' => $updatedUser,
+        ]);
+        return;
+    }
+
+    $imageUrl = null;
+
+    // 1. Check $_FILES upload
+    $fileKey = !empty($_FILES['img']) ? 'img' : (!empty($_FILES['image']) ? 'image' : (!empty($_FILES['avatar']) ? 'avatar' : (!empty($_FILES['file']) ? 'file' : null)));
+
+    if ($fileKey && isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] !== UPLOAD_ERR_NO_FILE) {
+        $upload = $_FILES[$fileKey];
+
+        if ($upload['error'] !== UPLOAD_ERR_OK) {
+            Response::error('Image upload failed (code ' . $upload['error'] . ')', 400);
+        }
+
+        if ($upload['size'] > 5 * 1024 * 1024) {
+            Response::error('Image size must be 5 MB or smaller', 400);
+        }
+
+        $allowedMimes = [
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+            'image/gif'  => 'gif',
+        ];
+
+        $imageInfo = @getimagesize($upload['tmp_name']);
+        $mimeType = $imageInfo['mime'] ?? '';
+
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $detected = finfo_file($finfo, $upload['tmp_name']);
+                if ($detected) {
+                    $mimeType = $detected;
+                }
+                finfo_close($finfo);
+            }
+        }
+
+        $ext = strtolower(pathinfo($upload['name'] ?? '', PATHINFO_EXTENSION));
+        if (isset($allowedMimes[$mimeType])) {
+            $extension = $allowedMimes[$mimeType];
+        } elseif (in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true)) {
+            $extension = ($ext === 'jpeg') ? 'jpg' : $ext;
+        } else {
+            Response::error('Please choose a valid JPG, PNG, WebP, or GIF image', 400);
+        }
+
+        // Prepare storage directories
+        $root = dirname(__DIR__, 2);
+        $targetDirs = [];
+        if (is_dir($root . '/public/images')) {
+            $targetDirs[] = $root . '/public/images';
+        }
+        if (is_dir($root . '/images')) {
+            $targetDirs[] = $root . '/images';
+        }
+        if (is_dir($root . '/dist/images')) {
+            $targetDirs[] = $root . '/dist/images';
+        }
+        if (empty($targetDirs)) {
+            $targetDirs[] = $root . '/public/images';
+            @mkdir($root . '/public/images', 0755, true);
+        }
+
+        $sanitizedRole = preg_replace('/[^a-z0-9_-]/i', '', $role);
+        $sanitizedId = preg_replace('/[^a-z0-9_-]/i', '', (string)$userId);
+        $fileName = 'avatar_' . $sanitizedRole . '_' . $sanitizedId . '_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $extension;
+
+        $primaryDir = $targetDirs[0];
+        $primaryPath = $primaryDir . '/' . $fileName;
+
+        if (!move_uploaded_file($upload['tmp_name'], $primaryPath)) {
+            Response::serverError('Unable to save uploaded profile image');
+        }
+
+        // Mirror to secondary directories
+        for ($i = 1; $i < count($targetDirs); $i++) {
+            @copy($primaryPath, $targetDirs[$i] . '/' . $fileName);
+        }
+
+        $imageUrl = '/images/' . $fileName;
+    }
+    // 2. Check Base64 payload in input
+    elseif (!empty($input['img']) && strpos($input['img'], 'data:image/') === 0) {
+        $dataUri = $input['img'];
+        if (preg_match('/^data:image\/(\w+);base64,/', $dataUri, $matches)) {
+            $rawType = strtolower($matches[1]);
+            $base64Data = substr($dataUri, strpos($dataUri, ',') + 1);
+            $decoded = base64_decode($base64Data);
+
+            if ($decoded !== false && strlen($decoded) > 0) {
+                if (strlen($decoded) > 5 * 1024 * 1024) {
+                    Response::error('Image size must be 5 MB or smaller', 400);
+                }
+
+                $extension = ($rawType === 'jpeg') ? 'jpg' : ($rawType === 'svg+xml' ? 'svg' : $rawType);
+                if (!in_array($extension, ['jpg', 'png', 'webp', 'gif', 'svg'], true)) {
+                    $extension = 'png';
+                }
+
+                $root = dirname(__DIR__, 2);
+                $targetDirs = [];
+                if (is_dir($root . '/public/images')) {
+                    $targetDirs[] = $root . '/public/images';
+                }
+                if (is_dir($root . '/images')) {
+                    $targetDirs[] = $root . '/images';
+                }
+                if (is_dir($root . '/dist/images')) {
+                    $targetDirs[] = $root . '/dist/images';
+                }
+                if (empty($targetDirs)) {
+                    $targetDirs[] = $root . '/public/images';
+                    @mkdir($root . '/public/images', 0755, true);
+                }
+
+                $sanitizedRole = preg_replace('/[^a-z0-9_-]/i', '', $role);
+                $sanitizedId = preg_replace('/[^a-z0-9_-]/i', '', (string)$userId);
+                $fileName = 'avatar_' . $sanitizedRole . '_' . $sanitizedId . '_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $extension;
+
+                $primaryDir = $targetDirs[0];
+                $primaryPath = $primaryDir . '/' . $fileName;
+
+                if (file_put_contents($primaryPath, $decoded) !== false) {
+                    for ($i = 1; $i < count($targetDirs); $i++) {
+                        @copy($primaryPath, $targetDirs[$i] . '/' . $fileName);
+                    }
+                    $imageUrl = '/images/' . $fileName;
+                }
+            }
+        }
+    }
+    // 3. Check direct URL string
+    elseif (!empty($input['img']) || !empty($input['image_url'])) {
+        $rawUrl = trim($input['img'] ?? $input['image_url'] ?? '');
+        if (filter_var($rawUrl, FILTER_VALIDATE_URL) || strpos($rawUrl, '/images/') === 0 || strpos($rawUrl, '/uploads/') === 0) {
+            $imageUrl = $rawUrl;
+        }
+    }
+
+    if (!$imageUrl) {
+        Response::error('No valid image file or URL provided', 400);
+    }
+
+    // Delete previous custom avatar file if present
+    $current = $db->fetchOne("SELECT img FROM {$table} WHERE id = ?", [$userId]);
+    if (!empty($current['img']) && $current['img'] !== $imageUrl) {
+        deleteUploadedProfileImage($current['img']);
+    }
+
+    // Update the database
+    $db->update($table, ['img' => $imageUrl], 'id = ?', [$userId]);
+
+    // Synchronize linked records
+    if ($role === 'teacher') {
+        @$db->query("UPDATE staff SET img = ? WHERE teacher_id = ?", [$imageUrl, $userId]);
+    } elseif ($role === 'student') {
+        @$db->query("UPDATE admissions SET img = ? WHERE enrolled_student_id = ?", [$imageUrl, $userId]);
+    } elseif (in_array($role, ['admin', 'super_admin'], true)) {
+        @$db->query("UPDATE staff SET img = ? WHERE admin_id = ?", [$imageUrl, $userId]);
+    }
+
+    $updatedUser = $db->fetchOne("SELECT * FROM {$table} WHERE id = ?", [$userId]);
+    if ($updatedUser) {
+        unset($updatedUser['password']);
+    }
+
+    Response::success('Profile image updated successfully', [
+        'img'  => $imageUrl,
+        'user' => $updatedUser,
+    ]);
+}
+
+function deleteUploadedProfileImage($imagePath) {
+    if (!is_string($imagePath) || strpos($imagePath, '/images/avatar_') !== 0) {
+        return;
+    }
+    $root = dirname(__DIR__, 2);
+    $baseName = basename($imagePath);
+    $locations = [
+        $root . '/public/images/' . $baseName,
+        $root . '/images/' . $baseName,
+        $root . '/dist/images/' . $baseName,
+    ];
+    foreach ($locations as $loc) {
+        if (is_file($loc)) {
+            @unlink($loc);
+        }
+    }
 }

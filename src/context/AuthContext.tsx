@@ -25,6 +25,7 @@ export interface User {
   role: UserRole;
   email?: string;
   student_type?: string | null;
+  img?: string | null;
 }
 
 interface AuthContextType {
@@ -39,6 +40,8 @@ interface AuthContextType {
   logout: () => void;
   switchRole: (role: UserRole, targetUserId?: string) => Promise<{ success: boolean; message?: string }>;
   exitRolePreview: () => Promise<void>;
+  updateUserProfile: (updatedFields: Partial<User>) => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -53,18 +56,56 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   switchRole: async () => ({ success: false }),
   exitRolePreview: async () => {},
+  updateUserProfile: () => {},
+  refreshUser: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const stored = localStorage.getItem('school_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [token, setToken] = useState<string | null>(() => api.getToken());
-  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(api.getToken()));
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(api.getToken()) && !localStorage.getItem('school_user'));
   const [isImpersonating, setIsImpersonating] = useState<boolean>(
     () => localStorage.getItem('is_impersonating') === 'true'
   );
 
   const role: UserRole = user?.role || 'admin';
   const canManageWebsiteContent = isWebsiteContentSuperAdmin(user);
+
+  const refreshUser = async () => {
+    try {
+      const res = await api.getMe();
+      const authenticatedUser = res.data?.user;
+      if (res.success && authenticatedUser && res.data?.role) {
+        const mappedUser: User = {
+          id: authenticatedUser.id,
+          username: authenticatedUser.username,
+          name: authenticatedUser.name || (authenticatedUser.surname ? `${authenticatedUser.name || ''} ${authenticatedUser.surname}`.trim() : authenticatedUser.username),
+          role: res.data.role as UserRole,
+          email: authenticatedUser.email,
+          student_type: authenticatedUser.student_type || null,
+          img: authenticatedUser.img || null,
+        };
+        setUser(mappedUser);
+        localStorage.setItem('school_user', JSON.stringify(mappedUser));
+      }
+    } catch {}
+  };
+
+  const updateUserProfile = (updatedFields: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...updatedFields };
+      localStorage.setItem('school_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
 
   useEffect(() => {
     const savedToken = api.getToken();
@@ -86,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: res.data.role as UserRole,
           email: authenticatedUser.email,
           student_type: authenticatedUser.student_type || null,
+          img: authenticatedUser.img || null,
         });
       } else {
         api.setToken(null);
@@ -123,6 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (res.data.role as UserRole) || role || 'admin',
           email: res.data.user?.email || '',
           student_type: res.data.user?.student_type || null,
+          img: res.data.user?.img || null,
         };
         api.setToken(res.data.token);
         setToken(res.data.token);
@@ -158,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: targetRole,
           email: res.data.user?.email || '',
           student_type: res.data.user?.student_type || null,
+          img: res.data.user?.img || null,
         };
         setUser(switchedUser);
         const isImp = targetRole !== 'super_admin';
@@ -173,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: `${targetRole.toUpperCase()} Preview`,
           role: targetRole,
           email: `${targetRole}@school.edu.bd`,
+          img: null,
         };
         setUser(simulatedUser);
         const isImp = targetRole !== 'super_admin';
@@ -189,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: `${targetRole.toUpperCase()} Preview`,
         role: targetRole,
         email: `${targetRole}@school.edu.bd`,
+        img: null,
       };
       setUser(simulatedUser);
       const isImp = targetRole !== 'super_admin';
@@ -229,6 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: res.data.user.name,
             role: res.data.role as UserRole,
             email: res.data.user.email,
+            img: res.data.user.img || null,
           };
           setUser(restoredUser);
           localStorage.setItem('school_user', JSON.stringify(restoredUser));
@@ -262,6 +309,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         switchRole,
         exitRolePreview,
+        updateUserProfile,
+        refreshUser,
       }}
     >
       {children}

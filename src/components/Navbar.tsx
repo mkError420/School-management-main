@@ -136,13 +136,13 @@ const Navbar: React.FC = () => {
             </span>
           </div>
 
-          <Link to="/profile" title={user?.name || "My Profile"}>
+          <Link to="/profile" title={user?.name || "My Profile"} className="shrink-0 group">
             <Image
-              src="/avatar.png"
-              alt="Avatar"
-              width={32}
-              height={32}
-              className="rounded-full ring-2 ring-[#707E94] hover:opacity-90 transition shrink-0"
+              src={user?.img || "/avatar.png"}
+              alt={user?.name || user?.username || "Avatar"}
+              width={34}
+              height={34}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full ring-2 ring-[#707E94] hover:ring-indigo-500 object-cover hover:opacity-90 transition shrink-0 shadow-xs"
             />
           </Link>
           <button
