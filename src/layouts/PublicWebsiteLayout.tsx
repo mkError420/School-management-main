@@ -917,7 +917,7 @@ export const PublicWebsiteLayout: React.FC = () => {
                     {t(selectedNotice.category, selectedNotice.categoryEn) || (lang === "bn" ? "নোটিশ" : "Notice")}
                   </span>
                   <h3 className="mt-0.5 text-sm font-bold sm:text-base">
-                    {lang === "bn" ? "সরকারি নোটিশ পত্র" : "Official Notice Paper"}
+                    {lang === "bn" ? "নোটিশ পত্র" : "Notice Paper"}
                   </h3>
                 </div>
               </div>
@@ -1030,13 +1030,6 @@ export const PublicWebsiteLayout: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    <span>{lang === "bn" ? "প্রিন্ট করুন" : "Print"}</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => setSelectedNotice(null)}

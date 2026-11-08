@@ -808,66 +808,92 @@ export const PublicSchoolWebsite: React.FC = () => {
                 </div>
               </div>
 
-              {/* At a Glance Stats Grid (এক নজরে বিদ্যালয়) */}
+              {/* At a Glance Stats Ticker (এক নজরে বিদ্যালয়ের পরিসংখ্যান) */}
               <div className="mt-6 border-t border-[#eaf1ec] pt-5">
-                <h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
-                  এক নজরে বিদ্যালয়ের পরিসংখ্যান
-                </h4>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-                  {[
-                    {
-                      label: "মোট শিক্ষার্থী",
-                      value:
-                        liveCounts && typeof liveCounts.students === "number"
-                          ? formatDigits(liveCounts.students.toLocaleString())
-                          : content.studentCount || "১,৫০০+",
-                      icon: Users,
-                      color: "text-[#006a4e] bg-emerald-50",
-                    },
-                    {
-                      label: "শিক্ষকমণ্ডলী",
-                      value:
-                        liveCounts && typeof liveCounts.teachers === "number"
-                          ? formatDigits(liveCounts.teachers.toLocaleString())
-                          : content.teacherCount || "৫২",
-                      icon: GraduationCap,
-                      color: "text-blue-700 bg-blue-50",
-                    },
-                    {
-                      label: "কর্মচারীবৃন্দ",
-                      value:
-                        liveCounts && typeof liveCounts.staff === "number"
-                          ? formatDigits(liveCounts.staff.toLocaleString())
-                          : content.staffCount || "১৬",
-                      icon: HeartHandshake,
-                      color: "text-teal-700 bg-teal-50",
-                    },
-                    {
-                      label: "শ্রেণি কক্ষ",
-                      value:
-                        liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
-                          ? formatDigits(liveCounts.classes.toLocaleString())
-                          : content.classCount || "২৪",
-                      icon: BookOpen,
-                      color: "text-amber-700 bg-amber-50",
-                    },
-                    { label: "পাসের হার", value: content.passRate || "১০০%", icon: Award, color: "text-emerald-700 bg-emerald-50" },
-                    { label: "জিপিএ-৫", value: content.gpa5Count || "১২৫+", icon: CheckCircle2, color: "text-purple-700 bg-purple-50" },
-                  ].map((stat, i) => {
-                    const Icon = stat.icon;
-                    return (
-                      <div
-                        key={i}
-                        className="rounded-lg border border-[#e2ece5] bg-white p-3 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
-                      >
-                        <span className={`mx-auto mb-1 flex h-8 w-8 items-center justify-center rounded-full ${stat.color}`}>
-                          <Icon size={16} />
-                        </span>
-                        <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                        <p className="text-[11px] font-medium text-gray-600">{stat.label}</p>
-                      </div>
-                    );
-                  })}
+                <div className="mb-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-[#006a4e]" />
+                    </span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#006a4e]">
+                      এক নজরে বিদ্যালয়ের পরিসংখ্যান
+                    </h4>
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-500">
+                    টিকার (মাউস ধরলে থামবে)
+                  </span>
+                </div>
+
+                <div className="relative overflow-hidden rounded-lg border border-[#e2ece5] bg-[#fbfdfb] p-1.5 shadow-2xs">
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[#fbfdfb] to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[#fbfdfb] to-transparent" />
+
+                  <div
+                    className="animate-ticker-horizontal flex gap-2.5 sm:gap-3 items-center py-1"
+                    style={{ "--ticker-h-duration": "35s" } as React.CSSProperties}
+                  >
+                    {(() => {
+                      const baseStats = [
+                        {
+                          label: "মোট শিক্ষার্থী",
+                          value:
+                            liveCounts && typeof liveCounts.students === "number"
+                              ? formatDigits(liveCounts.students.toLocaleString())
+                              : content.studentCount || "১,৫০০+",
+                          icon: Users,
+                          color: "text-[#006a4e] bg-emerald-50",
+                        },
+                        {
+                          label: "শিক্ষকমণ্ডলী",
+                          value:
+                            liveCounts && typeof liveCounts.teachers === "number"
+                              ? formatDigits(liveCounts.teachers.toLocaleString())
+                              : content.teacherCount || "৫২",
+                          icon: GraduationCap,
+                          color: "text-blue-700 bg-blue-50",
+                        },
+                        {
+                          label: "কর্মচারীবৃন্দ",
+                          value:
+                            liveCounts && typeof liveCounts.staff === "number"
+                              ? formatDigits(liveCounts.staff.toLocaleString())
+                              : content.staffCount || "১৬",
+                          icon: HeartHandshake,
+                          color: "text-teal-700 bg-teal-50",
+                        },
+                        {
+                          label: "শ্রেণি কক্ষ",
+                          value:
+                            liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
+                              ? formatDigits(liveCounts.classes.toLocaleString())
+                              : content.classCount || "২৪",
+                          icon: BookOpen,
+                          color: "text-amber-700 bg-amber-50",
+                        },
+                        { label: "পাসের হার", value: content.passRate || "১০০%", icon: Award, color: "text-emerald-700 bg-emerald-50" },
+                        { label: "জিপিএ-৫", value: content.gpa5Count || "১২৫+", icon: CheckCircle2, color: "text-purple-700 bg-purple-50" },
+                      ];
+                      const half = [...baseStats, ...baseStats, ...baseStats];
+                      const items = [...half, ...half];
+
+                      return items.map((stat, i) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div
+                            key={i}
+                            className="min-w-[130px] sm:min-w-[155px] shrink-0 rounded-lg border border-[#e2ece5] bg-white p-2.5 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
+                          >
+                            <span className={`mx-auto mb-1 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full ${stat.color}`}>
+                              <Icon size={14} />
+                            </span>
+                            <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base leading-tight">{stat.value}</p>
+                            <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate mt-0.5">{stat.label}</p>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 </div>
               </div>
             </section>
@@ -1749,7 +1775,7 @@ export const PublicSchoolWebsite: React.FC = () => {
                   <span className="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-gray-950">
                     {selectedNotice.category || "নোটিশ"}
                   </span>
-                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">সরকারি নোটিশ পত্র</h3>
+                  <h3 className="mt-0.5 text-sm font-bold sm:text-base">নোটিশ পত্র</h3>
                 </div>
               </div>
               <button
@@ -1861,13 +1887,6 @@ export const PublicSchoolWebsite: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center gap-1.5 rounded border border-gray-300 px-3 py-1.5 font-semibold text-gray-700 hover:bg-gray-100"
-                  >
-                    <span>প্রিন্ট করুন</span>
-                  </button>
                   <button
                     type="button"
                     onClick={() => setSelectedNotice(null)}

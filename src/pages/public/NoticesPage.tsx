@@ -301,7 +301,7 @@ export const NoticesPage: React.FC = () => {
                     </span>
                   )}
                   <h3 className="text-sm font-bold sm:text-base">
-                    {t("সরকারি নোটিশ পত্র", "Official Notice Document")}
+                    {t("নোটিশ পত্র", "Notice Document")}
                   </h3>
                 </div>
               <button

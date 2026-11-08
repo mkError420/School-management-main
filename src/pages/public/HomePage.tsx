@@ -405,84 +405,112 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Stats Grid */}
+            {/* Stats Ticker (এক নজরে বিদ্যালয়ের পরিসংখ্যান) */}
             <div className="mt-6 border-t border-[#eaf1ec] pt-5">
-              <h4 className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
-                {lang === "bn" ? "এক নজরে বিদ্যালয়ের পরিসংখ্যান" : "School Statistics at a Glance"}
-              </h4>
-              <div className="grid grid-cols-3 gap-2 sm:gap-2.5 md:grid-cols-6">
-                {[
-                  {
-                    label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
-                    value:
-                      liveCounts && typeof liveCounts.students === "number"
-                        ? formatDigits(liveCounts.students.toLocaleString())
-                        : lang === "bn"
-                          ? (content.studentCount || "১,৫০০+")
-                          : (content.studentCountEn || "1,500+"),
-                    icon: Users,
-                    color: "text-[#006a4e] bg-emerald-50",
-                  },
-                  {
-                    label: lang === "bn" ? "শিক্ষকমণ্ডলী" : "Faculty",
-                    value:
-                      liveCounts && typeof liveCounts.teachers === "number"
-                        ? formatDigits(liveCounts.teachers.toLocaleString())
-                        : lang === "bn"
-                          ? (content.teacherCount || "৫২")
-                          : (content.teacherCountEn || "52"),
-                    icon: GraduationCap,
-                    color: "text-blue-700 bg-blue-50",
-                  },
-                  {
-                    label: lang === "bn" ? "কর্মচারীবৃন্দ" : "Staff",
-                    value:
-                      liveCounts && typeof liveCounts.staff === "number"
-                        ? formatDigits(liveCounts.staff.toLocaleString())
-                        : lang === "bn"
-                          ? (content.staffCount || "১৬")
-                          : (content.staffCountEn || "16"),
-                    icon: HeartHandshake,
-                    color: "text-teal-700 bg-teal-50",
-                  },
-                  {
-                    label: lang === "bn" ? "শ্রেণি কক্ষ" : "Classrooms",
-                    value:
-                      liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
-                        ? formatDigits(liveCounts.classes.toLocaleString())
-                        : lang === "bn"
-                          ? (content.classCount || "২৪")
-                          : (content.classCountEn || "24"),
-                    icon: BookOpen,
-                    color: "text-amber-700 bg-amber-50",
-                  },
-                  {
-                    label: lang === "bn" ? "পাসের হার" : "Pass Rate",
-                    value: lang === "bn" ? (content.passRate || "১০০%") : (content.passRateEn || "100%"),
-                    icon: Award,
-                    color: "text-emerald-700 bg-emerald-50",
-                  },
-                  {
-                    label: lang === "bn" ? "জিপিএ-৫" : "GPA-5",
-                    value: lang === "bn" ? (content.gpa5Count || "১২৫+") : (content.gpa5CountEn || "125+"),
-                    icon: CheckCircle2,
-                    color: "text-purple-700 bg-purple-50",
-                  },
-                ].map((stat, i) => {
-                  const Icon = stat.icon;
-                  return (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-[#e2ece5] bg-white p-2 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs sm:p-2.5"
-                    >
-                      <span className={`mx-auto mb-1 flex h-6 w-6 items-center justify-center rounded-full sm:h-7 sm:w-7 ${stat.color}`}>
-                        {Icon && <Icon size={13} className="sm:h-3.5 sm:w-3.5" />}
-                      </span>
-                      <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base">{stat.value}</p>
-                      <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate">{stat.label}</p>
-                    </div>
-                  );
-                })}
+              <div className="mb-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#006a4e]" />
+                  </span>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#006a4e]">
+                    {lang === "bn" ? "এক নজরে বিদ্যালয়ের পরিসংখ্যান" : "School Statistics at a Glance"}
+                  </h4>
+                </div>
+                <span className="text-[10px] font-medium text-gray-500">
+                  {lang === "bn" ? "টিকার (মাউস ধরলে থামবে)" : "Ticker (Hover to pause)"}
+                </span>
+              </div>
+
+              {/* Infinite Horizontal News Ticker Viewport */}
+              <div className="relative overflow-hidden rounded-lg border border-[#e2ece5] bg-[#fbfdfb] p-1.5 shadow-2xs">
+                {/* Fade edges */}
+                <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[#fbfdfb] to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[#fbfdfb] to-transparent" />
+
+                <div
+                  className="animate-ticker-horizontal flex gap-2.5 sm:gap-3 items-center py-1"
+                  style={{ "--ticker-h-duration": "35s" } as React.CSSProperties}
+                >
+                  {(() => {
+                    const baseStats = [
+                      {
+                        label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
+                        value:
+                          liveCounts && typeof liveCounts.students === "number"
+                            ? formatDigits(liveCounts.students.toLocaleString())
+                            : lang === "bn"
+                              ? (content.studentCount || "১,৫০০+")
+                              : (content.studentCountEn || "1,500+"),
+                        icon: Users,
+                        color: "text-[#006a4e] bg-emerald-50",
+                      },
+                      {
+                        label: lang === "bn" ? "শিক্ষকমণ্ডলী" : "Faculty",
+                        value:
+                          liveCounts && typeof liveCounts.teachers === "number"
+                            ? formatDigits(liveCounts.teachers.toLocaleString())
+                            : lang === "bn"
+                              ? (content.teacherCount || "৫২")
+                              : (content.teacherCountEn || "52"),
+                        icon: GraduationCap,
+                        color: "text-blue-700 bg-blue-50",
+                      },
+                      {
+                        label: lang === "bn" ? "কর্মচারীবৃন্দ" : "Staff",
+                        value:
+                          liveCounts && typeof liveCounts.staff === "number"
+                            ? formatDigits(liveCounts.staff.toLocaleString())
+                            : lang === "bn"
+                              ? (content.staffCount || "১৬")
+                              : (content.staffCountEn || "16"),
+                        icon: HeartHandshake,
+                        color: "text-teal-700 bg-teal-50",
+                      },
+                      {
+                        label: lang === "bn" ? "শ্রেণি কক্ষ" : "Classrooms",
+                        value:
+                          liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
+                            ? formatDigits(liveCounts.classes.toLocaleString())
+                            : lang === "bn"
+                              ? (content.classCount || "২৪")
+                              : (content.classCountEn || "24"),
+                        icon: BookOpen,
+                        color: "text-amber-700 bg-amber-50",
+                      },
+                      {
+                        label: lang === "bn" ? "পাসের হার" : "Pass Rate",
+                        value: lang === "bn" ? (content.passRate || "১০০%") : (content.passRateEn || "100%"),
+                        icon: Award,
+                        color: "text-emerald-700 bg-emerald-50",
+                      },
+                      {
+                        label: lang === "bn" ? "জিপিএ-৫" : "GPA-5",
+                        value: lang === "bn" ? (content.gpa5Count || "১২৫+") : (content.gpa5CountEn || "125+"),
+                        icon: CheckCircle2,
+                        color: "text-purple-700 bg-purple-50",
+                      },
+                    ];
+                    const half = [...baseStats, ...baseStats, ...baseStats];
+                    const items = [...half, ...half];
+
+                    return items.map((stat, i) => {
+                      const Icon = stat.icon;
+                      return (
+                        <div
+                          key={i}
+                          className="min-w-[130px] sm:min-w-[155px] shrink-0 rounded-lg border border-[#e2ece5] bg-white p-2.5 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
+                        >
+                          <span className={`mx-auto mb-1 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full ${stat.color}`}>
+                            {Icon && <Icon size={13} className="sm:h-3.5 sm:w-3.5" />}
+                          </span>
+                          <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base leading-tight">{stat.value}</p>
+                          <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate mt-0.5">{stat.label}</p>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
               </div>
             </div>
           </section>
@@ -1218,7 +1246,7 @@ export const HomePage: React.FC = () => {
                     {t(selectedNotice.category, selectedNotice.categoryEn) || (lang === "bn" ? "নোটিশ" : "Notice")}
                   </span>
                   <h3 className="mt-0.5 text-sm font-bold sm:text-base">
-                    {lang === "bn" ? "সরকারি নোটিশ পত্র" : "Official Notice Paper"}
+                    {lang === "bn" ? "নোটিশ পত্র" : "Notice Paper"}
                   </h3>
                 </div>
               </div>
