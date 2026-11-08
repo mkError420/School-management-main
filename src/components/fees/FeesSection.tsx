@@ -12,6 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Copy,
   CreditCard,
   Download,
   Eye,
@@ -222,6 +223,79 @@ export const FeesSection: React.FC = () => {
     transaction_ref: "",
     notes: "",
   });
+
+  // Class Due Defaulter Register & Report States
+  const [dueClassFilter, setDueClassFilter] = useState<string>("ALL");
+  const [dueRangeFilter, setDueRangeFilter] = useState<string>("ALL");
+  const [dueSearchText, setDueSearchText] = useState<string>("" );
+  const [dueViewMode, setDueViewMode] = useState<"STUDENT_LIST" | "OVERVIEW">("STUDENT_LIST");
+  const [smsModalData, setSmsModalData] = useState<{
+    open: boolean;
+    student: any;
+    dueAmount: number;
+    feeTitles: string[];
+    phone: string;
+    msg: string;
+  } | null>(null);
+  const [bulkSmsModal, setBulkSmsModal] = useState<{
+    open: boolean;
+    className: string;
+    count: number;
+    totalDue: number;
+    template: string;
+  } | null>(null);
+
+  // Open Add/Edit Category Modal with pre-filled form state
+  const handleOpenCategoryModal = (mode: "create" | "edit", cat?: FeeCategory) => {
+    if (mode === "edit" && cat) {
+      setCategoryForm({
+        name: cat.name || "",
+        code: cat.code || "",
+        default_amount: Number(cat.default_amount || 0),
+        frequency: cat.frequency || "MONTHLY",
+        status: cat.status || "ACTIVE",
+        category_group: cat.category_group || "TUITION",
+        description: cat.description || "",
+      });
+      setCategoryModal({ open: true, mode: "edit", data: cat });
+    } else {
+      setCategoryForm({
+        name: "",
+        code: "",
+        default_amount: 500,
+        frequency: "MONTHLY",
+        status: "ACTIVE",
+        category_group: "TUITION",
+        description: "",
+      });
+      setCategoryModal({ open: true, mode: "create", data: null });
+    }
+  };
+
+  // Sync categoryForm if categoryModal state changes
+  useEffect(() => {
+    if (categoryModal.open && categoryModal.mode === "edit" && categoryModal.data) {
+      setCategoryForm({
+        name: categoryModal.data.name || "",
+        code: categoryModal.data.code || "",
+        default_amount: Number(categoryModal.data.default_amount || 0),
+        frequency: categoryModal.data.frequency || "MONTHLY",
+        status: categoryModal.data.status || "ACTIVE",
+        category_group: categoryModal.data.category_group || "TUITION",
+        description: categoryModal.data.description || "",
+      });
+    }
+  }, [categoryModal.open, categoryModal.mode, categoryModal.data]);
+
+  // Delete Category
+  const handleDeleteCategory = (catId: number, catName: string) => {
+    if (window.confirm(`আপনি কি নিশ্চিত যে "${catName}" ফি খাতটি মুছে ফেলতে চান?`)) {
+      const updated = categories.filter((c) => c.id !== catId);
+      setCategories(updated);
+      syncToLocalStorage(invoices, payments, updated);
+      showToast("success", `"${catName}" ফি খাত সফলভাবে মুছে ফেলা হয়েছে`);
+    }
+  };
 
   // Toast Notification
   const showToast = (type: "success" | "error", message: string) => {
@@ -1040,7 +1114,57 @@ export const FeesSection: React.FC = () => {
     setReceiptData(slipDoc);
   };
 
-  // Class-wise Due Summary
+  // Print voucher from any payment record in Daily Register
+  const openReceiptFromPayment = (p: FeePayment) => {
+    const relatedInv = invoices.find(
+      (inv) => inv.id === p.invoice_id || (p.invoice_no && inv.invoice_no === p.invoice_no)
+    );
+
+    const net = relatedInv
+      ? Number(relatedInv.net_amount ?? (Number(relatedInv.amount) - Number(relatedInv.discount || 0)))
+      : p.amount;
+
+    const rawTitle = p.invoice_title || relatedInv?.title || p.category_name || "একাডেমিক ফি";
+    const cleanedTitle = cleanFeeTitle(rawTitle);
+
+    const feeItems = relatedInv?.fee_items && relatedInv.fee_items.length > 0
+      ? relatedInv.fee_items
+      : parseFeeItems(cleanedTitle, relatedInv?.amount || p.amount);
+
+    const slipDoc: FeeReceiptData = {
+      id: p.id,
+      receipt_no: p.receipt_no,
+      invoice_id: p.invoice_id,
+      invoice_no: p.invoice_no || relatedInv?.invoice_no || "INV-001",
+      invoice_title: cleanedTitle,
+      category_name: cleanFeeTitle(p.category_name || relatedInv?.category_name),
+      student_id: p.student_id,
+      student_name: p.student_name,
+      student_surname: p.student_surname,
+      student_roll: p.student_roll || relatedInv?.student_roll,
+      student_phone: (p as any).student_phone || relatedInv?.student_phone,
+      student_email: (p as any).student_email || relatedInv?.student_email,
+      class_name: p.class_name || relatedInv?.class_name,
+      section_name: p.section_name || relatedInv?.section_name,
+      amount: p.amount,
+      payment_method: p.payment_method,
+      payment_date: p.payment_date,
+      transaction_ref: p.transaction_ref,
+      invoice_amount: relatedInv?.amount || p.amount,
+      discount: relatedInv?.discount || 0,
+      late_fine: p.late_fine || relatedInv?.late_fine || 0,
+      total_paid: relatedInv?.paid_amount || p.amount,
+      net_amount: net,
+      remaining_due: relatedInv?.due_amount ?? 0,
+      due_date: relatedInv?.due_date || p.payment_date,
+      academic_year: relatedInv?.academic_year || "2026-2027",
+      notes: p.notes || relatedInv?.notes,
+      fee_items: feeItems,
+    };
+    setReceiptData(slipDoc);
+  };
+
+  // Class-wise Due Summary with full student details & fee particulars
   const classDueSummary = useMemo(() => {
     const map: Record<
       string,
@@ -1051,7 +1175,19 @@ export const FeesSection: React.FC = () => {
         total_paid: number;
         total_due: number;
         defaulters_count: number;
-        defaulter_students: Array<{ name: string; roll: string; due: number; phone: string }>;
+        defaulter_students: Array<{
+          id: string | number;
+          name: string;
+          roll: string;
+          due: number;
+          phone: string;
+          parent_name?: string;
+          parent_phone?: string;
+          class_name: string;
+          unpaid_invoices_count: number;
+          fee_titles: string[];
+          invoices: FeeInvoice[];
+        }>;
       }
     > = {};
 
@@ -1082,8 +1218,15 @@ export const FeesSection: React.FC = () => {
       }
       map[cName].students_count++;
 
-      const stInvs = invoices.filter((i) => String(i.student_id) === String(st.id));
+      const stInvs = invoices.filter(
+        (i) =>
+          String(i.student_id) === String(st.id) ||
+          (st.roll && i.student_roll && String(i.student_roll) === String(st.roll))
+      );
       let stDue = 0;
+      const unpaidInvoices: FeeInvoice[] = [];
+      const titlesSet = new Set<string>();
+
       stInvs.forEach((i) => {
         const billed = Number(i.amount || 0) - Number(i.discount || 0);
         const paid = Number(i.paid_amount || 0);
@@ -1091,22 +1234,199 @@ export const FeesSection: React.FC = () => {
         map[cName].total_billed += billed;
         map[cName].total_paid += paid;
         map[cName].total_due += due;
-        stDue += due;
+        if (due > 0) {
+          stDue += due;
+          unpaidInvoices.push(i);
+          const t = cleanFeeTitle(i.title || i.category_name || "একাডেমিক ফি");
+          if (t) titlesSet.add(t);
+        }
       });
 
       if (stDue > 0) {
         map[cName].defaulters_count++;
         map[cName].defaulter_students.push({
+          id: st.id,
           name: [st.name, st.surname].filter(Boolean).join(" "),
           roll: st.roll || "—",
           due: stDue,
           phone: st.phone || "—",
+          parent_name: st.parent_name || (st as any).parent?.name || "—",
+          parent_phone: st.parent_phone || (st as any).parent?.phone || st.phone || "—",
+          class_name: cName,
+          unpaid_invoices_count: unpaidInvoices.length,
+          fee_titles: Array.from(titlesSet),
+          invoices: unpaidInvoices,
         });
       }
     });
 
     return Object.values(map);
   }, [classes, students, invoices]);
+
+  // All Defaulter Students Flattened
+  const allDefaulterStudents = useMemo(() => {
+    const list: Array<any> = [];
+    classDueSummary.forEach((cls) => {
+      cls.defaulter_students.forEach((st) => {
+        list.push(st);
+      });
+    });
+    return list;
+  }, [classDueSummary]);
+
+  // Filtered Defaulter Students for Register Table
+  const filteredDefaulterStudents = useMemo(() => {
+    let result = allDefaulterStudents;
+
+    // Filter by Class
+    if (dueClassFilter !== "ALL") {
+      result = result.filter((st) => st.class_name === dueClassFilter);
+    }
+
+    // Filter by Due Range
+    if (dueRangeFilter === "GT_500") {
+      result = result.filter((st) => st.due >= 500);
+    } else if (dueRangeFilter === "GT_1000") {
+      result = result.filter((st) => st.due >= 1000);
+    } else if (dueRangeFilter === "GT_2000") {
+      result = result.filter((st) => st.due >= 2000);
+    } else if (dueRangeFilter === "GT_5000") {
+      result = result.filter((st) => st.due >= 5000);
+    }
+
+    // Filter by Search Text (Name, Roll, Phone, Class)
+    if (dueSearchText.trim()) {
+      const q = dueSearchText.trim().toLowerCase();
+      result = result.filter(
+        (st) =>
+          st.name.toLowerCase().includes(q) ||
+          String(st.roll).toLowerCase().includes(q) ||
+          String(st.phone).includes(q) ||
+          String(st.parent_phone).includes(q) ||
+          st.class_name.toLowerCase().includes(q)
+      );
+    }
+
+    // Sort by Roll (numeric) then name
+    return [...result].sort((a, b) => {
+      const numA = parseInt(a.roll, 10);
+      const numB = parseInt(b.roll, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.name.localeCompare(b.name);
+    });
+  }, [allDefaulterStudents, dueClassFilter, dueRangeFilter, dueSearchText]);
+
+  // Analytics KPIs for Due Register
+  const totalStudentsCount = useMemo(() => {
+    return classDueSummary.reduce((acc, c) => acc + c.students_count, 0);
+  }, [classDueSummary]);
+
+  const totalDefaultersCount = useMemo(() => {
+    return allDefaulterStudents.length;
+  }, [allDefaulterStudents]);
+
+  const totalSystemBilled = useMemo(() => {
+    return classDueSummary.reduce((acc, c) => acc + c.total_billed, 0);
+  }, [classDueSummary]);
+
+  const totalSystemPaid = useMemo(() => {
+    return classDueSummary.reduce((acc, c) => acc + c.total_paid, 0);
+  }, [classDueSummary]);
+
+  const totalSystemDue = useMemo(() => {
+    return classDueSummary.reduce((acc, c) => acc + c.total_due, 0);
+  }, [classDueSummary]);
+
+  const totalFilteredDue = useMemo(() => {
+    return filteredDefaulterStudents.reduce((acc, s) => acc + Number(s.due || 0), 0);
+  }, [filteredDefaulterStudents]);
+
+  const systemCollectionRate = useMemo(() => {
+    return totalSystemBilled > 0 ? Math.round((totalSystemPaid / totalSystemBilled) * 100) : 0;
+  }, [totalSystemBilled, totalSystemPaid]);
+
+  // SMS Modal Handler
+  const handleOpenSmsModal = (st: any) => {
+    const school = siteName || "এম. কে. মডেল উচ্চ বিদ্যালয়";
+    const phone = st.parent_phone !== "—" ? st.parent_phone : st.phone !== "—" ? st.phone : "";
+    const msg = `সম্মানিত অভিভাবক, ${school}-এর শিক্ষার্থী ${st.name} (শ্রেণি: ${st.class_name || "General"}, রোল: ${st.roll || "—"})-এর সর্বমোট বকেয়া ফি ৳${Number(st.due).toLocaleString()}। বকেয়া খাত: ${st.fee_titles?.slice(0, 2).join(", ") || "একাডেমিক ফি"}। অনুগ্রহ করে দ্রুত বিদ্যালয়ে বকেয়া পরিশোধ করুন। ধন্যবাদ।`;
+
+    setSmsModalData({
+      open: true,
+      student: st,
+      dueAmount: st.due,
+      feeTitles: st.fee_titles || [],
+      phone,
+      msg,
+    });
+  };
+
+  // Bulk SMS Modal Handler
+  const handleOpenBulkSmsModal = () => {
+    const school = siteName || "এম. কে. মডেল উচ্চ বিদ্যালয়";
+    const template = `সম্মানিত অভিভাবক, ${school}-এর শিক্ষার্থী [নাম] (শ্রেণি: [শ্রেণি], রোল: [রোল])-এর সর্বমোট বকেয়া ফি ৳[টাকা]। বকেয়া পরিশোধের অনুরোধ রইল। ধন্যবাদ।`;
+    setBulkSmsModal({
+      open: true,
+      className: dueClassFilter === "ALL" ? "সকল শ্রেণি" : dueClassFilter,
+      count: filteredDefaulterStudents.length,
+      totalDue: totalFilteredDue,
+      template,
+    });
+  };
+
+  const handleSendBulkSms = () => {
+    if (!bulkSmsModal) return;
+    showToast(
+      "success",
+      `সফলভাবে ${bulkSmsModal.count} জন বকেয়াদার শিক্ষার্থীর অভিভাবককে বাল্ক তাগিদ এসএমএস পাঠানো হয়েছে!`
+    );
+    setBulkSmsModal(null);
+  };
+
+  // Export to Excel / CSV with UTF-8 BOM for Bengali support
+  const handleExportDueCsv = () => {
+    if (filteredDefaulterStudents.length === 0) {
+      showToast("error", "ডাউনলোড করার মত কোন বকেয়া শিক্ষার্থী রেকর্ড নেই");
+      return;
+    }
+
+    const rows = [
+      ["ক্রমিক নং", "রোল", "শিক্ষার্থীর নাম", "শ্রেণি", "অভিভাবক", "মোবাইল নম্বর", "বকেয়া খাতসমূহ", "বকেয়া টাকা (৳)"],
+      ...filteredDefaulterStudents.map((st, idx) => [
+        String(idx + 1),
+        st.roll || "—",
+        st.name,
+        st.class_name,
+        st.parent_name || "—",
+        st.parent_phone || st.phone || "—",
+        st.fee_titles.join(" + ") || "একাডেমিক ফি",
+        String(st.due),
+      ]),
+    ];
+
+    const csvContent = "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `class_due_report_${dueClassFilter}_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("success", "বকেয়া খতিয়ান সফলভাবে এক্সেল/CSV ফাইলে ডাউনলোড হয়েছে!");
+  };
+
+  // Jump to Counter with pre-loaded student
+  const handleGoToCounterForStudent = (stId: string | number) => {
+    const fullStudent = students.find((s) => String(s.id) === String(stId));
+    if (fullStudent) {
+      setSelectedStudent(fullStudent);
+      setActiveTab("quick_counter");
+      showToast("success", `${fullStudent.name} (রোল ${fullStudent.roll || "—"})-এর জন্য দ্রুত কাউন্টার ফি আদায় লোড হয়েছে`);
+    } else {
+      showToast("error", "শিক্ষার্থীর প্রোফাইল লোড করা যায়নি");
+    }
+  };
 
   // Daily Register Transactions
   const dailyFilteredPayments = useMemo(() => {
@@ -2039,7 +2359,7 @@ export const FeesSection: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={() => setCategoryModal({ open: true, mode: "create" })}
+              onClick={() => handleOpenCategoryModal("create")}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] transition cursor-pointer"
             >
               <Plus size={14} />
@@ -2074,11 +2394,19 @@ export const FeesSection: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setCategoryModal({ open: true, mode: "edit", data: cat })}
-                      className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-md transition"
-                      title="Edit Category"
+                      onClick={() => handleOpenCategoryModal("edit", cat)}
+                      className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
+                      title="ফি খাত পরিবর্তন করুন (Edit Category)"
                     >
                       <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                      title="ফি খাত মুছে ফেলুন (Delete Category)"
+                    >
+                      <Trash2 size={13} />
                     </button>
                   </div>
                 </div>
@@ -2093,67 +2421,456 @@ export const FeesSection: React.FC = () => {
       {/* ========================================================= */}
       {activeTab === "class_due_register" && (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+          {/* 1. Header Toolbar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
             <div>
-              <h3 className="font-bold text-slate-900 text-sm">শ্রেণিভিত্তিক বকেয়া তালিকা ও রিপোর্ট</h3>
-              <p className="text-xs text-slate-500">কোন শ্রেণিতে কত টাকা বকেয়া আছে এবং বকেয়াদার শিক্ষার্থীর সংখ্যা</p>
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span>শ্রেণিভিত্তিক বকেয়া তালিকা ও রিপোর্ট</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                  মোট {totalDefaultersCount} জন বকেয়াদার
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                সকল শ্রেণি ও শাখার বকেয়াদার শিক্ষার্থী খতিয়ান, স্বয়ংক্রিয় তাগিদ এসএমএস ও কালেকশন অটোমেশন
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition"
-            >
-              <Printer size={13} />
-              <span>বকেয়া শিট প্রিন্ট</span>
-            </button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDueViewMode("STUDENT_LIST")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                    dueViewMode === "STUDENT_LIST"
+                      ? "bg-white text-emerald-900 shadow-2xs font-bold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="বকেয়াদার শিক্ষার্থীর বিস্তারিত খতিয়ান তালিকা"
+                >
+                  <FileSpreadsheet size={13} />
+                  <span>শিক্ষার্থী খতিয়ান</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDueViewMode("OVERVIEW")}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded font-semibold transition cursor-pointer ${
+                    dueViewMode === "OVERVIEW"
+                      ? "bg-white text-emerald-900 shadow-2xs font-bold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="শ্রেণিভিত্তিক সারসংক্ষেপ কার্ড"
+                >
+                  <Layers size={13} />
+                  <span>শ্রেণি কার্ড</span>
+                </button>
+              </div>
+
+              {/* Bulk SMS Action */}
+              <button
+                type="button"
+                onClick={handleOpenBulkSmsModal}
+                disabled={filteredDefaulterStudents.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-sky-700 hover:bg-sky-800 text-white rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
+                title="ফিল্টারকৃত সকল বকেয়াদার শিক্ষার্থীর অভিভাবককে এসএমএস পাঠান"
+              >
+                <MessageSquare size={13} />
+                <span>বাল্ক এসএমএস তাগিদ</span>
+              </button>
+
+              {/* Export to CSV / Excel */}
+              <button
+                type="button"
+                onClick={handleExportDueCsv}
+                disabled={filteredDefaulterStudents.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
+                title="এক্সেল ও সিএসভি ফরম্যাটে ডাউনলোড করুন"
+              >
+                <Download size={13} />
+                <span>এক্সেল/CSV</span>
+              </button>
+
+              {/* Print Due Sheet */}
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition shadow-xs cursor-pointer"
+                title="অফিসিয়াল বকেয়া খতিয়ান শিট প্রিন্ট করুন"
+              >
+                <Printer size={13} />
+                <span>বকেয়া শিট প্রিন্ট</span>
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classDueSummary.map((cls) => {
-              const rate = cls.total_billed > 0 ? Math.round((cls.total_paid / cls.total_billed) * 100) : 0;
-              return (
-                <div key={cls.class_name} className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                    <h4 className="font-bold text-slate-900 text-sm">{cls.class_name}</h4>
-                    <span className="text-[11px] font-semibold text-slate-500">{cls.students_count} জন শিক্ষার্থী</span>
-                  </div>
+          {/* 2. Bangladeshi KPI Metric Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold flex items-center justify-between">
+                <span>সর্বমোট বকেয়া স্থিতি</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700">বকেয়া</span>
+              </span>
+              <span className="text-xl font-black text-rose-700 block mt-1">{fmt(totalSystemDue)}</span>
+              <span className="text-[10px] text-slate-500 mt-0.5 block">
+                {classDueSummary.filter((c) => c.total_due > 0).length}টি শ্রেণিতে বকেয়া স্থিতি বিদ্যমান
+              </span>
+            </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">মোট ধার্য ফি</span>
-                      <span className="font-bold text-slate-800">{fmt(cls.total_billed)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">আদায়কৃত ফি</span>
-                      <span className="font-bold text-emerald-700">{fmt(cls.total_paid)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়া টাকা</span>
-                      <span className="font-black text-rose-700">{fmt(cls.total_due)}</span>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়াদার সংখ্যা</span>
-                      <span className="font-bold text-slate-800">{cls.defaulters_count} জন</span>
-                    </div>
-                  </div>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold flex items-center justify-between">
+                <span>বকেয়াদার শিক্ষার্থী</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800">
+                  {totalStudentsCount > 0 ? Math.round((totalDefaultersCount / totalStudentsCount) * 100) : 0}% শিক্ষার্থী
+                </span>
+              </span>
+              <span className="text-xl font-black text-slate-900 block mt-1">{totalDefaultersCount} জন</span>
+              <span className="text-[10px] text-slate-500 mt-0.5 block">
+                মোট {totalStudentsCount} জন শিক্ষার্থীর মধ্যে
+              </span>
+            </div>
 
-                  {cls.defaulters_count > 0 && (
-                    <div className="pt-2 border-t border-slate-100">
-                      <div className="text-[10px] font-bold text-slate-500 uppercase mb-1">বকেয়া শিক্ষার্থী তালিকা:</div>
-                      <div className="space-y-1 max-h-28 overflow-y-auto text-[11px]">
-                        {cls.defaulter_students.map((st, i) => (
-                          <div key={i} className="flex justify-between items-center text-slate-700 bg-slate-50 p-1 rounded">
-                            <span className="truncate">রোল {st.roll}: {st.name}</span>
-                            <span className="font-bold text-rose-700 ml-2">{fmt(st.due)}</span>
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold flex items-center justify-between">
+                <span>মোট আদায়কৃত ফি</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800">
+                  {systemCollectionRate}% আদায়
+                </span>
+              </span>
+              <span className="text-xl font-black text-emerald-700 block mt-1">{fmt(totalSystemPaid)}</span>
+              <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                <div
+                  className="bg-emerald-600 h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(0, systemCollectionRate))}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-2xs">
+              <span className="text-[10px] text-slate-500 block uppercase font-bold flex items-center justify-between">
+                <span>নির্বাচিত ফিল্টারে বকেয়া</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700">
+                  {filteredDefaulterStudents.length} জন
+                </span>
+              </span>
+              <span className="text-xl font-black text-indigo-900 block mt-1">{fmt(totalFilteredDue)}</span>
+              <span className="text-[10px] text-slate-500 mt-0.5 block">
+                গড় বকেয়া: {fmt(filteredDefaulterStudents.length > 0 ? Math.round(totalFilteredDue / filteredDefaulterStudents.length) : 0)}
+              </span>
+            </div>
+          </div>
+
+          {/* 3. Filter & Search Controls */}
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[280px]">
+              {/* Class Filter */}
+              <div className="flex items-center gap-1.5">
+                <label className="text-[11px] font-bold text-slate-600 uppercase">শ্রেণি:</label>
+                <select
+                  value={dueClassFilter}
+                  onChange={(e) => setDueClassFilter(e.target.value)}
+                  className="p-1.5 border border-slate-200 rounded-lg text-xs bg-white font-semibold text-slate-800 cursor-pointer"
+                >
+                  <option value="ALL">সকল শ্রেণি ({allDefaulterStudents.length} জন বকেয়াদার)</option>
+                  {classDueSummary.map((c) => (
+                    <option key={c.class_name} value={c.class_name}>
+                      {c.class_name} ({c.defaulters_count} জন বকেয়াদার • {fmt(c.total_due)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Due Range Filter */}
+              <div className="flex items-center gap-1.5">
+                <label className="text-[11px] font-bold text-slate-600 uppercase">বকেয়ার মাত্রা:</label>
+                <select
+                  value={dueRangeFilter}
+                  onChange={(e) => setDueRangeFilter(e.target.value)}
+                  className="p-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium text-slate-800 cursor-pointer"
+                >
+                  <option value="ALL">সকল বকেয়া পরিমাপ</option>
+                  <option value="GT_500">৳৫০০ বা তার বেশি বকেয়া</option>
+                  <option value="GT_1000">৳১,০০০ বা তার বেশি বকেয়া</option>
+                  <option value="GT_2000">৳২,০০০ বা তার বেশি বকেয়া</option>
+                  <option value="GT_5000">৳৫,০০০ বা তার বেশি (দীর্ঘমেয়াদী)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Live Search */}
+            <div className="relative w-full sm:w-72">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={dueSearchText}
+                onChange={(e) => setDueSearchText(e.target.value)}
+                placeholder="রোল, নাম, শ্রেণি বা মোবাইল দিয়ে খুঁজুন..."
+                className="w-full pl-8 pr-7 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:outline-emerald-600 transition"
+              />
+              {dueSearchText && (
+                <button
+                  type="button"
+                  onClick={() => setDueSearchText("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 4. Main Body: Switch between Defaulter Roster and Class Overview */}
+          {dueViewMode === "STUDENT_LIST" ? (
+            /* ==================================================== */
+            /* VIEW 1: DETAILED BANGLADESHI DEFAULTERS REGISTER     */
+            /* ==================================================== */
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 text-xs text-slate-700">
+                <span className="font-bold flex items-center gap-1.5">
+                  <FileText size={14} className="text-emerald-700" />
+                  <span>বকেয়াদার শিক্ষার্থীর পূর্ণাঙ্গ খতিয়ান তালিকা ({filteredDefaulterStudents.length} জন)</span>
+                </span>
+                <span className="font-mono text-[11px] text-slate-500">
+                  সর্বমোট প্রদর্শিত বকেয়া: <strong className="text-rose-700">{fmt(totalFilteredDue)}</strong>
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100/80 text-slate-700 font-bold uppercase text-[10px] border-b border-slate-200">
+                      <th className="py-2.5 px-3 w-12 text-center">ক্র.নং</th>
+                      <th className="py-2.5 px-3 w-20">রোল</th>
+                      <th className="py-2.5 px-3">শিক্ষার্থীর নাম ও আইডি</th>
+                      <th className="py-2.5 px-3">শ্রেণি ও শাখা</th>
+                      <th className="py-2.5 px-3">অভিভাবক ও মোবাইল</th>
+                      <th className="py-2.5 px-3">বকেয়া খাতসমূহ</th>
+                      <th className="py-2.5 px-3 text-right">বকেয়া টাকা</th>
+                      <th className="py-2.5 px-3 text-right">স্বয়ংক্রিয় অ্যাকশন</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredDefaulterStudents.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="py-10 text-center text-slate-400">
+                          <CheckCircle2 size={32} className="mx-auto text-emerald-500 mb-2 opacity-70" />
+                          <div className="font-semibold text-slate-700">কোন বকেয়াদার শিক্ষার্থী পাওয়া যায়নি!</div>
+                          <div className="text-[11px] text-slate-500 mt-0.5">
+                            নির্বাচিত ফিল্টারে সকল শিক্ষার্থীর ফি পরিশোধিত আছে অথবা ফিল্টারটি পরিবর্তন করুন।
                           </div>
-                        ))}
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredDefaulterStudents.map((st, idx) => (
+                        <tr key={`${st.id}-${idx}`} className="hover:bg-slate-50/80 transition group">
+                          {/* SL */}
+                          <td className="py-3 px-3 text-center font-mono text-slate-400 text-[11px]">
+                            {idx + 1}
+                          </td>
+
+                          {/* Roll */}
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                              {st.roll || "—"}
+                            </span>
+                          </td>
+
+                          {/* Student Name */}
+                          <td className="py-3 px-3 font-semibold text-slate-900">
+                            <div className="font-bold text-slate-900 hover:text-emerald-800 transition">
+                              {st.name}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              আইডি: {st.id}
+                            </div>
+                          </td>
+
+                          {/* Class */}
+                          <td className="py-3 px-3 font-medium text-slate-800 whitespace-nowrap">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-900 border border-emerald-200">
+                              {st.class_name}
+                            </span>
+                          </td>
+
+                          {/* Guardian & Phone */}
+                          <td className="py-3 px-3 text-slate-700">
+                            <div className="font-medium text-slate-800 truncate max-w-[160px]">
+                              {st.parent_name || "অভিভাবক"}
+                            </div>
+                            <div className="text-[10px] text-slate-500 flex items-center gap-1 font-mono mt-0.5">
+                              <Phone size={10} className="text-slate-400 shrink-0" />
+                              <span>{st.parent_phone || st.phone || "—"}</span>
+                            </div>
+                          </td>
+
+                          {/* Fee Titles Particulars */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {st.unpaid_invoices_count > 1 && (
+                                <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                                  {st.unpaid_invoices_count}টি ইনভয়েস
+                                </span>
+                              )}
+                              <span
+                                className="text-slate-700 truncate max-w-[200px] text-[11px]"
+                                title={st.fee_titles.join(", ")}
+                              >
+                                {st.fee_titles.slice(0, 2).join(" • ") || "একাডেমিক ফি"}
+                                {st.fee_titles.length > 2 ? ` (+${st.fee_titles.length - 2}টি খাত)` : ""}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Total Due */}
+                          <td className="py-3 px-3 text-right font-black text-rose-700 text-sm whitespace-nowrap">
+                            {fmt(st.due)}
+                          </td>
+
+                          {/* Action Buttons: 1-Click Counter, SMS, Slip */}
+                          <td className="py-3 px-3 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {/* 1-Click Counter Jump */}
+                              <button
+                                type="button"
+                                onClick={() => handleGoToCounterForStudent(st.id)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] shadow-2xs transition cursor-pointer"
+                                title="কাউন্টারে এই শিক্ষার্থীর ফি আদায় করুন"
+                              >
+                                <Wallet size={12} />
+                                <span>ফি আদায়</span>
+                              </button>
+
+                              {/* SMS Reminder */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenSmsModal(st)}
+                                className="p-1.5 rounded-lg text-xs font-semibold bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200 transition cursor-pointer"
+                                title="বকেয়া তাগিদ এসএমএস পাঠান"
+                              >
+                                <MessageSquare size={13} />
+                              </button>
+
+                              {/* View Slip/Invoice */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (st.invoices && st.invoices.length > 0) {
+                                    openReceiptFromInvoice(st.invoices[0]);
+                                  } else {
+                                    showToast("error", "কোন বকেয়া ইনভয়েস পাওয়া যায়নি");
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                                title="বকেয়া ভাউচার স্লিপ দেখুন"
+                              >
+                                <Eye size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            /* ==================================================== */
+            /* VIEW 2: CLASS-WISE OVERVIEW CARDS                   */
+            /* ==================================================== */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classDueSummary.map((cls) => {
+                const rate = cls.total_billed > 0 ? Math.round((cls.total_paid / cls.total_billed) * 100) : 0;
+                return (
+                  <div key={cls.class_name} className="bg-white rounded-xl border border-slate-200/90 shadow-xs p-4 space-y-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <h4 className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                          <GraduationCap size={15} className="text-emerald-700" />
+                          <span>{cls.class_name}</span>
+                        </h4>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {cls.students_count} জন শিক্ষার্থী
+                        </span>
+                      </div>
+
+                      {/* Collection Rate Progress */}
+                      <div className="pt-2">
+                        <div className="flex justify-between text-[11px] font-bold text-slate-600 mb-1">
+                          <span>আদায়ের অগ্রগতি</span>
+                          <span className={rate >= 80 ? "text-emerald-700" : rate >= 50 ? "text-amber-700" : "text-rose-700"}>
+                            {rate}% সম্পন্ন
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-1.5 rounded-full transition-all duration-500 ${
+                              rate >= 80 ? "bg-emerald-600" : rate >= 50 ? "bg-amber-500" : "bg-rose-500"
+                            }`}
+                            style={{ width: `${Math.min(100, Math.max(0, rate))}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs pt-2">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block uppercase font-bold">মোট ধার্য ফি</span>
+                          <span className="font-bold text-slate-800">{fmt(cls.total_billed)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block uppercase font-bold">আদায়কৃত ফি</span>
+                          <span className="font-bold text-emerald-700">{fmt(cls.total_paid)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়া টাকা</span>
+                          <span className="font-black text-rose-700">{fmt(cls.total_due)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block uppercase font-bold">বকেয়াদার সংখ্যা</span>
+                          <span className="font-bold text-slate-800">{cls.defaulters_count} জন</span>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+
+                    {cls.defaulters_count > 0 && (
+                      <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                          <span>শীর্ষ বকেয়াদার শিক্ষার্থী:</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDueClassFilter(cls.class_name);
+                              setDueViewMode("STUDENT_LIST");
+                            }}
+                            className="text-emerald-800 hover:underline cursor-pointer"
+                          >
+                            সকল ({cls.defaulters_count}) দেখুন &rarr;
+                          </button>
+                        </div>
+                        <div className="space-y-1 max-h-32 overflow-y-auto text-[11px]">
+                          {cls.defaulter_students.slice(0, 4).map((st, i) => (
+                            <div key={i} className="flex justify-between items-center text-slate-700 bg-slate-50 p-1.5 rounded hover:bg-slate-100 transition">
+                              <span className="truncate">রোল {st.roll}: {st.name}</span>
+                              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                <span className="font-bold text-rose-700">{fmt(st.due)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleGoToCounterForStudent(st.id)}
+                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-700 text-white hover:bg-emerald-800 cursor-pointer"
+                                  title="কাউন্টারে আদায় করুন"
+                                >
+                                  আদায়
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -2217,34 +2934,86 @@ export const FeesSection: React.FC = () => {
                   <th className="py-2.5 px-3">মাধ্যম (Method)</th>
                   <th className="py-2.5 px-3">রেফারেন্স / TrxID</th>
                   <th className="py-2.5 px-3 text-right">আদায়কৃত টাকা</th>
+                  <th className="py-2.5 px-3 text-right">রসিদ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {dailyFilteredPayments.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-slate-400">
+                    <td colSpan={8} className="py-6 text-center text-slate-400">
                       নির্বাচিত তারিখে কোন পেমেন্ট রেকর্ড নেই
                     </td>
                   </tr>
                 ) : (
-                  dailyFilteredPayments.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/70">
-                      <td className="py-2.5 px-3 font-mono font-bold text-slate-800">#{p.receipt_no}</td>
-                      <td className="py-2.5 px-3 font-medium text-slate-900">
-                        {[p.student_name, p.student_surname].filter(Boolean).join(" ")}
-                        <span className="text-[10px] text-slate-500 block">রোল: {p.student_roll || "—"}</span>
-                      </td>
-                      <td className="py-2.5 px-3 font-medium text-slate-800">{p.class_name || "General"}</td>
-                      <td className="py-2.5 px-3 text-slate-700">{p.invoice_title || "একাডেমিক ফি"}</td>
-                      <td className="py-2.5 px-3 font-bold text-emerald-800 uppercase text-[10px]">
-                        {p.payment_method}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-slate-600 text-[11px]">
-                        {p.transaction_ref || "—"}
-                      </td>
-                      <td className="py-2.5 px-3 text-right font-black text-slate-900">{fmt(p.amount)}</td>
-                    </tr>
-                  ))
+                  dailyFilteredPayments.map((p) => {
+                    const relatedInv = invoices.find(
+                      (inv) => inv.id === p.invoice_id || (p.invoice_no && inv.invoice_no === p.invoice_no)
+                    );
+                    const rawTitle = p.invoice_title || relatedInv?.title || p.category_name || "একাডেমিক ফি";
+                    const title = cleanFeeTitle(rawTitle);
+                    const items = relatedInv?.fee_items && relatedInv.fee_items.length > 0
+                      ? relatedInv.fee_items
+                      : parseFeeItems(title, relatedInv?.amount || p.amount);
+
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/70 transition">
+                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">#{p.receipt_no}</td>
+                        <td className="py-2.5 px-3 font-medium text-slate-900">
+                          <div className="font-bold text-slate-900">
+                            {[p.student_name, p.student_surname].filter(Boolean).join(" ") || "Student"}
+                          </div>
+                          <span className="text-[10px] text-slate-500 block">রোল: {p.student_roll || "—"}</span>
+                        </td>
+                        <td className="py-2.5 px-3 font-medium text-slate-800">{p.class_name || "General"}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="font-semibold text-slate-800 truncate max-w-[260px]" title={title}>
+                            {title}
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {items && items.length > 1 && (
+                              <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                {items.length}টি খাত
+                              </span>
+                            )}
+                            {p.invoice_no && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                #{p.invoice_no}
+                              </span>
+                            )}
+                            {items && items.length > 0 && (
+                              <span
+                                className="text-[10px] text-slate-500 truncate max-w-[200px]"
+                                title={items.map((it) => `${it.name} (${fmt(it.amount)})`).join(", ")}
+                              >
+                                {items.map((it) => it.name).join(" • ")}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 font-bold text-emerald-800 uppercase text-[10px]">
+                          {p.payment_method === "BKASH" ? "bKash" :
+                           p.payment_method === "NAGAD" ? "Nagad" :
+                           p.payment_method === "ROCKET" ? "Rocket" :
+                           p.payment_method === "BANK_TRANSFER" ? "Bank" :
+                           String(p.payment_method || "CASH").replace("_", " ")}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-slate-600 text-[11px]">
+                          {p.transaction_ref || "—"}
+                        </td>
+                        <td className="py-2.5 px-3 text-right font-black text-slate-900">{fmt(p.amount)}</td>
+                        <td className="py-2.5 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => openReceiptFromPayment(p)}
+                            className="p-1.5 text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 rounded-md transition cursor-pointer"
+                            title="মানি রসিদ দেখুন ও প্রিন্ট করুন (View / Print Receipt)"
+                          >
+                            <Printer size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -2601,20 +3370,36 @@ export const FeesSection: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
-                  আদায়ের সময়কাল (Frequency)
-                </label>
-                <select
-                  value={categoryForm.frequency}
-                  onChange={(e) => setCategoryForm({ ...categoryForm, frequency: e.target.value as any })}
-                  className="w-full p-2 border border-slate-200 rounded-lg bg-white"
-                >
-                  <option value="MONTHLY">মাসিক (Monthly)</option>
-                  <option value="TERMLY">সাময়িক / টার্ম (Termly)</option>
-                  <option value="ANNUALLY">বাৎসরিক (Annually)</option>
-                  <option value="ONE_TIME">এককালীন (One Time)</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    আদায়ের সময়কাল (Frequency)
+                  </label>
+                  <select
+                    value={categoryForm.frequency}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, frequency: e.target.value as any })}
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white"
+                  >
+                    <option value="MONTHLY">মাসিক (Monthly)</option>
+                    <option value="TERMLY">সাময়িক / টার্ম (Termly)</option>
+                    <option value="ANNUALLY">বাৎসরিক (Annually)</option>
+                    <option value="ONE_TIME">এককালীন (One Time)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                    অবস্থা (Status)
+                  </label>
+                  <select
+                    value={categoryForm.status}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value as any })}
+                    className="w-full p-2 border border-slate-200 rounded-lg bg-white font-semibold"
+                  >
+                    <option value="ACTIVE">সক্রিয় (Active)</option>
+                    <option value="INACTIVE">নিষ্ক্রিয় (Inactive)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -2635,35 +3420,303 @@ export const FeesSection: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCategoryModal({ open: false, mode: "create", data: null })}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 বাতিল
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (!categoryForm.name) {
+                onClick={async () => {
+                  if (!categoryForm.name.trim()) {
                     showToast("error", "খাতের নাম লিখুন");
                     return;
                   }
-                  const newCat: FeeCategory = {
-                    id: Date.now(),
-                    name: categoryForm.name,
-                    code: categoryForm.code || `FEE_${Date.now().toString().slice(-3)}`,
-                    default_amount: categoryForm.default_amount,
-                    frequency: categoryForm.frequency,
-                    status: "ACTIVE",
-                    description: categoryForm.description,
-                  };
-                  const updated = [...categories, newCat];
-                  setCategories(updated);
-                  syncToLocalStorage(invoices, payments, updated);
-                  setCategoryModal({ open: false, mode: "create", data: null });
-                  showToast("success", "ফি খাত সফলভাবে যোগ করা হয়েছে!");
+
+                  if (categoryModal.mode === "edit" && categoryModal.data) {
+                    const targetId = categoryModal.data.id;
+                    const updatedCategories = categories.map((c) =>
+                      c.id === targetId
+                        ? {
+                            ...c,
+                            name: categoryForm.name.trim(),
+                            code: categoryForm.code.trim() || c.code,
+                            default_amount: Number(categoryForm.default_amount || 0),
+                            frequency: categoryForm.frequency,
+                            status: categoryForm.status || "ACTIVE",
+                            description: categoryForm.description.trim(),
+                          }
+                        : c
+                    );
+
+                    try {
+                      await api.update("fee-categories", targetId, {
+                        name: categoryForm.name.trim(),
+                        code: categoryForm.code.trim(),
+                        default_amount: Number(categoryForm.default_amount || 0),
+                        frequency: categoryForm.frequency,
+                        status: categoryForm.status,
+                        description: categoryForm.description.trim(),
+                      });
+                    } catch (e) {
+                      console.warn("Updated category in local state and localStorage", e);
+                    }
+
+                    setCategories(updatedCategories);
+                    syncToLocalStorage(invoices, payments, updatedCategories);
+                    setCategoryModal({ open: false, mode: "create", data: null });
+                    showToast("success", `"${categoryForm.name}" ফি খাত সফলভাবে পরিবর্তন করা হয়েছে!`);
+                  } else {
+                    const newCat: FeeCategory = {
+                      id: Date.now(),
+                      name: categoryForm.name.trim(),
+                      code: categoryForm.code.trim() || `FEE_${Date.now().toString().slice(-4)}`,
+                      default_amount: Number(categoryForm.default_amount || 0),
+                      frequency: categoryForm.frequency,
+                      status: categoryForm.status || "ACTIVE",
+                      category_group: "TUITION",
+                      description: categoryForm.description.trim(),
+                    };
+
+                    try {
+                      await api.create("fee-categories", {
+                        name: newCat.name,
+                        code: newCat.code,
+                        default_amount: newCat.default_amount,
+                        frequency: newCat.frequency,
+                        status: newCat.status,
+                        description: newCat.description,
+                      });
+                    } catch (e) {
+                      console.warn("Created category in local state and localStorage", e);
+                    }
+
+                    const updated = [...categories, newCat];
+                    setCategories(updated);
+                    syncToLocalStorage(invoices, payments, updated);
+                    setCategoryModal({ open: false, mode: "create", data: null });
+                    showToast("success", `"${newCat.name}" নতুন ফি খাত সফলভাবে যোগ করা হয়েছে!`);
+                  }
                 }}
-                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732]"
+                className="px-5 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] cursor-pointer"
               >
-                সংরক্ষণ করুন
+                {categoryModal.mode === "edit" ? "আপডেট করুন" : "সংরক্ষণ করুন"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: SINGLE STUDENT SMS / WHATSAPP REMINDER             */}
+      {/* ========================================================= */}
+      {smsModalData && smsModalData.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <MessageSquare size={16} className="text-emerald-700" />
+                <span>তাগিদ নোটিশ ও এসএমএস রিমাইন্ডার (Fee Reminder Notice)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSmsModalData(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Student Info Card */}
+            <div className="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl text-xs space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-900 text-sm">
+                  {smsModalData.student?.name}
+                </span>
+                <span className="font-black text-rose-700 text-sm">
+                  বকেয়া: {fmt(smsModalData.dueAmount)}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600 flex-wrap">
+                <span>শ্রেণি: <strong>{smsModalData.student?.class_name}</strong></span>
+                <span>রোল: <strong>{smsModalData.student?.roll || "—"}</strong></span>
+                <span>অভিভাবক: <strong>{smsModalData.student?.parent_name || "—"}</strong></span>
+              </div>
+              {smsModalData.feeTitles && smsModalData.feeTitles.length > 0 && (
+                <div className="text-[11px] text-slate-500 pt-0.5">
+                  বকেয়া খাতসমূহ: {smsModalData.feeTitles.join(", ")}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  অভিভাবকের মোবাইল নম্বর (Guardian Phone)
+                </label>
+                <input
+                  type="text"
+                  value={smsModalData.phone}
+                  onChange={(e) => setSmsModalData({ ...smsModalData, phone: e.target.value })}
+                  placeholder="017XXXXXXXX"
+                  className="w-full p-2.5 border border-slate-200 rounded-lg font-mono font-semibold text-slate-900"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase">
+                    এসএমএস বার্তা (Bangla SMS Text)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {smsModalData.msg.length} অক্ষর ({Math.ceil(smsModalData.msg.length / 70)} SMS)
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={smsModalData.msg}
+                  onChange={(e) => setSmsModalData({ ...smsModalData, msg: e.target.value })}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-slate-800 leading-relaxed font-sans focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="p-2.5 bg-amber-50/70 border border-amber-200 rounded-lg text-[11px] text-amber-800 leading-normal flex items-start gap-2">
+                <AlertCircle size={14} className="shrink-0 mt-0.5 text-amber-600" />
+                <span>
+                  বাংলাদেশ টেলিকম বিটিআরসি (BTRC) নির্দেশিকা অনুযায়ী ইউনিকোড এসএমএসে বার্তা প্রেরিত হবে। অভিভাবকের ফোনে তাৎক্ষণিক নোটিফিকেশন পৌঁছে যাবে।
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-3 border-t border-slate-100 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                {/* WhatsApp Link */}
+                {smsModalData.phone && (
+                  <a
+                    href={`https://wa.me/88${smsModalData.phone.replace(/[^0-9]/g, "").slice(-11)}?text=${encodeURIComponent(smsModalData.msg)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-bold bg-[#25D366] text-white hover:bg-[#1ebd59] transition cursor-pointer"
+                    title="হোয়াটসঅ্যাপে পাঠান"
+                  >
+                    <span>WhatsApp</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(smsModalData.msg);
+                    showToast("success", "এসএমএস টেক্সট কপি করা হয়েছে!");
+                  }}
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                >
+                  <Copy size={13} />
+                  <span>কপি</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSmsModalData(null)}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  বাতিল
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    showToast(
+                      "success",
+                      `${smsModalData.student?.name}-এর অভিভাবকের নম্বরে (${smsModalData.phone || "ফোন"}) তাগিদ এসএমএস সফলভাবে পাঠানো হয়েছে!`
+                    );
+                    setSmsModalData(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>এসএমএস পাঠান</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: BULK SMS REMINDER FOR FILTERED CLASS               */}
+      {/* ========================================================= */}
+      {bulkSmsModal && bulkSmsModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Send size={16} className="text-emerald-700" />
+                <span>শ্রেণিভিত্তিক বাল্ক এসএমএস তাগিদ (Bulk Due Reminder SMS)</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setBulkSmsModal(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Campaign Summary */}
+            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-center">
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">শ্রেণি ফিল্টার</span>
+                <span className="text-xs font-bold text-slate-800">{bulkSmsModal.className}</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">মোট প্রাপক অভিভাবক</span>
+                <span className="text-xs font-bold text-emerald-700">{bulkSmsModal.count} জন</span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-500 uppercase font-bold block">সর্বমোট বকেয়া</span>
+                <span className="text-xs font-black text-rose-700">{fmt(bulkSmsModal.totalDue)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                  এসএমএস বার্তা টেমপ্লেট (Bangla Template)
+                </label>
+                <textarea
+                  rows={4}
+                  value={bulkSmsModal.template}
+                  onChange={(e) => setBulkSmsModal({ ...bulkSmsModal, template: e.target.value })}
+                  className="w-full p-2.5 border border-slate-200 rounded-lg text-slate-800 font-sans focus:ring-2 focus:ring-emerald-600 focus:outline-hidden"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  ট্যাগসমূহ: [নাম] = শিক্ষার্থীর নাম, [শ্রেণি] = শ্রেণি, [রোল] = রোল নম্বর, [টাকা] = নির্দিষ্ট বকেয়ার পরিমাণ।
+                </p>
+              </div>
+
+              <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-lg text-[11px] text-emerald-800 leading-normal flex items-start gap-2">
+                <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-700" />
+                <span>
+                  সিস্টেমে ইন্টিগ্রেটেড বাল্ক এসএমএস গেটওয়ে (Teletalk / GP / Robi / Infobip M-Gov) দিয়ে প্রত্যেকের ব্যক্তিগত বকেয়া পরিমাণ অনুযায়ী আলাদা আলাদা ডাইনামিক এসএমএস যাবে।
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setBulkSmsModal(null)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
+              >
+                বাতিল
+              </button>
+              <button
+                type="button"
+                onClick={handleSendBulkSms}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] shadow-sm cursor-pointer"
+              >
+                <Send size={13} />
+                <span>এক ক্লিকে সকল এসএমএস পাঠান ({bulkSmsModal.count}টি)</span>
               </button>
             </div>
           </div>
