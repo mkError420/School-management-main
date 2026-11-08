@@ -47,6 +47,7 @@ export interface AttendanceRecord {
   class_name?: string;
   teacher_name?: string;
   teacher_surname?: string;
+  session_year?: string;
   notes?: string;
 }
 
@@ -82,6 +83,7 @@ interface StudentItem {
   class_id?: number | string;
   class_name?: string;
   grade_level?: number | string;
+  session_year?: string;
 }
 
 // ─── Fallback Sample Data ───────────────────────────────────────────────────
@@ -133,6 +135,9 @@ export const AttendanceSection: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedSession, setSelectedSession] = useState<string>("all");
+  const [availableSessions, setAvailableSessions] = useState<string[]>(["2026-2027", "2027"]);
+  const [activeSession, setActiveSession] = useState<string>("2026-2027");
   const [datePreset, setDatePreset] = useState<"all" | "today" | "yesterday" | "week" | "month" | "custom">("all");
   const [customDate, setCustomDate] = useState<string>("");
 
@@ -280,12 +285,19 @@ export const AttendanceSection: React.FC = () => {
       if (selectedClass !== "all") params.class_id = selectedClass;
       if (selectedStudent !== "all") params.student_id = selectedStudent;
       if (selectedStatus !== "all") params.status = selectedStatus;
+      if (selectedSession !== "all") params.session_year = selectedSession;
 
       const res = await api.getAll("attendance", params);
 
       if (res?.success && res.data) {
         const rawList: AttendanceRecord[] = res.data.attendance || [];
         setRecords(rawList);
+        if (res.data.available_sessions && Array.isArray(res.data.available_sessions)) {
+          setAvailableSessions(res.data.available_sessions);
+        }
+        if (res.data.active_session) {
+          setActiveSession(res.data.active_session);
+        }
 
         if (res.data.pagination) {
           setTotalRecords(res.data.pagination.total || rawList.length);
@@ -350,7 +362,7 @@ export const AttendanceSection: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, limit, search, selectedClass, selectedStudent, selectedStatus, getDateFilterParams]);
+  }, [page, limit, search, selectedClass, selectedStudent, selectedStatus, selectedSession, getDateFilterParams]);
 
   useEffect(() => {
     fetchRecords();
@@ -359,7 +371,7 @@ export const AttendanceSection: React.FC = () => {
   // Reset to page 1 on filter changes
   useEffect(() => {
     setPage(1);
-  }, [search, selectedClass, selectedStudent, selectedStatus, datePreset, customDate]);
+  }, [search, selectedClass, selectedStudent, selectedStatus, selectedSession, datePreset, customDate]);
 
   // ─── Inline Status Toggle ──────────────────────────────────────────────────
 
@@ -577,7 +589,9 @@ export const AttendanceSection: React.FC = () => {
       const absent = total - present;
       const rate = total > 0 ? Math.round((present / total) * 100) : 0;
       const enrolledCount = allStudents.filter(
-        (s) => String(s.class_id) === String(c.id) || s.class_name === c.name
+        (s) =>
+          (String(s.class_id) === String(c.id) || s.class_name === c.name) &&
+          (selectedSession === "all" || !s.session_year || s.session_year === selectedSession)
       ).length;
 
       return {
@@ -589,7 +603,7 @@ export const AttendanceSection: React.FC = () => {
         enrolledCount,
       };
     });
-  }, [classes, records, allStudents]);
+  }, [classes, records, allStudents, selectedSession]);
 
 
 
@@ -632,6 +646,24 @@ export const AttendanceSection: React.FC = () => {
         </div>
 
         <div className="flex items-center flex-wrap gap-2.5">
+          {/* Academic Session Selector */}
+          <div className="flex items-center gap-1.5 bg-white dark:bg-gray-800 py-1.5 px-3 rounded-xl border border-emerald-300 dark:border-emerald-700/60 shadow-xs">
+            <GraduationCap size={15} className="text-[#006a4e] dark:text-emerald-300" />
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">সেশন:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => setSelectedSession(e.target.value)}
+              className="text-xs font-bold bg-transparent text-emerald-800 dark:text-emerald-300 focus:outline-hidden cursor-pointer"
+            >
+              <option value="all">সকল সেশন (All Sessions)</option>
+              {availableSessions.map((s) => (
+                <option key={s} value={s}>
+                  সেশন {s} {s === activeSession ? "★ (Active)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {(role === "admin" || role === "teacher") && (
             <button
               onClick={handleOpenAdd}
@@ -789,8 +821,10 @@ export const AttendanceSection: React.FC = () => {
           classes={classes}
           lessons={lessons}
           initialClassId={selectedClass !== "all" ? selectedClass : undefined}
+          initialSessionYear={selectedSession}
           role={role}
           onRefreshParent={fetchRecords}
+          onSessionChange={setSelectedSession}
         />
       )}
 

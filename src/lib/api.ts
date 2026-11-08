@@ -597,6 +597,7 @@ class ApiService {
     start_date?: string;
     end_date?: string;
     search?: string;
+    session_year?: string;
   } = {}) {
     return this.getAll('attendance', { action: 'spreadsheet', ...params });
   }
@@ -608,6 +609,7 @@ class ApiService {
     lesson_id?: number | string;
     class_id?: number | string;
     notes?: string;
+    session_year?: string;
   }) {
     return this.request('attendance', {
       method: 'POST',

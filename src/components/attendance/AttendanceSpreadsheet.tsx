@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   ChevronLeft,
@@ -34,6 +34,14 @@ export interface SpreadsheetStudent {
   img?: string;
   class_id?: number | string;
   class_name?: string;
+  session_year?: string;
+  status?: string;
+  is_promoted?: boolean | number;
+  promotion_status?: string;
+  previous_session?: string;
+  previous_class_name?: string;
+  previous_roll?: string;
+  is_history_record?: boolean | number;
 }
 
 export interface AttendanceCell {
@@ -60,16 +68,20 @@ interface AttendanceSpreadsheetProps {
   classes: Array<{ id: number | string; name: string }>;
   lessons: AttendanceLesson[];
   initialClassId?: string | number;
+  initialSessionYear?: string;
   role?: string;
   onRefreshParent?: () => void;
+  onSessionChange?: (session: string) => void;
 }
 
 export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
   classes,
   lessons,
   initialClassId,
+  initialSessionYear,
   role = "admin",
   onRefreshParent,
+  onSessionChange,
 }) => {
   // Current Month State (YYYY-MM)
   const today = useMemo(() => new Date(), []);
@@ -93,6 +105,22 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
   );
   const [selectedLessonId, setSelectedLessonId] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [selectedSession, setSelectedSession] = useState<string>(
+    initialSessionYear || "all"
+  );
+  const [availableSessions, setAvailableSessions] = useState<string[]>(["2026-2027", "2027"]);
+  const [activeSession, setActiveSession] = useState<string>("2026-2027");
+
+  useEffect(() => {
+    if (initialSessionYear) {
+      setSelectedSession(initialSessionYear);
+    }
+  }, [initialSessionYear]);
+
+  const handleSessionChange = (sess: string) => {
+    setSelectedSession(sess);
+    if (onSessionChange) onSessionChange(sess);
+  };
 
   // Data
   const [dates, setDates] = useState<SpreadsheetDate[]>([]);
@@ -138,6 +166,9 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
       const params: Record<string, any> = {
         month: selectedMonth,
       };
+      if (selectedSession && selectedSession !== "all") {
+        params.session_year = selectedSession;
+      }
       const selectedLesson = selectedLessonId === "all"
         ? undefined
         : lessons.find((lesson) => String(lesson.id) === selectedLessonId);
@@ -157,6 +188,12 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         setStudents(res.data.students || []);
         setMatrix(res.data.matrix || {});
         setLessonMatrix(res.data.lesson_matrix || {});
+        if (res.data.available_sessions && Array.isArray(res.data.available_sessions)) {
+          setAvailableSessions(res.data.available_sessions);
+        }
+        if (res.data.active_session) {
+          setActiveSession(res.data.active_session);
+        }
       } else {
         // Fallback local calendar generation if backend returned empty or offline
         generateFallbackDates(selectedMonth);
@@ -172,7 +209,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [lessons, selectedMonth, selectedClassId, selectedLessonId, search]);
+  }, [lessons, selectedMonth, selectedClassId, selectedLessonId, search, selectedSession]);
 
   const generateFallbackDates = (monthStr: string) => {
     const [y, m] = monthStr.split("-").map(Number);
@@ -290,29 +327,61 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
     }
   }, [availableLessons, selectedLessonId]);
 
-  const dailyLessonGroups = useMemo(() => availableLessons
-    .filter((lesson) => selectedLessonId === "all" || String(lesson.id) === selectedLessonId)
-    .map((lesson) => {
-      const lessonStudents = students.filter((student) => String(student.class_id) === String(lesson.class_id));
-      const className = lesson.class_name
-        || classes.find((item) => String(item.id) === String(lesson.class_id))?.name
-        || lessonStudents[0]?.class_name
-        || "Class";
-      return {
-        id: String(lesson.id),
-        lesson,
-        className,
-        subjectName: lesson.subject_name || lesson.name || "Subject",
-        students: lessonStudents,
-      };
-    })
-    .filter((group) => group.students.length > 0)
-    .sort((left, right) => {
+  const dailyLessonGroups = useMemo(() => {
+    const groups = availableLessons
+      .filter((lesson) => selectedLessonId === "all" || String(lesson.id) === selectedLessonId)
+      .map((lesson) => {
+        const lessonStudents = students.filter((student) => String(student.class_id) === String(lesson.class_id));
+        const className = lesson.class_name
+          || classes.find((item) => String(item.id) === String(lesson.class_id))?.name
+          || lessonStudents[0]?.class_name
+          || "Class";
+        return {
+          id: String(lesson.id),
+          lesson,
+          className,
+          subjectName: lesson.subject_name || lesson.name || "Subject",
+          students: lessonStudents,
+        };
+      })
+      .filter((group) => group.students.length > 0);
+
+    // Fallback: If students exist in the class roster but no lesson is configured for this class,
+    // generate a general daily roll call group so teachers can immediately take attendance!
+    if (groups.length === 0 && students.length > 0) {
+      const classMap = new Map<string, SpreadsheetStudent[]>();
+      students.forEach((st) => {
+        const cId = String(st.class_id || "general");
+        if (!classMap.has(cId)) classMap.set(cId, []);
+        classMap.get(cId)!.push(st);
+      });
+
+      classMap.forEach((stList, cId) => {
+        const cls = classes.find((item) => String(item.id) === cId);
+        const cName = cls?.name || stList[0]?.class_name || "General";
+        groups.push({
+          id: `class_${cId}`,
+          lesson: {
+            id: `gen_${cId}`,
+            name: `দৈনিক শ্রেণি রোল কল · Class ${cName}`,
+            subject_name: "সাধারণ হাজিরা",
+            class_id: cId,
+            class_name: cName,
+          },
+          className: cName,
+          subjectName: "দৈনিক শ্রেণি হাজিরা (Daily Roll Call)",
+          students: stList,
+        });
+      });
+    }
+
+    return groups.sort((left, right) => {
       const classOrder = classes.findIndex((item) => String(item.id) === String(left.lesson.class_id))
         - classes.findIndex((item) => String(item.id) === String(right.lesson.class_id));
       if (classOrder !== 0) return classOrder;
       return left.subjectName.localeCompare(right.subjectName) || left.lesson.name.localeCompare(right.lesson.name);
-    }), [availableLessons, classes, selectedLessonId, students]);
+    });
+  }, [availableLessons, classes, selectedLessonId, students]);
 
   const dailySummary = useMemo(() => {
     let present = 0;
@@ -399,6 +468,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           present: nextStatus ? 1 : 0,
           lesson_id: selectedLessonId,
           class_id: student?.class_id || (selectedClassId !== "all" ? selectedClassId : undefined),
+          session_year: student?.session_year || (selectedSession !== "all" ? selectedSession : undefined),
         });
         if (!response.success) throw new Error(response.message || "Failed to save attendance.");
       } else if (currentCell?.id) {
@@ -427,6 +497,7 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         present: present ? 1 : 0,
         lesson_id: lesson.id,
         class_id: student.class_id || undefined,
+        session_year: student.session_year || (selectedSession !== "all" ? selectedSession : undefined),
       });
       if (!response.success) throw new Error(response.message || "Failed to save attendance.");
       setMatrix((previous) => ({
@@ -506,11 +577,13 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         api.create("attendance", {
           date: dateStr,
           class_id: lesson.class_id,
+          session_year: selectedSession !== "all" ? selectedSession : undefined,
           batch: classStudents.map((student) => ({
             student_id: student.id,
             date: dateStr,
             present: markPresent ? 1 : 0,
             lesson_id: lesson.id,
+            session_year: student.session_year || (selectedSession !== "all" ? selectedSession : undefined),
           })),
         })
       ));
@@ -667,6 +740,23 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
         
         {/* Left: Class Selection & Live Search */}
         <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-[280px]">
+          {/* Academic Session Selector */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">সেশন:</span>
+            <select
+              value={selectedSession}
+              onChange={(e) => handleSessionChange(e.target.value)}
+              className="text-xs md:text-sm font-bold py-1.5 px-3 rounded-xl bg-slate-50 dark:bg-gray-900 border border-emerald-300 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 cursor-pointer shadow-2xs"
+            >
+              <option value="all">সকল সেশন (All Sessions)</option>
+              {availableSessions.map((sess) => (
+                <option key={sess} value={sess}>
+                  সেশন {sess} {sess === activeSession ? "★ (Active)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Class Selector */}
           <div className="flex items-center gap-1.5">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Class:</span>
@@ -820,6 +910,31 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
           </button>
         </div>
       </div>
+
+      {selectedSession !== "all" && (
+        <div className="flex items-center justify-between gap-2 px-3.5 py-2 rounded-xl bg-emerald-50/90 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 text-xs text-emerald-900 dark:text-emerald-200 print:hidden">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-bold inline-flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              সেশন ভিত্তিক হাজিরা খাতা:
+            </span>
+            <span className="font-semibold">
+              সেশন {selectedSession} {selectedSession === activeSession ? "(বর্তমান সক্রিয় শিক্ষাবর্ষ)" : "(সংরক্ষিত / পূর্ববর্তী শিক্ষাবর্ষ)"}
+            </span>
+            <span className="text-emerald-700 dark:text-emerald-400">
+              · মোট শিক্ষার্থী: {students.length} জন
+              {students.filter((s) => Boolean(s.is_promoted)).length > 0 &&
+                ` (${students.filter((s) => Boolean(s.is_promoted)).length} জন উত্তীর্ণ / নতুন সেশনে ভর্তি)`}
+            </span>
+          </div>
+          <button
+            onClick={() => handleSessionChange("all")}
+            className="text-[11px] font-semibold underline text-emerald-800 dark:text-emerald-300 hover:opacity-80 cursor-pointer"
+          >
+            সব সেশন দেখুন
+          </button>
+        </div>
+      )}
 
       {viewMode === "daily" ? (
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs dark:border-gray-700 dark:bg-gray-800 sm:grid-cols-5">
@@ -994,7 +1109,25 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
                                   <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-100 text-xs font-bold text-[#006a4e] dark:bg-gray-700 dark:text-emerald-300">
                                     {student.img ? <img src={student.img} alt="" className="h-full w-full object-cover" /> : (student.name?.[0] || "S").toUpperCase()}
                                   </span>
-                                  <span className="font-semibold text-slate-800 dark:text-slate-100">{student.name} {student.surname}</span>
+                                  <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="font-semibold text-slate-800 dark:text-slate-100">{student.name} {student.surname}</span>
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800">
+                                        সেশন {student.session_year || '2026-2027'}
+                                      </span>
+                                      {Boolean(student.is_promoted) && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800" title={`Promoted from ${student.previous_class_name || 'Previous class'} (Roll ${student.previous_roll || '—'})`}>
+                                          উত্তীর্ণ · Promoted
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                                      শ্রেণি: {student.class_name || 'Class'} · রোল: {student.roll || index + 1}
+                                      {Boolean(student.is_promoted && student.previous_class_name) && (
+                                        <span className="text-slate-400"> (পূর্বে {student.previous_class_name}, রোল {student.previous_roll || '—'})</span>
+                                      )}
+                                    </span>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -1192,10 +1325,21 @@ export const AttendanceSpreadsheet: React.FC<AttendanceSpreadsheetProps> = ({
                               <span>{(st.name?.[0] || "S").toUpperCase()}</span>
                             )}
                           </div>
-                          <div className="truncate max-w-[160px]">
-                            <span className="font-semibold text-slate-900 dark:text-slate-100 block">
-                              {st.name} {st.surname}
-                            </span>
+                          <div className="truncate max-w-[190px]">
+                            <div className="flex items-center gap-1">
+                              <span className="font-semibold text-slate-900 dark:text-slate-100 block truncate">
+                                {st.name} {st.surname}
+                              </span>
+                              {Boolean(st.is_promoted) && (
+                                <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300" title={`Promoted from ${st.previous_class_name || 'Class'}`}>
+                                  PR
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+                              <span>সেশন: {st.session_year || '2026-2027'}</span>
+                              {st.class_name && <span>· {st.class_name}</span>}
+                            </div>
                           </div>
                         </div>
                       </td>
