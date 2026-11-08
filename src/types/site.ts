@@ -66,6 +66,8 @@ export interface SchoolTeacherMember {
   email?: string;
   photo?: string;
   category: "শিক্ষক" | "কর্মচারী" | "প্রশাসন";
+  message?: string;
+  messageEn?: string;
 }
 
 export interface SchoolTickerItem {
@@ -181,6 +183,10 @@ export interface SchoolWebsiteContent {
   asstPrincipalNameEn?: string;
   asstPrincipalTitle: string;
   asstPrincipalTitleEn?: string;
+  asstPrincipalQualification?: string;
+  asstPrincipalQualificationEn?: string;
+  asstPrincipalPhone?: string;
+  asstPrincipalEmail?: string;
   asstPrincipalPhoto: string;
   asstPrincipalMessage: string;
   asstPrincipalMessageEn?: string;
@@ -625,6 +631,10 @@ export const DEFAULT_WEBSITE_CONTENT: SchoolWebsiteContent = {
   asstPrincipalNameEn: "Muhammad Kamrul Hasan",
   asstPrincipalTitle: "সহকারী প্রধান শিক্ষক",
   asstPrincipalTitleEn: "Assistant Headmaster",
+  asstPrincipalQualification: "এম.এ (বাংলা), বি.এড (১ম শ্রেণি)",
+  asstPrincipalQualificationEn: "M.A (Bangla), B.Ed (1st Class)",
+  asstPrincipalPhone: "+880 1712 987654",
+  asstPrincipalEmail: "asst.headmaster@mkschool.edu.bd",
   asstPrincipalPhoto: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400",
   asstPrincipalMessage: "বিদ্যালয়ের শিক্ষা ও সার্বিক নিয়মানুবর্তিতা রক্ষায় আমরা নিরলস কাজ করছি। ডিজিটাল প্রযুক্তির সঠিক ব্যবহারের মাধ্যমে আমাদের শিক্ষার্থীরা প্রতিনিয়ত এগিয়ে চলেছে।",
   asstPrincipalMessageEn: "We work tirelessly to uphold academic excellence and discipline. Through the constructive use of digital technology, our students continue to stride forward.",

@@ -615,6 +615,8 @@ const WebsiteContentPage: React.FC = () => {
     const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
     const desigEn = member.designation || "Assistant Headmaster";
     const desigBn = translateEnToBn(desigEn) || "সহকারী প্রধান শিক্ষক";
+    const qualEn = member.qualification || "";
+    const qualBn = qualEn ? translateEnToBn(qualEn) : "";
 
     setDraft((prev) => ({
       ...prev,
@@ -622,12 +624,16 @@ const WebsiteContentPage: React.FC = () => {
       asstPrincipalNameEn: fullNameEn,
       asstPrincipalTitle: desigBn,
       asstPrincipalTitleEn: desigEn,
+      asstPrincipalQualification: qualBn || prev.asstPrincipalQualification,
+      asstPrincipalQualificationEn: qualEn || prev.asstPrincipalQualificationEn,
+      asstPrincipalPhone: member.phone || prev.asstPrincipalPhone || "",
+      asstPrincipalEmail: member.email || prev.asstPrincipalEmail || "",
       asstPrincipalPhoto: member.img || prev.asstPrincipalPhoto || "",
     }));
 
     setFeedback({
       type: "success",
-      message: `Staff Directory থেকে ${fullNameBn} (${desigBn})-এর তথ্য সহকারী প্রধান শিক্ষক হিসেবে সফলভাবে লোড হয়েছে!`,
+      message: `Staff Directory থেকে ${fullNameBn} (${desigBn})-এর তথ্য সহকারী প্রধান শিক্ষক হিসেবে সফলভাবে লোড হয়েছে! ওয়েবসাইটের শিক্ষক পেজের শীর্ষ সারিতে এটি সরাসরি ডায়নামিক যুক্ত হবে।`,
     });
   };
 
@@ -743,12 +749,18 @@ const WebsiteContentPage: React.FC = () => {
           const aNameBn = translateEnToBn(aNameEn) || aNameEn;
           const aDesigEn = asstCandidate.designation || "Assistant Headmaster";
           const aDesigBn = translateEnToBn(aDesigEn) || "সহকারী প্রধান শিক্ষক";
+          const aQualEn = asstCandidate.qualification || "";
+          const aQualBn = aQualEn ? translateEnToBn(aQualEn) : "";
 
           updated.asstPrincipalName = aNameBn;
           updated.asstPrincipalNameEn = aNameEn;
           updated.asstPrincipalTitle = aDesigBn;
           updated.asstPrincipalTitleEn = aDesigEn;
+          if (aQualBn) updated.asstPrincipalQualification = aQualBn;
+          if (aQualEn) updated.asstPrincipalQualificationEn = aQualEn;
           if (asstCandidate.img) updated.asstPrincipalPhoto = asstCandidate.img;
+          if (asstCandidate.phone) updated.asstPrincipalPhone = asstCandidate.phone;
+          if (asstCandidate.email) updated.asstPrincipalEmail = asstCandidate.email;
         }
 
         if (smcCandidate) {
@@ -4259,6 +4271,10 @@ const WebsiteContentPage: React.FC = () => {
                     <p className="mt-0.5 text-xs text-gray-500">
                       সফটওয়্যারের Staff & Faculty Directory (/list/staff) থেকে প্রধান শিক্ষক ও নেতৃবৃন্দের তথ্য সরাসরি নির্বাচন ও অটো-সিঙ্ক করুন, এবং প্রতিটি তথ্য সম্পূর্ণ কাস্টমাইজ ও সম্পাদনা করুন।
                     </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-[#006a4e] dark:text-emerald-300 rounded-lg text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
+                      <Sparkles size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>ওয়েবসাইটের "শিক্ষক" পেজের শীর্ষ সারিতে (Principal / Head Teacher & Vice-Principal / Assistant-Head Teacher) এখানে সংরক্ষিত তথ্য ও ছবি সরাসরি ডায়নামিকভাবে প্রদর্শিত হবে।</span>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -4616,6 +4632,50 @@ const WebsiteContentPage: React.FC = () => {
                       />
                     </label>
 
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      শিক্ষাগত যোগ্যতা (বাংলায়)
+                      <input
+                        type="text"
+                        value={draft.asstPrincipalQualification || ""}
+                        onChange={(e) => updateField("asstPrincipalQualification", e.target.value)}
+                        className={inputClass}
+                        placeholder="যেমন: এম.এ (বাংলা), বি.এড (১ম শ্রেণি)"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-blue-800 dark:text-blue-300">
+                      Educational Qualification (English)
+                      <input
+                        type="text"
+                        value={draft.asstPrincipalQualificationEn || ""}
+                        onChange={(e) => updateField("asstPrincipalQualificationEn", e.target.value)}
+                        className={inputClass}
+                        placeholder="e.g. M.A (Bangla), B.Ed (1st Class)"
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      যোগাযোগ ফোন নম্বর (Phone)
+                      <input
+                        type="text"
+                        value={draft.asstPrincipalPhone || ""}
+                        onChange={(e) => updateField("asstPrincipalPhone", e.target.value)}
+                        className={inputClass}
+                        placeholder="+880 1712..."
+                      />
+                    </label>
+
+                    <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                      অফিসিয়াল ইমেইল (Email)
+                      <input
+                        type="email"
+                        value={draft.asstPrincipalEmail || ""}
+                        onChange={(e) => updateField("asstPrincipalEmail", e.target.value)}
+                        className={inputClass}
+                        placeholder="asst.headmaster@school.edu.bd"
+                      />
+                    </label>
+
                     <div className="sm:col-span-2">
                       <ImageUploadField
                         label="সহকারী প্রধান শিক্ষকের ছবি (Assistant Headmaster Photo)"
@@ -4815,7 +4875,7 @@ const WebsiteContentPage: React.FC = () => {
                       <span>৫. শিক্ষক ও কর্মকর্তা পরিচিতি (Faculty & Staff Directory) ({(draft.teachers || []).length} জন)</span>
                     </h2>
                     <p className="mt-0.5 text-xs text-gray-500">
-                      সফটওয়্যারের Staff & Faculty Directory (/list/staff) থেকে সরাসরি লাইভ ডায়নামিক সংযোগ এবং দ্বিভাষিক (বাংলা ও ইংরেজি) প্রোফাইল ব্যবস্থাপনা।
+                      ওয়েবসাইটের "অনান্য শিক্ষকমণ্ডলী ও স্টাফবৃন্দ" (Other Teachers & Staff Members) সেকশনের জন্য সকল শিক্ষক ও কর্মকর্তা সরাসরি ডায়নামিক নিয়ন্ত্রণ ও ব্যবস্থাপনা।
                     </p>
                   </div>
 
@@ -4877,10 +4937,10 @@ const WebsiteContentPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2 font-bold text-emerald-900 dark:text-emerald-200">
                         <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-600 animate-pulse" />
-                        <span className="text-sm">সফটওয়্যার অ্যাডমিন ড্যাশবোর্ড 'Staff & Faculty Directory' লাইভ ডায়নামিক সংযোগ</span>
+                        <span className="text-sm">ওয়েবসাইটের "অনান্য শিক্ষকমণ্ডলী ও স্টাফবৃন্দ" সেকশনে ডায়নামিক সংযোগ</span>
                       </div>
                       <p className="mt-1 text-gray-700 dark:text-gray-300 leading-relaxed">
-                        এই সেকশনটি সরাসরি সফটওয়্যার ড্যাশবোর্ডের <span className="font-bold text-emerald-800 dark:text-emerald-300">Staff & Faculty Directory</span> (/list/staff) এর সাথে রিয়েল-টাইমে সংযুক্ত। সফটওয়্যারে নতুন শিক্ষক বা কর্মচারী যোগ করা হলে তা লাইভ মোডে স্বয়ংক্রিয়ভাবে ওয়েবসাইটে প্রদর্শিত হয়।
+                        এখানে সংরক্ষিত সকল শিক্ষক ও কর্মকর্তার তথ্য এবং ছবি ওয়েবসাইটের <span className="font-bold text-emerald-800 dark:text-emerald-300">শিক্ষক (/teachers-list)</span> পেজের <span className="font-bold text-emerald-800 dark:text-emerald-300">"অনান্য শিক্ষকমণ্ডলী ও স্টাফবৃন্দ" (Other Teachers & Staff Members)</span> সেকশনে সরাসরি ডায়নামিকভাবে প্রদর্শিত হবে। সফটওয়্যারের Staff Directory (/list/staff) থেকে সিঙ্ক করতে পারেন বা কাস্টম শিক্ষক যোগ/এডিট করতে পারেন।
                       </p>
                     </div>
 
