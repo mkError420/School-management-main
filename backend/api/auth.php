@@ -15,6 +15,9 @@ switch ($method) {
             case 'login':
                 handleLogin($db, $input);
                 break;
+            case 'switch-role':
+                handleSwitchRole($db, $input);
+                break;
             case 'register':
                 handleRegister($db, $input);
                 break;
@@ -260,8 +263,103 @@ function handleChangePassword($db, $input) {
     Response::success('Password changed successfully');
 }
 
+/**
+ * Super Admin Role Switching / Individual Role Dashboard Access
+ */
+function handleSwitchRole($db, $input) {
+    $actor = AuthMiddleware::authenticate();
+    $targetRole = trim($input['role'] ?? '');
+    $targetUserId = trim($input['user_id'] ?? '');
+
+    $allowedRoles = ['super_admin', 'admin', 'teacher', 'student', 'parent'];
+    if (!in_array($targetRole, $allowedRoles, true)) {
+        Response::error('Invalid target role', 400);
+    }
+
+    $isSuperAdmin = ($actor['role'] === 'super_admin') || (!empty($actor['is_impersonating']) && ($actor['original_role'] ?? '') === 'super_admin');
+    if (!$isSuperAdmin) {
+        Response::forbidden('Only super administrators can access roles individually');
+    }
+
+    $targetUser = null;
+    if (!empty($targetUserId)) {
+        $tableMap = [
+            'super_admin' => 'admins',
+            'admin'       => 'admins',
+            'teacher'     => 'teachers',
+            'student'     => 'students',
+            'parent'      => 'parents',
+        ];
+        $tbl = $tableMap[$targetRole] ?? 'admins';
+        $targetUser = $db->fetchOne("SELECT * FROM {$tbl} WHERE id = ? LIMIT 1", [$targetUserId]);
+    }
+
+    if (!$targetUser) {
+        $queries = [
+            'super_admin' => "SELECT id, username, email FROM admins WHERE role = 'super_admin' ORDER BY id ASC LIMIT 1",
+            'admin'       => "SELECT id, username, email FROM admins WHERE role = 'admin' ORDER BY id ASC LIMIT 1",
+            'teacher'     => "SELECT id, username, email, name, surname FROM teachers ORDER BY id ASC LIMIT 1",
+            'student'     => "SELECT id, username, email, name, surname FROM students ORDER BY id ASC LIMIT 1",
+            'parent'      => "SELECT id, username, email, name, surname FROM parents ORDER BY id ASC LIMIT 1",
+        ];
+        if (isset($queries[$targetRole])) {
+            $targetUser = $db->fetchOne($queries[$targetRole]);
+        }
+    }
+
+    $newUserId = $targetUser ? $targetUser['id'] : ($targetRole . '_preview_user');
+    $newUsername = $targetUser ? ($targetUser['username'] ?? $targetRole) : ($targetRole . '_preview');
+    $newName = $targetUser ? trim(($targetUser['name'] ?? '') . ' ' . ($targetUser['surname'] ?? '')) : ucfirst($targetRole) . ' Preview';
+    if ($newName === '') $newName = $newUsername;
+    $newEmail = $targetUser['email'] ?? ($targetRole . '@school.edu.bd');
+
+    $isImpersonating = ($targetRole !== 'super_admin');
+    $tokenPayload = [
+        'user_id'           => $newUserId,
+        'username'          => $newUsername,
+        'email'             => $newEmail,
+        'role'              => $targetRole,
+        'is_impersonating'  => $isImpersonating,
+        'original_user_id'  => $actor['original_user_id'] ?? $actor['user_id'],
+        'original_username' => $actor['original_username'] ?? $actor['username'],
+        'original_role'     => $actor['original_role'] ?? $actor['role'],
+    ];
+
+    $newToken = JWTHandler::encode($tokenPayload);
+
+    Response::success('Switched role successfully', [
+        'token'            => $newToken,
+        'role'             => $targetRole,
+        'user'             => [
+            'id'       => $newUserId,
+            'username' => $newUsername,
+            'name'     => $newName,
+            'role'     => $targetRole,
+            'email'    => $newEmail,
+        ],
+        'is_impersonating' => $isImpersonating,
+        'original_role'    => $tokenPayload['original_role'],
+    ]);
+}
+
 function handleGetCurrentUser($db) {
     $user = AuthMiddleware::authenticate();
+
+    if (!empty($user['is_impersonating']) && str_ends_with($user['user_id'] ?? '', '_preview_user')) {
+        Response::success('Preview user retrieved', [
+            'user' => [
+                'id'       => $user['user_id'],
+                'username' => $user['username'] ?? $user['role'],
+                'name'     => ucfirst($user['role']) . ' Preview',
+                'role'     => $user['role'],
+                'email'    => $user['email'] ?? ($user['role'] . '@school.edu.bd')
+            ],
+            'role'             => $user['role'],
+            'is_impersonating' => true,
+            'original_role'    => $user['original_role'] ?? 'super_admin'
+        ]);
+        return;
+    }
     
     $table = '';
     switch ($user['role']) {
@@ -298,6 +396,22 @@ function handleGetCurrentUser($db) {
     }
     
     if (!$userData) {
+        // Fallback for preview users or deleted user token
+        if (!empty($user['is_impersonating'])) {
+            Response::success('Impersonated user session', [
+                'user' => [
+                    'id'       => $user['user_id'],
+                    'username' => $user['username'] ?? $user['role'],
+                    'name'     => ucfirst($user['role']),
+                    'role'     => $user['role'],
+                    'email'    => $user['email'] ?? '',
+                ],
+                'role'             => $user['role'],
+                'is_impersonating' => true,
+                'original_role'    => $user['original_role'] ?? 'super_admin',
+            ]);
+            return;
+        }
         Response::notFound('User not found');
     }
     

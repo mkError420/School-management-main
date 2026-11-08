@@ -94,6 +94,19 @@ class ApiService {
     });
   }
 
+  async switchRole(role: string, userId?: string) {
+    return this.request<{
+      token: string;
+      role: string;
+      user: any;
+      is_impersonating: boolean;
+      original_role: string;
+    }>('auth?action=switch-role', {
+      method: 'POST',
+      body: JSON.stringify({ role, user_id: userId }),
+    });
+  }
+
   async getSiteSettings() {
     return this.request<{
       site_name: string;

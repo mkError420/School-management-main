@@ -4,6 +4,8 @@ $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
 $id = $_GET['id'] ?? null;
 
+ensureAdminsSchema($db);
+
 switch ($method) {
     case 'GET':
         getAdmins($db);
@@ -27,11 +29,35 @@ switch ($method) {
         Response::methodNotAllowed();
 }
 
+/**
+ * Ensure dashboard_sections column and flexible role support
+ */
+function ensureAdminsSchema($db) {
+    try {
+        $cols = $db->fetchAll("SHOW COLUMNS FROM admins LIKE 'dashboard_sections'");
+        if (empty($cols)) {
+            $db->query("ALTER TABLE admins ADD COLUMN dashboard_sections TEXT NULL");
+        }
+    } catch (Exception $e) {}
+
+    try {
+        $db->query("ALTER TABLE admins MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'admin'");
+    } catch (Exception $e) {}
+}
+
 function getAdmins($db) {
     AuthMiddleware::requireRole('super_admin');
     $admins = $db->fetchAll(
-        "SELECT id, username, email, role, created_at FROM admins ORDER BY role DESC, username ASC"
+        "SELECT id, username, email, role, dashboard_sections, created_at FROM admins ORDER BY (CASE WHEN role = 'super_admin' THEN 0 WHEN role = 'admin' THEN 1 ELSE 2 END), username ASC"
     );
+    foreach ($admins as &$a) {
+        if (!empty($a['dashboard_sections'])) {
+            $decoded = json_decode($a['dashboard_sections'], true);
+            $a['dashboard_sections'] = is_array($decoded) ? $decoded : [];
+        } else {
+            $a['dashboard_sections'] = [];
+        }
+    }
     Response::success('Admins retrieved successfully', ['admins' => $admins]);
 }
 
@@ -42,34 +68,41 @@ function createAdmin($db) {
     $email = trim($input['email'] ?? '');
     $password = $input['password'] ?? '';
     $role = $input['role'] ?? 'admin';
+    $sections = isset($input['dashboard_sections']) && is_array($input['dashboard_sections'])
+        ? json_encode($input['dashboard_sections'], JSON_UNESCAPED_UNICODE)
+        : null;
 
     validateAdminInput($username, $email, $password, $role, true, true);
 
     try {
+        $newId = bin2hex(random_bytes(16));
         $db->insert('admins', [
-            'id' => bin2hex(random_bytes(16)),
+            'id' => $newId,
             'username' => $username,
             'email' => $email,
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'role' => $role,
+            'dashboard_sections' => $sections,
         ]);
         Response::success('Admin created successfully', [
+            'id' => $newId,
             'username' => $username,
             'email' => $email,
             'role' => $role,
+            'dashboard_sections' => $input['dashboard_sections'] ?? [],
         ], 201);
     } catch (Exception $e) {
         if (stripos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email is already in use', 409);
         }
-        Response::serverError('Unable to create admin');
+        Response::serverError('Unable to create admin: ' . $e->getMessage());
     }
 }
 
 function updateAdmin($db, $id) {
     $actor = AuthMiddleware::requireRole('super_admin');
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
-    $existing = $db->fetchOne('SELECT id, username, email, role FROM admins WHERE id = ?', [$id]);
+    $existing = $db->fetchOne('SELECT id, username, email, role, dashboard_sections FROM admins WHERE id = ?', [$id]);
     if (!$existing) {
         Response::notFound('Admin not found');
     }
@@ -92,6 +125,9 @@ function updateAdmin($db, $id) {
         'email' => $email !== '' ? $email : null,
         'role' => $role,
     ];
+    if (isset($input['dashboard_sections']) && is_array($input['dashboard_sections'])) {
+        $data['dashboard_sections'] = json_encode($input['dashboard_sections'], JSON_UNESCAPED_UNICODE);
+    }
     if ($password !== '') {
         $data['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
@@ -103,7 +139,7 @@ function updateAdmin($db, $id) {
         if (stripos($e->getMessage(), 'Duplicate entry') !== false) {
             Response::error('Username or email is already in use', 409);
         }
-        Response::serverError('Unable to update admin');
+        Response::serverError('Unable to update admin: ' . $e->getMessage());
     }
 }
 
@@ -135,8 +171,9 @@ function validateAdminInput($username, $email, $password, $role, $passwordRequir
     if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         Response::error('A valid email address is required');
     }
-    if (!in_array($role, ['admin', 'super_admin'], true)) {
-        Response::error('Role access must be admin or super_admin');
+    $allowedRoles = ['super_admin', 'admin', 'teacher', 'student', 'parent', 'staff'];
+    if (!in_array($role, $allowedRoles, true)) {
+        Response::error('Invalid role access selected');
     }
     if (($passwordRequired && $password === '') || ($password !== '' && strlen($password) < 8)) {
         Response::error('Password must be at least 8 characters');

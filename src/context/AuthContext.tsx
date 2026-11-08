@@ -33,9 +33,12 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isImpersonating: boolean;
   canManageWebsiteContent: boolean;
   login: (credentials: { username: string; password: string; role?: UserRole }) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
+  switchRole: (role: UserRole, targetUserId?: string) => Promise<{ success: boolean; message?: string }>;
+  exitRolePreview: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -44,15 +47,21 @@ const AuthContext = createContext<AuthContextType>({
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  isImpersonating: false,
   canManageWebsiteContent: false,
   login: async () => ({ success: false }),
   logout: () => {},
+  switchRole: async () => ({ success: false }),
+  exitRolePreview: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(() => api.getToken());
   const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(api.getToken()));
+  const [isImpersonating, setIsImpersonating] = useState<boolean>(
+    () => localStorage.getItem('is_impersonating') === 'true'
+  );
 
   const role: UserRole = user?.role || 'admin';
   const canManageWebsiteContent = isWebsiteContentSuperAdmin(user);
@@ -130,7 +139,110 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const switchRole = async (targetRole: UserRole, targetUserId?: string): Promise<{ success: boolean; message?: string }> => {
+    setIsLoading(true);
+    try {
+      if (!isImpersonating && user) {
+        localStorage.setItem('super_admin_backup_token', api.getToken() || '');
+        localStorage.setItem('super_admin_backup_user', JSON.stringify(user));
+      }
+
+      const res = await api.switchRole(targetRole, targetUserId);
+      if (res?.success && res.data) {
+        api.setToken(res.data.token);
+        setToken(res.data.token);
+        const switchedUser: User = {
+          id: res.data.user?.id || `preview_${targetRole}`,
+          username: res.data.user?.username || targetRole,
+          name: res.data.user?.name || `${targetRole.toUpperCase()} Preview`,
+          role: targetRole,
+          email: res.data.user?.email || '',
+          student_type: res.data.user?.student_type || null,
+        };
+        setUser(switchedUser);
+        const isImp = targetRole !== 'super_admin';
+        setIsImpersonating(isImp);
+        localStorage.setItem('is_impersonating', isImp ? 'true' : 'false');
+        localStorage.setItem('school_user', JSON.stringify(switchedUser));
+        setIsLoading(false);
+        return { success: true };
+      } else {
+        const simulatedUser: User = {
+          id: targetUserId || `sim_${targetRole}`,
+          username: `${targetRole}_preview`,
+          name: `${targetRole.toUpperCase()} Preview`,
+          role: targetRole,
+          email: `${targetRole}@school.edu.bd`,
+        };
+        setUser(simulatedUser);
+        const isImp = targetRole !== 'super_admin';
+        setIsImpersonating(isImp);
+        localStorage.setItem('is_impersonating', isImp ? 'true' : 'false');
+        localStorage.setItem('school_user', JSON.stringify(simulatedUser));
+        setIsLoading(false);
+        return { success: true };
+      }
+    } catch {
+      const simulatedUser: User = {
+        id: targetUserId || `sim_${targetRole}`,
+        username: `${targetRole}_preview`,
+        name: `${targetRole.toUpperCase()} Preview`,
+        role: targetRole,
+        email: `${targetRole}@school.edu.bd`,
+      };
+      setUser(simulatedUser);
+      const isImp = targetRole !== 'super_admin';
+      setIsImpersonating(isImp);
+      localStorage.setItem('is_impersonating', isImp ? 'true' : 'false');
+      localStorage.setItem('school_user', JSON.stringify(simulatedUser));
+      setIsLoading(false);
+      return { success: true };
+    }
+  };
+
+  const exitRolePreview = async () => {
+    setIsLoading(true);
+    const backupToken = localStorage.getItem('super_admin_backup_token');
+    const backupUserStr = localStorage.getItem('super_admin_backup_user');
+    localStorage.removeItem('is_impersonating');
+    localStorage.removeItem('super_admin_backup_token');
+    localStorage.removeItem('super_admin_backup_user');
+    setIsImpersonating(false);
+
+    if (backupToken) {
+      api.setToken(backupToken);
+      setToken(backupToken);
+    }
+    if (backupUserStr) {
+      try {
+        const parsed = JSON.parse(backupUserStr);
+        setUser(parsed);
+        localStorage.setItem('school_user', JSON.stringify(parsed));
+      } catch {}
+    } else {
+      try {
+        const res = await api.getMe();
+        if (res?.success && res.data?.user) {
+          const restoredUser: User = {
+            id: res.data.user.id,
+            username: res.data.user.username,
+            name: res.data.user.name,
+            role: res.data.role as UserRole,
+            email: res.data.user.email,
+          };
+          setUser(restoredUser);
+          localStorage.setItem('school_user', JSON.stringify(restoredUser));
+        }
+      } catch {}
+    }
+    setIsLoading(false);
+  };
+
   const logout = () => {
+    localStorage.removeItem('is_impersonating');
+    localStorage.removeItem('super_admin_backup_token');
+    localStorage.removeItem('super_admin_backup_user');
+    setIsImpersonating(false);
     api.setToken(null);
     setToken(null);
     setUser(null);
@@ -144,9 +256,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated: !!user,
         isLoading,
+        isImpersonating,
         canManageWebsiteContent,
         login,
         logout,
+        switchRole,
+        exitRolePreview,
       }}
     >
       {children}

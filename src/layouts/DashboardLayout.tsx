@@ -11,7 +11,7 @@ import { X, ChevronLeft, ChevronRight, LogOut, Shield } from "lucide-react";
 
 const DashboardLayoutContent: React.FC = () => {
   const { siteName, siteLogo } = useSiteSettings();
-  const { user, role, logout } = useAuth();
+  const { user, role, logout, isImpersonating, switchRole, exitRolePreview } = useAuth();
   const { isMobileOpen, setMobileOpen, isCollapsed, toggleCollapse } = useSidebar();
   const { theme } = useTheme();
 
@@ -176,6 +176,38 @@ const DashboardLayoutContent: React.FC = () => {
 
       {/* ─── Main Application Content Area ───────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {isImpersonating && (
+          <div className="bg-gradient-to-r from-amber-600 via-amber-700 to-indigo-700 text-white px-4 py-2 text-xs font-semibold flex items-center justify-between gap-3 shadow-md z-40 shrink-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-2 py-0.5 rounded bg-black/30 uppercase text-[10px] tracking-wider font-extrabold text-amber-200">
+                Super Admin Role Preview
+              </span>
+              <span>
+                বর্তমানে <strong>{role.toUpperCase()}</strong> ড্যাশবোর্ড হিসেবে প্রবেশ করেছেন ({user?.name || user?.username})
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <select
+                value={role}
+                onChange={(e) => switchRole(e.target.value as any)}
+                className="bg-black/40 border border-white/20 rounded-md px-2 py-1 text-xs text-white cursor-pointer font-medium"
+              >
+                <option value="super_admin" className="text-gray-900">Super Admin</option>
+                <option value="admin" className="text-gray-900">School Admin</option>
+                <option value="teacher" className="text-gray-900">Teacher</option>
+                <option value="student" className="text-gray-900">Student</option>
+                <option value="parent" className="text-gray-900">Parent</option>
+              </select>
+              <button
+                type="button"
+                onClick={() => exitRolePreview()}
+                className="px-2.5 py-1 rounded-md bg-white text-gray-900 font-bold hover:bg-gray-100 transition shadow-xs text-xs cursor-pointer"
+              >
+                প্রস্থান করুন (Exit)
+              </button>
+            </div>
+          </div>
+        )}
         <Navbar />
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50 dark:bg-[#0b1220] transition-colors p-0">
           <Outlet />
