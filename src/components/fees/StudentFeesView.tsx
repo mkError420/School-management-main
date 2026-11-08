@@ -23,6 +23,7 @@ import {
 import { api } from "@/lib/api";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { FeeInvoice, FeeReceiptData, FeeStatus } from "@/types/fees";
+import { cleanFeeTitle, parseFeeItems } from "@/lib/cleanFeeText";
 import FeeReceiptSlipModal from "./FeeReceiptSlipModal";
 
 export interface StudentFeesViewProps {
@@ -72,32 +73,136 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
   // Receipt Modal
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
 
+  // Helper to read invoices from localStorage
+  const getStoredInvoices = useCallback((): FeeInvoice[] => {
+    try {
+      const raw = localStorage.getItem("mk_school_fees_invoices");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Filter invoices for current student / parent context
+  const filterInvoicesForContext = useCallback(
+    (items: FeeInvoice[]) => {
+      const sIdStr = studentId ? String(studentId).toLowerCase() : "";
+      const pIdStr = parentId ? String(parentId).toLowerCase() : "";
+      const kidIds = (childrenStudents || []).map((k) => String(k.id).toLowerCase());
+      const kidNames = (childrenStudents || [])
+        .map((k) => `${k.name || ""} ${k.surname || ""}`.trim().toLowerCase())
+        .filter(Boolean);
+
+      return items.filter((inv) => {
+        const invStdId = inv.student_id ? String(inv.student_id).toLowerCase() : "";
+        const invRoll = inv.student_roll ? String(inv.student_roll).toLowerCase() : "";
+        const invParentId = inv.parent_id ? String(inv.parent_id).toLowerCase() : "";
+        const invStdName = `${inv.student_name || ""} ${inv.student_surname || ""}`.trim().toLowerCase();
+
+        // 1. Student ID or Roll Match
+        if (sIdStr && (invStdId === sIdStr || invRoll === sIdStr)) {
+          return true;
+        }
+
+        // 2. Parent ID Match
+        if (pIdStr && invParentId && invParentId === pIdStr) {
+          return true;
+        }
+
+        // 3. Parent's Children Match (by ID or student name)
+        if (kidIds.length > 0 && invStdId && kidIds.includes(invStdId)) {
+          return true;
+        }
+        if (kidNames.length > 0 && invStdName && kidNames.some((kn) => kn.includes(invStdName) || invStdName.includes(kn))) {
+          return true;
+        }
+
+        // 4. Default: if neither was strictly provided, show all
+        if (!sIdStr && !pIdStr && (!childrenStudents || childrenStudents.length === 0)) {
+          return true;
+        }
+
+        return false;
+      });
+    },
+    [studentId, parentId, childrenStudents]
+  );
+
+  // Merge remote/initial invoices with locally saved invoices
+  const mergeInvoices = useCallback(
+    (baseList: FeeInvoice[], localList: FeeInvoice[]): FeeInvoice[] => {
+      const matchedLocals = filterInvoicesForContext(localList);
+      const map = new Map<string, FeeInvoice>();
+
+      for (const inv of baseList) {
+        const key = inv.invoice_no ? String(inv.invoice_no).trim().toLowerCase() : String(inv.id);
+        map.set(key, inv);
+      }
+
+      const prepends: FeeInvoice[] = [];
+      for (const inv of matchedLocals) {
+        const key = inv.invoice_no ? String(inv.invoice_no).trim().toLowerCase() : String(inv.id);
+        if (map.has(key)) {
+          const existing = map.get(key)!;
+          // Prefer local attributes if they preserve itemized breakdown
+          map.set(key, { ...existing, ...inv });
+        } else {
+          prepends.push(inv);
+        }
+      }
+
+      return [...prepends, ...Array.from(map.values())];
+    },
+    [filterInvoicesForContext]
+  );
+
   const fetchFees = useCallback(async () => {
-    if (!studentId && !parentId) return;
     setLoading(true);
     setError(null);
     try {
-      const params: Record<string, string | number> = { limit: 100 };
-      if (studentId) params.student_id = studentId;
-      if (parentId) params.parent_id = parentId;
+      let remoteList: FeeInvoice[] = [];
+      if (studentId || parentId) {
+        try {
+          const params: Record<string, string | number> = { limit: 100 };
+          if (studentId) params.student_id = studentId;
+          if (parentId) params.parent_id = parentId;
 
-      const res: any = await api.getAll("fees", params);
-      const list = res.data?.fees || res.fees || [];
-      setInvoices(list);
+          const res: any = await api.getAll("fees", params);
+          remoteList = res.data?.fees || res.fees || [];
+        } catch (apiErr) {
+          console.warn("Could not fetch remote fees, using initial/cached fees", apiErr);
+        }
+      }
+
+      const startingList = remoteList.length > 0 ? remoteList : (initialFees || []);
+      const localList = getStoredInvoices();
+      const merged = mergeInvoices(startingList, localList);
+      setInvoices(merged);
     } catch (err: any) {
       setError(err?.message || "Could not fetch fee records.");
     } finally {
       setLoading(false);
     }
-  }, [studentId, parentId]);
+  }, [studentId, parentId, initialFees, getStoredInvoices, mergeInvoices]);
 
   useEffect(() => {
-    if (initialFees) {
-      setInvoices(initialFees);
-    } else {
+    fetchFees();
+  }, [fetchFees]);
+
+  // Listen for realtime fee updates from Counter or Invoices Tab
+  useEffect(() => {
+    const handleUpdate = () => {
       fetchFees();
-    }
-  }, [initialFees, fetchFees]);
+    };
+    window.addEventListener("mk_fees_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("mk_fees_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, [fetchFees]);
 
   // Compute live summary stats
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -131,17 +236,19 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
       }
     }
 
+    const hasCustomEntries = !initialSummary || invoices.length !== (initialFees?.length || 0);
+
     return {
-      totalBilled: initialSummary?.total_billed ?? totalBilled,
-      totalPaid: initialSummary?.total_paid ?? totalPaid,
-      totalDue: initialSummary?.total_due ?? totalDue,
-      upcomingDue: initialSummary?.upcoming_due ?? upcomingDue,
+      totalBilled: hasCustomEntries ? totalBilled : (initialSummary?.total_billed ?? totalBilled),
+      totalPaid: hasCustomEntries ? totalPaid : (initialSummary?.total_paid ?? totalPaid),
+      totalDue: hasCustomEntries ? totalDue : (initialSummary?.total_due ?? totalDue),
+      upcomingDue: hasCustomEntries ? upcomingDue : (initialSummary?.upcoming_due ?? upcomingDue),
       totalCount: invoices.length,
-      paidCount: initialSummary?.paid_count ?? paidCount,
-      dueCount: initialSummary?.due_count ?? dueCount,
-      upcomingCount: initialSummary?.upcoming_count ?? upcomingCount,
+      paidCount: hasCustomEntries ? paidCount : (initialSummary?.paid_count ?? paidCount),
+      dueCount: hasCustomEntries ? dueCount : (initialSummary?.due_count ?? dueCount),
+      upcomingCount: hasCustomEntries ? upcomingCount : (initialSummary?.upcoming_count ?? upcomingCount),
     };
-  }, [invoices, initialSummary, todayStr]);
+  }, [invoices, initialSummary, initialFees, todayStr]);
 
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
@@ -187,6 +294,9 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
     const net = inv.net_amount ?? (inv.amount - (inv.discount || 0));
     const paid = inv.paid_amount || 0;
     const due = inv.due_amount ?? Math.max(0, net - paid);
+    const feeItems = inv.fee_items && inv.fee_items.length > 0
+      ? inv.fee_items
+      : parseFeeItems(cleanFeeTitle(inv.title || inv.category_name), inv.amount);
 
     const receipt: FeeReceiptData = {
       id: inv.id,
@@ -197,10 +307,11 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
       payment_method: paid > 0 ? "CASH" : "OTHER",
       payment_date: inv.created_at ? inv.created_at.slice(0, 10) : todayStr,
       invoice_no: inv.invoice_no,
-      invoice_title: inv.title,
-      category_name: inv.category_name,
+      invoice_title: cleanFeeTitle(inv.title),
+      category_name: cleanFeeTitle(inv.category_name),
       invoice_amount: inv.amount,
       discount: inv.discount,
+      late_fine: inv.late_fine,
       net_amount: net,
       total_paid: paid,
       remaining_due: due,
@@ -209,9 +320,15 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
       student_name: inv.student_name,
       student_surname: inv.student_surname,
       student_code: inv.student_id,
+      student_roll: inv.student_roll,
+      student_phone: inv.student_phone,
+      student_email: inv.student_email,
+      parent_name: inv.parent_name,
+      parent_phone: inv.parent_phone,
       class_name: inv.class_name,
       grade_level: inv.grade_level,
       transaction_ref: `TXN-${inv.invoice_no}`,
+      fee_items: feeItems,
     };
     setReceiptData(receipt);
   };
@@ -462,12 +579,25 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
                           <Receipt size={14} />
                         </div>
                         <div>
-                          <div className="font-bold text-gray-900 dark:text-white">
-                            {inv.title || inv.category_name || "Academic Fee"}
+                          <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5 flex-wrap">
+                            <span>{cleanFeeTitle(inv.title || inv.category_name || "Academic Fee")}</span>
+                            {inv.fee_items && inv.fee_items.length > 1 && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                {inv.fee_items.length}টি খাত (বিস্তারিত)
+                              </span>
+                            )}
                           </div>
                           <div className="text-[10px] text-gray-400 font-mono">
                             #{inv.invoice_no} • {inv.academic_year || "2026-2027"}
                           </div>
+                          {inv.fee_items && inv.fee_items.length > 0 && (
+                            <div
+                              className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 max-w-xs truncate"
+                              title={inv.fee_items.map((it) => `${it.name} (${fmt(it.amount)})`).join(", ")}
+                            >
+                              {inv.fee_items.map((it) => it.name).join(" • ")}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -533,17 +663,28 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
                       </span>
                     </td>
 
-                    {/* Actions: View / Print Slip */}
+                    {/* Actions: View Details / Print Slip */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() => openReceiptForInvoice(inv)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#005a40]/10 hover:bg-[#005a40]/20 text-[#005a40] dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 dark:text-emerald-300 border border-[#005a40]/30 transition"
-                        title="View Official Money Receipt Voucher"
-                      >
-                        <Printer size={13} />
-                        <span>Slip</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openReceiptForInvoice(inv)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition"
+                          title="বিস্তারিত ইনভয়েস ভাউচার দেখুন (View Details)"
+                        >
+                          <Eye size={13} />
+                          <span>Details</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openReceiptForInvoice(inv)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#005a40]/10 hover:bg-[#005a40]/20 text-[#005a40] dark:bg-emerald-950/80 dark:hover:bg-emerald-900/80 dark:text-emerald-300 border border-[#005a40]/30 transition"
+                          title="মানি রসিদ স্লিপ প্রিন্ট করুন (Print Slip)"
+                        >
+                          <Printer size={13} />
+                          <span>Slip</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

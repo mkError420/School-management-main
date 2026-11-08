@@ -69,6 +69,9 @@ export interface FeeInvoice {
   grade_level?: number;
   category_name?: string;
   category_code?: string;
+  parent_id?: string;
+  parent_name?: string;
+  parent_phone?: string;
   fee_items?: Array<{ name: string; amount: number }>;
 }
 

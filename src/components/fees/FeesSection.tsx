@@ -56,7 +56,7 @@ import {
   PaymentMethod,
 } from "@/types/fees";
 import FeeReceiptSlipModal from "./FeeReceiptSlipModal";
-import { cleanFeeTitle } from "@/lib/cleanFeeText";
+import { cleanFeeTitle, parseFeeItems } from "@/lib/cleanFeeText";
 
 // 12 Academic Months in Bangladesh School / College Calendar
 const BANGLA_MONTHS = [
@@ -148,8 +148,8 @@ export const FeesSection: React.FC = () => {
   const [counterSelectedClass, setCounterSelectedClass] = useState<string>("ALL");
   const [counterSearchText, setCounterSearchText] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<any | null>(sampleStudentsFallback[0]);
-  const [selectedMonths, setSelectedMonths] = useState<string[]>(["OCT", "NOV"]);
-  const [selectedOtherFeeIds, setSelectedOtherFeeIds] = useState<number[]>([10]); // e.g. ICT Lab
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(["NOV"]);
+  const [selectedOtherFeeIds, setSelectedOtherFeeIds] = useState<number[]>([]);
   const [counterLateFine, setCounterLateFine] = useState<number>(0);
   const [counterDiscount, setCounterDiscount] = useState<number>(0);
   const [counterWaiverType, setCounterWaiverType] = useState<string>("GENERAL");
@@ -233,9 +233,18 @@ export const FeesSection: React.FC = () => {
 
   // Sync to local storage
   const syncToLocalStorage = (invList: FeeInvoice[], payList: FeePayment[], catList: FeeCategory[]) => {
-    localStorage.setItem("mk_school_fees_invoices", JSON.stringify(invList));
-    localStorage.setItem("mk_school_fee_payments", JSON.stringify(payList));
-    localStorage.setItem("mk_school_fee_categories", JSON.stringify(catList));
+    try {
+      localStorage.setItem("mk_school_fees_invoices", JSON.stringify(invList));
+      localStorage.setItem("mk_school_fee_payments", JSON.stringify(payList));
+      localStorage.setItem("mk_school_fee_categories", JSON.stringify(catList));
+      window.dispatchEvent(
+        new CustomEvent("mk_fees_updated", {
+          detail: { invoices: invList, payments: payList },
+        })
+      );
+    } catch (e) {
+      console.warn("Could not sync fees to localStorage", e);
+    }
   };
 
   // Initial Data Loading
@@ -678,13 +687,36 @@ export const FeesSection: React.FC = () => {
       .filter(Boolean)
       .join(", ");
 
+    const itemsList: Array<{ name: string; amount: number; net?: number }> = [];
+    if (selectedMonths.length > 0) {
+      itemsList.push({
+        name: `মাসিক বেতন (${monthNames})`,
+        amount: counterTuitionSubtotal,
+        net: counterTuitionSubtotal,
+      });
+    }
+    selectedOtherFeeIds.forEach((id) => {
+      const cat = categories.find((c) => c.id === id);
+      if (cat) {
+        const amt = Number(cat.default_amount || 0);
+        itemsList.push({
+          name: cleanFeeTitle(cat.name),
+          amount: amt,
+          net: amt,
+        });
+      }
+    });
+
+    if (itemsList.length === 0) {
+      itemsList.push({
+        name: "একাডেমিক ফি (Academic Fee)",
+        amount: counterGrossTotal,
+        net: counterNetPayable,
+      });
+    }
+
     const feeDescription = cleanFeeTitle(
-      [
-        selectedMonths.length > 0 ? `মাসিক বেতন (${monthNames})` : "",
-        ...selectedOtherFeeIds.map((id) => cleanFeeTitle(categories.find((c) => c.id === id)?.name)),
-      ]
-        .filter(Boolean)
-        .join(" + ")
+      itemsList.map((it) => it.name).join(" + ")
     );
 
     const isFull = counterPaidNow >= counterNetPayable;
@@ -702,6 +734,9 @@ export const FeesSection: React.FC = () => {
       student_email: selectedStudent.email,
       class_name: selectedStudent.class_name || "General",
       grade_level: selectedStudent.grade_level || 6,
+      parent_id: String((selectedStudent as any).parent_id || (selectedStudent as any).parentId || (selectedStudent as any).parent?.id || ""),
+      parent_name: (selectedStudent as any).parent_name || (selectedStudent as any).parent?.name || "",
+      parent_phone: (selectedStudent as any).parent_phone || (selectedStudent as any).parent?.phone || "",
       fee_category_id: 1,
       category_name: feeDescription,
       title: feeDescription || "একাডেমিক ফি আদায়",
@@ -715,6 +750,7 @@ export const FeesSection: React.FC = () => {
       status: isFull ? "PAID" : "PARTIAL",
       academic_year: "2026-2027",
       notes: counterNotes || `কাউন্টার আদায় (${counterWaiverType})`,
+      fee_items: itemsList,
       created_at: new Date().toISOString(),
     };
 
@@ -783,6 +819,7 @@ export const FeesSection: React.FC = () => {
       shift_name: selectedStudent.shift,
       parent_name: selectedStudent.parent_name,
       parent_phone: selectedStudent.parent_phone,
+      fee_items: itemsList,
     };
 
     setReceiptData(receiptDoc);
@@ -840,6 +877,9 @@ export const FeesSection: React.FC = () => {
           student_email: st.email,
           class_name: st.class_name || "General",
           grade_level: st.grade_level || 6,
+          parent_id: String((st as any).parent_id || (st as any).parentId || (st as any).parent?.id || ""),
+          parent_name: (st as any).parent_name || (st as any).parent?.name || "",
+          parent_phone: (st as any).parent_phone || (st as any).parent?.phone || "",
           fee_category_id: cat.id,
           category_name: cat.name,
           category_code: cat.code,
@@ -853,6 +893,7 @@ export const FeesSection: React.FC = () => {
           status: "UNPAID",
           academic_year: batchAcademicYear,
           notes: `গণ-ফি তৈরি (${batchMonth})`,
+          fee_items: [{ name: cleanFeeTitle(`${cat.name} - ${batchMonth}`), amount: cat.default_amount }],
           created_at: new Date().toISOString(),
         });
       });
@@ -951,6 +992,9 @@ export const FeesSection: React.FC = () => {
       student_email: paymentModalInvoice.student_email,
       class_name: paymentModalInvoice.class_name,
       section_name: paymentModalInvoice.section_name,
+      fee_items: paymentModalInvoice.fee_items && paymentModalInvoice.fee_items.length > 0
+        ? paymentModalInvoice.fee_items
+        : parseFeeItems(cleanFeeTitle(paymentModalInvoice.title || paymentModalInvoice.category_name), paymentModalInvoice.amount),
     };
 
     setPaymentModalInvoice(null);
@@ -960,7 +1004,10 @@ export const FeesSection: React.FC = () => {
 
   // Print voucher from any invoice row
   const openReceiptFromInvoice = (inv: FeeInvoice) => {
-    const net = Number(inv.amount) - Number(inv.discount || 0);
+    const net = Number(inv.net_amount ?? (Number(inv.amount) - Number(inv.discount || 0)));
+    const feeItems = inv.fee_items && inv.fee_items.length > 0
+      ? inv.fee_items
+      : parseFeeItems(cleanFeeTitle(inv.title || inv.category_name), inv.amount);
     const slipDoc: FeeReceiptData = {
       id: Date.now(),
       receipt_no: `SLIP-${inv.invoice_no}`,
@@ -976,7 +1023,7 @@ export const FeesSection: React.FC = () => {
       student_email: inv.student_email,
       class_name: inv.class_name,
       section_name: inv.section_name,
-      amount: inv.paid_amount || 0,
+      amount: inv.paid_amount || net,
       payment_method: "CASH",
       payment_date: inv.created_at ? inv.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
       invoice_amount: inv.amount,
@@ -984,10 +1031,11 @@ export const FeesSection: React.FC = () => {
       late_fine: inv.late_fine,
       total_paid: inv.paid_amount,
       net_amount: net,
-      remaining_due: Math.max(0, net - Number(inv.paid_amount || 0)),
+      remaining_due: inv.due_amount ?? Math.max(0, net - Number(inv.paid_amount || 0)),
       due_date: inv.due_date,
       academic_year: inv.academic_year,
       notes: inv.notes,
+      fee_items: feeItems,
     };
     setReceiptData(slipDoc);
   };
@@ -1746,8 +1794,17 @@ export const FeesSection: React.FC = () => {
                             <div className="text-[10px] text-slate-500">রোল: {inv.student_roll || "—"}</div>
                           </td>
                           <td className="py-3 px-3">
-                            <div className="font-semibold text-slate-800 truncate max-w-[200px]">{inv.title}</div>
-                            <div className="text-[10px] text-slate-500">মেয়াদ: {inv.due_date}</div>
+                            <div className="font-semibold text-slate-800 truncate max-w-[200px]" title={inv.title}>
+                              {cleanFeeTitle(inv.title || inv.category_name)}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <span className="text-[10px] text-slate-500">মেয়াদ: {inv.due_date}</span>
+                              {inv.fee_items && inv.fee_items.length > 1 && (
+                                <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {inv.fee_items.length}টি খাত (বিস্তারিত)
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-3 px-3 text-right font-bold text-slate-900">{fmt(net)}</td>
                           <td className="py-3 px-3 text-right font-bold text-emerald-700">{fmt(paid)}</td>
@@ -1787,8 +1844,16 @@ export const FeesSection: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => openReceiptFromInvoice(inv)}
+                                className="p-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md transition cursor-pointer"
+                                title="বিস্তারিত ইনভয়েস ভাউচার (Details)"
+                              >
+                                <Eye size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openReceiptFromInvoice(inv)}
                                 className="p-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md transition cursor-pointer"
-                                title="মানি রসিদ প্রিন্ট"
+                                title="মানি রসিদ প্রিন্ট (Print Slip)"
                               >
                                 <Printer size={13} />
                               </button>
@@ -2442,6 +2507,9 @@ export const FeesSection: React.FC = () => {
                     student_roll: st?.roll,
                     student_phone: st?.phone,
                     class_name: st?.class_name,
+                    parent_id: String((st as any)?.parent_id || (st as any)?.parentId || (st as any)?.parent?.id || ""),
+                    parent_name: (st as any)?.parent_name || (st as any)?.parent?.name || "",
+                    parent_phone: (st as any)?.parent_phone || (st as any)?.parent?.phone || "",
                     fee_category_id: invoiceForm.fee_category_id,
                     category_name: cat?.name,
                     title: invoiceForm.title || cat?.name || "একাডেমিক ফি",
@@ -2453,6 +2521,7 @@ export const FeesSection: React.FC = () => {
                     due_amount: net,
                     status: "UNPAID",
                     academic_year: invoiceForm.academic_year,
+                    fee_items: [{ name: cleanFeeTitle(invoiceForm.title || cat?.name || "একাডেমিক ফি"), amount: invoiceForm.amount }],
                     created_at: new Date().toISOString(),
                   };
 
