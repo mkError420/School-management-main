@@ -329,7 +329,7 @@ export const FeesSection: React.FC = () => {
     // 1. Fetch Students & Classes
     try {
       const [studentsRes, classesRes] = await Promise.all([
-        api.getAll("students", { limit: 100 }),
+        api.getAll("students", { limit: 500 }),
         api.getAll("classes", { limit: 100 }),
       ]);
 
@@ -673,6 +673,17 @@ export const FeesSection: React.FC = () => {
     return selectedStudentInvoices.reduce((sum, inv) => sum + Math.max(0, Number(inv.due_amount || 0)), 0);
   }, [selectedStudentInvoices]);
 
+  // Other unpaid invoices for student currently in payment modal
+  const paymentModalStudentInvoices = useMemo(() => {
+    if (!paymentModalInvoice) return [];
+    return invoices.filter(
+      (inv) =>
+        String(inv.student_id) === String(paymentModalInvoice.student_id) &&
+        inv.status !== "PAID" &&
+        Math.max(0, Number(inv.amount || 0) - Number(inv.discount || 0) - Number(inv.paid_amount || 0)) > 0
+    );
+  }, [paymentModalInvoice, invoices]);
+
   // KPI Statistics Calculation
   const stats: FeeStats = useMemo(() => {
     let total_billed = 0;
@@ -851,11 +862,16 @@ export const FeesSection: React.FC = () => {
       notes: counterNotes || "কাউন্টার ক্যাশ রসিদ",
     };
 
+    const validCatId = categories.length > 0 ? Number(categories[0].id) : 1;
+    let serverInvoiceId = newInvoice.id;
+    let serverInvoiceNo = newInvoice.invoice_no;
+    let serverReceiptNo = newPayment.receipt_no;
+
     // Try posting to API if online
     try {
-      await api.create("fees", {
+      const res = await api.create("fees", {
         student_id: selectedStudent.id,
-        fee_category_id: 1,
+        fee_category_id: validCatId,
         title: newInvoice.title,
         amount: newInvoice.amount,
         discount: newInvoice.discount,
@@ -866,9 +882,25 @@ export const FeesSection: React.FC = () => {
         transaction_ref: newPayment.transaction_ref,
         notes: newInvoice.notes,
       });
+
+      if (res && (res as any).invoice_id) {
+        serverInvoiceId = (res as any).invoice_id;
+      }
+      if (res && (res as any).invoice_no) {
+        serverInvoiceNo = (res as any).invoice_no;
+      }
+      if (res && (res as any).receipt_no) {
+        serverReceiptNo = (res as any).receipt_no;
+      }
     } catch (e) {
       console.warn("Saving to local state and localStorage", e);
     }
+
+    newInvoice.id = serverInvoiceId;
+    newInvoice.invoice_no = serverInvoiceNo;
+    newPayment.invoice_id = serverInvoiceId;
+    newPayment.invoice_no = serverInvoiceNo;
+    newPayment.receipt_no = serverReceiptNo;
 
     const updatedInvoices = [newInvoice, ...invoices];
     const updatedPayments = [newPayment, ...payments];
@@ -1013,10 +1045,32 @@ export const FeesSection: React.FC = () => {
     const isFull = newPaid >= net;
     const remainingDue = Math.max(0, net - newPaid);
 
-    const receiptNo = `REC-2026-${Date.now().toString().slice(-5)}`;
+    let receiptNo = `REC-2026-${Date.now().toString().slice(-5)}`;
+    let serverPaymentId = Date.now();
+
+    // 1. Send payment to MySQL Backend Database
+    try {
+      const res = await api.recordFeePayment({
+        invoice_id: Number(paymentModalInvoice.id),
+        amount: payForm.amount,
+        payment_method: payForm.payment_method,
+        payment_date: payForm.payment_date,
+        transaction_ref: payForm.transaction_ref,
+        notes: payForm.notes,
+      });
+
+      if (res && (res as any).receipt_no) {
+        receiptNo = (res as any).receipt_no;
+      }
+      if (res && (res as any).payment_id) {
+        serverPaymentId = (res as any).payment_id;
+      }
+    } catch (err: any) {
+      console.warn("Could not save payment to server, updating locally:", err.message);
+    }
 
     const newPayment: FeePayment = {
-      id: Date.now(),
+      id: serverPaymentId,
       receipt_no: receiptNo,
       invoice_id: paymentModalInvoice.id,
       invoice_no: paymentModalInvoice.invoice_no,
@@ -1421,7 +1475,21 @@ export const FeesSection: React.FC = () => {
 
   // Jump to Counter with pre-loaded student
   const handleGoToCounterForStudent = (stId: string | number) => {
-    const fullStudent = students.find((s) => String(s.id) === String(stId));
+    let fullStudent = students.find((s) => String(s.id) === String(stId));
+    if (!fullStudent) {
+      const def = allDefaulterStudents.find((d) => String(d.id) === String(stId));
+      if (def) {
+        fullStudent = {
+          id: def.id,
+          name: def.name,
+          roll: def.roll,
+          phone: def.phone,
+          class_name: def.class_name,
+          parent_name: def.parent_name,
+          parent_phone: def.parent_phone,
+        };
+      }
+    }
     if (fullStudent) {
       setSelectedStudent(fullStudent);
       setActiveTab("quick_counter");
@@ -1743,6 +1811,22 @@ export const FeesSection: React.FC = () => {
                       {selectedStudentTotalDue > 0 ? fmt(selectedStudentTotalDue) : "বকেয়া নেই (Clear)"}
                     </span>
                   </div>
+
+                  {selectedStudentTotalDue > 0 && selectedStudentInvoices.some((i) => Math.max(0, Number(i.amount || 0) - Number(i.discount || 0) - Number(i.paid_amount || 0)) > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const dueInv = selectedStudentInvoices.find(
+                          (i) => Math.max(0, Number(i.amount || 0) - Number(i.discount || 0) - Number(i.paid_amount || 0)) > 0
+                        );
+                        if (dueInv) handleRecordPayment(dueInv);
+                      }}
+                      className="w-full mt-2 py-2 px-3 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 shadow-xs transition cursor-pointer"
+                    >
+                      <Wallet size={14} />
+                      <span>বকেয়া ফি আদায় করুন ({fmt(selectedStudentTotalDue)})</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -2743,12 +2827,18 @@ export const FeesSection: React.FC = () => {
                           {/* Action Buttons: 1-Click Counter, SMS, Slip */}
                           <td className="py-3 px-3 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {/* 1-Click Counter Jump */}
+                              {/* 1-Click Fee Collection Modal */}
                               <button
                                 type="button"
-                                onClick={() => handleGoToCounterForStudent(st.id)}
+                                onClick={() => {
+                                  if (st.invoices && st.invoices.length > 0) {
+                                    handleRecordPayment(st.invoices[0]);
+                                  } else {
+                                    handleGoToCounterForStudent(st.id);
+                                  }
+                                }}
                                 className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-[#005a40] text-white hover:bg-[#004732] shadow-2xs transition cursor-pointer"
-                                title="কাউন্টারে এই শিক্ষার্থীর ফি আদায় করুন"
+                                title="এই শিক্ষার্থীর বকেয়া ফি আদায় করুন"
                               >
                                 <Wallet size={12} />
                                 <span>ফি আদায়</span>
@@ -2869,9 +2959,15 @@ export const FeesSection: React.FC = () => {
                                 <span className="font-bold text-rose-700">{fmt(st.due)}</span>
                                 <button
                                   type="button"
-                                  onClick={() => handleGoToCounterForStudent(st.id)}
+                                  onClick={() => {
+                                    if (st.invoices && st.invoices.length > 0) {
+                                      handleRecordPayment(st.invoices[0]);
+                                    } else {
+                                      handleGoToCounterForStudent(st.id);
+                                    }
+                                  }}
                                   className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-700 text-white hover:bg-emerald-800 cursor-pointer"
-                                  title="কাউন্টারে আদায় করুন"
+                                  title="বকেয়া ফি আদায় করুন"
                                 >
                                   আদায়
                                 </button>
@@ -3074,6 +3170,34 @@ export const FeesSection: React.FC = () => {
                   )
                 )}
               </div>
+
+              {paymentModalStudentInvoices.length > 1 && (
+                <div className="pt-2 border-t border-slate-200 mt-2">
+                  <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">
+                    বকেয়া ইনভয়েস পরিবর্তন ({paymentModalStudentInvoices.length}টি বকেয়া বিদ্যমান):
+                  </label>
+                  <select
+                    value={paymentModalInvoice.id}
+                    onChange={(e) => {
+                      const chosen = paymentModalStudentInvoices.find((i) => String(i.id) === e.target.value);
+                      if (chosen) handleRecordPayment(chosen);
+                    }}
+                    className="w-full p-1.5 border border-slate-200 rounded-lg text-xs bg-white font-medium"
+                  >
+                    {paymentModalStudentInvoices.map((inv) => {
+                      const d = Math.max(
+                        0,
+                        Number(inv.amount || 0) - Number(inv.discount || 0) - Number(inv.paid_amount || 0)
+                      );
+                      return (
+                        <option key={inv.id} value={inv.id}>
+                          #{inv.invoice_no} • {cleanFeeTitle(inv.title || inv.category_name)} ({fmt(d)})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 text-xs">

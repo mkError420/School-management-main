@@ -898,6 +898,7 @@ function createInvoice($db, $data) {
     }
 
     Response::json([
+        'success' => true,
         'message' => 'Invoice created successfully',
         'invoice_id' => $invoiceId,
         'invoice_no' => $invoiceNo,
@@ -1026,6 +1027,7 @@ function recordPayment($db, $data) {
     ], 'id = ?', [$invoiceId]);
 
     Response::json([
+        'success' => true,
         'message' => 'Payment recorded successfully',
         'payment_id' => $paymentId,
         'receipt_no' => $receiptNo,
