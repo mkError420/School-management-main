@@ -54,12 +54,14 @@ class ApiService {
       try {
         json = JSON.parse(responseText);
       } catch {
-        const message = responseText.trim();
+        const raw = responseText.trim();
+        const cleanMsg = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+        const displayMsg = cleanMsg.length > 0
+          ? cleanMsg.slice(0, 280)
+          : `The server returned an empty or invalid response (HTTP ${response.status}).`;
         return {
           success: false,
-          message: message && !message.startsWith('<')
-            ? message.slice(0, 240)
-            : `The server returned an invalid response (HTTP ${response.status}). Check the PHP error log.`,
+          message: displayMsg,
         };
       }
 

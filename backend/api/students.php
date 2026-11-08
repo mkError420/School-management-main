@@ -18,19 +18,19 @@ try {
 try {
     $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'version'");
     if (empty($cols)) {
-        $db->query("ALTER TABLE students ADD COLUMN version VARCHAR(50) DEFAULT 'Bangla' AFTER student_type");
+        $db->query("ALTER TABLE students ADD COLUMN version VARCHAR(50) DEFAULT 'Bangla'");
     }
 } catch (Exception $e) {}
 try {
     $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'session_year'");
     if (empty($cols)) {
-        $db->query("ALTER TABLE students ADD COLUMN session_year VARCHAR(50) DEFAULT '2026-2027' AFTER version");
+        $db->query("ALTER TABLE students ADD COLUMN session_year VARCHAR(50) DEFAULT '2026-2027'");
     }
 } catch (Exception $e) {}
 try {
     $cols = $db->fetchAll("SHOW COLUMNS FROM students LIKE 'status'");
     if (empty($cols)) {
-        $db->query("ALTER TABLE students ADD COLUMN status VARCHAR(50) DEFAULT 'ACTIVE' AFTER session_year");
+        $db->query("ALTER TABLE students ADD COLUMN status VARCHAR(50) DEFAULT 'ACTIVE'");
     }
 } catch (Exception $e) {}
 try {
@@ -68,7 +68,7 @@ try {
         INDEX idx_ssh_student (student_id),
         INDEX idx_ssh_session (session_year),
         INDEX idx_ssh_class (class_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 } catch (Exception $e) {}
 try {
     $db->query("UPDATE students SET email = NULL WHERE email IS NOT NULL AND (email = '' OR email = ' ')");
@@ -797,8 +797,12 @@ function promoteStudent($db) {
         $studentId = $item['student_id'] ?? null;
         if (!$studentId) continue;
 
-        $student = $db->fetchOne("SELECT s.*, c.name as class_name, g.level as grade_level FROM students s LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN grades g ON s.grade_id = g.id WHERE s.id = ?", [$studentId]);
-        if (!$student) {
+        $student = null;
+        try {
+            $student = $db->fetchOne("SELECT s.*, c.name as class_name, g.level as grade_level FROM students s LEFT JOIN classes c ON s.class_id = c.id LEFT JOIN grades g ON s.grade_id = g.id WHERE s.id = ?", [$studentId]);
+        } catch (Exception $e) {}
+
+        if (!$student || !is_array($student)) {
             $errors[] = "Student ID {$studentId} not found.";
             continue;
         }
@@ -806,7 +810,7 @@ function promoteStudent($db) {
         $completedSession = !empty($item['completed_session']) ? trim($item['completed_session']) : (!empty($defaultCompletedSession) ? $defaultCompletedSession : (!empty($student['session_year']) ? $student['session_year'] : '2026-2027'));
         $targetSession = !empty($item['target_session']) ? trim($item['target_session']) : $defaultTargetSession;
         $targetClassId = !empty($item['target_class_id']) ? $item['target_class_id'] : $defaultTargetClassId;
-        $targetRoll = isset($item['target_roll']) && $item['target_roll'] !== '' ? str_pad(trim((string)$item['target_roll']), 2, '0', STR_PAD_LEFT) : $student['roll'];
+        $targetRoll = isset($item['target_roll']) && $item['target_roll'] !== '' ? str_pad(trim((string)$item['target_roll']), 2, '0', STR_PAD_LEFT) : ($student['roll'] ?? '01');
         $promotionStatus = !empty($item['promotion_status']) ? strtoupper(trim($item['promotion_status'])) : 'PROMOTED';
         if (!in_array($promotionStatus, ['PROMOTED', 'RETAINED', 'PASSED_OUT', 'TRANSFERRED'])) {
             $promotionStatus = 'PROMOTED';
@@ -820,24 +824,41 @@ function promoteStudent($db) {
         // Target class info
         $targetClass = null;
         if (!empty($targetClassId)) {
-            $targetClass = $db->fetchOne("SELECT c.*, g.level as grade_level FROM classes c LEFT JOIN grades g ON c.grade_id = g.id WHERE c.id = ?", [$targetClassId]);
+            try {
+                $targetClass = $db->fetchOne("SELECT c.*, g.level as grade_level FROM classes c LEFT JOIN grades g ON c.grade_id = g.id WHERE c.id = ?", [$targetClassId]);
+            } catch (Exception $e) {}
         }
 
         // 1. Gather historical Attendance for the completed session
-        $attRow = $db->fetchOne("SELECT COUNT(*) as total_days, SUM(CASE WHEN present = 1 THEN 1 ELSE 0 END) as present_days FROM attendance WHERE student_id = ?", [$studentId]);
-        $totalDays = intval($attRow['total_days'] ?? 0);
-        $presentDays = intval($attRow['present_days'] ?? 0);
-        $attRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 2) : 0.00;
+        $totalDays = 0;
+        $presentDays = 0;
+        $attRate = 0.00;
+        try {
+            $attRow = $db->fetchOne("SELECT COUNT(*) as total_days, SUM(CASE WHEN present = 1 THEN 1 ELSE 0 END) as present_days FROM attendance WHERE student_id = ?", [$studentId]);
+            if ($attRow && is_array($attRow)) {
+                $totalDays = intval($attRow['total_days'] ?? 0);
+                $presentDays = intval($attRow['present_days'] ?? 0);
+                $attRate = $totalDays > 0 ? round(($presentDays / $totalDays) * 100, 2) : 0.00;
+            }
+        } catch (Exception $e) {}
 
         // 2. Gather historical Results for the completed session
-        $resRow = $db->fetchOne("SELECT AVG(score) as avg_score, SUM(score) as total_score, COUNT(*) as cnt FROM results WHERE student_id = ?", [$studentId]);
-        $avgScore = floatval($resRow['avg_score'] ?? 0);
-        $totalMarks = floatval($resRow['total_score'] ?? 0);
+        $avgScore = 0.0;
+        $totalMarks = 0.0;
+        $resCount = 0;
+        try {
+            $resRow = $db->fetchOne("SELECT AVG(score) as avg_score, SUM(score) as total_score, COUNT(*) as cnt FROM results WHERE student_id = ?", [$studentId]);
+            if ($resRow && is_array($resRow)) {
+                $avgScore = floatval($resRow['avg_score'] ?? 0);
+                $totalMarks = floatval($resRow['total_score'] ?? 0);
+                $resCount = intval($resRow['cnt'] ?? 0);
+            }
+        } catch (Exception $e) {}
 
         // Calculate GPA & Grade if not manually passed
         $gpa = isset($item['gpa']) && $item['gpa'] !== '' ? floatval($item['gpa']) : null;
         $gradeLetter = $item['grade_letter'] ?? null;
-        if ($gpa === null && intval($resRow['cnt'] ?? 0) > 0) {
+        if ($gpa === null && $resCount > 0) {
             if ($avgScore >= 80) { $gpa = 5.00; $gradeLetter = 'A+'; }
             elseif ($avgScore >= 70) { $gpa = 4.00; $gradeLetter = 'A'; }
             elseif ($avgScore >= 60) { $gpa = 3.50; $gradeLetter = 'A-'; }
@@ -849,29 +870,40 @@ function promoteStudent($db) {
         $meritPosition = isset($item['merit_position']) && $item['merit_position'] !== '' ? intval($item['merit_position']) : null;
 
         // 3. Gather historical Fees for the completed session
-        $feeRow = $db->fetchOne("SELECT 
-            COALESCE(SUM(amount - discount), 0) as total_billed,
-            COALESCE(SUM(paid_amount), 0) as total_paid,
-            COALESCE(SUM((amount - discount) - paid_amount), 0) as total_due
-        FROM fee_invoices 
-        WHERE student_id = ? AND (academic_year = ? OR academic_year = ?)", 
-        [$studentId, $completedSession, $student['session_year'] ?? $completedSession]);
+        $feeBilled = 0.00;
+        $feePaid = 0.00;
+        $feeDue = 0.00;
+        $feeClearanceStatus = 'CLEARED';
+        try {
+            $feeRow = $db->fetchOne("SELECT 
+                COALESCE(SUM(amount - discount), 0) as total_billed,
+                COALESCE(SUM(paid_amount), 0) as total_paid,
+                COALESCE(SUM((amount - discount) - paid_amount), 0) as total_due
+            FROM fee_invoices 
+            WHERE student_id = ? AND (academic_year = ? OR academic_year = ?)", 
+            [$studentId, $completedSession, $student['session_year'] ?? $completedSession]);
 
-        $feeBilled = floatval($feeRow['total_billed'] ?? 0);
-        $feePaid = floatval($feeRow['total_paid'] ?? 0);
-        $feeDue = max(0, floatval($feeRow['total_due'] ?? 0));
-        $feeClearanceStatus = ($feeDue <= 0.01) ? 'CLEARED' : 'DUE';
+            if ($feeRow && is_array($feeRow)) {
+                $feeBilled = floatval($feeRow['total_billed'] ?? 0);
+                $feePaid = floatval($feeRow['total_paid'] ?? 0);
+                $feeDue = max(0, floatval($feeRow['total_due'] ?? 0));
+                $feeClearanceStatus = ($feeDue <= 0.01) ? 'CLEARED' : 'DUE';
+            }
+        } catch (Exception $e) {}
+
+        $targetClassName = (is_array($targetClass) && !empty($targetClass['name'])) ? $targetClass['name'] : 'Next Class';
+        $currentClassName = !empty($student['class_name']) ? $student['class_name'] : 'Class';
 
         $remarks = !empty($item['remarks']) ? trim($item['remarks']) : null;
         if (!$remarks) {
             if ($promotionStatus === 'PROMOTED') {
-                $remarks = "Promoted from " . ($student['class_name'] ?: 'Class') . " (" . $completedSession . ") to " . ($targetClass['name'] ?? 'Next Class') . " (" . $targetSession . ")";
+                $remarks = "Promoted from {$currentClassName} ({$completedSession}) to {$targetClassName} ({$targetSession})";
             } elseif ($promotionStatus === 'RETAINED') {
-                $remarks = "Retained in " . ($student['class_name'] ?: 'Class') . " for session " . $targetSession;
+                $remarks = "Retained in {$currentClassName} for session {$targetSession}";
             } elseif ($promotionStatus === 'PASSED_OUT') {
-                $remarks = "Graduated / Completed schooling from " . ($student['class_name'] ?: 'Final Class') . " (" . $completedSession . ")";
+                $remarks = "Graduated / Completed schooling from {$currentClassName} ({$completedSession})";
             } elseif ($promotionStatus === 'TRANSFERRED') {
-                $remarks = "Transfer Certificate (TC) issued from " . ($student['class_name'] ?: 'Class') . " (" . $completedSession . ")";
+                $remarks = "Transfer Certificate (TC) issued from {$currentClassName} ({$completedSession})";
             }
         }
 
@@ -880,10 +912,10 @@ function promoteStudent($db) {
             $db->insert('student_session_history', [
                 'student_id'              => $studentId,
                 'session_year'            => $completedSession,
-                'class_id'                => $student['class_id'],
-                'class_name'              => $student['class_name'] ?: 'Class',
-                'grade_id'                => $student['grade_id'],
-                'grade_level'             => $student['grade_level'],
+                'class_id'                => intval($student['class_id'] ?? 0),
+                'class_name'              => $currentClassName,
+                'grade_id'                => !empty($student['grade_id']) ? intval($student['grade_id']) : null,
+                'grade_level'             => !empty($student['grade_level']) ? intval($student['grade_level']) : null,
                 'section'                 => $item['section'] ?? null,
                 'roll'                    => $student['roll'] ?? null,
                 'version'                 => $student['version'] ?? 'Bangla',
@@ -901,8 +933,8 @@ function promoteStudent($db) {
                 'fee_due'                 => $feeDue,
                 'fee_clearance_status'    => $feeClearanceStatus,
                 'next_session_year'       => $targetSession,
-                'next_class_id'           => $targetClassId,
-                'next_class_name'         => $targetClass['name'] ?? null,
+                'next_class_id'           => $targetClassId ? intval($targetClassId) : null,
+                'next_class_name'         => is_array($targetClass) ? ($targetClass['name'] ?? null) : null,
                 'next_roll'               => $targetRoll,
                 'remarks'                 => $remarks,
                 'promoted_by'             => $adminUsername
@@ -919,7 +951,7 @@ function promoteStudent($db) {
         if ($promotionStatus === 'PROMOTED' || $promotionStatus === 'RETAINED') {
             if ($targetClassId) {
                 $updateData['class_id'] = $targetClassId;
-                if ($targetClass && !empty($targetClass['grade_id'])) {
+                if (is_array($targetClass) && !empty($targetClass['grade_id'])) {
                     $updateData['grade_id'] = $targetClass['grade_id'];
                 }
             }
@@ -933,13 +965,28 @@ function promoteStudent($db) {
             $updateData['status'] = 'TRANSFERRED';
         }
 
-        $db->update('students', $updateData, 'id = ?', [$studentId]);
+        try {
+            $db->update('students', $updateData, 'id = ?', [$studentId]);
+        } catch (Exception $e) {
+            try {
+                $db->query("ALTER TABLE students ADD COLUMN session_year VARCHAR(50) DEFAULT '2026-2027'");
+            } catch (Exception $e1) {}
+            try {
+                $db->query("ALTER TABLE students ADD COLUMN status VARCHAR(50) DEFAULT 'ACTIVE'");
+            } catch (Exception $e2) {}
+            try {
+                $db->update('students', $updateData, 'id = ?', [$studentId]);
+            } catch (Exception $e3) {
+                $errors[] = "Failed to update student {$studentId}: " . $e3->getMessage();
+                continue;
+            }
+        }
 
         // 6. Generate Session Charge / Re-admission fee invoice if requested
         if ($createSessionFee && ($promotionStatus === 'PROMOTED' || $promotionStatus === 'RETAINED') && $sessionFeeAmount > 0) {
             try {
                 $catRow = $db->fetchOne("SELECT id FROM fee_categories WHERE code = 'SESS' OR code = 'ADMS' OR name LIKE '%Session%' LIMIT 1");
-                $catId = $catRow ? $catRow['id'] : 1;
+                $catId = (is_array($catRow) && !empty($catRow['id'])) ? intval($catRow['id']) : 1;
                 $cleanId = strtoupper(preg_replace('/[^a-zA-Z0-9]/', '', $studentId));
                 $invNo = 'SESS-' . preg_replace('/[^a-zA-Z0-9]/', '', $targetSession) . '-' . $cleanId;
                 $exists = $db->fetchOne("SELECT id FROM fee_invoices WHERE invoice_no = ?", [$invNo]);
@@ -961,19 +1008,19 @@ function promoteStudent($db) {
                     'paid_amount'     => 0.00,
                     'status'          => 'UNPAID',
                     'academic_year'   => $targetSession,
-                    'academic_month'  => 'January / সেশন প্রারম্ভ',
-                    'notes'           => "Auto-generated session re-admission charge for {$targetSession} session in " . ($targetClass['name'] ?? 'class')
+                    'notes'           => "Auto-generated session re-admission charge for {$targetSession} session in {$targetClassName}"
                 ]);
             } catch (Exception $e) {
-                error_log("Failed to create session invoice for {$studentId}: " . $e->getMessage());
+                // Non-fatal, session fee can also be generated manually
             }
         }
 
         // Sync with admissions table
         try {
+            $admGradeId = (is_array($targetClass) && !empty($targetClass['grade_id'])) ? $targetClass['grade_id'] : ($student['grade_id'] ?? null);
             $db->update('admissions', [
                 'class_id' => $targetClassId,
-                'grade_id' => $targetClass['grade_id'] ?? $student['grade_id'],
+                'grade_id' => $admGradeId,
                 'roll'     => $targetRoll
             ], 'enrolled_student_id = ?', [$studentId]);
         } catch (Exception $e) {}
@@ -994,60 +1041,79 @@ function getStudentSessionHistory($db) {
         Response::error('Student ID is required');
     }
 
-    $history = $db->fetchAll(
-        "SELECT * FROM student_session_history WHERE student_id = ? ORDER BY promoted_at ASC, id ASC",
-        [$studentId]
-    );
+    $history = [];
+    try {
+        $history = $db->fetchAll(
+            "SELECT * FROM student_session_history WHERE student_id = ? ORDER BY promoted_at ASC, id ASC",
+            [$studentId]
+        );
+    } catch (Exception $e) {}
 
-    foreach ($history as &$row) {
-        $row['attendance_rate'] = floatval($row['attendance_rate']);
-        $row['fee_billed'] = floatval($row['fee_billed']);
-        $row['fee_paid'] = floatval($row['fee_paid']);
-        $row['fee_due'] = floatval($row['fee_due']);
-        $row['gpa'] = $row['gpa'] !== null ? floatval($row['gpa']) : null;
-        $row['total_marks'] = $row['total_marks'] !== null ? floatval($row['total_marks']) : null;
+    if (is_array($history)) {
+        foreach ($history as &$row) {
+            $row['attendance_rate'] = floatval($row['attendance_rate'] ?? 0);
+            $row['fee_billed'] = floatval($row['fee_billed'] ?? 0);
+            $row['fee_paid'] = floatval($row['fee_paid'] ?? 0);
+            $row['fee_due'] = floatval($row['fee_due'] ?? 0);
+            $row['gpa'] = isset($row['gpa']) && $row['gpa'] !== null ? floatval($row['gpa']) : null;
+            $row['total_marks'] = isset($row['total_marks']) && $row['total_marks'] !== null ? floatval($row['total_marks']) : null;
+        }
+    } else {
+        $history = [];
     }
 
-    $currentStudent = $db->fetchOne(
-        "SELECT s.id, s.name, s.surname, s.roll, COALESCE(NULLIF(s.session_year, ''), '2026-2027') as session_year, COALESCE(NULLIF(s.status, ''), 'ACTIVE') as status, s.version, c.name as class_name, g.level as grade_level
-         FROM students s
-         LEFT JOIN classes c ON s.class_id = c.id
-         LEFT JOIN grades g ON s.grade_id = g.id
-         WHERE s.id = ?",
-        [$studentId]
-    );
+    $currentStudent = null;
+    try {
+        $currentStudent = $db->fetchOne(
+            "SELECT s.id, s.name, s.surname, s.roll, COALESCE(NULLIF(s.session_year, ''), '2026-2027') as session_year, COALESCE(NULLIF(s.status, ''), 'ACTIVE') as status, s.version, c.name as class_name, g.level as grade_level
+             FROM students s
+             LEFT JOIN classes c ON s.class_id = c.id
+             LEFT JOIN grades g ON s.grade_id = g.id
+             WHERE s.id = ?",
+            [$studentId]
+        );
+    } catch (Exception $e) {}
 
     Response::success('Session history retrieved successfully', [
         'history' => $history,
-        'current' => $currentStudent
+        'current' => $currentStudent ?: null
     ]);
 }
 
 function getPromotionsSummary($db) {
     AuthMiddleware::requireAnyRole(['admin', 'teacher']);
 
-    $totalStudents = intval($db->fetchOne("SELECT COUNT(*) as cnt FROM students")['cnt'] ?? 0);
+    $totalStudents = 0;
+    try {
+        $stCountRow = $db->fetchOne("SELECT COUNT(*) as cnt FROM students");
+        $totalStudents = intval($stCountRow['cnt'] ?? 0);
+    } catch (Exception $e) {}
+
     $activeSession = '2026-2027';
+    try {
+        $activeSessRow = $db->fetchOne("SELECT session_year, COUNT(*) as cnt FROM students WHERE session_year IS NOT NULL AND session_year != '' GROUP BY session_year ORDER BY cnt DESC LIMIT 1");
+        if ($activeSessRow && !empty($activeSessRow['session_year'])) {
+            $activeSession = $activeSessRow['session_year'];
+        }
+    } catch (Exception $e) {}
 
-    $activeSessRow = $db->fetchOne("SELECT session_year, COUNT(*) as cnt FROM students WHERE session_year IS NOT NULL GROUP BY session_year ORDER BY cnt DESC LIMIT 1");
-    if ($activeSessRow && !empty($activeSessRow['session_year'])) {
-        $activeSession = $activeSessRow['session_year'];
-    }
-
-    $histSummary = $db->fetchOne("SELECT 
-        COUNT(*) as total_records,
-        SUM(CASE WHEN promotion_status = 'PROMOTED' THEN 1 ELSE 0 END) as total_promoted,
-        SUM(CASE WHEN promotion_status = 'RETAINED' THEN 1 ELSE 0 END) as total_retained,
-        SUM(CASE WHEN promotion_status = 'PASSED_OUT' THEN 1 ELSE 0 END) as total_graduated,
-        SUM(CASE WHEN promotion_status = 'TRANSFERRED' THEN 1 ELSE 0 END) as total_transferred
-    FROM student_session_history") ?: [];
+    $histSummary = [];
+    try {
+        $histSummary = $db->fetchOne("SELECT 
+            COUNT(*) as total_records,
+            SUM(CASE WHEN promotion_status = 'PROMOTED' THEN 1 ELSE 0 END) as total_promoted,
+            SUM(CASE WHEN promotion_status = 'RETAINED' THEN 1 ELSE 0 END) as total_retained,
+            SUM(CASE WHEN promotion_status = 'PASSED_OUT' THEN 1 ELSE 0 END) as total_graduated,
+            SUM(CASE WHEN promotion_status = 'TRANSFERRED' THEN 1 ELSE 0 END) as total_transferred
+        FROM student_session_history") ?: [];
+    } catch (Exception $e) {}
 
     // All available sessions in system
     $allSessions = [];
     try {
-        $s1 = $db->fetchAll("SELECT DISTINCT session_year FROM student_session_history WHERE session_year IS NOT NULL");
-        $s2 = $db->fetchAll("SELECT DISTINCT session_year FROM students WHERE session_year IS NOT NULL");
-        $s3 = $db->fetchAll("SELECT DISTINCT academic_year as session_year FROM fee_invoices WHERE academic_year IS NOT NULL");
+        $s1 = $db->fetchAll("SELECT DISTINCT session_year FROM student_session_history WHERE session_year IS NOT NULL AND session_year != ''");
+        $s2 = $db->fetchAll("SELECT DISTINCT session_year FROM students WHERE session_year IS NOT NULL AND session_year != ''");
+        $s3 = $db->fetchAll("SELECT DISTINCT academic_year as session_year FROM fee_invoices WHERE academic_year IS NOT NULL AND academic_year != ''");
         $set = [];
         foreach (array_merge($s1, $s2, $s3) as $r) {
             $val = trim($r['session_year'] ?? '');

@@ -2,9 +2,12 @@
 
 class Response {
     public static function json($data, $statusCode = 200) {
+        if (ob_get_length()) {
+            ob_clean();
+        }
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
         exit;
     }
     

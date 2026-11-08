@@ -1,4 +1,5 @@
 <?php
+ob_start();
 
 // Set headers
 header('Content-Type: application/json; charset=utf-8');
@@ -60,6 +61,9 @@ try {
     } else {
         Response::error('Invalid endpoint', 404);
     }
-} catch (Exception $e) {
+} catch (Throwable $e) {
+    if (ob_get_length()) {
+        ob_clean();
+    }
     Response::error($e->getMessage(), 500);
 }
