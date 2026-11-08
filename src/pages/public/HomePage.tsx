@@ -605,7 +605,7 @@ export const HomePage: React.FC = () => {
 
               <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
                 <span className="hidden sm:inline">
-                  {lang === "bn" ? "(মাউস রাখলে টিকার থেমে যাবে)" : "(Hover notice to pause)"}
+                  {lang === "bn" ? "" : "(Hover notice to pause)"}
                 </span>
                 <span className="rounded bg-gray-100 px-2 py-0.5 font-bold text-gray-700">
                   {formatDigits(filteredNotices.length)} {lang === "bn" ? "টি নোটিশ" : "notices"}
