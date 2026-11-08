@@ -392,6 +392,7 @@ function getInvoices($db, $user = null) {
     $classId = trim($_GET['class_id'] ?? '');
     $studentId = trim($_GET['student_id'] ?? '');
     $parentId = trim($_GET['parent_id'] ?? '');
+    $academicYear = trim($_GET['academic_year'] ?? '');
 
     // Role-based restrictions
     if ($user && $user['role'] === 'student') {
@@ -472,6 +473,11 @@ function getInvoices($db, $user = null) {
         $params[] = $parentId;
     }
 
+    if (!empty($academicYear) && $academicYear !== 'ALL') {
+        $sql .= " AND fi.academic_year = ?";
+        $params[] = $academicYear;
+    }
+
     // Count total query
     $countSql = "SELECT COUNT(*) as total FROM (" . $sql . ") as subquery";
     $totalRow = $db->fetchOne($countSql, $params);
@@ -503,6 +509,10 @@ function getInvoices($db, $user = null) {
     if (!empty($classId)) {
         $sumBaseSql .= " AND s.class_id = ?";
         $sumParams[] = $classId;
+    }
+    if (!empty($academicYear) && $academicYear !== 'ALL') {
+        $sumBaseSql .= " AND fi.academic_year = ?";
+        $sumParams[] = $academicYear;
     }
     $summaryRow = $db->fetchOne($sumBaseSql, $sumParams) ?: [];
     $summary = [

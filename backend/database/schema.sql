@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS students (
     sex ENUM('MALE', 'FEMALE') NOT NULL,
     student_type VARCHAR(100) NULL,
     version VARCHAR(50) DEFAULT 'Bangla',
+    session_year VARCHAR(50) DEFAULT '2026-2027',
+    status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     parent_id VARCHAR(255) NOT NULL,
     class_id INT NOT NULL,
@@ -177,6 +179,43 @@ CREATE TABLE IF NOT EXISTS attendance (
     FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE,
     UNIQUE KEY unique_attendance (student_id, lesson_id, date)
 );
+
+-- Academic session history (permanent preservation of completed sessions)
+CREATE TABLE IF NOT EXISTS student_session_history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id VARCHAR(255) NOT NULL,
+    session_year VARCHAR(50) NOT NULL,
+    class_id INT NOT NULL,
+    class_name VARCHAR(100) NOT NULL,
+    grade_id INT NULL,
+    grade_level INT NULL,
+    section VARCHAR(50) NULL,
+    roll VARCHAR(50) NULL,
+    version VARCHAR(50) DEFAULT 'Bangla',
+    shift VARCHAR(50) DEFAULT 'Day',
+    promotion_status ENUM('PROMOTED', 'RETAINED', 'PASSED_OUT', 'TRANSFERRED') NOT NULL DEFAULT 'PROMOTED',
+    gpa DECIMAL(3,2) NULL,
+    total_marks DECIMAL(7,2) NULL,
+    grade_letter VARCHAR(10) NULL,
+    merit_position INT NULL,
+    attendance_total_days INT NOT NULL DEFAULT 0,
+    attendance_present_days INT NOT NULL DEFAULT 0,
+    attendance_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    fee_billed DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    fee_paid DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    fee_due DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    fee_clearance_status ENUM('CLEARED', 'DUE') NOT NULL DEFAULT 'CLEARED',
+    next_session_year VARCHAR(50) NULL,
+    next_class_id INT NULL,
+    next_class_name VARCHAR(100) NULL,
+    next_roll VARCHAR(50) NULL,
+    remarks TEXT NULL,
+    promoted_by VARCHAR(255) NULL,
+    promoted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_ssh_student (student_id),
+    INDEX idx_ssh_session (session_year),
+    INDEX idx_ssh_class (class_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS events (
     id INT AUTO_INCREMENT PRIMARY KEY,

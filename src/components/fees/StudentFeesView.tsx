@@ -69,6 +69,7 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
   const [activeTab, setActiveTab] = useState<"ALL" | "PAID" | "DUE" | "UPCOMING">("ALL");
   const [search, setSearch] = useState("");
   const [selectedChildId, setSelectedChildId] = useState<string>("ALL");
+  const [selectedSession, setSelectedSession] = useState<string>("ALL");
 
   // Receipt Modal
   const [receiptData, setReceiptData] = useState<FeeReceiptData | null>(null);
@@ -250,10 +251,29 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
     };
   }, [invoices, initialSummary, initialFees, todayStr]);
 
+  // Available Academic Sessions in this set of invoices
+  const availableSessions = useMemo(() => {
+    const set = new Set<string>();
+    invoices.forEach((inv) => {
+      if (inv.academic_year) {
+        set.add(inv.academic_year.trim());
+      }
+    });
+    return Array.from(set).sort().reverse();
+  }, [invoices]);
+
   // Filtered invoices
   const filteredInvoices = useMemo(() => {
     const q = search.trim().toLowerCase();
     return invoices.filter((inv) => {
+      // Academic Session filter
+      if (selectedSession !== "ALL") {
+        const invSess = (inv.academic_year || "2026-2027").trim();
+        if (invSess !== selectedSession) {
+          return false;
+        }
+      }
+
       // Child student filter
       if (selectedChildId !== "ALL" && String(inv.student_id) !== String(selectedChildId)) {
         return false;
@@ -487,6 +507,25 @@ export const StudentFeesView: React.FC<StudentFeesViewProps> = ({
 
         {/* Search & Child Dropdown */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Academic Session Filter (Session history preservation) */}
+          {availableSessions.length > 0 && (
+            <div className="flex items-center gap-1 text-xs">
+              <select
+                value={selectedSession}
+                onChange={(e) => setSelectedSession(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50/70 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 font-bold text-xs focus:outline-hidden"
+                title="Filter records by academic session"
+              >
+                <option value="ALL">All Sessions (সকল শিক্ষাবর্ষ)</option>
+                {availableSessions.map((s) => (
+                  <option key={s} value={s}>
+                    Session: {s} {s.includes("2026") ? " (Current)" : " (Previous)"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {childrenStudents && childrenStudents.length > 1 && (
             <div className="flex items-center gap-1 text-xs">
               <select

@@ -145,6 +145,34 @@ try {
     }
     $schedule = $db->fetchAll($scheduleSql, $scheduleParams);
 
+    // Session & Academic Progression metrics
+    $sessionSummary = [
+        'current_session' => '2026-2027',
+        'active_students' => $studentCount,
+        'total_history' => 0,
+        'promoted_count' => 0,
+        'retained_count' => 0,
+        'graduated_count' => 0,
+    ];
+    try {
+        $sessRow = $db->fetchOne("SELECT session_year, COUNT(*) as cnt FROM students WHERE session_year IS NOT NULL AND session_year != '' GROUP BY session_year ORDER BY cnt DESC LIMIT 1");
+        if ($sessRow && !empty($sessRow['session_year'])) {
+            $sessionSummary['current_session'] = $sessRow['session_year'];
+        }
+        $histCounts = $db->fetchOne("SELECT 
+            COUNT(*) as total_history,
+            SUM(CASE WHEN promotion_status = 'PROMOTED' THEN 1 ELSE 0 END) as promoted,
+            SUM(CASE WHEN promotion_status = 'RETAINED' THEN 1 ELSE 0 END) as retained,
+            SUM(CASE WHEN promotion_status = 'PASSED_OUT' THEN 1 ELSE 0 END) as graduated
+        FROM student_session_history");
+        if ($histCounts) {
+            $sessionSummary['total_history'] = intval($histCounts['total_history'] ?? 0);
+            $sessionSummary['promoted_count'] = intval($histCounts['promoted'] ?? 0);
+            $sessionSummary['retained_count'] = intval($histCounts['retained'] ?? 0);
+            $sessionSummary['graduated_count'] = intval($histCounts['graduated'] ?? 0);
+        }
+    } catch (Exception $e) {}
+
     Response::success('Dashboard data retrieved successfully', [
         'counts' => [
             'students' => $studentCount,
@@ -155,6 +183,7 @@ try {
             'subjects' => $subjectCount,
             'lessons' => $lessonCount
         ],
+        'session_summary' => $sessionSummary,
         'gender' => [
             'boys' => $boysCount,
             'girls' => $girlsCount,

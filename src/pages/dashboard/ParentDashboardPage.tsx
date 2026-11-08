@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Award,
   CalendarDays,
+  CheckCircle2,
   ExternalLink,
   GraduationCap,
   HeartPulse,
+  History,
   Mail,
   MapPin,
   Phone,
@@ -46,6 +49,8 @@ interface ChildStudent {
   roll?: string | null;
   student_type?: string | null;
   version?: string | null;
+  session_year?: string | null;
+  session_history?: any[];
   status?: string | null;
 }
 
@@ -238,6 +243,9 @@ const ParentDashboardPage: React.FC = () => {
 
                         {/* Badges */}
                         <div className="flex flex-wrap gap-1.5 mb-2.5">
+                          <span className="text-xs font-bold px-2.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            Session: {child.session_year || "2026-2027"}
+                          </span>
                           {child.class_name && (
                             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-900/40">
                               Class: {child.class_name}
@@ -295,6 +303,30 @@ const ParentDashboardPage: React.FC = () => {
                             </span>
                           )}
                         </div>
+
+                        {/* Preserved Past Sessions Record */}
+                        {child.session_history && child.session_history.length > 0 && (
+                          <div className="mt-3 p-2.5 rounded-xl bg-teal-50/70 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-900/40 text-xs">
+                            <div className="flex items-center justify-between font-bold text-teal-900 dark:text-teal-200 mb-1">
+                              <span className="flex items-center gap-1.5 text-[11px]">
+                                <History size={13} className="text-teal-600" />
+                                <span>Previous Session History ({child.session_history.length})</span>
+                              </span>
+                              <span className="text-[10px] text-teal-700 dark:text-teal-400 font-normal">All past fees preserved</span>
+                            </div>
+                            <div className="space-y-1">
+                              {child.session_history.map((hist: any) => (
+                                <div key={hist.id} className="flex items-center justify-between text-[11px] text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 px-2 py-1 rounded border border-teal-100 dark:border-gray-700">
+                                  <span>Session {hist.session_year} • {hist.class_name} (Roll: {hist.roll || "—"})</span>
+                                  <span className="font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                                    <CheckCircle2 size={11} />
+                                    <span>{hist.gpa ? `GPA ${Number(hist.gpa).toFixed(2)}` : hist.promotion_status}</span>
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 

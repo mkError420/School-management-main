@@ -219,6 +219,22 @@ function getParent($db, $id) {
 
     foreach ($children as &$child) {
         unset($child['password']);
+        $child['session_year'] = !empty($child['session_year']) ? $child['session_year'] : '2026-2027';
+        try {
+            $child['session_history'] = $db->fetchAll(
+                "SELECT * FROM student_session_history WHERE student_id = ? ORDER BY promoted_at ASC, id ASC",
+                [$child['id']]
+            );
+            foreach ($child['session_history'] as &$sh) {
+                $sh['attendance_rate'] = floatval($sh['attendance_rate'] ?? 0);
+                $sh['fee_billed'] = floatval($sh['fee_billed'] ?? 0);
+                $sh['fee_paid'] = floatval($sh['fee_paid'] ?? 0);
+                $sh['fee_due'] = floatval($sh['fee_due'] ?? 0);
+                $sh['gpa'] = isset($sh['gpa']) && $sh['gpa'] !== null ? floatval($sh['gpa']) : null;
+            }
+        } catch (Exception $e) {
+            $child['session_history'] = [];
+        }
     }
 
     // Also include any admission applicants linked to this parent that aren't yet in students

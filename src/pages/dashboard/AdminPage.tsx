@@ -6,6 +6,7 @@ import FinanceChart from "@/components/FinanceChart";
 import EventCalendar from "@/components/EventCalendar";
 import Announcements from "@/components/Announcements";
 import AdmissionSection from "@/components/AdmissionSection";
+import SessionProgressionBanner from "@/components/students/SessionProgressionBanner";
 import { api } from "@/lib/api";
 import { useEffect, useState } from "react";
 
@@ -26,6 +27,9 @@ const AdminPage: React.FC = () => {
       <div className="w-full lg:w-2/3 flex flex-col gap-5 sm:gap-6 min-w-0">
         {/* Dynamic Top Stats Cards (People + Finance KPIs) */}
         <DashboardStatsCards />
+
+        {/* Academic Session Progression & Promotion Banner */}
+        <SessionProgressionBanner />
 
         {/* Admissions Section - Showing last 5 applications on Home page */}
         <AdmissionSection maxItems={5} showViewAllLink />

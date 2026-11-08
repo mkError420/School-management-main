@@ -164,6 +164,7 @@ export const FeesSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [classFilter, setClassFilter] = useState<string>("ALL");
+  const [sessionFilter, setSessionFilter] = useState<string>("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
@@ -731,10 +732,12 @@ export const FeesSection: React.FC = () => {
       const matchCategory = categoryFilter === "ALL" || String(inv.fee_category_id) === String(categoryFilter);
       const matchClass =
         classFilter === "ALL" || (inv.class_name && inv.class_name.toLowerCase().includes(classFilter.toLowerCase()));
+      const matchSession =
+        sessionFilter === "ALL" || (inv.academic_year && inv.academic_year.toLowerCase() === sessionFilter.toLowerCase());
 
-      return matchSearch && matchStatus && matchCategory && matchClass;
+      return matchSearch && matchStatus && matchCategory && matchClass && matchSession;
     });
-  }, [invoices, search, statusFilter, categoryFilter, classFilter]);
+  }, [invoices, search, statusFilter, categoryFilter, classFilter, sessionFilter]);
 
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
   const paginatedInvoices = useMemo(() => {
@@ -2051,6 +2054,18 @@ export const FeesSection: React.FC = () => {
                     {cat.name}
                   </option>
                 ))}
+              </select>
+
+              {/* Session Filter */}
+              <select
+                value={sessionFilter}
+                onChange={(e) => setSessionFilter(e.target.value)}
+                className="text-xs border border-emerald-300 rounded-lg p-2 bg-emerald-50 text-emerald-950 font-bold focus:bg-white focus:outline-hidden"
+              >
+                <option value="ALL">সকল শিক্ষাবর্ষ (All Sessions)</option>
+                <option value="2027">Session 2027</option>
+                <option value="2026-2027">Session 2026-2027</option>
+                <option value="2025-2026">Session 2025-2026</option>
               </select>
             </div>
 

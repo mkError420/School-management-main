@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Calendar, momentLocalizer, Views, type View } from "react-big-calendar";
 import moment from "moment";
-import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, GraduationCap, Mail, MapPin, Phone, Trophy, Users, X } from "lucide-react";
+import { Award, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, CreditCard, FileText, GraduationCap, History, Mail, MapPin, Phone, ShieldCheck, Trophy, Users, Wallet, X } from "lucide-react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { Link, useNavigate } from "react-router-dom";
 import FormModal from "@/components/FormModal";
@@ -10,7 +10,10 @@ import { api } from "@/lib/api";
 import ResultSheetModal from "@/components/results/ResultSheetModal";
 import StudentIdCardModal from "@/components/students/StudentIdCardModal";
 import StudentFeesView from "@/components/fees/StudentFeesView";
+import SessionRecordSlipModal from "@/components/students/SessionRecordSlipModal";
+import StudentPromotionModal from "@/components/students/StudentPromotionModal";
 import { FeeInvoice } from "@/types/fees";
+import { StudentSessionHistory } from "@/types/promotion";
 
 const localizer = momentLocalizer(moment);
 
@@ -29,6 +32,8 @@ export interface StudentProfileDetails {
     sex?: string | null;
     student_type?: string | null;
     version?: string | null;
+    session_year?: string | null;
+    status?: string | null;
     class_id?: number | null;
     grade_id?: number | null;
     class_name?: string | null;
@@ -81,6 +86,7 @@ export interface StudentProfileDetails {
   assignments: { id: number | string; title: string; due_date: string; lesson_name?: string | null; subject_name?: string | null }[];
   announcements: { id: number | string; title: string; description?: string | null; date: string; class_name?: string | null }[];
   fees?: FeeInvoice[];
+  session_history?: StudentSessionHistory[];
   fee_summary?: {
     total_billed: number;
     total_paid: number;
@@ -346,6 +352,9 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   const [attendanceCalendarOpen, setAttendanceCalendarOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [idCardOpen, setIdCardOpen] = useState(false);
+  const [promotionModalOpen, setPromotionModalOpen] = useState(false);
+  const [slipModalOpen, setSlipModalOpen] = useState(false);
+  const [selectedHistoryRecord, setSelectedHistoryRecord] = useState<StudentSessionHistory | null>(null);
   const student = details.student;
   const fullName = `${student.name} ${student.surname}`.trim();
   const presentCount = details.attendance.filter((record) => Boolean(Number(record.present))).length;
@@ -362,6 +371,7 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
   })), [details.lessons]);
 
   const shortcuts = [
+    { href: "#student-sessions", label: "Session History (সেশন ইতিহাস)", style: "bg-teal-100 text-teal-950 font-bold hover:bg-teal-200" },
     { href: "#student-fees", label: "Student's Fees", style: "bg-emerald-100 text-emerald-950 font-bold hover:bg-emerald-200" },
     { href: "#student-lessons", label: "Student's Lessons", style: "bg-sky-100 text-sky-900 hover:bg-sky-200" },
     { href: "#student-teachers", label: "Student's Teachers", style: "bg-rose-100 text-rose-900 hover:bg-rose-200" },
@@ -375,6 +385,17 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
       <div className="flex items-center justify-between gap-3 py-2">
         <Link to="/list/students" className="text-sm font-medium text-gray-600 hover:text-gray-900">← All students</Link>
         <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <button
+              type="button"
+              onClick={() => setPromotionModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              title="Promote or Re-Admit Student to New Academic Session"
+            >
+              <GraduationCap size={14} />
+              <span>Session Promotion (সেশন প্রমোশন)</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setIdCardOpen(true)}
@@ -394,6 +415,9 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/70">Student profile</p>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase bg-emerald-800 text-white shadow-xs">
+                Session: {student.session_year || "2026-2027"}
+              </span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide uppercase shadow-xs ${
                 (student.version || "Bangla").toLowerCase() === "english"
                   ? "bg-blue-700 text-white"
@@ -516,6 +540,181 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         </section>
       )}
 
+      {/* ── Academic Session & Promotion History ── */}
+      <section
+        id="student-sessions"
+        className="rounded-xl border border-teal-200/90 dark:border-teal-900/60 bg-gradient-to-r from-teal-50/50 via-white to-emerald-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-teal-950/20 p-4 sm:p-5 shadow-xs space-y-4"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-teal-100 dark:border-teal-900/60 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-600 to-emerald-700 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+              <History size={20} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                  Academic Session Progression & History (শিক্ষাবর্ষ ও সেশন ইতিহাস)
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                  {details.session_history?.length || 0} Previous Session{(details.session_history?.length || 0) === 1 ? "" : "s"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Past session performance, examinations, attendance records, and fee clearance receipts
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {role === "admin" && (
+              <button
+                type="button"
+                onClick={() => setPromotionModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <GraduationCap size={14} />
+                <span>Promote / Re-Admit</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Current Active Session Overview Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-white dark:bg-gray-800 border border-teal-200/70 dark:border-teal-800/50 shadow-2xs">
+          <div className="sm:col-span-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-teal-800 dark:text-teal-300 block">
+              Current Active Session
+            </span>
+            <span className="text-base font-black text-gray-900 dark:text-white">
+              {student.session_year || "2026-2027"}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
+              Enrolled Class
+            </span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+              {student.class_name || "—"}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
+              Active Roll No
+            </span>
+            <span className="text-sm font-bold text-gray-800 dark:text-gray-200 font-mono">
+              {student.roll || "—"}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 block">
+              Enrollment Status
+            </span>
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 size={13} />
+              <span>{student.status || "ACTIVE"}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Previous Completed Sessions List */}
+        {!details.session_history || details.session_history.length === 0 ? (
+          <div className="p-5 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 text-center bg-gray-50/60 dark:bg-gray-800/40">
+            <Clock size={24} className="mx-auto text-gray-400 mb-1.5" />
+            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+              First Academic Session (প্রথম শিক্ষাবর্ষ)
+            </p>
+            <p className="text-[11px] text-gray-500 max-w-md mx-auto mt-0.5">
+              This student is currently in their initial enrolled session ({student.session_year || "2026-2027"}).
+              When this session concludes and the student is admitted to the next session, complete historical exam results, attendance logs, and paid fee vouchers will be permanently preserved and accessible here.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Completed Session Archives (পূর্ববর্তী সমাপ্ত শিক্ষাবর্ষের তথ্য)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {details.session_history.map((hist) => (
+                <div
+                  key={hist.id}
+                  className="rounded-xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-2xs hover:shadow-sm transition flex flex-col justify-between space-y-3 relative overflow-hidden"
+                >
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-emerald-600" />
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span>Session {hist.session_year}</span>
+                      </span>
+                      <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase border ${
+                        hist.promotion_status === "PROMOTED"
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300"
+                          : hist.promotion_status === "RETAINED"
+                          ? "bg-amber-100 text-amber-800 border-amber-300"
+                          : "bg-indigo-100 text-indigo-800 border-indigo-300"
+                      }`}>
+                        {hist.promotion_status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100 dark:border-gray-700/60 my-2">
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Class & Roll</span>
+                        <strong className="text-gray-800 dark:text-gray-200">
+                          {hist.class_name} (Roll: {hist.roll || "—"})
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Exam Result</span>
+                        <strong className="text-amber-700 dark:text-amber-400">
+                          {hist.gpa ? `GPA ${Number(hist.gpa).toFixed(2)}` : "Passed"}
+                          {hist.grade_letter ? ` (${hist.grade_letter})` : ""}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Attendance Rate</span>
+                        <strong className="text-gray-700 dark:text-gray-300">
+                          {hist.attendance_rate !== undefined ? `${hist.attendance_rate}%` : "—"}
+                        </strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Fee Clearance</span>
+                        <span className="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 size={12} />
+                          <span>{hist.fee_clearance_status || "CLEARED"}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {hist.remarks && (
+                      <p className="text-[11px] text-gray-600 dark:text-gray-300 italic line-clamp-2">
+                        "{hist.remarks}"
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-100 dark:border-gray-700/60 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-400 font-mono">
+                      Promoted: {new Date(hist.promoted_at).toLocaleDateString("en-BD", { year: "numeric", month: "short", day: "numeric" })}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedHistoryRecord(hist);
+                        setSlipModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 hover:bg-teal-100 border border-teal-200 dark:border-teal-800 transition cursor-pointer"
+                    >
+                      <Award size={12} />
+                      <span>Transcript Slip (সনদপত্র)</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* ── Student's Fees & Invoices ── */}
       <div id="student-fees">
         <StudentFeesView
@@ -623,6 +822,30 @@ const StudentProfileView: React.FC<StudentProfileViewProps> = ({ details, onRelo
         <StudentIdCardModal
           student={student}
           onClose={() => setIdCardOpen(false)}
+        />
+      )}
+
+      {promotionModalOpen && (
+        <StudentPromotionModal
+          isOpen={promotionModalOpen}
+          onClose={() => setPromotionModalOpen(false)}
+          onSuccess={onReload}
+          singleStudent={student}
+        />
+      )}
+
+      {slipModalOpen && selectedHistoryRecord && (
+        <SessionRecordSlipModal
+          isOpen={slipModalOpen}
+          onClose={() => {
+            setSlipModalOpen(false);
+            setSelectedHistoryRecord(null);
+          }}
+          record={selectedHistoryRecord}
+          studentName={fullName}
+          studentUsername={student.username}
+          guardianName={[student.parent_name, student.parent_surname].filter(Boolean).join(" ")}
+          guardianPhone={student.parent_phone || undefined}
         />
       )}
     </div>

@@ -622,6 +622,35 @@ class ApiService {
       method: 'GET',
     });
   }
+
+  // Student Session Progression & Promotion APIs
+  async promoteStudents(payload: Record<string, any>) {
+    return this.request<{ promoted_count: number; errors?: string[] }>('students?action=promote', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async getStudentSessionHistory(studentId: string) {
+    return this.request<{ history: any[]; current: any }>(`students?action=session-history&student_id=${encodeURIComponent(studentId)}`, {
+      method: 'GET',
+    });
+  }
+
+  async getPromotionsSummary() {
+    return this.request<{
+      active_session: string;
+      total_students: number;
+      total_records: number;
+      total_promoted: number;
+      total_retained: number;
+      total_graduated: number;
+      total_transferred: number;
+      available_sessions: string[];
+    }>('students?action=promotions-summary', {
+      method: 'GET',
+    });
+  }
 }
 
 export const api = new ApiService();

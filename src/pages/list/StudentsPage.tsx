@@ -7,9 +7,10 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { useAccessRole } from "@/context/AuthContext";
 import { useApiList } from "@/lib/useApiList";
-import { GraduationCap, ArrowRight, UserPlus, CreditCard } from "lucide-react";
+import { GraduationCap, ArrowRight, UserPlus, CreditCard, Sparkles, Filter } from "lucide-react";
 import StudentIdCardModal from "@/components/students/StudentIdCardModal";
 import StudentBatchIdCardModal from "@/components/students/StudentBatchIdCardModal";
+import StudentPromotionModal from "@/components/students/StudentPromotionModal";
 
 interface Student {
   id: string;
@@ -25,6 +26,9 @@ interface Student {
   sex: string;
   student_type?: string;
   version?: string;
+  session_year?: string;
+  status?: string;
+  class_id?: number | string;
   class_name?: string;
   grade_level?: number;
 }
@@ -46,6 +50,8 @@ const StudentsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [idCardStudent, setIdCardStudent] = useState<Student | null>(null);
   const [batchIdCardOpen, setBatchIdCardOpen] = useState(false);
+  const [promotionStudent, setPromotionStudent] = useState<Student | null>(null);
+  const [batchPromotionOpen, setBatchPromotionOpen] = useState(false);
 
   useEffect(() => {
     const q = searchParams.get("search");
@@ -77,6 +83,9 @@ const StudentsPage: React.FC = () => {
                 : "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
             }`}>
               {item.version || "Bangla"}
+            </span>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+              {item.session_year || "2026-2027"}
             </span>
             {item.student_type && (
               <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
@@ -111,6 +120,14 @@ const StudentsPage: React.FC = () => {
           </button>
           {role === "admin" && (
             <>
+              <button
+                type="button"
+                onClick={() => setPromotionStudent(item)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-teal-100 hover:bg-teal-200 text-teal-800 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-300 transition cursor-pointer"
+                title="Promote or Re-admit to New Academic Session / সেশন প্রমোশন"
+              >
+                <GraduationCap size={14} />
+              </button>
               <FormModal table="student" type="update" data={item} onSuccess={fetchStudents} />
               <FormModal table="student" type="delete" id={item.id} onSuccess={fetchStudents} />
             </>
@@ -133,8 +150,19 @@ const StudentsPage: React.FC = () => {
             </span>
           )}
         </div>
-        <div className="w-full sm:w-auto flex items-center gap-2">
+        <div className="w-full sm:w-auto flex items-center gap-2 flex-wrap">
           <TableSearch value={search} onChange={setSearch} placeholder="Search students..." />
+          {role === "admin" && (
+            <button
+              type="button"
+              onClick={() => setBatchPromotionOpen(true)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800 text-white text-xs font-bold shadow-sm shadow-teal-700/20 transition cursor-pointer"
+              title="Batch Class Promotion & Re-admission / সেশন প্রমোশন ও পুনর্ভর্তি"
+            >
+              <GraduationCap size={14} />
+              <span className="hidden sm:inline">Session Promotion</span>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setBatchIdCardOpen(true)}
@@ -203,6 +231,19 @@ const StudentsPage: React.FC = () => {
         <StudentBatchIdCardModal
           students={students}
           onClose={() => setBatchIdCardOpen(false)}
+        />
+      )}
+
+      {/* Student Session Promotion Modal */}
+      {(promotionStudent || batchPromotionOpen) && (
+        <StudentPromotionModal
+          isOpen={Boolean(promotionStudent || batchPromotionOpen)}
+          onClose={() => {
+            setPromotionStudent(null);
+            setBatchPromotionOpen(false);
+          }}
+          onSuccess={fetchStudents}
+          singleStudent={promotionStudent}
         />
       )}
     </div>
