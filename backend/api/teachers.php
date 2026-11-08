@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../utils/StaffIdGenerator.php';
+require_once __DIR__ . '/../utils/WebsiteContentStaffSync.php';
 
 $db = Database::getInstance();
 $method = $_SERVER['REQUEST_METHOD'];
@@ -373,6 +374,9 @@ function createTeacher($db) {
         }
         
         $db->commit();
+
+        // Automatically sync new teacher to Website Content (Faculty & Staff Directory)
+        WebsiteContentStaffSync::syncStaffMember($db, $id);
         
         // Get the created teacher
         $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ?", [$id]);
@@ -465,6 +469,9 @@ function updateTeacher($db, $id) {
         
         $db->commit();
 
+        // Automatically sync updated teacher to Website Content (Faculty & Staff Directory)
+        WebsiteContentStaffSync::syncStaffMember($db, $id);
+
         if ($uploadedImage && !empty($existing['img'])) {
             deleteTeacherImage($existing['img']);
         }
@@ -509,6 +516,9 @@ function deleteTeacher($db, $id) {
         $deleted = $db->delete('teachers', 'id = ?', [$id]);
         
         $db->commit();
+
+        // Automatically remove teacher from Website Content
+        WebsiteContentStaffSync::removeStaffMember($db, $id);
         
         if ($deleted > 0) {
             if (!empty($existing['img'])) {

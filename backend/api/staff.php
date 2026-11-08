@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../utils/StaffIdGenerator.php';
+require_once __DIR__ . '/../utils/WebsiteContentStaffSync.php';
 
 $db = Database::getInstance();
 ensureStaffTable($db);
@@ -26,6 +27,11 @@ switch ($method) {
         break;
 
     case 'POST':
+        if (($_GET['action'] ?? '') === 'sync-website-content') {
+            AuthMiddleware::requireAnyRole(['admin', 'super_admin']);
+            $count = WebsiteContentStaffSync::syncAllFromStaffDirectory($db);
+            Response::success("Synced {$count} staff members to Website Content", ['count' => $count]);
+        }
         createStaffMember($db);
         break;
 
@@ -591,6 +597,9 @@ function createStaffMember($db) {
 
         $db->commit();
 
+        // Automatically sync newly added staff/teacher to Website Content (Faculty & Staff Directory)
+        WebsiteContentStaffSync::syncStaffMember($db, $staffId);
+
         $created = $db->fetchOne("SELECT * FROM staff WHERE id = ?", [$staffId]);
         Response::success('Staff member added successfully', $created, 201);
 
@@ -766,6 +775,9 @@ function updateStaffMember($db, $id) {
 
         $db->commit();
 
+        // Automatically sync updated staff/teacher details to Website Content
+        WebsiteContentStaffSync::syncStaffMember($db, $id);
+
         $updated = $db->fetchOne("SELECT * FROM staff WHERE id = ?", [$id]);
         if (!empty($effectiveTeacherId)) {
             $tRow = $db->fetchOne("SELECT username, img FROM teachers WHERE id = ?", [$effectiveTeacherId]);
@@ -809,6 +821,10 @@ function deleteStaffMember($db, $id) {
         $db->delete('staff', 'id = ?', [$id]);
 
         $db->commit();
+
+        // Automatically remove staff/teacher from Website Content
+        WebsiteContentStaffSync::removeStaffMember($db, $id);
+
         Response::success('Staff member removed successfully');
 
     } catch (Exception $e) {

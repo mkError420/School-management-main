@@ -242,7 +242,7 @@ const emptyStaffForm = {
 };
 
 const StaffSection: React.FC = () => {
-  const { siteName, currencySymbol: cs } = useSiteSettings();
+  const { siteName, currencySymbol: cs, refreshSettings } = useSiteSettings();
   const fmt = (n: number | string) =>
     `${cs}${Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -533,12 +533,18 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
+      // Auto sync website content throughout the application
+      refreshSettings().catch(() => {});
+      try {
+        window.dispatchEvent(new CustomEvent("school-site-settings-updated"));
+      } catch {}
+
       setCreateModalOpen(false);
       setFormData(emptyStaffForm);
       showToast(
         formData.type === "TEACHING"
-          ? "Teacher added successfully to Staff and Academic Faculty!"
-          : "Staff member added successfully!",
+          ? "Teacher added & auto-synced to Website Faculty Directory!"
+          : "Staff member added & auto-synced to Website Faculty Directory!",
         "success"
       );
     } catch {
@@ -649,8 +655,14 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
+      // Auto sync website content throughout the application
+      refreshSettings().catch(() => {});
+      try {
+        window.dispatchEvent(new CustomEvent("school-site-settings-updated"));
+      } catch {}
+
       closeEditModal();
-      showToast("Staff profile updated successfully!", "success");
+      showToast("Staff profile updated & synced to Website Content!", "success");
     } catch {
       showToast("Failed to update staff record.", "error");
     } finally {
@@ -668,8 +680,14 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
+      // Auto sync website content throughout the application
+      refreshSettings().catch(() => {});
+      try {
+        window.dispatchEvent(new CustomEvent("school-site-settings-updated"));
+      } catch {}
+
       setDeleteConfirmItem(null);
-      showToast("Staff member removed from directory.", "success");
+      showToast("Staff member removed from directory & Website Content.", "success");
     } catch {
       showToast("Unable to delete staff record.", "error");
     }

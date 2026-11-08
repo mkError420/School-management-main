@@ -522,7 +522,7 @@ const WebsiteContentPage: React.FC = () => {
       const support = staff.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
       setLiveStaffStats({ total, teaching, admin, support });
 
-      // If draft teachers are still the placeholder demo teachers (t1..t7), auto-sync with live staff
+      // Auto-sync with live staff directory: if placeholder demo or missing newly added staff
       setDraft((prev) => {
         const isDefaultPlaceholder =
           !prev.teachers ||
@@ -534,6 +534,24 @@ const WebsiteContentPage: React.FC = () => {
             teachers: mapStaffArrayToTeachers(staff),
           };
         }
+
+        // Auto-merge any newly added staff or teacher from directory
+        const existingIds = new Set((prev.teachers || []).map((t) => t.id));
+        const mapped = mapStaffArrayToTeachers(staff);
+        const missing = mapped.filter(
+          (m) =>
+            !existingIds.has(m.id) &&
+            !existingIds.has(m.id.replace(/^stf_/, "")) &&
+            !existingIds.has(`stf_${m.id}`)
+        );
+
+        if (missing.length > 0) {
+          return {
+            ...prev,
+            teachers: [...(prev.teachers || []), ...missing],
+          };
+        }
+
         return prev;
       });
 
@@ -862,7 +880,7 @@ const WebsiteContentPage: React.FC = () => {
   }, [websiteContent]);
 
   useEffect(() => {
-    if (activeTab === "contact") {
+    if (activeTab === "contact" || activeTab === "teachers") {
       refreshSettings().catch(() => { });
     }
   }, [activeTab]);
