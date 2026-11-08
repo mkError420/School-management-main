@@ -418,7 +418,7 @@ export const HomePage: React.FC = () => {
                   </h4>
                 </div>
                 <span className="text-[10px] font-medium text-gray-500">
-                  {lang === "bn" ? "টিকার (মাউস ধরলে থামবে)" : "Ticker (Hover to pause)"}
+                  {lang === "bn" ? "" : ""}
                 </span>
               </div>
 
@@ -633,7 +633,7 @@ export const HomePage: React.FC = () => {
 
               <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
                 <span className="hidden sm:inline">
-                  {lang === "bn" ? "" : "(Hover notice to pause)"}
+                  {lang === "bn" ? "" : ""}
                 </span>
                 <span className="rounded bg-gray-100 px-2 py-0.5 font-bold text-gray-700">
                   {formatDigits(filteredNotices.length)} {lang === "bn" ? "টি নোটিশ" : "notices"}
