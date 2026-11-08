@@ -384,181 +384,203 @@ export const HomePage: React.FC = () => {
               </Link>
             </div>
 
-            <div className="mt-4 space-y-3 text-sm leading-relaxed text-gray-700">
-              <p>{t(content.aboutText, content.aboutTextEn)}</p>
-            </div>
+            {Boolean(content.aboutText || content.aboutTextEn) && (
+              <div className="mt-4 space-y-3 text-sm leading-relaxed text-gray-700">
+                <p>{t(content.aboutText, content.aboutTextEn)}</p>
+              </div>
+            )}
 
             {/* Mission & Vision Cards */}
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-emerald-100 bg-[#f4f9f6] p-3.5">
-                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
-                  <span>{lang === "bn" ? "আমাদের লক্ষ্য (Mission)" : "Our Mission"}</span>
-                </p>
-                <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.missionText, content.missionTextEn)}</p>
-              </div>
+            {(Boolean(content.missionText || content.missionTextEn) || Boolean(content.visionText || content.visionTextEn)) && (
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {Boolean(content.missionText || content.missionTextEn) && (
+                  <div className="rounded-md border border-emerald-100 bg-[#f4f9f6] p-3.5">
+                    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#006a4e]">
+                      <span>{lang === "bn" ? "আমাদের লক্ষ্য (Mission)" : "Our Mission"}</span>
+                    </p>
+                    <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.missionText, content.missionTextEn)}</p>
+                  </div>
+                )}
 
-              <div className="rounded-md border border-amber-100 bg-[#fefce8] p-3.5">
-                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
-                  <span>{lang === "bn" ? "আমাদের দৃষ্টিভঙ্গি (Vision)" : "Our Vision"}</span>
-                </p>
-                <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.visionText, content.visionTextEn)}</p>
+                {Boolean(content.visionText || content.visionTextEn) && (
+                  <div className="rounded-md border border-amber-100 bg-[#fefce8] p-3.5">
+                    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-800">
+                      <span>{lang === "bn" ? "আমাদের দৃষ্টিভঙ্গি (Vision)" : "Our Vision"}</span>
+                    </p>
+                    <p className="mt-1.5 text-xs leading-5 text-gray-700">{t(content.visionText, content.visionTextEn)}</p>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Stats Ticker (এক নজরে বিদ্যালয়ের পরিসংখ্যান) */}
-            <div className="mt-6 border-t border-[#eaf1ec] pt-5">
-              <div className="mb-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#006a4e]" />
-                  </span>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#006a4e]">
-                    {lang === "bn" ? "এক নজরে বিদ্যালয়ের পরিসংখ্যান" : "School Statistics at a Glance"}
-                  </h4>
+            {(() => {
+              const baseStats = [
+                {
+                  label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
+                  value:
+                    liveCounts && typeof liveCounts.students === "number"
+                      ? formatDigits(liveCounts.students.toLocaleString())
+                      : lang === "bn"
+                        ? (content.studentCount || "")
+                        : (content.studentCountEn || content.studentCount || ""),
+                  icon: Users,
+                  color: "text-[#006a4e] bg-emerald-50",
+                },
+                {
+                  label: lang === "bn" ? "শিক্ষকমণ্ডলী" : "Faculty",
+                  value:
+                    liveCounts && typeof liveCounts.teachers === "number"
+                      ? formatDigits(liveCounts.teachers.toLocaleString())
+                      : lang === "bn"
+                        ? (content.teacherCount || "")
+                        : (content.teacherCountEn || content.teacherCount || ""),
+                  icon: GraduationCap,
+                  color: "text-blue-700 bg-blue-50",
+                },
+                {
+                  label: lang === "bn" ? "কর্মচারীবৃন্দ" : "Staff",
+                  value:
+                    liveCounts && typeof liveCounts.staff === "number"
+                      ? formatDigits(liveCounts.staff.toLocaleString())
+                      : lang === "bn"
+                        ? (content.staffCount || "")
+                        : (content.staffCountEn || content.staffCount || ""),
+                  icon: HeartHandshake,
+                  color: "text-teal-700 bg-teal-50",
+                },
+                {
+                  label: lang === "bn" ? "শ্রেণি কক্ষ" : "Classrooms",
+                  value:
+                    liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
+                      ? formatDigits(liveCounts.classes.toLocaleString())
+                      : lang === "bn"
+                        ? (content.classCount || "")
+                        : (content.classCountEn || content.classCount || ""),
+                  icon: BookOpen,
+                  color: "text-amber-700 bg-amber-50",
+                },
+                {
+                  label: lang === "bn" ? "পাসের হার" : "Pass Rate",
+                  value: lang === "bn" ? (content.passRate || "") : (content.passRateEn || content.passRate || ""),
+                  icon: Award,
+                  color: "text-emerald-700 bg-emerald-50",
+                },
+                {
+                  label: lang === "bn" ? "জিপিএ-৫" : "GPA-5",
+                  value: lang === "bn" ? (content.gpa5Count || "") : (content.gpa5CountEn || content.gpa5Count || ""),
+                  icon: CheckCircle2,
+                  color: "text-purple-700 bg-purple-50",
+                },
+              ].filter((s) => Boolean(s.value && String(s.value).trim() !== ""));
+
+              if (baseStats.length === 0) return null;
+
+              const half = [...baseStats, ...baseStats, ...baseStats];
+              const items = [...half, ...half];
+
+              return (
+                <div className="mt-6 border-t border-[#eaf1ec] pt-5">
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#006a4e]" />
+                      </span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#006a4e]">
+                        {lang === "bn" ? "এক নজরে বিদ্যালয়ের পরিসংখ্যান" : "School Statistics at a Glance"}
+                      </h4>
+                    </div>
+                  </div>
+
+                  {/* Infinite Horizontal News Ticker Viewport */}
+                  <div className="relative overflow-hidden rounded-lg border border-[#e2ece5] bg-[#fbfdfb] p-1.5 shadow-2xs">
+                    {/* Fade edges */}
+                    <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[#fbfdfb] to-transparent" />
+                    <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[#fbfdfb] to-transparent" />
+
+                    <div
+                      className="animate-ticker-horizontal flex gap-2.5 sm:gap-3 items-center py-1"
+                      style={{ "--ticker-h-duration": "35s" } as React.CSSProperties}
+                    >
+                      {items.map((stat, i) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div
+                            key={i}
+                            className="min-w-[130px] sm:min-w-[155px] shrink-0 rounded-lg border border-[#e2ece5] bg-white p-2.5 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
+                          >
+                            <span className={`mx-auto mb-1 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full ${stat.color}`}>
+                              {Icon && <Icon size={13} className="sm:h-3.5 sm:w-3.5" />}
+                            </span>
+                            <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base leading-tight">{stat.value}</p>
+                            <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate mt-0.5">{stat.label}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <span className="text-[10px] font-medium text-gray-500">
-                  {lang === "bn" ? "" : ""}
-                </span>
-              </div>
-
-              {/* Infinite Horizontal News Ticker Viewport */}
-              <div className="relative overflow-hidden rounded-lg border border-[#e2ece5] bg-[#fbfdfb] p-1.5 shadow-2xs">
-                {/* Fade edges */}
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[#fbfdfb] to-transparent" />
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[#fbfdfb] to-transparent" />
-
-                <div
-                  className="animate-ticker-horizontal flex gap-2.5 sm:gap-3 items-center py-1"
-                  style={{ "--ticker-h-duration": "35s" } as React.CSSProperties}
-                >
-                  {(() => {
-                    const baseStats = [
-                      {
-                        label: lang === "bn" ? "মোট শিক্ষার্থী" : "Students",
-                        value:
-                          liveCounts && typeof liveCounts.students === "number"
-                            ? formatDigits(liveCounts.students.toLocaleString())
-                            : lang === "bn"
-                              ? (content.studentCount || "১,৫০০+")
-                              : (content.studentCountEn || "1,500+"),
-                        icon: Users,
-                        color: "text-[#006a4e] bg-emerald-50",
-                      },
-                      {
-                        label: lang === "bn" ? "শিক্ষকমণ্ডলী" : "Faculty",
-                        value:
-                          liveCounts && typeof liveCounts.teachers === "number"
-                            ? formatDigits(liveCounts.teachers.toLocaleString())
-                            : lang === "bn"
-                              ? (content.teacherCount || "৫২")
-                              : (content.teacherCountEn || "52"),
-                        icon: GraduationCap,
-                        color: "text-blue-700 bg-blue-50",
-                      },
-                      {
-                        label: lang === "bn" ? "কর্মচারীবৃন্দ" : "Staff",
-                        value:
-                          liveCounts && typeof liveCounts.staff === "number"
-                            ? formatDigits(liveCounts.staff.toLocaleString())
-                            : lang === "bn"
-                              ? (content.staffCount || "১৬")
-                              : (content.staffCountEn || "16"),
-                        icon: HeartHandshake,
-                        color: "text-teal-700 bg-teal-50",
-                      },
-                      {
-                        label: lang === "bn" ? "শ্রেণি কক্ষ" : "Classrooms",
-                        value:
-                          liveCounts && typeof liveCounts.classes === "number" && liveCounts.classes > 0
-                            ? formatDigits(liveCounts.classes.toLocaleString())
-                            : lang === "bn"
-                              ? (content.classCount || "২৪")
-                              : (content.classCountEn || "24"),
-                        icon: BookOpen,
-                        color: "text-amber-700 bg-amber-50",
-                      },
-                      {
-                        label: lang === "bn" ? "পাসের হার" : "Pass Rate",
-                        value: lang === "bn" ? (content.passRate || "১০০%") : (content.passRateEn || "100%"),
-                        icon: Award,
-                        color: "text-emerald-700 bg-emerald-50",
-                      },
-                      {
-                        label: lang === "bn" ? "জিপিএ-৫" : "GPA-5",
-                        value: lang === "bn" ? (content.gpa5Count || "১২৫+") : (content.gpa5CountEn || "125+"),
-                        icon: CheckCircle2,
-                        color: "text-purple-700 bg-purple-50",
-                      },
-                    ];
-                    const half = [...baseStats, ...baseStats, ...baseStats];
-                    const items = [...half, ...half];
-
-                    return items.map((stat, i) => {
-                      const Icon = stat.icon;
-                      return (
-                        <div
-                          key={i}
-                          className="min-w-[130px] sm:min-w-[155px] shrink-0 rounded-lg border border-[#e2ece5] bg-white p-2.5 text-center shadow-2xs transition hover:border-[#006a4e] hover:shadow-xs"
-                        >
-                          <span className={`mx-auto mb-1 flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-full ${stat.color}`}>
-                            {Icon && <Icon size={13} className="sm:h-3.5 sm:w-3.5" />}
-                          </span>
-                          <p className="text-xs font-bold text-gray-900 sm:text-sm md:text-base leading-tight">{stat.value}</p>
-                          <p className="text-[10px] font-medium text-gray-600 sm:text-[11px] truncate mt-0.5">{stat.label}</p>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </section>
 
           {/* PRINCIPAL'S MESSAGE PREVIEW */}
-          <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
-            <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-[#005a40]">
-                  {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক মহোদয়ের বাণী" : "Headmaster's Message")}
-                </h3>
-              </div>
-              <Link to="/administration" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
-                <span>{lang === "bn" ? "সম্পূর্ণ বাণী পড়ুন" : "Read Full Message"}</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-
-            <div className="mt-5 flex flex-col gap-6 sm:flex-row">
-              <div className="shrink-0 text-center sm:w-44">
-                <div className="relative mx-auto h-40 w-32 overflow-hidden rounded-md border-2 border-[#006a4e] bg-gray-100 shadow-md">
-                  <img
-                    src={content.principalPhoto || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=400"}
-                    alt={t(content.principalName, content.principalNameEn) || "Headmaster"}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/images/avatar.png";
-                    }}
-                  />
+          {Boolean(content.principalMessage || content.principalMessageEn || content.principalName || content.principalNameEn || content.principalPhoto) && (
+            <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
+              <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-[#005a40]">
+                    {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক মহোদয়ের বাণী" : "Headmaster's Message")}
+                  </h3>
                 </div>
-                <h4 className="mt-2 text-sm font-bold text-gray-900">{t(content.principalName, content.principalNameEn) || "Md. Abdur Rahman"}</h4>
-                <p className="text-xs font-semibold text-[#006a4e]">{t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}</p>
-                <p className="text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
+                <Link to="/administration" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
+                  <span>{lang === "bn" ? "সম্পূর্ণ বাণী পড়ুন" : "Read Full Message"}</span>
+                  <ArrowRight size={13} />
+                </Link>
               </div>
 
-              <div className="flex-1">
-                <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f9fbf9] p-4 text-sm leading-relaxed text-gray-800">
-                  <p className="italic line-clamp-5">“{t(content.principalMessage, content.principalMessageEn)}”</p>
+              <div className="mt-5 flex flex-col gap-6 sm:flex-row">
+                <div className="shrink-0 text-center sm:w-44">
+                  {Boolean(content.principalPhoto) && (
+                    <div className="relative mx-auto h-40 w-32 overflow-hidden rounded-md border-2 border-[#006a4e] bg-gray-100 shadow-md">
+                      <img
+                        src={content.principalPhoto}
+                        alt={t(content.principalName, content.principalNameEn) || "Headmaster"}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/images/avatar.png";
+                        }}
+                      />
+                    </div>
+                  )}
+                  {Boolean(content.principalName || content.principalNameEn) && (
+                    <h4 className="mt-2 text-sm font-bold text-gray-900">{t(content.principalName, content.principalNameEn)}</h4>
+                  )}
+                  {Boolean(content.principalTitle || content.principalTitleEn) && (
+                    <p className="text-xs font-semibold text-[#006a4e]">{t(content.principalTitle, content.principalTitleEn)}</p>
+                  )}
+                  {Boolean(content.principalQualification || content.principalQualificationEn) && (
+                    <p className="text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
+                  )}
                 </div>
-                <div className="mt-3 text-right">
-                  <Link to="/administration" className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline">
-                    <span>{lang === "bn" ? "প্রশাসন ও সহকারী প্রধান শিক্ষকের বাণী" : "Administration & Asst. Headmaster Message"}</span>
-                    <ArrowRight size={13} />
-                  </Link>
+
+                <div className="flex-1">
+                  {Boolean(content.principalMessage || content.principalMessageEn) && (
+                    <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f9fbf9] p-4 text-sm leading-relaxed text-gray-800">
+                      <p className="italic line-clamp-5">“{t(content.principalMessage, content.principalMessageEn)}”</p>
+                    </div>
+                  )}
+                  <div className="mt-3 text-right">
+                    <Link to="/administration" className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline">
+                      <span>{lang === "bn" ? "প্রশাসন ও সহকারী প্রধান শিক্ষকের বাণী" : "Administration & Asst. Headmaster Message"}</span>
+                      <ArrowRight size={13} />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* NOTICE BOARD PREVIEW */}
           <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
@@ -882,234 +904,278 @@ export const HomePage: React.FC = () => {
           </section>
 
           {/* STUDY CORNER PREVIEW */}
-          <section className="relative overflow-hidden rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-sm sm:p-7">
-            <div className="flex items-center justify-between border-b border-[#006a4e]/20 pb-3">
-              <div>
-                <span className="rounded bg-[#006a4e] px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
-                  {lang === "bn" ? "পাঠ ও গবেষণা কেন্দ্র" : "Study & Research Pavilion"}
-                </span>
-                <h3 className="mt-2 text-xl font-bold text-blue-950">
-                  {t(content.studyCornerTitle, content.studyCornerTitleEn)}
-                </h3>
-              </div>
-              <Link to="/study-corner" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
-                <span>{lang === "bn" ? "সম্পূর্ণ কর্নার দেখুন" : "Explore Corner"}</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="relative mx-auto h-36 w-32 shrink-0 overflow-hidden rounded-md border-2 border-[#006a4e] bg-white shadow-md sm:mx-0">
-                <img
-                  src={content.studyCornerImage || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600"}
-                  alt="Study Corner"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-
-              <div className="flex-1 space-y-2">
-                <p className="font-serif text-sm font-semibold italic text-blue-900">
-                  {t(content.studyCornerQuote, content.studyCornerQuoteEn)}
-                </p>
-                {(content.studyCornerQuoteAuthor || content.studyCornerQuoteAuthorEn) && (
-                  <p className="text-[11px] font-semibold text-[#006a4e]">
-                    — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn)}
-                  </p>
-                )}
-                <p className="text-xs leading-5 text-gray-700 line-clamp-3">
-                  {t(content.studyCornerText, content.studyCornerTextEn)}
-                </p>
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#006a4e]">
-                    {t(content.studyCornerDays, content.studyCornerDaysEn) || (lang === "bn" ? "সোমবার - শনিবার" : "Monday - Saturday")}
+          {Boolean(content.studyCornerTitle || content.studyCornerTitleEn || content.studyCornerText || content.studyCornerTextEn || content.studyCornerQuote || content.studyCornerQuoteEn) && (
+            <section className="relative overflow-hidden rounded-lg border-2 border-[#006a4e]/30 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-5 shadow-sm sm:p-7">
+              <div className="flex items-center justify-between border-b border-[#006a4e]/20 pb-3">
+                <div>
+                  <span className="rounded bg-[#006a4e] px-2.5 py-1 text-xs font-bold text-white shadow-2xs">
+                    {lang === "bn" ? "পাঠ ও গবেষণা কেন্দ্র" : "Study & Research Pavilion"}
                   </span>
-                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
-                    {t(content.studyCornerHours, content.studyCornerHoursEn) || (lang === "bn" ? "সকাল ৮:০০ - বিকাল ৪:০০" : "8:00 AM - 4:00 PM")}
-                  </span>
-                  <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
-                    {t(content.studyCornerFee, content.studyCornerFeeEn) || (lang === "bn" ? "বিনামূল্যে প্রবেশ" : "Free Admission")}
-                  </span>
+                  <h3 className="mt-2 text-xl font-bold text-blue-950">
+                    {t(content.studyCornerTitle, content.studyCornerTitleEn)}
+                  </h3>
                 </div>
+                <Link to="/study-corner" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
+                  <span>{lang === "bn" ? "সম্পূর্ণ কর্নার দেখুন" : "Explore Corner"}</span>
+                  <ArrowRight size={13} />
+                </Link>
               </div>
-            </div>
-          </section>
 
-          {/* GALLERY PREVIEW */}
-          <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
-            <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xl font-bold text-[#005a40]">
-                  {lang === "bn" ? "বিদ্যালয় ফটো গ্যালারি" : "School Photo Gallery"}
-                </h3>
-              </div>
-              <Link to="/gallery" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
-                <span>{lang === "bn" ? "সকল ছবি দেখুন" : "View All Photos"}</span>
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {(content.gallery || []).slice(0, 6).map((photo) => (
-                <div
-                  key={photo.id}
-                  onClick={() => setPreviewImage(photo)}
-                  className="group relative cursor-pointer overflow-hidden rounded-md border border-[#cbe0d3] bg-gray-100 shadow-2xs"
-                >
-                  <div className="aspect-4/3 w-full overflow-hidden">
+              <div className="mt-4 flex flex-col gap-5 sm:flex-row sm:items-center">
+                {Boolean(content.studyCornerImage) && (
+                  <div className="relative mx-auto h-36 w-32 shrink-0 overflow-hidden rounded-md border-2 border-[#006a4e] bg-white shadow-md sm:mx-0">
                     <img
-                      src={photo.imageUrl}
-                      alt={t(photo.title, photo.titleEn)}
-                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      onError={(e) => {
-                        e.currentTarget.src = "/images/bgimage.jpg";
-                      }}
+                      src={content.studyCornerImage}
+                      alt="Study Corner"
+                      className="h-full w-full object-cover"
                     />
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 text-white">
-                    <span className="rounded bg-[#006a4e] px-1.5 py-0.5 text-[9px] font-bold">
-                      {t(photo.category, photo.categoryEn)}
-                    </span>
-                    <p className="mt-1 line-clamp-1 text-xs font-semibold">{t(photo.title, photo.titleEn)}</p>
-                  </div>
+                )}
+
+                <div className="flex-1 space-y-2">
+                  {Boolean(content.studyCornerQuote || content.studyCornerQuoteEn) && (
+                    <p className="font-serif text-sm font-semibold italic text-blue-900">
+                      {t(content.studyCornerQuote, content.studyCornerQuoteEn)}
+                    </p>
+                  )}
+                  {(content.studyCornerQuoteAuthor || content.studyCornerQuoteAuthorEn) && (
+                    <p className="text-[11px] font-semibold text-[#006a4e]">
+                      — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn)}
+                    </p>
+                  )}
+                  {Boolean(content.studyCornerText || content.studyCornerTextEn) && (
+                    <p className="text-xs leading-5 text-gray-700 line-clamp-3">
+                      {t(content.studyCornerText, content.studyCornerTextEn)}
+                    </p>
+                  )}
+                  {(Boolean(content.studyCornerDays || content.studyCornerDaysEn) ||
+                    Boolean(content.studyCornerHours || content.studyCornerHoursEn) ||
+                    Boolean(content.studyCornerFee || content.studyCornerFeeEn)) && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {Boolean(content.studyCornerDays || content.studyCornerDaysEn) && (
+                        <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-[#006a4e]">
+                          {t(content.studyCornerDays, content.studyCornerDaysEn)}
+                        </span>
+                      )}
+                      {Boolean(content.studyCornerHours || content.studyCornerHoursEn) && (
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                          {t(content.studyCornerHours, content.studyCornerHoursEn)}
+                        </span>
+                      )}
+                      {Boolean(content.studyCornerFee || content.studyCornerFeeEn) && (
+                        <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                          {t(content.studyCornerFee, content.studyCornerFeeEn)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
+
+          {/* GALLERY PREVIEW */}
+          {(content.gallery || []).length > 0 && (
+            <section className="rounded-lg border border-[#dde5df] bg-white p-5 shadow-xs sm:p-7">
+              <div className="flex items-center justify-between border-b border-[#e2ece5] pb-3.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-[#005a40]">
+                    {lang === "bn" ? "বিদ্যালয় ফটো গ্যালারি" : "School Photo Gallery"}
+                  </h3>
+                </div>
+                <Link to="/gallery" className="text-xs font-bold text-[#006a4e] hover:underline flex items-center gap-1">
+                  <span>{lang === "bn" ? "সকল ছবি দেখুন" : "View All Photos"}</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {(content.gallery || []).slice(0, 6).map((photo) => (
+                  <div
+                    key={photo.id}
+                    onClick={() => setPreviewImage(photo)}
+                    className="group relative cursor-pointer overflow-hidden rounded-md border border-[#cbe0d3] bg-gray-100 shadow-2xs"
+                  >
+                    <div className="aspect-4/3 w-full overflow-hidden">
+                      <img
+                        src={photo.imageUrl}
+                        alt={t(photo.title, photo.titleEn)}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        onError={(e) => {
+                          e.currentTarget.src = "/images/bgimage.jpg";
+                        }}
+                      />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 text-white">
+                      <span className="rounded bg-[#006a4e] px-1.5 py-0.5 text-[9px] font-bold">
+                        {t(photo.category, photo.categoryEn)}
+                      </span>
+                      <p className="mt-1 line-clamp-1 text-xs font-semibold">{t(photo.title, photo.titleEn)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
         {/* Right Sidebar */}
         <aside className="space-y-6 lg:col-span-4">
           {/* Managing Committee Card */}
-          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
-            <div className="bg-[#005a40] px-4 py-2.5 text-white flex items-center justify-between">
-              <h4 className="text-sm font-bold">
-                {lang === "bn" ? "সভাপতির বাণী" : "President's Message"}
-              </h4>
-            </div>
-            <div className="p-4 text-center">
-              <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
-                <img
-                  src={content.smcPresidentPhoto || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400"}
-                  alt={t(content.smcPresidentName, content.smcPresidentNameEn) || "President"}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/images/avatar.png";
-                  }}
-                />
+          {Boolean(content.smcPresidentName || content.smcPresidentNameEn || content.smcPresidentMessage || content.smcPresidentMessageEn || content.smcPresidentPhoto) && (
+            <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+              <div className="bg-[#005a40] px-4 py-2.5 text-white flex items-center justify-between">
+                <h4 className="text-sm font-bold">
+                  {lang === "bn" ? "সভাপতির বাণী" : "President's Message"}
+                </h4>
               </div>
-              <h5 className="mt-2 text-sm font-bold text-gray-900">
-                {t(content.smcPresidentName, content.smcPresidentNameEn) || (lang === "bn" ? "প্রফেসর ড. মুহাম্মদ আশরাফুল আলম" : "Prof. Dr. Muhammad Ashraful Alam")}
-              </h5>
-              <p className="text-[11px] font-semibold text-[#006a4e]">
-                {t(content.smcPresidentTitle, content.smcPresidentTitleEn) || (lang === "bn" ? "সভাপতি, ম্যানেজিং কমিটি" : "President, Managing Committee")}
-              </p>
-              {content.smcMembersCount && (
-                <p className="mt-0.5 text-[10px] text-gray-500">
-                  {lang === "bn" ? `কমিটি সদস্য সংখ্যা: ${formatDigits(content.smcMembersCount)}` : `Committee Members: ${content.smcMembersCountEn || content.smcMembersCount}`}
-                </p>
-              )}
-              {content.smcPresidentMessage && (
-                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
-                  <p className="line-clamp-3">“{t(content.smcPresidentMessage, content.smcPresidentMessageEn)}”</p>
+              <div className="p-4 text-center">
+                {Boolean(content.smcPresidentPhoto) && (
+                  <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
+                    <img
+                      src={content.smcPresidentPhoto}
+                      alt={t(content.smcPresidentName, content.smcPresidentNameEn) || "President"}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/avatar.png";
+                      }}
+                    />
+                  </div>
+                )}
+                {Boolean(content.smcPresidentName || content.smcPresidentNameEn) && (
+                  <h5 className="mt-2 text-sm font-bold text-gray-900">
+                    {t(content.smcPresidentName, content.smcPresidentNameEn)}
+                  </h5>
+                )}
+                {Boolean(content.smcPresidentTitle || content.smcPresidentTitleEn) && (
+                  <p className="text-[11px] font-semibold text-[#006a4e]">
+                    {t(content.smcPresidentTitle, content.smcPresidentTitleEn)}
+                  </p>
+                )}
+                {Boolean(content.smcMembersCount) && (
+                  <p className="mt-0.5 text-[10px] text-gray-500">
+                    {lang === "bn" ? `কমিটি সদস্য সংখ্যা: ${formatDigits(content.smcMembersCount)}` : `Committee Members: ${content.smcMembersCountEn || content.smcMembersCount}`}
+                  </p>
+                )}
+                {Boolean(content.smcPresidentMessage || content.smcPresidentMessageEn) && (
+                  <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                    <p className="line-clamp-3">“{t(content.smcPresidentMessage, content.smcPresidentMessageEn)}”</p>
+                  </div>
+                )}
+                <div className="mt-3 border-t border-gray-100 pt-2">
+                  <Link
+                    to="/administration"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                  >
+                    <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
+                    <ArrowRight size={13} />
+                  </Link>
                 </div>
-              )}
-              <div className="mt-3 border-t border-gray-100 pt-2">
-                <Link
-                  to="/administration"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
-                >
-                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
-                  <ArrowRight size={13} />
-                </Link>
               </div>
             </div>
-          </div>
+          )}
           {/* Head Teacher Card */}
-          <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
-            <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
-              <h4 className="text-sm font-bold">
-                {lang === "bn" ? "প্রধান শিক্ষকের বাণী" : "Headmaster's Message"}
-              </h4>
-              <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
-                {t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}
-              </span>
-            </div>
-            <div className="p-4 text-center">
-              <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
-                <img
-                  src={content.principalPhoto || "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&q=80&w=400"}
-                  alt={t(content.principalName, content.principalNameEn) || "Headmaster"}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/images/avatar.png";
-                  }}
-                />
+          {Boolean(content.principalName || content.principalNameEn || content.principalMessage || content.principalMessageEn || content.principalPhoto) && (
+            <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+              <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
+                <h4 className="text-sm font-bold">
+                  {lang === "bn" ? "প্রধান শিক্ষকের বাণী" : "Headmaster's Message"}
+                </h4>
+                {Boolean(content.principalTitle || content.principalTitleEn) && (
+                  <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
+                    {t(content.principalTitle, content.principalTitleEn)}
+                  </span>
+                )}
               </div>
-              <h5 className="mt-2 text-sm font-bold text-gray-900">{t(content.principalName, content.principalNameEn) || "Md. Abdur Rahman"}</h5>
-              <p className="text-[11px] font-semibold text-[#006a4e]">{t(content.principalTitle, content.principalTitleEn) || (lang === "bn" ? "প্রধান শিক্ষক" : "Headmaster")}</p>
-              {content.principalQualification && (
-                <p className="mt-0.5 text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
-              )}
-              {content.principalMessage && (
-                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
-                  <p className="line-clamp-3">“{t(content.principalMessage, content.principalMessageEn)}”</p>
+              <div className="p-4 text-center">
+                {Boolean(content.principalPhoto) && (
+                  <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
+                    <img
+                      src={content.principalPhoto}
+                      alt={t(content.principalName, content.principalNameEn) || "Headmaster"}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/avatar.png";
+                      }}
+                    />
+                  </div>
+                )}
+                {Boolean(content.principalName || content.principalNameEn) && (
+                  <h5 className="mt-2 text-sm font-bold text-gray-900">{t(content.principalName, content.principalNameEn)}</h5>
+                )}
+                {Boolean(content.principalTitle || content.principalTitleEn) && (
+                  <p className="text-[11px] font-semibold text-[#006a4e]">{t(content.principalTitle, content.principalTitleEn)}</p>
+                )}
+                {Boolean(content.principalQualification || content.principalQualificationEn) && (
+                  <p className="mt-0.5 text-[10px] text-gray-500">{t(content.principalQualification, content.principalQualificationEn)}</p>
+                )}
+                {Boolean(content.principalMessage || content.principalMessageEn) && (
+                  <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                    <p className="line-clamp-3">“{t(content.principalMessage, content.principalMessageEn)}”</p>
+                  </div>
+                )}
+                <div className="mt-3 border-t border-gray-100 pt-2">
+                  <Link
+                    to="/administration"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                  >
+                    <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
+                    <ArrowRight size={13} />
+                  </Link>
                 </div>
-              )}
-              <div className="mt-3 border-t border-gray-100 pt-2">
-                <Link
-                  to="/administration"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
-                >
-                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
-                  <ArrowRight size={13} />
-                </Link>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Assistant Headmaster Card */}
-          <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
-            <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
-              <h4 className="text-sm font-bold">
-                {lang === "bn" ? "সহকারী প্রধান শিক্ষকের বাণী" : "Assistant Headmaster's Message"}
-              </h4>
-              <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
-                {t(content.asstPrincipalTitle, content.asstPrincipalTitleEn) || (lang === "bn" ? "সহকারী প্রধান শিক্ষক" : "Assistant Headmaster")}
-              </span>
-            </div>
-            <div className="p-4 text-center">
-              <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
-                <img
-                  src={content.asstPrincipalPhoto || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400"}
-                  alt={t(content.asstPrincipalName, content.asstPrincipalNameEn) || "Assistant Headmaster"}
-                  className="h-full w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/images/avatar.png";
-                  }}
-                />
+          {Boolean(content.asstPrincipalName || content.asstPrincipalNameEn || content.asstPrincipalMessage || content.asstPrincipalMessageEn || content.asstPrincipalPhoto) && (
+            <div className="hidden lg:block overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+              <div className="bg-[#006a4e] px-4 py-2.5 text-white flex items-center justify-between">
+                <h4 className="text-sm font-bold">
+                  {lang === "bn" ? "সহকারী প্রধান শিক্ষকের বাণী" : "Assistant Headmaster's Message"}
+                </h4>
+                {Boolean(content.asstPrincipalTitle || content.asstPrincipalTitleEn) && (
+                  <span className="text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded text-white">
+                    {t(content.asstPrincipalTitle, content.asstPrincipalTitleEn)}
+                  </span>
+                )}
               </div>
-              <h5 className="mt-2 text-sm font-bold text-gray-900">
-                {t(content.asstPrincipalName, content.asstPrincipalNameEn) || (lang === "bn" ? "মুহাম্মদ কামরুল হাসান" : "Muhammad Kamrul Hasan")}
-              </h5>
-              <p className="text-[11px] font-semibold text-[#006a4e]">
-                {t(content.asstPrincipalTitle, content.asstPrincipalTitleEn) || (lang === "bn" ? "সহকারী প্রধান শিক্ষক" : "Assistant Headmaster")}
-              </p>
-              {content.asstPrincipalMessage && (
-                <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
-                  <p className="line-clamp-3">“{t(content.asstPrincipalMessage, content.asstPrincipalMessageEn)}”</p>
+              <div className="p-4 text-center">
+                {Boolean(content.asstPrincipalPhoto) && (
+                  <div className="mx-auto h-32 w-28 overflow-hidden rounded border border-emerald-700 bg-gray-100 shadow-xs">
+                    <img
+                      src={content.asstPrincipalPhoto}
+                      alt={t(content.asstPrincipalName, content.asstPrincipalNameEn) || "Assistant Headmaster"}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/images/avatar.png";
+                      }}
+                    />
+                  </div>
+                )}
+                {Boolean(content.asstPrincipalName || content.asstPrincipalNameEn) && (
+                  <h5 className="mt-2 text-sm font-bold text-gray-900">{t(content.asstPrincipalName, content.asstPrincipalNameEn)}</h5>
+                )}
+                {Boolean(content.asstPrincipalTitle || content.asstPrincipalTitleEn) && (
+                  <p className="text-[11px] font-semibold text-[#006a4e]">{t(content.asstPrincipalTitle, content.asstPrincipalTitleEn)}</p>
+                )}
+                {Boolean(content.asstPrincipalMessage || content.asstPrincipalMessageEn) && (
+                  <div className="mt-2.5 rounded bg-[#f4f8f5] p-2.5 text-left text-[11px] italic leading-relaxed text-gray-700 border-l-2 border-[#006a4e]">
+                    <p className="line-clamp-3">“{t(content.asstPrincipalMessage, content.asstPrincipalMessageEn)}”</p>
+                  </div>
+                )}
+                <div className="mt-3 border-t border-gray-100 pt-2">
+                  <Link
+                    to="/administration"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
+                  >
+                    <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
+                    <ArrowRight size={13} />
+                  </Link>
                 </div>
-              )}
-              <div className="mt-3 border-t border-gray-100 pt-2">
-                <Link
-                  to="/administration"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-[#006a4e] hover:underline"
-                >
-                  <span>{lang === "bn" ? "সম্পূর্ণ পরিচিতি ও বাণী" : "Profile & Message"}</span>
-                  <ArrowRight size={13} />
-                </Link>
               </div>
             </div>
-          </div>
+          )}
 
 
 
@@ -1140,27 +1206,29 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Important Govt Links */}
-          <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
-            <div className="bg-[#006a4e] px-4 py-2.5 text-white">
-              <h4 className="text-sm font-bold">
-                {lang === "bn" ? "গুরুত্বপূর্ণ সরকারি বাতায়ন" : "Government Portals & Portals"}
-              </h4>
+          {(content.quickLinks || []).length > 0 && (
+            <div className="overflow-hidden rounded-lg border border-[#cbe0d3] bg-white shadow-xs">
+              <div className="bg-[#006a4e] px-4 py-2.5 text-white">
+                <h4 className="text-sm font-bold">
+                  {lang === "bn" ? "গুরুত্বপূর্ণ সরকারি বাতায়ন" : "Government Portals & Portals"}
+                </h4>
+              </div>
+              <div className="divide-y divide-gray-100 p-2 text-xs">
+                {(content.quickLinks || []).map((link, i) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 font-medium text-gray-700 transition hover:bg-emerald-50 hover:text-[#006a4e]"
+                  >
+                    <span className="line-clamp-1">{t(link.label, link.labelEn)}</span>
+                    <ExternalLink size={12} className="shrink-0 text-emerald-700" />
+                  </a>
+                ))}
+              </div>
             </div>
-            <div className="divide-y divide-gray-100 p-2 text-xs">
-              {(content.quickLinks || []).map((link, i) => (
-                <a
-                  key={i}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between p-2 font-medium text-gray-700 transition hover:bg-emerald-50 hover:text-[#006a4e]"
-                >
-                  <span className="line-clamp-1">{t(link.label, link.labelEn)}</span>
-                  <ExternalLink size={12} className="shrink-0 text-emerald-700" />
-                </a>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Visitors */}
           <div className="rounded-lg border border-[#dde5df] bg-white p-4 shadow-xs text-center text-xs text-gray-600">

@@ -199,50 +199,64 @@ export const StudyCornerPage: React.FC = () => {
       {/* Intro + Image */}
       <section className="relative overflow-hidden rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-          <div className="relative mx-auto h-56 w-44 shrink-0 overflow-hidden rounded-lg border-2 border-[#006a4e] bg-gray-100 shadow-xl sm:mx-0">
-            <img
-              src={content.studyCornerImage || "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&q=80&w=600"}
-              alt="Study Corner"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "/images/bgimage.jpg";
-              }}
-            />
-            <div className="absolute inset-x-0 bottom-0 bg-[#004d38]/90 py-1 text-center text-[10px] font-bold text-white">
-              {t("জ্ঞানের আলোয় আলোকিত", "Illuminated by Knowledge")}
+          {Boolean(content.studyCornerImage) && (
+            <div className="relative mx-auto h-56 w-44 shrink-0 overflow-hidden rounded-lg border-2 border-[#006a4e] bg-gray-100 shadow-xl sm:mx-0">
+              <img
+                src={content.studyCornerImage}
+                alt="Study Corner"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/images/bgimage.jpg";
+                }}
+              />
+              <div className="absolute inset-x-0 bottom-0 bg-[#004d38]/90 py-1 text-center text-[10px] font-bold text-white">
+                {t("জ্ঞানের আলোয় আলোকিত", "Illuminated by Knowledge")}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex-1 space-y-4">
             {/* Quote */}
-            <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f4f9f6] p-5 shadow-2xs">
-              <p className="font-serif text-lg font-bold italic text-[#004d38] sm:text-xl">
-                {t(content.studyCornerQuote, content.studyCornerQuoteEn) || t("“জ্ঞানই শক্তি। পড়ো এবং নিজেকে আলোকিত করো।”", "“Knowledge is power. Read and enlighten yourself.”")}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-[#006a4e]">
-                — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn) || t("Study Corner, বিদ্যালয় পাঠ কেন্দ্র", "Study Corner, School Study Center")}
-              </p>
-            </div>
-
-            <p className="text-sm leading-relaxed text-gray-700">
-              {t(content.studyCornerText, content.studyCornerTextEn) ||
-                t(
-                  "বিদ্যালয়ের Study Corner হলো শিক্ষার্থীদের জন্য একটি বিশেষ পাঠ ও গবেষণা কেন্দ্র যেখানে রয়েছে সমৃদ্ধ পাঠাগার, ডিজিটাল রিসোর্স, বিজ্ঞান ও গণিতের রেফারেন্স বই, এবং শান্ত পরিবেশে স্ব-অধ্যয়নের সুযোগ। এখানে শিক্ষার্থীরা পাঠ্যক্রমের বাইরেও নানা বিষয়ে জ্ঞান আহরণ করতে পারে।",
-                  "The school's Study Corner is a premier learning and research hub equipped with a rich library, digital resources, reference books in science and mathematics, and serene spaces for self-study."
+            {Boolean(content.studyCornerQuote || content.studyCornerQuoteEn) && (
+              <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f4f9f6] p-5 shadow-2xs">
+                <p className="font-serif text-lg font-bold italic text-[#004d38] sm:text-xl">
+                  {t(content.studyCornerQuote, content.studyCornerQuoteEn)}
+                </p>
+                {Boolean(content.studyCornerQuoteAuthor || content.studyCornerQuoteAuthorEn) && (
+                  <p className="mt-1 text-xs font-semibold text-[#006a4e]">
+                    — {t(content.studyCornerQuoteAuthor, content.studyCornerQuoteAuthorEn)}
+                  </p>
                 )}
-            </p>
+              </div>
+            )}
 
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e]">
-                {t(content.studyCornerDays, content.studyCornerDaysEn) || t("সোমবার - শনিবার", "Monday - Saturday")}
-              </span>
-              <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
-                {formatDigits(t(content.studyCornerHours, content.studyCornerHoursEn)) || t("সকাল ৮:০০ - বিকাল ৪:০০", "8:00 AM - 4:00 PM")}
-              </span>
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
-                {t(content.studyCornerFee, content.studyCornerFeeEn) || t("বিনামূল্যে প্রবেশ", "Free Admission")}
-              </span>
-            </div>
+            {Boolean(content.studyCornerText || content.studyCornerTextEn) && (
+              <p className="text-sm leading-relaxed text-gray-700">
+                {t(content.studyCornerText, content.studyCornerTextEn)}
+              </p>
+            )}
+
+            {(Boolean(content.studyCornerDays || content.studyCornerDaysEn) ||
+              Boolean(content.studyCornerHours || content.studyCornerHoursEn) ||
+              Boolean(content.studyCornerFee || content.studyCornerFeeEn)) && (
+              <div className="flex flex-wrap gap-2">
+                {Boolean(content.studyCornerDays || content.studyCornerDaysEn) && (
+                  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-[#006a4e]">
+                    {t(content.studyCornerDays, content.studyCornerDaysEn)}
+                  </span>
+                )}
+                {Boolean(content.studyCornerHours || content.studyCornerHoursEn) && (
+                  <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
+                    {formatDigits(t(content.studyCornerHours, content.studyCornerHoursEn))}
+                  </span>
+                )}
+                {Boolean(content.studyCornerFee || content.studyCornerFeeEn) && (
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                    {t(content.studyCornerFee, content.studyCornerFeeEn)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>

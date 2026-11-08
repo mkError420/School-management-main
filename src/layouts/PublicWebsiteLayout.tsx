@@ -549,67 +549,85 @@ export const PublicWebsiteLayout: React.FC = () => {
                           : "text-[#006a4e]"
                       }`}
                     >
-                      {t(content.boardName, content.boardNameEn) || "মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড"} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
+                      {Boolean(content.boardName || content.boardNameEn) ? (
+                        <>
+                          {t(content.boardName, content.boardNameEn)} · {lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}
+                        </>
+                      ) : (
+                        <span>{lang === "bn" ? "গণপ্রজাতন্ত্রী বাংলাদেশ সরকার" : "Government of Bangladesh"}</span>
+                      )}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold sm:justify-start">
-                      <span
-                        className={`rounded px-2 py-0.5 ${
-                          isWhiteTextHeader
-                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                            : "bg-emerald-100/90 text-[#005a40]"
-                        }`}
-                      >
-                        {lang === "bn" ? "স্থাপিত:" : "Est:"} {formatDigits(content.establishedYear || "1985")}
-                      </span>
-                      <span
-                        className={`rounded px-2 py-0.5 ${
-                          isWhiteTextHeader
-                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                            : "bg-emerald-100/90 text-[#005a40]"
-                        }`}
-                      >
-                        EIIN: {content.eiin || "123456"}
-                      </span>
-                      <span
-                        className={`rounded px-2 py-0.5 ${
-                          isWhiteTextHeader
-                            ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
-                            : "bg-emerald-100/90 text-[#005a40]"
-                        }`}
-                      >
-                        {lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode || "1001"}
-                      </span>
-                    </div>
+                    {(Boolean(content.establishedYear) || Boolean(content.eiin) || Boolean(content.schoolCode)) && (
+                      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold sm:justify-start">
+                        {Boolean(content.establishedYear) && (
+                          <span
+                            className={`rounded px-2 py-0.5 ${
+                              isWhiteTextHeader
+                                ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                                : "bg-emerald-100/90 text-[#005a40]"
+                            }`}
+                          >
+                            {lang === "bn" ? "স্থাপিত:" : "Est:"} {formatDigits(content.establishedYear)}
+                          </span>
+                        )}
+                        {Boolean(content.eiin) && (
+                          <span
+                            className={`rounded px-2 py-0.5 ${
+                              isWhiteTextHeader
+                                ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                                : "bg-emerald-100/90 text-[#005a40]"
+                            }`}
+                          >
+                            EIIN: {content.eiin}
+                          </span>
+                        )}
+                        {Boolean(content.schoolCode) && (
+                          <span
+                            className={`rounded px-2 py-0.5 ${
+                              isWhiteTextHeader
+                                ? "bg-black/45 text-white border border-white/25 backdrop-blur-xs shadow-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]"
+                                : "bg-emerald-100/90 text-[#005a40]"
+                            }`}
+                          >
+                            {lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </Link>
 
                 <div className="flex items-center gap-3">
                   <div className="hidden text-right lg:block">
                     <SmartBdBadge />
-                    <div
-                      className={`mt-2 flex items-center justify-end gap-2 text-xs font-semibold ${
-                        isWhiteTextHeader
-                          ? "text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] hover:text-emerald-200"
-                          : "text-[#005a40]"
-                      }`}
-                    >
-                      <PhoneCall
-                        size={14}
-                        className={isWhiteTextHeader ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" : "text-[#006a4e]"}
-                      />
-                      <a href={`tel:${content.phone?.replace(/[^\d+]/g, "")}`} className="hover:underline">
-                        {content.phone || "+880 2 1234 5678"}
-                      </a>
-                    </div>
-                    <p
-                      className={`text-[10px] ${
-                        isWhiteTextHeader
-                          ? "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] font-medium"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {content.officeHours || "রবিবার-বৃহস্পতিবার ৯:০০-৪:০০"}
-                    </p>
+                    {Boolean(content.phone) && (
+                      <div
+                        className={`mt-2 flex items-center justify-end gap-2 text-xs font-semibold ${
+                          isWhiteTextHeader
+                            ? "text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] hover:text-emerald-200"
+                            : "text-[#005a40]"
+                        }`}
+                      >
+                        <PhoneCall
+                          size={14}
+                          className={isWhiteTextHeader ? "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" : "text-[#006a4e]"}
+                        />
+                        <a href={`tel:${content.phone?.replace(/[^\d+]/g, "")}`} className="hover:underline">
+                          {content.phone}
+                        </a>
+                      </div>
+                    )}
+                    {Boolean(content.officeHours) && (
+                      <p
+                        className={`text-[10px] ${
+                          isWhiteTextHeader
+                            ? "text-white/95 drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)] font-medium"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {content.officeHours}
+                      </p>
+                    )}
                   </div>
 
                   <button
@@ -837,14 +855,18 @@ export const PublicWebsiteLayout: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-white/80">
-                {activeMotto}. {lang === "bn" ? "সুশৃঙ্খল পাঠদান ও মেধা বিকাশের নির্ভরযোগ্য সরকারি বিদ্যাপীঠ।" : "A reliable government institution committed to disciplined learning and excellence."}
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-[11px] text-emerald-200">
-                <span>EIIN: {content.eiin}</span>
-                <span>·</span>
-                <span>{lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode}</span>
-              </div>
+              {Boolean(activeMotto) && (
+                <p className="mt-3 text-xs leading-relaxed text-white/80">
+                  {activeMotto}. {lang === "bn" ? "সুশৃঙ্খল পাঠদান ও মেধা বিকাশের নির্ভরযোগ্য সরকারি বিদ্যাপীঠ।" : "A reliable government institution committed to disciplined learning and excellence."}
+                </p>
+              )}
+              {(Boolean(content.eiin) || Boolean(content.schoolCode)) && (
+                <div className="mt-3 flex items-center gap-2 text-[11px] text-emerald-200">
+                  {Boolean(content.eiin) && <span>EIIN: {content.eiin}</span>}
+                  {Boolean(content.eiin && content.schoolCode) && <span>·</span>}
+                  {Boolean(content.schoolCode) && <span>{lang === "bn" ? "কোড:" : "Code:"} {content.schoolCode}</span>}
+                </div>
+              )}
             </div>
 
             <div>

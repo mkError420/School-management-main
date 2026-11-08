@@ -42,7 +42,11 @@ export const AboutPage: React.FC = () => {
               {t(content.aboutTitle, content.aboutTitleEn) || t("জ্ঞানচর্চা ও শ্রেষ্ঠত্বের গৌরবময় ঐতিহ্য", "A Glorious Tradition of Knowledge & Excellence")}
             </h2>
             <p className="mt-1 text-xs text-emerald-200 sm:text-sm">
-              {(lang === "en" ? content.schoolName : (content.schoolNameBn || content.schoolName))} · {t("স্থাপিত:", "Est.:")} {formatDigits(content.establishedYear)} · EIIN: {formatDigits(content.eiin)}
+              {[
+                (lang === "en" ? content.schoolName : (content.schoolNameBn || content.schoolName)),
+                content.establishedYear ? `${t("স্থাপিত:", "Est.:")} ${formatDigits(content.establishedYear)}` : "",
+                content.eiin ? `EIIN: ${formatDigits(content.eiin)}` : ""
+              ].filter(Boolean).join(" · ")}
             </p>
           </div>
         </div>
@@ -52,42 +56,58 @@ export const AboutPage: React.FC = () => {
       <div className="grid grid-cols-1 gap-7 lg:grid-cols-12">
         <div className="space-y-7 lg:col-span-8">
           {/* Detailed About & History */}
-          <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
-            <h3 className="text-lg font-bold text-[#005a40] border-b pb-3">
-              {t("আমাদের গৌরবময় পথচলা", "Our Glorious Journey")}
-            </h3>
-            <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-700">
-              <p>{t(content.aboutText, content.aboutTextEn)}</p>
-              <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f9fbf9] p-4 text-gray-800">
-                <p className="font-semibold text-xs text-[#006a4e] uppercase tracking-wider mb-1">
-                  {t("ইতিহাসের সূচনা", "The Beginning")}
-                </p>
-                <p>{t(content.historyText, content.historyTextEn)}</p>
+          {(Boolean(content.aboutText || content.aboutTextEn) ||
+            Boolean(content.historyText || content.historyTextEn) ||
+            Boolean(content.campusOverview || content.campusOverviewEn)) && (
+            <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">
+              <h3 className="text-lg font-bold text-[#005a40] border-b pb-3">
+                {t("আমাদের গৌরবময় পথচলা", "Our Glorious Journey")}
+              </h3>
+              <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-700">
+                {Boolean(content.aboutText || content.aboutTextEn) && (
+                  <p>{t(content.aboutText, content.aboutTextEn)}</p>
+                )}
+                {Boolean(content.historyText || content.historyTextEn) && (
+                  <div className="rounded-md border-l-4 border-[#006a4e] bg-[#f9fbf9] p-4 text-gray-800">
+                    <p className="font-semibold text-xs text-[#006a4e] uppercase tracking-wider mb-1">
+                      {t("ইতিহাসের সূচনা", "The Beginning")}
+                    </p>
+                    <p>{t(content.historyText, content.historyTextEn)}</p>
+                  </div>
+                )}
+                {Boolean(content.campusOverview || content.campusOverviewEn) && (
+                  <p>{t(content.campusOverview, content.campusOverviewEn)}</p>
+                )}
               </div>
-              <p>{t(content.campusOverview, content.campusOverviewEn)}</p>
-            </div>
-          </section>
+            </section>
+          )}
 
           {/* Mission & Vision */}
-          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-lg border border-emerald-200 bg-[#f4f9f6] p-5">
-              <div className="flex items-center gap-2 text-sm font-bold text-[#006a4e]">
-                <h4>{t("আমাদের লক্ষ্য (Mission)", "Our Mission")}</h4>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-gray-700">
-                {t(content.missionText, content.missionTextEn)}
-              </p>
-            </div>
+          {(Boolean(content.missionText || content.missionTextEn) || Boolean(content.visionText || content.visionTextEn)) && (
+            <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {Boolean(content.missionText || content.missionTextEn) && (
+                <div className="rounded-lg border border-emerald-200 bg-[#f4f9f6] p-5">
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#006a4e]">
+                    <h4>{t("আমাদের লক্ষ্য (Mission)", "Our Mission")}</h4>
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-gray-700">
+                    {t(content.missionText, content.missionTextEn)}
+                  </p>
+                </div>
+              )}
 
-            <div className="rounded-lg border border-amber-200 bg-[#fefce8] p-5">
-              <div className="flex items-center gap-2 text-sm font-bold text-amber-900">
-                <h4>{t("আমাদের দৃষ্টিভঙ্গি (Vision)", "Our Vision")}</h4>
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-gray-700">
-                {t(content.visionText, content.visionTextEn)}
-              </p>
-            </div>
-          </section>
+              {Boolean(content.visionText || content.visionTextEn) && (
+                <div className="rounded-lg border border-amber-200 bg-[#fefce8] p-5">
+                  <div className="flex items-center gap-2 text-sm font-bold text-amber-900">
+                    <h4>{t("আমাদের দৃষ্টিভঙ্গি (Vision)", "Our Vision")}</h4>
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-gray-700">
+                    {t(content.visionText, content.visionTextEn)}
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Campus Facilities */}
           <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs">

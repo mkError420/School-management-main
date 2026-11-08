@@ -125,54 +125,66 @@ export const AdministrationPage: React.FC = () => {
         )}
 
         {/* 3. SMC PRESIDENT & MANAGING COMMITTEE */}
-        <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs sm:p-8">
-          <div className="border-b border-[#e2ece5] pb-3.5">
-            <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
-              {t("পরিচালনা পর্ষদ", "Managing Committee")}
-            </span>
-            <h3 className="mt-2 text-xl font-bold text-[#005a40]">
-              {t("ম্যানেজিং কমিটি (SMC) ও সভাপতির বার্তা", "Managing Committee (SMC) & President's Message")}
-            </h3>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-6 sm:flex-row">
-            <div className="shrink-0 text-center sm:w-52">
-              <div className="mx-auto h-44 w-36 overflow-hidden rounded-md border-2 border-amber-600 bg-gray-100 shadow-md">
-                <img
-                  src={content.smcPresidentPhoto || "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400"}
-                  alt={t(content.smcPresidentName, content.smcPresidentNameEn) || "President"}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <h4 className="mt-2 text-base font-bold text-gray-900">
-                {t(content.smcPresidentName, content.smcPresidentNameEn) || t("প্রফেসর ড. আশরাফুল আলম", "Prof. Dr. Ashraful Alam")}
-              </h4>
-              <p className="text-xs font-semibold text-amber-800">
-                {t(content.smcPresidentTitle, content.smcPresidentTitleEn) || t("সভাপতি, ম্যানেজিং কমিটি", "President, Managing Committee")}
-              </p>
-              <p className="text-[11px] text-gray-500 mt-1">
-                {t("কমিটি সদস্য সংখ্যা:", "Committee Members:")} {formatDigits(content.smcMembersCount || "11")} {t("জন", "")}
-              </p>
+        {Boolean(content.smcPresidentName || content.smcPresidentNameEn || content.smcPresidentMessage || content.smcPresidentMessageEn || content.smcPresidentPhoto) && (
+          <section className="rounded-lg border border-[#dde5df] bg-white p-6 shadow-xs sm:p-8">
+            <div className="border-b border-[#e2ece5] pb-3.5">
+              <span className="rounded bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+                {t("পরিচালনা পর্ষদ", "Managing Committee")}
+              </span>
+              <h3 className="mt-2 text-xl font-bold text-[#005a40]">
+                {t("ম্যানেজিং কমিটি (SMC) ও সভাপতির বার্তা", "Managing Committee (SMC) & President's Message")}
+              </h3>
             </div>
 
-            <div className="flex-1 space-y-4 text-sm leading-relaxed text-gray-800">
-              <div className="rounded-md border-l-4 border-amber-600 bg-[#fffdf7] p-5">
-                <p className="italic">“{t(content.smcPresidentMessage, content.smcPresidentMessageEn)}”</p>
+            <div className="mt-6 flex flex-col gap-6 sm:flex-row">
+              <div className="shrink-0 text-center sm:w-52">
+                {Boolean(content.smcPresidentPhoto) && (
+                  <div className="mx-auto h-44 w-36 overflow-hidden rounded-md border-2 border-amber-600 bg-gray-100 shadow-md">
+                    <img
+                      src={content.smcPresidentPhoto}
+                      alt={t(content.smcPresidentName, content.smcPresidentNameEn) || "President"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                {Boolean(content.smcPresidentName || content.smcPresidentNameEn) && (
+                  <h4 className="mt-2 text-base font-bold text-gray-900">
+                    {t(content.smcPresidentName, content.smcPresidentNameEn)}
+                  </h4>
+                )}
+                {Boolean(content.smcPresidentTitle || content.smcPresidentTitleEn) && (
+                  <p className="text-xs font-semibold text-amber-800">
+                    {t(content.smcPresidentTitle, content.smcPresidentTitleEn)}
+                  </p>
+                )}
+                {Boolean(content.smcMembersCount) && (
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    {t("কমিটি সদস্য সংখ্যা:", "Committee Members:")} {formatDigits(content.smcMembersCount)} {t("জন", "")}
+                  </p>
+                )}
               </div>
-              <div className="rounded-md border border-gray-100 bg-gray-50 p-4 text-xs text-gray-700">
-                <p className="font-bold text-gray-900 mb-1">
-                  {t("কমিটির দায়িত্ব ও পরিধি:", "Scope & Responsibilities of the Committee:")}
-                </p>
-                <p>
-                  {t(
-                    "সরকারি বিধিমালা অনুযায়ী শিক্ষক-অভিভাবক সমন্বয়ে গঠিত ম্যানেজিং কমিটি বিদ্যালয়ের সার্বিক অবকাঠামো উন্নয়ন, শিক্ষা কার্যক্রমের তদারকি এবং স্বচ্ছ পরিচালনা নিশ্চিত করে থাকে।",
-                    "Formed under national guidelines comprising educators and guardians, the Managing Committee ensures infrastructure development, academic oversight, and accountable governance."
-                  )}
-                </p>
+
+              <div className="flex-1 space-y-4 text-sm leading-relaxed text-gray-800">
+                {Boolean(content.smcPresidentMessage || content.smcPresidentMessageEn) && (
+                  <div className="rounded-md border-l-4 border-amber-600 bg-[#fffdf7] p-5">
+                    <p className="italic">“{t(content.smcPresidentMessage, content.smcPresidentMessageEn)}”</p>
+                  </div>
+                )}
+                <div className="rounded-md border border-gray-100 bg-gray-50 p-4 text-xs text-gray-700">
+                  <p className="font-bold text-gray-900 mb-1">
+                    {t("কমিটির দায়িত্ব ও পরিধি:", "Scope & Responsibilities of the Committee:")}
+                  </p>
+                  <p>
+                    {t(
+                      "সরকারি বিধিমালা অনুযায়ী শিক্ষক-অভিভাবক সমন্বয়ে গঠিত ম্যানেজিং কমিটি বিদ্যালয়ের সার্বিক অবকাঠামো উন্নয়ন, শিক্ষা কার্যক্রমের তদারকি এবং স্বচ্ছ পরিচালনা নিশ্চিত করে থাকে।",
+                      "Formed under national guidelines comprising educators and guardians, the Managing Committee ensures infrastructure development, academic oversight, and accountable governance."
+                    )}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
     </div>
   );
