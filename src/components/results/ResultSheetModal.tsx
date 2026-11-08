@@ -306,8 +306,6 @@ export const ResultSheetModal: React.FC<ResultSheetModalProps> = ({
                   <p>EIIN: {data.institute.eiin || "—"}</p>
                   {data.institute.phone && <p>{data.institute.phone}</p>}
                 </div>
-                <p className="text-xs font-semibold tracking-widest text-[#006a4e]">গণপ্রজাতন্ত্রী বাংলাদেশ সরকার</p>
-                <p className="mt-0.5 text-[10px] font-semibold tracking-wide text-gray-500">{data.institute.board || "শিক্ষা মন্ত্রণালয়"}</p>
                 <h1 className="text-xl sm:text-3xl font-bold tracking-wide text-gray-900 font-serif mt-1">
                   {data.institute.name}
                 </h1>

@@ -413,9 +413,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
             <h1 className="text-[10px] font-extrabold uppercase tracking-wide opacity-95 leading-tight truncate">
               {schoolNameEn}
             </h1>
-            <p className="text-[7.5px] opacity-85 font-medium mt-0.5 truncate">
-              EIIN: <span className="font-bold">{eiin}</span> • CODE: <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
-            </p>
           </div>
         </div>
 
@@ -532,10 +529,9 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
 
       {/* 3. Footer (Fixed 24px) */}
       <div
-        className={`h-[24px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} px-3.5 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
+        className={`h-[24px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} px-3.5 text-white flex items-center justify-center text-[8px] font-bold tracking-wider text-center`}
       >
-        <span className="truncate max-w-[280px] opacity-90">{address}</span>
-        <span className="font-mono text-amber-200 shrink-0">CR80 (85.6×54mm) • ID: {staffId}</span>
+        <span className="truncate max-w-full opacity-90">{address}</span>
       </div>
     </div>
   );
@@ -567,12 +563,12 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
       <div
         className={`h-[34px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} text-white px-3.5 flex items-center justify-between relative z-10`}
       >
-        <p className="text-[8px] font-bold tracking-widest uppercase text-amber-200">
-          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
-        </p>
-        <h3 className="text-[10.5px] font-black uppercase tracking-tight truncate">
+        <h3 className="text-[11px] font-black uppercase tracking-tight truncate">
           {schoolNameEn}
         </h3>
+        <p className="text-[9px] opacity-90 truncate font-semibold">
+          {schoolNameBn}
+        </p>
       </div>
 
       {/* 2. Body (262px) */}
@@ -700,10 +696,6 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
             <h1 className="text-[10px] font-extrabold uppercase tracking-wide opacity-95 leading-tight truncate">
               {schoolNameEn}
             </h1>
-            <p className="text-[8px] opacity-85 font-medium mt-0.5 truncate">
-              EIIN: <span className="font-bold">{eiin}</span> • CODE:{" "}
-              <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
-            </p>
           </div>
         </div>
 
@@ -838,10 +830,9 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
       </div>
 
       <div
-        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-center text-[7.5px] font-bold tracking-wider text-center`}
       >
-        <span className="truncate max-w-[180px]">{address}</span>
-        <span className="font-mono text-amber-200">CR80 (54mm × 85.6mm) • ID: {staffId}</span>
+        <span className="truncate max-w-full opacity-90">{address}</span>
       </div>
     </div>
   );
@@ -871,15 +862,12 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
       </div>
 
       <div
-        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-4 pb-2 px-3 text-center relative`}
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-3.5 pb-2.5 px-3 text-center relative`}
       >
-        <p className="text-[9px] font-bold tracking-widest uppercase text-amber-200">
-          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
-        </p>
-        <h3 className="text-[12px] font-black uppercase tracking-tight truncate">
+        <h3 className="text-[13px] font-black uppercase tracking-tight truncate">
           {schoolNameEn}
         </h3>
-        <p className="text-[8px] opacity-90 truncate">{schoolNameBn}</p>
+        <p className="text-[9px] opacity-90 truncate mt-0.5">{schoolNameBn}</p>
       </div>
 
       <div className="flex-1 px-4 py-2 flex flex-col justify-between relative z-10 text-[9px] space-y-2">
@@ -952,7 +940,7 @@ export const StaffIdCard: React.FC<StaffIdCardProps> = ({
       <div
         className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white text-center text-[7.5px] font-bold tracking-wider`}
       >
-        <span>PROPERTY OF {schoolNameEn.toUpperCase()} • CR80 (54mm × 85.6mm) • NON-TRANSFERABLE</span>
+        <span>PROPERTY OF {schoolNameEn.toUpperCase()} • NON-TRANSFERABLE</span>
       </div>
     </div>
   );

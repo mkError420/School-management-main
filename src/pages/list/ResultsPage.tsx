@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import FormModal from "@/components/FormModal";
+import Image from "@/components/Image";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
 import { useAccessRole } from "@/context/AuthContext";
@@ -41,6 +42,13 @@ export const ResultsPage: React.FC = () => {
   const [tabulationModalOpen, setTabulationModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [scaleModalOpen, setScaleModalOpen] = useState(false);
+  const [updateModalOpen, setUpdateModalOpen] = useState(false);
+  const [selectedResultToUpdate, setSelectedResultToUpdate] = useState<any>(null);
+
+  const handleOpenUpdateResult = (resultItem: any) => {
+    setSelectedResultToUpdate(resultItem);
+    setUpdateModalOpen(true);
+  };
 
   // Fetch dropdown options once
   useEffect(() => {
@@ -449,7 +457,14 @@ export const ResultsPage: React.FC = () => {
                   <td className="py-3 px-3 text-center">
                     <div className="flex items-center justify-center gap-1.5">
                       {(role === "admin" || role === "teacher") && (
-                        <FormModal table="result" type="update" data={item} onSuccess={fetchResults} />
+                        <button
+                          type="button"
+                          onClick={() => handleOpenUpdateResult(item)}
+                          className="w-7 h-7 flex items-center justify-center rounded-full bg-[#707E94]/80 hover:bg-[#707E94] transition shadow-xs text-white cursor-pointer"
+                          title="Update result · ফলাফল সংশোধন"
+                        >
+                          <Image src="/update.png" alt="update" width={14} height={14} />
+                        </button>
                       )}
                       {role === "admin" && (
                         <FormModal table="result" type="delete" id={item.id} onSuccess={fetchResults} />
@@ -492,13 +507,28 @@ export const ResultsPage: React.FC = () => {
         initialExamId={selectedExam !== "all" ? selectedExam : examsList[0]?.id}
       />
 
-      {/* Bulk Marks Entry Modal */}
+      {/* Bulk Marks Entry / Create Result Modal */}
       <BulkResultEntryModal
         isOpen={bulkModalOpen}
         onClose={() => setBulkModalOpen(false)}
         classes={classesList}
         exams={examsList}
         onSuccess={fetchResults}
+        mode="create"
+      />
+
+      {/* Bangladesh Update Result Modal - Identical to Create Result */}
+      <BulkResultEntryModal
+        isOpen={updateModalOpen}
+        onClose={() => {
+          setUpdateModalOpen(false);
+          setSelectedResultToUpdate(null);
+        }}
+        classes={classesList}
+        exams={examsList}
+        onSuccess={fetchResults}
+        mode="update"
+        editingResult={selectedResultToUpdate}
       />
 
       {/* Bangladesh Grading Scale Modal */}

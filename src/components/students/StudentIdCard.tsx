@@ -284,47 +284,47 @@ export const StudentAuthoritySealStamp: React.FC<{
   size = 46,
   className = "",
 }) => {
-  return (
-    <div
-      className={`relative inline-flex flex-col items-center justify-center select-none rotate-[-6deg] ${className}`}
-      style={{ color: inkColor, width: size, height: size }}
-    >
+    return (
       <div
-        className="w-full h-full rounded-full border-2 border-dashed flex flex-col items-center justify-center p-0.5 text-center relative shadow-xs"
-        style={{ borderColor: inkColor }}
+        className={`relative inline-flex flex-col items-center justify-center select-none rotate-[-6deg] ${className}`}
+        style={{ color: inkColor, width: size, height: size }}
       >
         <div
-          className="absolute inset-0.5 rounded-full border border-dotted opacity-75"
+          className="w-full h-full rounded-full border-2 border-dashed flex flex-col items-center justify-center p-0.5 text-center relative shadow-xs"
           style={{ borderColor: inkColor }}
-        />
-        <span className="text-[6.5px] font-black uppercase tracking-tighter leading-none px-0.5 truncate max-w-[42px]">
-          {schoolName.split(" ")[0]}
-        </span>
-        <div className="my-0.5">
-          <Award size={8} style={{ color: inkColor }} />
+        >
+          <div
+            className="absolute inset-0.5 rounded-full border border-dotted opacity-75"
+            style={{ borderColor: inkColor }}
+          />
+          <span className="text-[6.5px] font-black uppercase tracking-tighter leading-none px-0.5 truncate max-w-[42px]">
+            {schoolName.split(" ")[0]}
+          </span>
+          <div className="my-0.5">
+            <Award size={8} style={{ color: inkColor }} />
+          </div>
+          <span className="text-[6px] font-bold uppercase tracking-widest leading-none">
+            HEADMASTER
+          </span>
+          <span className="text-[5px] opacity-80 leading-none">
+            SEAL & SIGN
+          </span>
         </div>
-        <span className="text-[6px] font-bold uppercase tracking-widest leading-none">
-          HEADMASTER
-        </span>
-        <span className="text-[5px] opacity-80 leading-none">
-          SEAL & SIGN
-        </span>
+        {/* Simulated Ink Handwritten Signature */}
+        <svg
+          viewBox="0 0 100 30"
+          className="w-12 h-5 -mt-3 relative z-10 opacity-90"
+          fill="none"
+          stroke={inkColor}
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M5 20 Q 25 5, 45 18 T 75 12 T 95 10 M 20 25 Q 50 15, 80 22" />
+        </svg>
       </div>
-      {/* Simulated Ink Handwritten Signature */}
-      <svg
-        viewBox="0 0 100 30"
-        className="w-12 h-5 -mt-3 relative z-10 opacity-90"
-        fill="none"
-        stroke={inkColor}
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M5 20 Q 25 5, 45 18 T 75 12 T 95 10 M 20 25 Q 50 15, 80 22" />
-      </svg>
-    </div>
-  );
-};
+    );
+  };
 
 export const StudentIdCard: React.FC<StudentIdCardProps> = ({
   student,
@@ -450,9 +450,6 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
             <h1 className="text-[9.5px] font-extrabold uppercase tracking-wide opacity-95 leading-tight truncate">
               {schoolNameEn}
             </h1>
-            <p className="text-[7.5px] opacity-90 font-medium mt-0.5 truncate">
-              EIIN: <span className="font-bold">{eiin}</span> • CODE: <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
-            </p>
           </div>
         </div>
 
@@ -600,12 +597,9 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
 
       {/* 3. Footer (Fixed 24px) */}
       <div
-        className={`h-[24px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} px-3.5 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
+        className={`h-[24px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} px-3.5 text-white flex items-center justify-center text-[8px] font-bold tracking-wider text-center`}
       >
-        <span className="truncate max-w-[280px] opacity-90">{address}</span>
-        <span className="font-mono text-amber-200 shrink-0">
-          CR80 (85.6×54mm) • ID: {studentId}
-        </span>
+        <span className="truncate max-w-full opacity-90">{address}</span>
       </div>
     </div>
   );
@@ -637,12 +631,12 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
       <div
         className={`h-[34px] shrink-0 bg-gradient-to-r ${currentTheme.headerGrad} text-white px-3.5 flex items-center justify-between relative z-10`}
       >
-        <p className="text-[8px] font-bold tracking-widest uppercase text-amber-200">
-          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
-        </p>
-        <h3 className="text-[10.5px] font-black uppercase tracking-tight truncate">
+        <h3 className="text-[11px] font-black uppercase tracking-tight truncate">
           {schoolNameEn}
         </h3>
+        <p className="text-[9px] opacity-90 truncate font-semibold">
+          {schoolNameBn}
+        </p>
       </div>
 
       {/* 2. Body (262px) */}
@@ -770,10 +764,6 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
             <h1 className="text-[9.5px] font-extrabold uppercase tracking-wide opacity-95 leading-tight truncate">
               {schoolNameEn}
             </h1>
-            <p className="text-[7.5px] opacity-85 font-medium mt-0.5 truncate">
-              EIIN: <span className="font-bold">{eiin}</span> • CODE:{" "}
-              <span className="font-bold">{schoolCode}</span> • ESTD: {establishedYear}
-            </p>
           </div>
         </div>
 
@@ -889,12 +879,9 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
       </div>
 
       <div
-        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-between text-[7.5px] font-bold tracking-wider`}
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white flex items-center justify-center text-[7.5px] font-bold tracking-wider text-center`}
       >
-        <span className="truncate max-w-[180px]">{address}</span>
-        <span className="font-mono text-amber-200">
-          CR80 (54×85.6mm) • ID: {studentId}
-        </span>
+        <span className="truncate max-w-full opacity-90">{address}</span>
       </div>
     </div>
   );
@@ -925,15 +912,12 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
       </div>
 
       <div
-        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-4 pb-2 px-3 text-center relative`}
+        className={`bg-gradient-to-r ${currentTheme.headerGrad} text-white pt-3.5 pb-2.5 px-3 text-center relative`}
       >
-        <p className="text-[9px] font-bold tracking-widest uppercase text-amber-200">
-          গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত
-        </p>
-        <h3 className="text-[12px] font-black uppercase tracking-tight truncate">
+        <h3 className="text-[13px] font-black uppercase tracking-tight truncate">
           {schoolNameEn}
         </h3>
-        <p className="text-[8px] opacity-90 truncate">{schoolNameBn}</p>
+        <p className="text-[9px] opacity-90 truncate mt-0.5">{schoolNameBn}</p>
       </div>
 
       <div className="flex-1 px-4 py-2 flex flex-col justify-between relative z-10 text-[9px] space-y-2">
@@ -1007,7 +991,7 @@ export const StudentIdCard: React.FC<StudentIdCardProps> = ({
         className={`bg-gradient-to-r ${currentTheme.headerGrad} py-1 px-3 text-white text-center text-[7.5px] font-bold tracking-wider`}
       >
         <span>
-          PROPERTY OF {schoolNameEn.toUpperCase()} • CR80 (54mm × 85.6mm) • NON-TRANSFERABLE
+          PROPERTY OF {schoolNameEn.toUpperCase()} • NON-TRANSFERABLE
         </span>
       </div>
     </div>
