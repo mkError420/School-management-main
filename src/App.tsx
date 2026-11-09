@@ -101,6 +101,8 @@ const ThemeRouteSync: React.FC = () => {
       location.pathname.startsWith("/about") ||
       location.pathname.startsWith("/administration") ||
       location.pathname.startsWith("/teachers-list") ||
+      location.pathname.startsWith("/teachers") ||
+      location.pathname.startsWith("/faculty") ||
       location.pathname.startsWith("/notices") ||
       location.pathname.startsWith("/academics") ||
       location.pathname.startsWith("/admission") ||
@@ -133,6 +135,8 @@ const App: React.FC = () => {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/administration" element={<AdministrationPage />} />
           <Route path="/teachers-list" element={<TeachersListPage />} />
+          <Route path="/teachers" element={<TeachersListPage />} />
+          <Route path="/faculty" element={<TeachersListPage />} />
           <Route path="/notices" element={<NoticesPage />} />
           <Route path="/academics" element={<AcademicsPage />} />
           <Route path="/admission" element={<AdmissionPage />} />

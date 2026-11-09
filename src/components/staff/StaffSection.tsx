@@ -42,6 +42,7 @@ import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { generateNextStaffId } from "@/lib/staffIdGenerator";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
+import { syncStaffMemberToWebsite } from "@/lib/staffWebsiteSync";
 import {
   StaffGender,
   StaffMember,
@@ -533,7 +534,10 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
-      // Auto sync website content throughout the application
+      // Dynamically sync newly added staff to Website Content & Frontend Teachers pages
+      try {
+        syncStaffMemberToWebsite(newStaffItem, "create");
+      } catch {}
       refreshSettings().catch(() => {});
       try {
         window.dispatchEvent(new CustomEvent("school-site-settings-updated"));
@@ -655,7 +659,11 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
-      // Auto sync website content throughout the application
+      // Dynamically sync updated staff to Website Content & Frontend Teachers pages
+      try {
+        const editedItem = updated.find((s) => s.id === editItem.id) || { ...editItem, ...payload };
+        syncStaffMemberToWebsite(editedItem, "update");
+      } catch {}
       refreshSettings().catch(() => {});
       try {
         window.dispatchEvent(new CustomEvent("school-site-settings-updated"));
@@ -680,7 +688,10 @@ const StaffSection: React.FC = () => {
       setStaff(updated);
       localStorage.setItem("mk_school_staff_list", JSON.stringify(updated));
 
-      // Auto sync website content throughout the application
+      // Dynamically remove staff from Website Content & Frontend Teachers pages
+      try {
+        syncStaffMemberToWebsite(deleteConfirmItem, "delete");
+      } catch {}
       refreshSettings().catch(() => {});
       try {
         window.dispatchEvent(new CustomEvent("school-site-settings-updated"));

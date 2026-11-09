@@ -89,6 +89,10 @@ import type {
 } from "@/types/site";
 import { DEFAULT_ADMISSION_SEAT_MATRIX, DEFAULT_WEBSITE_CONTENT, isBreakingNewsActive } from "@/types/site";
 import {
+  mergeStaffWithWebsiteTeachers,
+  mapStaffMemberToTeacher,
+} from "@/lib/staffWebsiteSync";
+import {
   autoTranslateWebsiteContent,
   translateBnToEn,
   translateEnToBn,
@@ -522,37 +526,14 @@ const WebsiteContentPage: React.FC = () => {
       const support = staff.filter((s: any) => s.type !== "TEACHING" && s.type !== "ADMINISTRATIVE").length;
       setLiveStaffStats({ total, teaching, admin, support });
 
-      // Auto-sync with live staff directory: if placeholder demo or missing newly added staff
+      // Auto-sync with live staff directory: merge real staff members dynamically
       setDraft((prev) => {
-        const isDefaultPlaceholder =
-          !prev.teachers ||
-          prev.teachers.length === 0 ||
-          (prev.teachers.length === 7 && prev.teachers[0]?.id === "t1" && prev.teachers[6]?.id === "t7");
-        if (isDefaultPlaceholder) {
-          return {
-            ...prev,
-            teachers: mapStaffArrayToTeachers(staff),
-          };
-        }
-
-        // Auto-merge any newly added staff or teacher from directory
-        const existingIds = new Set((prev.teachers || []).map((t) => t.id));
-        const mapped = mapStaffArrayToTeachers(staff);
-        const missing = mapped.filter(
-          (m) =>
-            !existingIds.has(m.id) &&
-            !existingIds.has(m.id.replace(/^stf_/, "")) &&
-            !existingIds.has(`stf_${m.id}`)
-        );
-
-        if (missing.length > 0) {
-          return {
-            ...prev,
-            teachers: [...(prev.teachers || []), ...missing],
-          };
-        }
-
-        return prev;
+        const merged = mergeStaffWithWebsiteTeachers(prev.teachers || [], staff);
+        return {
+          ...prev,
+          teachers: merged,
+          dynamicStaffDirectory: true,
+        };
       });
 
       return staff;
@@ -563,6 +544,24 @@ const WebsiteContentPage: React.FC = () => {
 
   useEffect(() => {
     void loadLiveStaffStats();
+
+    const handleStaffUpdated = (e?: Event) => {
+      void loadLiveStaffStats();
+      const custom = e as CustomEvent<{ staff?: any; teacher?: any; action?: string }>;
+      if (custom?.detail?.staff) {
+        setDraft((prev) => {
+          const merged = mergeStaffWithWebsiteTeachers(prev.teachers || [], [custom.detail.staff]);
+          return { ...prev, teachers: merged, dynamicStaffDirectory: true };
+        });
+      }
+    };
+
+    window.addEventListener("school-staff-updated", handleStaffUpdated);
+    window.addEventListener("school-site-settings-updated", handleStaffUpdated);
+    return () => {
+      window.removeEventListener("school-staff-updated", handleStaffUpdated);
+      window.removeEventListener("school-site-settings-updated", handleStaffUpdated);
+    };
   }, [loadLiveStaffStats]);
 
   // Dynamic Live Announcements from Database (All Announcements section)
@@ -876,14 +875,25 @@ const WebsiteContentPage: React.FC = () => {
   };
 
   useEffect(() => {
-    setDraft(websiteContent);
-  }, [websiteContent]);
+    setDraft((prev) => {
+      if (liveStaffList && liveStaffList.length > 0) {
+        return {
+          ...websiteContent,
+          teachers: mergeStaffWithWebsiteTeachers(websiteContent.teachers || [], liveStaffList),
+        };
+      }
+      return websiteContent;
+    });
+  }, [websiteContent, liveStaffList]);
 
   useEffect(() => {
     if (activeTab === "contact" || activeTab === "teachers") {
       refreshSettings().catch(() => { });
+      if (activeTab === "teachers") {
+        void loadLiveStaffStats();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, loadLiveStaffStats, refreshSettings]);
 
   const handleReloadFromDatabase = async () => {
     setSyncing(true);

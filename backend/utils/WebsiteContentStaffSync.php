@@ -293,23 +293,36 @@ class WebsiteContentStaffSync {
         } catch (Exception $e) {}
 
         try {
-            // 1. Fetch full staff record
+            // 1. Fetch full staff record safely without ONLY_FULL_GROUP_BY issues
             $staff = $db->fetchOne("
                 SELECT 
                     s.id, s.staff_no, s.teacher_id, s.name, s.surname, s.email, s.phone,
-                    s.type, s.designation, s.department, s.gender, s.qualification, s.img, s.status,
-                    GROUP_CONCAT(DISTINCT sub.name SEPARATOR ', ') as subjects_list
+                    s.type, s.designation, s.department, s.gender, s.qualification, s.img, s.status
                 FROM staff s
-                LEFT JOIN teachers t ON (s.teacher_id = t.id OR s.id = t.id)
-                LEFT JOIN teacher_subjects ts ON t.id = ts.teacher_id
-                LEFT JOIN subjects sub ON ts.subject_id = sub.id
                 WHERE s.id = ? OR s.staff_no = ? OR s.teacher_id = ?
-                GROUP BY s.id
+                LIMIT 1
             ", [$staffIdOrNo, $staffIdOrNo, $staffIdOrNo]);
+
+            if ($staff) {
+                $subList = '';
+                $targetTeacherId = !empty($staff['teacher_id']) ? $staff['teacher_id'] : $staff['id'];
+                try {
+                    $subjects = $db->fetchAll(
+                        "SELECT sub.name FROM subjects sub 
+                         INNER JOIN teacher_subjects ts ON sub.id = ts.subject_id 
+                         WHERE ts.teacher_id = ?",
+                        [$targetTeacherId]
+                    );
+                    if (!empty($subjects)) {
+                        $subList = implode(', ', array_column($subjects, 'name'));
+                    }
+                } catch (Exception $e) {}
+                $staff['subjects_list'] = $subList;
+            }
 
             // If not found in staff, check if in teachers table
             if (!$staff) {
-                $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ?", [$staffIdOrNo]);
+                $teacher = $db->fetchOne("SELECT * FROM teachers WHERE id = ? LIMIT 1", [$staffIdOrNo]);
                 if ($teacher) {
                     $subjects = $db->fetchAll(
                         "SELECT sub.name FROM subjects sub 
@@ -381,6 +394,7 @@ class WebsiteContentStaffSync {
             if (!isset($websiteContent['teachers']) || !is_array($websiteContent['teachers'])) {
                 $websiteContent['teachers'] = [];
             }
+            $websiteContent['dynamicStaffDirectory'] = true;
 
             // 4. Locate existing member in teachers array
             $foundIndex = -1;
@@ -413,8 +427,8 @@ class WebsiteContentStaffSync {
                 }
                 $websiteContent['teachers'][$foundIndex] = array_merge($existing, $teacherMember);
             } else {
-                // Add new staff member
-                $websiteContent['teachers'][] = $teacherMember;
+                // Add new staff member to the beginning so newly added staff appears first
+                array_unshift($websiteContent['teachers'], $teacherMember);
             }
 
             // 5. Persist back to site_settings

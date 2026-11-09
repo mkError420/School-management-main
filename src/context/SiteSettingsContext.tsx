@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { DEFAULT_WEBSITE_CONTENT } from "@/types/site";
 import type { SchoolWebsiteContent, ContactSubmission } from "@/types/site";
 import { toEnglishDigits, toBengaliDigits, translateBnToEn, translateEnToBn } from "@/lib/translation";
+import { syncStaffMemberToWebsite } from "@/lib/staffWebsiteSync";
 
 export const CURRENCY_OPTIONS = [
   { symbol: "৳", label: "Bangladeshi Taka (৳)" },
@@ -69,6 +70,7 @@ interface SiteSettingsContextValue {
   saveCurrencySymbol: (symbol: string) => void;
   saveSiteLogo: (fileOrUrl: File | string) => Promise<{ success: boolean; message?: string; logoUrl?: string }>;
   resetSiteLogo: () => Promise<{ success: boolean; message?: string }>;
+  syncStaffMember: (staff: any, action?: "create" | "update" | "delete") => SchoolWebsiteContent;
   refreshSettings: () => Promise<void>;
   refreshLiveCounts: () => Promise<void>;
   refreshVisitorStats: () => Promise<void>;
@@ -111,6 +113,7 @@ const SiteSettingsContext = createContext<SiteSettingsContextValue>({
   saveCurrencySymbol: () => {},
   saveSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
   resetSiteLogo: async () => ({ success: false, message: "Site settings are unavailable." }),
+  syncStaffMember: (staff: any, action?: "create" | "update" | "delete") => syncStaffMemberToWebsite(staff, action),
   refreshSettings: async () => {},
   refreshLiveCounts: async () => {},
   refreshVisitorStats: async () => {},
@@ -602,8 +605,24 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    const handleSync = () => {
+    const handleSync = (e?: Event) => {
       try {
+        const customDetail = (e as CustomEvent)?.detail;
+        if (customDetail?.website_content) {
+          const norm = normalizeContent(customDetail.website_content);
+          setWebsiteContent(norm);
+        } else {
+          const cachedContent = localStorage.getItem(CONTENT_STORAGE_KEY);
+          if (cachedContent) {
+            try {
+              const parsed = JSON.parse(cachedContent);
+              if (parsed && typeof parsed === "object") {
+                const norm = normalizeContent(parsed);
+                setWebsiteContent(norm);
+              }
+            } catch {}
+          }
+        }
         const cachedLogo = localStorage.getItem(LOGO_STORAGE_KEY);
         if (cachedLogo) {
           setSiteLogo(resolveLogoUrl(cachedLogo));
@@ -629,8 +648,17 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     };
 
+    const handleStaffUpdate = (e: Event) => {
+      const custom = e as CustomEvent<{ staff: any; action?: "create" | "update" | "delete" }>;
+      if (custom?.detail?.staff) {
+        const updated = syncStaffMemberToWebsite(custom.detail.staff, custom.detail.action || "create");
+        setWebsiteContent(normalizeContent(updated));
+      }
+    };
+
     window.addEventListener("school-site-settings-updated", handleSync);
     window.addEventListener("school-site-lang-changed", handleSync);
+    window.addEventListener("school-staff-updated", handleStaffUpdate);
     window.addEventListener("school-live-counts-updated", handleLiveCounts);
     window.addEventListener("storage", handleSync);
 
@@ -640,6 +668,7 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("school-site-settings-updated", handleSync);
       window.removeEventListener("school-site-lang-changed", handleSync);
+      window.removeEventListener("school-staff-updated", handleStaffUpdate);
       window.removeEventListener("school-live-counts-updated", handleLiveCounts);
       window.removeEventListener("storage", handleSync);
     };
@@ -852,6 +881,11 @@ export const SiteSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         saveCurrencySymbol,
         saveSiteLogo,
         resetSiteLogo,
+        syncStaffMember: (staff: any, action?: "create" | "update" | "delete") => {
+          const updated = syncStaffMemberToWebsite(staff, action);
+          setWebsiteContent(normalizeContent(updated));
+          return updated;
+        },
         refreshSettings,
         refreshLiveCounts,
         refreshVisitorStats,

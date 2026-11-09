@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { api } from "@/lib/api";
+import { syncStaffMemberToWebsite } from "@/lib/staffWebsiteSync";
 
 type Entity =
   | "teacher" | "student" | "parent" | "subject" | "class" | "lesson"
@@ -385,6 +386,19 @@ const EntityForm: React.FC<EntityFormProps> = ({ entity, type, data, onSuccess }
       }
       if (entity === "announcement") {
         window.dispatchEvent(new Event("school-announcements-updated"));
+      }
+      if (entity === "teacher") {
+        try {
+          const teacherObj = (response as any)?.data || {
+            ...(data || {}),
+            ...values,
+            id: data?.id || (response as any)?.data?.id,
+            type: "TEACHING",
+            designation: "Assistant Teacher",
+            department: "Academic Faculty",
+          };
+          syncStaffMemberToWebsite(teacherObj, type === "create" ? "create" : "update");
+        } catch {}
       }
       onSuccess?.();
     } catch (submitError: unknown) {

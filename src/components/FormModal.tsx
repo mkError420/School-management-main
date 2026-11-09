@@ -3,6 +3,7 @@
 import React, { Suspense, lazy, useState } from "react";
 import Image from "@/components/Image";
 import { api } from "@/lib/api";
+import { syncStaffMemberToWebsite } from "@/lib/staffWebsiteSync";
 
 const EntityForm = lazy(() => import("./forms/EntityForm"));
 
@@ -63,6 +64,11 @@ const FormModal: React.FC<FormModalProps> = ({ table, type, data, id, onSuccess,
     try {
       const res = await api.delete(resourceMap[table], id);
       if (res.success) {
+        if (table === "teacher") {
+          try {
+            syncStaffMemberToWebsite({ id }, "delete");
+          } catch {}
+        }
         setOpen(false);
         onSuccess?.();
       } else {

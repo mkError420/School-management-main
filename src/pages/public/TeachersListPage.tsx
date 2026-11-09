@@ -20,6 +20,11 @@ import { useSiteSettings } from "@/context/SiteSettingsContext";
 import type { SchoolTeacherMember } from "@/types/site";
 import { api } from "@/lib/api";
 import { translateEnToBn } from "@/lib/translation";
+import {
+  mergeStaffWithWebsiteTeachers,
+  mapStaffMemberToTeacher,
+  isPlaceholderDemoTeachers,
+} from "@/lib/staffWebsiteSync";
 
 export const TeachersListPage: React.FC = () => {
   const { websiteContent: content, t, lang, formatDigits } = useSiteSettings();
@@ -67,8 +72,21 @@ export const TeachersListPage: React.FC = () => {
       if (active) setLoadingLive(false);
     });
 
+    const handleUpdated = () => {
+      fetchLiveDirectory().finally(() => {
+        if (active) setLoadingLive(false);
+      });
+    };
+
+    window.addEventListener("school-staff-updated", handleUpdated);
+    window.addEventListener("school-site-settings-updated", handleUpdated);
+    window.addEventListener("storage", handleUpdated);
+
     return () => {
       active = false;
+      window.removeEventListener("school-staff-updated", handleUpdated);
+      window.removeEventListener("school-site-settings-updated", handleUpdated);
+      window.removeEventListener("storage", handleUpdated);
     };
   }, []);
 
@@ -76,75 +94,24 @@ export const TeachersListPage: React.FC = () => {
   const hasWebsiteContentTeachers = Array.isArray(content.teachers) && content.teachers.length > 0;
 
   // Compute merged or dynamic directory
-  // Priority:
-  // 1. Super Admin Dashboard -> Website Content -> ৫. শিক্ষক ও কর্মকর্তা পরিচিতি (Faculty & Staff Directory)
-  // 2. Database Live Staff Directory (liveStaff) fallback if content.teachers is empty
+  // Seamlessly merges Super Admin Website Content with Live Staff Directory
   const allTeachers: SchoolTeacherMember[] = useMemo(() => {
-    // 1. Primary Dynamic Source: Website Content -> শিক্ষক ও কর্মকর্তা পরিচিতি
+    // 1. If we have live staff from database or local directory, merge dynamically
+    if (liveStaff.length > 0) {
+      return mergeStaffWithWebsiteTeachers(content.teachers || [], liveStaff);
+    }
+
+    // 2. If website content has saved faculty members
     if (hasWebsiteContentTeachers) {
       return content.teachers!;
     }
 
-    // 2. Fallback: Database Live Staff Directory
-    const isLiveMode = content.dynamicStaffDirectory !== false;
-
-    if (isLiveMode && liveStaff.length > 0) {
-      const liveMapped: SchoolTeacherMember[] = liveStaff.map((s, idx) => {
-        const firstName = (s.name || "").trim();
-        const surName = (s.surname || "").trim();
-        const fullNameEn = surName ? `${firstName} ${surName}` : firstName;
-        const fullNameBn = translateEnToBn(fullNameEn) || fullNameEn;
-
-        const isTeaching = s.type === "TEACHING";
-        const isAdmin = s.type === "ADMINISTRATIVE";
-        const category: "শিক্ষক" | "প্রশাসন" | "কর্মচারী" = isTeaching
-          ? "শিক্ষক"
-          : isAdmin
-            ? "প্রশাসন"
-            : "কর্মচারী";
-
-        const desigEn =
-          s.designation ||
-          (isTeaching ? "Academic Teacher" : isAdmin ? "Administrative Officer" : "Staff Member");
-        const desigBn = translateEnToBn(desigEn) || desigEn;
-
-        const subjectRaw =
-          s.subjects_list ||
-          (Array.isArray(s.subjects) ? s.subjects.join(", ") : s.subjects) ||
-          s.department ||
-          (isTeaching ? "General" : "Operations");
-        const subjectEn = String(subjectRaw);
-        const subjectBn = translateEnToBn(subjectEn) || subjectEn;
-
-        const qualEn = s.qualification || (isTeaching ? "B.Ed / M.Ed" : "Diploma / Graduate");
-        const qualBn = translateEnToBn(qualEn) || qualEn;
-
-        return {
-          id: s.id ? `stf_${s.id}` : `t_live_${idx + 1}`,
-          name: fullNameBn,
-          nameEn: fullNameEn,
-          designation: desigBn,
-          designationEn: desigEn,
-          subject: subjectBn,
-          subjectEn: subjectEn,
-          qualification: qualBn,
-          qualificationEn: qualEn,
-          phone: s.phone || "",
-          email: s.email || "",
-          photo: s.img || "/images/avatar.png",
-          category,
-        };
-      });
-
-      return liveMapped;
-    }
-
-    if (loadingLive && isLiveMode) {
+    if (loadingLive) {
       return [];
     }
 
     return [];
-  }, [hasWebsiteContentTeachers, content.teachers, content.dynamicStaffDirectory, liveStaff, loadingLive]);
+  }, [hasWebsiteContentTeachers, content.teachers, liveStaff, loadingLive]);
 
   // Separate Leadership (Principal & Vice-Principal) for the TOP ROW
   const { principalLeader, asstPrincipalLeader, otherTeachers } = useMemo(() => {
